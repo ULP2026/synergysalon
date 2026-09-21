@@ -2,14 +2,14 @@
   "cleanUrls": true,
   "redirects": [
     {
-      "source": "/:path*",
+      "source": "/:path(.*)",
       "has": [
         {
           "type": "host",
           "value": "www.synergysalon.com"
         }
       ],
-      "destination": "https://synergysalon.com/:path*",
+      "destination": "https://synergysalon.com/:path",
       "permanent": true
     }
   ]
