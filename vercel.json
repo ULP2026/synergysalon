@@ -11,6 +11,16 @@
       ],
       "destination": "https://synergysalon.com/:path",
       "permanent": true
+    },
+    {
+      "source": "/join",
+      "destination": "https://join.synergysalon.com/",
+      "permanent": false
+    },
+    {
+      "source": "/join/:path(.*)",
+      "destination": "https://join.synergysalon.com/:path",
+      "permanent": false
     }
   ],
   "headers": [
