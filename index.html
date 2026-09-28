@@ -188,9 +188,20 @@
       });
   }
 
+  var wantComplete = false;
+
+  // One timer is shared by the save-as-you-type and the finished booking, and
+  // the last caller used to win. A keystroke landing after the wizard finished
+  // therefore cancelled the completion and sent an ordinary lead instead.
+  // Once a completion is wanted it stays wanted until it has been sent.
   function later(complete) {
+    if (complete) wantComplete = true;
     clearTimeout(timer);
-    timer = setTimeout(function () { send(complete); }, complete ? 0 : 800);
+    timer = setTimeout(function () {
+      var c = wantComplete;
+      wantComplete = false;
+      send(c);
+    }, complete ? 0 : 800);
   }
 
   document.addEventListener('click', function (e) {
