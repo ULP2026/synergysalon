@@ -57,7 +57,7 @@
   ],
   "rewrites": [
     {
-      "source": "/:path((?!api/).*)",
+      "source": "/:path((?!api/|assets/).*)",
       "has": [
         {
           "type": "host",
