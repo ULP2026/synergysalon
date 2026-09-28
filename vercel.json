@@ -13,6 +13,11 @@
       "permanent": false
     },
     {
+      "source": "/book",
+      "destination": "/?book=1",
+      "permanent": false
+    },
+    {
       "source": "/:path(.*)",
       "has": [
         {
