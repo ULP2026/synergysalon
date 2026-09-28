@@ -64,7 +64,13 @@ CREATE TABLE staff_users (
   role          staff_role NOT NULL DEFAULT 'front_desk',
   active        boolean NOT NULL DEFAULT true,
   last_seen_at  timestamptz,
-  created_at    timestamptz NOT NULL DEFAULT now()
+  created_at    timestamptz NOT NULL DEFAULT now(),
+
+  -- Brute-force protection. Kept on the row rather than in memory because
+  -- serverless functions do not share memory: an in-process counter resets
+  -- every cold start, which is to say it protects nothing.
+  failed_attempts integer NOT NULL DEFAULT 0,
+  locked_until    timestamptz
 );
 
 -- Two salons may each employ a Kim with the same personal email address.

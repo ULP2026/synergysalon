@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
+# Staff console and API: signed-in only, nothing here for search engines
+Disallow: /staff
+Disallow: /api/
+
 Sitemap: https://synergysalon.com/sitemap.xml
