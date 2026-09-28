@@ -52,7 +52,7 @@
     },
     {
       "path": "/api/cron/sync",
-      "schedule": "0 * * * *"
+      "schedule": "30 14 * * *"
     }
   ],
   "rewrites": [

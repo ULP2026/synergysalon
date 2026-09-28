@@ -5,6 +5,7 @@
  * only differences here are that an email address is required, because that is
  * where the confirmation goes, and that the normal minimum lead time applies.
  */
+import { drain } from './cron/sync.js';
 import { createBooking } from './_lib/booking.js';
 import { transaction } from './_lib/db.js';
 import { sendConfirmation } from './_lib/email.js';
@@ -31,12 +32,23 @@ export default handler({
       channel: 'online',
     }));
 
-    // The appointment exists. Email is a courtesy on top of it, never a
-    // reason to tell the guest their booking failed.
+    // The appointment exists. Everything after this point is a courtesy on
+    // top of it, never a reason to tell the guest their booking failed.
     try {
       await sendConfirmation(appointment, tenant.timezone);
     } catch (err) {
       console.error('confirmation email failed for', appointment.ref, err);
+    }
+
+    // Push this booking to CENTRO now rather than waiting for the nightly
+    // sweep. The Hobby plan allows one cron run a day, so a queue that only
+    // drains on a schedule would leave the salon's CRM a day behind. The
+    // outbox row is already committed, so a failure here is picked up by the
+    // cron rather than lost.
+    try {
+      await drain(1);
+    } catch (err) {
+      console.error('CENTRO sync deferred for', appointment.ref, err);
     }
 
     return json(res, 201, {
