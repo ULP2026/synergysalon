@@ -23,22 +23,20 @@ if (!url) {
 const rl = createInterface({ input: stdin, output: stdout });
 
 /**
- * Ask for something that should not be left on screen behind someone.
+ * Ask for the password.
  *
- * This goes through the same readline interface as every other question
- * rather than reading stdin directly. Two consumers of stdin at once abort
- * each other, which is exactly what the previous version did: the interface
- * and the raw read fought over the stream and the whole script died with
- * ABORT_ERR before anyone could type a password.
+ * It is shown on screen, and that is a deliberate retreat. Two previous
+ * attempts to hide it both failed in ways that were worse than visibility:
+ * reading stdin directly while readline held it aborted the whole script,
+ * and suppressing readline's echo swallowed the prompt itself, so the next
+ * thing typed was silently taken as the password.
+ *
+ * A prompt that quietly eats your input is a far worse problem than a
+ * password briefly on screen on your own laptop. Anyone who needs it hidden
+ * should use the environment-variable path instead, which never echoes.
  */
 function askSecret(query) {
-  stdout.write(query);
-  const restore = rl._writeToOutput;
-  rl._writeToOutput = () => {};          // swallow the echo of what is typed
-  return rl.question('').finally(() => {
-    rl._writeToOutput = restore;
-    stdout.write('\n');
-  });
+  return rl.question(query);
 }
 
 const client = new pg.Client({
@@ -84,12 +82,22 @@ try {
     process.exit(1);
   }
 
-  const password = scripted
-    ? env.STAFF_PASSWORD
-    : await askSecret(`Password (min ${MIN_PASSWORD_LENGTH} chars): `);
+  let password = env.STAFF_PASSWORD;
   if (!scripted) {
+    console.log('');
+    console.log('  The password is shown as you type it. Clear the screen afterwards,');
+    console.log('  or use the STAFF_PASSWORD route described at the top of this file.');
+    console.log('');
+    password = await askSecret(`Password (min ${MIN_PASSWORD_LENGTH} chars): `);
     const again = await askSecret('Again: ');
-    if (password !== again) { console.error('Those did not match.'); process.exit(1); }
+    if (password !== again) {
+      console.error('Those did not match. Nothing was changed.');
+      process.exit(1);
+    }
+  }
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    console.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    process.exit(1);
   }
 
   const hash = await hashPassword(password);
