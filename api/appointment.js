@@ -12,36 +12,39 @@
  */
 import { DateTime } from 'luxon';
 
-import { SALON_TZ } from './_lib/config.js';
 import { availableSlots } from './_lib/availability.js';
+import { enqueueSync } from './_lib/booking.js';
 import { EXCLUSION_VIOLATION, transaction } from './_lib/db.js';
 import { sendCancellation, sendReschedule } from './_lib/email.js';
 import {
   HttpError, handler, json, readJson, requireId, requireString, tokenMatches,
 } from './_lib/http.js';
+import { tenantForRequest } from './_lib/tenant.js';
 
 const SLOT_TAKEN = 'SLOT_TAKEN';
 
 /**
  * Find the appointment and prove the caller owns it.
  *
- * The lookup is by ref alone and the token compared afterwards in constant
- * time, so a wrong token and an unknown ref are indistinguishable from
- * outside — there is no way to discover which references exist.
+ * The lookup is by reference alone and the token compared afterwards in
+ * constant time, so a wrong token and an unknown reference are
+ * indistinguishable from outside: there is no way to discover which
+ * references exist.
  */
-async function load(client, req, { forUpdate = false } = {}) {
+async function load(client, req, tenant, { forUpdate = false } = {}) {
   const url = new URL(req.url, 'http://localhost');
   const ref = requireString(url.searchParams.get('ref'), 'Reference', { max: 16 }).toUpperCase();
   const token = requireString(url.searchParams.get('t'), 'Token', { max: 64 });
 
   const { rows } = await client.query(
-    `SELECT a.*, s.name AS stylist_name, v.name AS service_name, v.duration_min AS service_duration
+    `SELECT a.*, s.name AS stylist_name, s.slug AS stylist_slug,
+            v.name AS service_name, v.slug AS service_slug
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
-      WHERE a.ref = $1
+      WHERE a.ref = $1 AND a.tenant_id = $2
       ${forUpdate ? 'FOR NO KEY UPDATE OF a' : ''}`,
-    [ref],
+    [ref, tenant.id],
   );
 
   const appt = rows[0];
@@ -56,9 +59,9 @@ function present(appt) {
     ref: appt.ref,
     status: appt.status,
     service: appt.service_name,
-    serviceId: appt.service_id,
+    serviceSlug: appt.service_slug,
     stylist: appt.stylist_name,
-    stylistId: appt.stylist_id,
+    stylistSlug: appt.stylist_slug,
     startsAt: appt.starts_at,
     durationMin: appt.duration_min,
     price: appt.price_cents == null ? null : appt.price_cents / 100,
@@ -73,50 +76,52 @@ function assertChangeable(appt) {
   if (appt.status === 'cancelled') {
     throw new HttpError(409, 'That appointment has already been cancelled.');
   }
-  if (DateTime.fromJSDate(new Date(appt.starts_at)) <= DateTime.now()) {
+  if (new Date(appt.starts_at) <= new Date()) {
     throw new HttpError(409, 'That appointment has already started. Please call the salon.');
   }
 }
 
 export default handler({
   async GET(req, res) {
-    return transaction(async (client) => json(res, 200, present(await load(client, req))));
+    const tenant = await tenantForRequest(req);
+    return transaction(async (client) => json(res, 200, present(await load(client, req, tenant))));
   },
 
   async PATCH(req, res) {
+    const tenant = await tenantForRequest(req);
     const body = await readJson(req);
+
     const requested = DateTime.fromISO(
       requireString(body.start, 'New appointment time', { max: 40 }),
       { setZone: true },
     );
     if (!requested.isValid) throw new HttpError(400, 'That appointment time is not valid.');
-    const startsAt = requested.setZone(SALON_TZ);
+    const startsAt = requested.setZone(tenant.timezone);
     const newStylist = body.stylist && body.stylist !== 'any'
       ? requireId(body.stylist, 'Stylist')
       : null;
 
     const { appt, previousStart } = await transaction(async (client) => {
-      const current = await load(client, req, { forUpdate: true });
+      const current = await load(client, req, tenant, { forUpdate: true });
       assertChangeable(current);
-
-      const stylistId = newStylist ?? current.stylist_id;
 
       // Ignore this booking when checking what is free, or a guest cannot
       // move their own appointment by fifteen minutes.
-      const { days } = await availableSlots(client, {
-        serviceId: current.service_id,
-        stylistId,
+      const { days, stylists } = await availableSlots(client, tenant, {
+        serviceSlug: current.service_slug,
+        stylistSlug: newStylist ?? current.stylist_slug,
         fromDate: startsAt.toISODate(),
         toDate: startsAt.toISODate(),
         excludeAppointmentId: current.id,
       });
 
       const wanted = startsAt.toMillis();
-      const free = days.flatMap((d) => d.slots)
-        .some((s) => DateTime.fromISO(s.start).toMillis() === wanted);
-      if (!free) {
+      const slot = days.flatMap((d) => d.slots)
+        .find((s) => DateTime.fromISO(s.start).toMillis() === wanted);
+      if (!slot) {
         throw new HttpError(409, 'That time is no longer free. Please pick another.', SLOT_TAKEN);
       }
+      const stylistId = slot.stylistIds[0];
 
       try {
         const { rows } = await client.query(
@@ -129,13 +134,19 @@ export default handler({
             RETURNING *`,
           [current.id, startsAt.toISO(), stylistId],
         );
-        const { rows: named } = await client.query(
-          `SELECT s.name AS stylist_name, v.name AS service_name
-             FROM stylists s, services v WHERE s.id = $1 AND v.id = $2`,
-          [stylistId, current.service_id],
-        );
+        await enqueueSync(client, tenant.id, 'appointment.rescheduled', {
+          appointmentId: current.id,
+        });
+
+        const stylist = stylists.find((s) => s.id === stylistId);
         return {
-          appt: { ...rows[0], ...named[0] },
+          appt: {
+            ...rows[0],
+            stylist_name: stylist?.name ?? current.stylist_name,
+            stylist_slug: stylist?.slug ?? current.stylist_slug,
+            service_name: current.service_name,
+            service_slug: current.service_slug,
+          },
           previousStart: current.starts_at,
         };
       } catch (err) {
@@ -147,7 +158,7 @@ export default handler({
     });
 
     try {
-      await sendReschedule(appt, previousStart);
+      await sendReschedule(appt, previousStart, tenant.timezone);
     } catch (err) {
       console.error('reschedule email failed for', appt.ref, err);
     }
@@ -155,8 +166,10 @@ export default handler({
   },
 
   async DELETE(req, res) {
+    const tenant = await tenantForRequest(req);
+
     const appt = await transaction(async (client) => {
-      const current = await load(client, req, { forUpdate: true });
+      const current = await load(client, req, tenant, { forUpdate: true });
       assertChangeable(current);
       const { rows } = await client.query(
         `UPDATE appointments
@@ -165,11 +178,20 @@ export default handler({
           RETURNING *`,
         [current.id],
       );
-      return { ...rows[0], stylist_name: current.stylist_name, service_name: current.service_name };
+      await enqueueSync(client, tenant.id, 'appointment.cancelled', {
+        appointmentId: current.id,
+      });
+      return {
+        ...rows[0],
+        stylist_name: current.stylist_name,
+        stylist_slug: current.stylist_slug,
+        service_name: current.service_name,
+        service_slug: current.service_slug,
+      };
     });
 
     try {
-      await sendCancellation(appt);
+      await sendCancellation(appt, tenant.timezone);
     } catch (err) {
       console.error('cancellation email failed for', appt.ref, err);
     }

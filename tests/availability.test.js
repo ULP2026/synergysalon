@@ -12,9 +12,19 @@ import test from 'node:test';
 import { DateTime } from 'luxon';
 
 import { availableSlots } from '../api/_lib/availability.js';
-import { SALON_TZ } from '../api/_lib/config.js';
+import { DEFAULT_TZ } from '../api/_lib/config.js';
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+const SALON_TZ = DEFAULT_TZ;
+
+const TENANT = {
+  id: '00000000-0000-0000-0000-0000000000aa',
+  slug: 'test',
+  name: 'Test Salon',
+  timezone: SALON_TZ,
+};
+
+const uuid = (n) => `00000000-0000-0000-0000-00000000${String(n).padStart(4, '0')}`;
 
 /**
  * Stands in for a pg client, answering each of the five queries the engine
@@ -23,7 +33,7 @@ const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 function stubClient({
   duration = 60,
   buffer = 15,
-  stylists = [{ id: 'dina', name: 'Dina Lara', title: 'Owner', sort_order: 10 }],
+  stylists = [{ id: uuid(1), slug: 'dina', name: 'Dina Lara', title: 'Owner', sort_order: 10 }],
   weekdays = ALL_DAYS,
   opens = '09:00',
   closes = '17:00',
@@ -35,7 +45,7 @@ function stubClient({
       if (sql.includes('FROM services')) {
         return {
           rows: [{
-            id: 'haircuts', name: 'Haircut', category: 'cuts', blurb: '',
+            id: uuid(99), slug: 'haircuts', name: 'Haircut', category: 'cuts', blurb: '',
             duration_min: duration, buffer_min: buffer, price_cents: null, consult_first: false,
           }],
         };
@@ -66,8 +76,8 @@ function localTimes(day) {
 
 test('offers slots on the configured grid, inside working hours', async () => {
   const date = futureDate();
-  const { days } = await availableSlots(stubClient(), {
-    serviceId: 'haircuts', fromDate: date, toDate: date,
+  const { days } = await availableSlots(stubClient(), TENANT, {
+    serviceSlug: 'haircuts', fromDate: date, toDate: date,
   });
 
   const times = localTimes(days[0]);
@@ -83,14 +93,14 @@ test('a booked appointment removes every slot it overlaps', async () => {
   const from = DateTime.fromISO(`${date}T10:00`, { zone: SALON_TZ });
   const client = stubClient({
     booked: [{
-      stylist_id: 'dina',
+      stylist_id: uuid(1),
       from_ts: from.toJSDate(),
       to_ts: from.plus({ minutes: 75 }).toJSDate(),   // 60 service + 15 buffer
     }],
   });
 
-  const { days } = await availableSlots(client, {
-    serviceId: 'haircuts', fromDate: date, toDate: date,
+  const { days } = await availableSlots(client, TENANT, {
+    serviceSlug: 'haircuts', fromDate: date, toDate: date,
   });
   const times = localTimes(days[0]);
 
@@ -107,16 +117,16 @@ test('the buffer blocks the diary but is not part of the appointment', async () 
   const date = futureDate();
   const from = DateTime.fromISO(`${date}T12:00`, { zone: SALON_TZ });
   const booked = [{
-    stylist_id: 'dina',
+    stylist_id: uuid(1),
     from_ts: from.toJSDate(),
     to_ts: from.plus({ minutes: 60 }).toJSDate(),
   }];
 
-  const withBuffer = await availableSlots(stubClient({ booked, duration: 60, buffer: 15 }), {
-    serviceId: 'haircuts', fromDate: date, toDate: date,
+  const withBuffer = await availableSlots(stubClient({ booked, duration: 60, buffer: 15 }), TENANT, {
+    serviceSlug: 'haircuts', fromDate: date, toDate: date,
   });
-  const withoutBuffer = await availableSlots(stubClient({ booked, duration: 60, buffer: 0 }), {
-    serviceId: 'haircuts', fromDate: date, toDate: date,
+  const withoutBuffer = await availableSlots(stubClient({ booked, duration: 60, buffer: 0 }), TENANT, {
+    serviceSlug: 'haircuts', fromDate: date, toDate: date,
   });
 
   assert.ok(!localTimes(withBuffer.days[0]).includes('11:00'),
@@ -129,8 +139,8 @@ test('a salon-wide closure removes the day for everyone', async () => {
   const date = futureDate();
   const client = stubClient({
     stylists: [
-      { id: 'dina', name: 'Dina', title: '', sort_order: 10 },
-      { id: 'kim', name: 'Kim', title: '', sort_order: 20 },
+      { id: uuid(1), slug: 'dina', name: 'Dina', title: '', sort_order: 10 },
+      { id: uuid(2), slug: 'kim', name: 'Kim', title: '', sort_order: 20 },
     ],
     timeOff: [{
       stylist_id: null,
@@ -139,8 +149,8 @@ test('a salon-wide closure removes the day for everyone', async () => {
     }],
   });
 
-  const { days } = await availableSlots(client, {
-    serviceId: 'haircuts', fromDate: date, toDate: date,
+  const { days } = await availableSlots(client, TENANT, {
+    serviceSlug: 'haircuts', fromDate: date, toDate: date,
   });
   assert.equal(days.length, 0);
 });
@@ -149,18 +159,18 @@ test('one stylist being off does not close the slot for the other', async () => 
   const date = futureDate();
   const client = stubClient({
     stylists: [
-      { id: 'dina', name: 'Dina', title: '', sort_order: 10 },
-      { id: 'kim', name: 'Kim', title: '', sort_order: 20 },
+      { id: uuid(1), slug: 'dina', name: 'Dina', title: '', sort_order: 10 },
+      { id: uuid(2), slug: 'kim', name: 'Kim', title: '', sort_order: 20 },
     ],
     timeOff: [{
-      stylist_id: 'dina',
+      stylist_id: uuid(1),
       from_ts: DateTime.fromISO(`${date}T00:00`, { zone: SALON_TZ }).toJSDate(),
       to_ts: DateTime.fromISO(`${date}T23:59`, { zone: SALON_TZ }).toJSDate(),
     }],
   });
 
-  const { days } = await availableSlots(client, {
-    serviceId: 'haircuts', fromDate: date, toDate: date,
+  const { days } = await availableSlots(client, TENANT, {
+    serviceSlug: 'haircuts', fromDate: date, toDate: date,
   });
   assert.equal(days[0].slots[0].stylists.length, 1);
   assert.equal(days[0].slots[0].stylists[0], 'kim');
@@ -170,8 +180,8 @@ test('closed days produce nothing', async () => {
   // Sunday only in the schema's numbering, then ask for a Monday.
   const monday = DateTime.now().setZone(SALON_TZ).plus({ days: 30 }).startOf('week');
   const client = stubClient({ weekdays: [0] });
-  const { days } = await availableSlots(client, {
-    serviceId: 'haircuts', fromDate: monday.toISODate(), toDate: monday.toISODate(),
+  const { days } = await availableSlots(client, TENANT, {
+    serviceSlug: 'haircuts', fromDate: monday.toISODate(), toDate: monday.toISODate(),
   });
   assert.equal(days.length, 0);
 });
@@ -179,8 +189,8 @@ test('closed days produce nothing', async () => {
 test('minimum lead time hides slots that are too soon', async () => {
   const today = DateTime.now().setZone(SALON_TZ).toISODate();
   const client = stubClient({ opens: '00:00', closes: '23:45' });
-  const { days } = await availableSlots(client, {
-    serviceId: 'haircuts', fromDate: today, toDate: today,
+  const { days } = await availableSlots(client, TENANT, {
+    serviceSlug: 'haircuts', fromDate: today, toDate: today,
   });
 
   const earliest = days.flatMap((d) => d.slots)
@@ -194,8 +204,8 @@ test('minimum lead time hides slots that are too soon', async () => {
 
 test('the past is never offered', async () => {
   const yesterday = DateTime.now().setZone(SALON_TZ).minus({ days: 1 }).toISODate();
-  const { days } = await availableSlots(stubClient(), {
-    serviceId: 'haircuts', fromDate: yesterday, toDate: yesterday,
+  const { days } = await availableSlots(stubClient(), TENANT, {
+    serviceSlug: 'haircuts', fromDate: yesterday, toDate: yesterday,
   });
   assert.equal(days.length, 0);
 });
@@ -204,7 +214,7 @@ test('rescheduling ignores the appointment being moved', async () => {
   const date = futureDate();
   const from = DateTime.fromISO(`${date}T10:00`, { zone: SALON_TZ });
   const booked = [{
-    stylist_id: 'dina',
+    stylist_id: uuid(1),
     from_ts: from.toJSDate(),
     to_ts: from.plus({ minutes: 75 }).toJSDate(),
   }];
@@ -219,11 +229,11 @@ test('rescheduling ignores the appointment being moved', async () => {
     },
   };
 
-  const before = await availableSlots(client, {
-    serviceId: 'haircuts', fromDate: date, toDate: date,
+  const before = await availableSlots(client, TENANT, {
+    serviceSlug: 'haircuts', fromDate: date, toDate: date,
   });
-  const after = await availableSlots(withExclusion, {
-    serviceId: 'haircuts', fromDate: date, toDate: date,
+  const after = await availableSlots(withExclusion, TENANT, {
+    serviceSlug: 'haircuts', fromDate: date, toDate: date,
     excludeAppointmentId: '00000000-0000-0000-0000-000000000001',
   });
 
@@ -235,8 +245,8 @@ test('rescheduling ignores the appointment being moved', async () => {
 test('slots stay on the salon clock across a daylight saving change', async () => {
   // US clocks go back on 1 November 2026; 4 November is firmly after it.
   const client = stubClient();
-  const { days } = await availableSlots(client, {
-    serviceId: 'haircuts', fromDate: '2026-11-04', toDate: '2026-11-04',
+  const { days } = await availableSlots(client, TENANT, {
+    serviceSlug: 'haircuts', fromDate: '2026-11-04', toDate: '2026-11-04',
   });
 
   if (days.length) {

@@ -7,13 +7,16 @@
 import { availableSlots } from './_lib/availability.js';
 import { pool } from './_lib/db.js';
 import { handler, json, requireDate, requireId } from './_lib/http.js';
+import { tenantForRequest } from './_lib/tenant.js';
 
 export default handler({
   async GET(req, res) {
+    const tenant = await tenantForRequest(req);
     const url = new URL(req.url, 'http://localhost');
-    const serviceId = requireId(url.searchParams.get('service'), 'Service');
+
+    const serviceSlug = requireId(url.searchParams.get('service'), 'Service');
     const stylistParam = url.searchParams.get('stylist');
-    const stylistId = stylistParam && stylistParam !== 'any'
+    const stylistSlug = stylistParam && stylistParam !== 'any'
       ? requireId(stylistParam, 'Stylist')
       : null;
 
@@ -22,19 +25,24 @@ export default handler({
 
     const client = await pool().connect();
     try {
-      const { service, stylists, days } = await availableSlots(client, {
-        serviceId, stylistId, fromDate: from, toDate: to,
+      const { service, stylists, days } = await availableSlots(client, tenant, {
+        serviceSlug, stylistSlug, fromDate: from, toDate: to,
       });
       return json(res, 200, {
+        timezone: tenant.timezone,
         service: {
-          id: service.id,
+          slug: service.slug,
           name: service.name,
           durationMin: service.duration_min,
           price: service.price_cents == null ? null : service.price_cents / 100,
           consultFirst: service.consult_first,
         },
-        stylists,
-        days,
+        stylists: stylists.map(({ slug, name, title }) => ({ slug, name, title })),
+        // stylistIds are internal; the public shape carries slugs only.
+        days: days.map((d) => ({
+          date: d.date,
+          slots: d.slots.map(({ start, stylists: who }) => ({ start, stylists: who })),
+        })),
       });
     } finally {
       client.release();

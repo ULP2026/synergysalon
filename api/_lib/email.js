@@ -9,7 +9,7 @@
 import { DateTime } from 'luxon';
 import { Resend } from 'resend';
 
-import { SALON, SALON_TZ, SITE_URL } from './config.js';
+import { DEFAULT_TZ, SALON, SITE_URL } from './config.js';
 
 const FROM = process.env.BOOKING_FROM_EMAIL || 'Synergy Salon <hair@synergysalon.com>';
 
@@ -24,10 +24,14 @@ export function manageUrl(ref, token) {
   return `${SITE_URL}/appointment?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(token)}`;
 }
 
-/** "Wednesday 1 October 2026 at 2:30 PM" — unambiguous, no numeric dates. */
-export function prettyWhen(startsAt) {
+/**
+ * "Wednesday 1 October 2026 at 2:30 PM" -- unambiguous, and never a numeric
+ * date, because 01/10 means two different days either side of the Atlantic.
+ * Always rendered on the salon's clock, not the server's.
+ */
+export function prettyWhen(startsAt, zone = DEFAULT_TZ) {
   return DateTime.fromJSDate(new Date(startsAt))
-    .setZone(SALON_TZ)
+    .setZone(zone)
     .toFormat("cccc d LLLL yyyy 'at' h:mm a");
 }
 
@@ -106,11 +110,11 @@ async function send(to, subject, content) {
   return { sent: true };
 }
 
-function detailRows(appt) {
+function detailRows(appt, zone) {
   const rows = [
     ['Service', appt.service_name],
     ['With', appt.stylist_name],
-    ['When', prettyWhen(appt.starts_at)],
+    ['When', prettyWhen(appt.starts_at, zone)],
     ['Reference', appt.ref],
   ];
   if (appt.price_cents != null) {
@@ -119,42 +123,42 @@ function detailRows(appt) {
   return rows;
 }
 
-export function sendConfirmation(appt) {
-  return send(appt.guest_email, `You are booked in — ${prettyWhen(appt.starts_at)}`, {
+export function sendConfirmation(appt, zone = DEFAULT_TZ) {
+  return send(appt.guest_email, `You are booked in — ${prettyWhen(appt.starts_at, zone)}`, {
     heading: `See you soon, ${appt.guest_name.split(' ')[0]}`,
     intro: 'Your appointment at Synergy Salon is confirmed. Here are the details.',
-    rows: detailRows(appt),
+    rows: detailRows(appt, zone),
     action: { label: 'Reschedule or cancel', href: manageUrl(appt.ref, appt.manage_token) },
     footnote: 'If you need to change anything, use the link above or call us. '
       + 'Please let us know at least 24 hours ahead so we can offer the slot to someone else.',
   });
 }
 
-export function sendReschedule(appt, previousStart) {
-  return send(appt.guest_email, `Moved — you are now booked for ${prettyWhen(appt.starts_at)}`, {
+export function sendReschedule(appt, previousStart, zone = DEFAULT_TZ) {
+  return send(appt.guest_email, `Moved — you are now booked for ${prettyWhen(appt.starts_at, zone)}`, {
     heading: 'Your appointment has moved',
-    intro: `You were booked for ${prettyWhen(previousStart)}. That is now cancelled and `
+    intro: `You were booked for ${prettyWhen(previousStart, zone)}. That is now cancelled and `
       + 'you are booked in at the new time below.',
-    rows: detailRows(appt),
+    rows: detailRows(appt, zone),
     action: { label: 'Reschedule or cancel', href: manageUrl(appt.ref, appt.manage_token) },
   });
 }
 
-export function sendCancellation(appt) {
-  return send(appt.guest_email, `Cancelled — ${prettyWhen(appt.starts_at)}`, {
+export function sendCancellation(appt, zone = DEFAULT_TZ) {
+  return send(appt.guest_email, `Cancelled — ${prettyWhen(appt.starts_at, zone)}`, {
     heading: 'Your appointment is cancelled',
     intro: 'We have cancelled the appointment below and released the slot. '
       + 'We would love to see you another time.',
-    rows: detailRows(appt),
+    rows: detailRows(appt, zone),
     action: { label: 'Book again', href: `${SITE_URL}/book` },
   });
 }
 
-export function sendReminder(appt) {
-  return send(appt.guest_email, `Tomorrow — ${prettyWhen(appt.starts_at)}`, {
+export function sendReminder(appt, zone = DEFAULT_TZ) {
+  return send(appt.guest_email, `Tomorrow — ${prettyWhen(appt.starts_at, zone)}`, {
     heading: 'See you tomorrow',
     intro: 'A quick reminder about your appointment at Synergy Salon.',
-    rows: detailRows(appt),
+    rows: detailRows(appt, zone),
     action: { label: 'Reschedule or cancel', href: manageUrl(appt.ref, appt.manage_token) },
     footnote: 'If you cannot make it, please tell us as soon as you can so we can offer '
       + 'the slot to someone else.',

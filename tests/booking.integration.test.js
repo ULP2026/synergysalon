@@ -17,7 +17,7 @@ import test from 'node:test';
 import { DateTime } from 'luxon';
 import pg from 'pg';
 
-import { SALON_TZ } from '../api/_lib/config.js';
+import { DEFAULT_TZ } from '../api/_lib/config.js';
 
 const url = process.env.DATABASE_URL;
 const skip = url ? false : 'DATABASE_URL is not set';
@@ -29,18 +29,26 @@ const connect = () => new pg.Client({
 });
 
 /** A far-future slot, so it can never collide with real data. */
-const START = DateTime.now().setZone(SALON_TZ).plus({ years: 5 }).startOf('day').set({ hour: 11 });
+const START = DateTime.now().setZone(DEFAULT_TZ).plus({ years: 5 }).startOf('day').set({ hour: 11 });
 
+/**
+ * Inserts against the seeded tenant, resolving stylist and service by slug so
+ * the test does not carry ids that change every time the seed is reloaded.
+ */
 function insert(client, { ref, stylist = 'dina', start = START, minutes = 60 }) {
   return client.query(
     `INSERT INTO appointments (
-       ref, stylist_id, service_id, starts_at, duration_min, buffer_min,
+       tenant_id, ref, stylist_id, service_id, starts_at, duration_min, buffer_min,
        during, guest_name, guest_email, manage_token
-     ) VALUES (
-       $1, $2, 'haircuts', $3, $4, 0,
-       tstzrange($3, $3 + make_interval(mins => $4), '[)'),
-       'Test Guest', 'test@example.com', $5
-     ) RETURNING id`,
+     )
+     SELECT t.id, $1, s.id, v.id, $3, $4, 0,
+            tstzrange($3, $3 + make_interval(mins => $4), '[)'),
+            'Test Guest', 'test@example.com', $5
+       FROM tenants t
+       JOIN stylists s ON s.tenant_id = t.id AND s.slug = $2
+       JOIN services v ON v.tenant_id = t.id AND v.slug = 'haircuts'
+      WHERE t.slug = 'synergy'
+     RETURNING id`,
     [ref, stylist, start.toISO(), minutes, `tok-${ref}`],
   );
 }

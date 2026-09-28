@@ -22,14 +22,17 @@ export default handler({
     const { rows } = await query(
       `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.price_cents,
               a.guest_name, a.guest_email, a.manage_token,
-              s.name AS stylist_name, v.name AS service_name
+              s.name AS stylist_name, v.name AS service_name,
+              t.timezone
          FROM appointments a
          JOIN stylists s ON s.id = a.stylist_id
          JOIN services v ON v.id = a.service_id
+         JOIN tenants t ON t.id = a.tenant_id
         WHERE a.status = 'booked'
           AND a.reminder_sent_at IS NULL
           AND a.starts_at > now()
           AND a.starts_at <= now() + make_interval(hours => $1)
+          AND a.guest_email <> ''
         ORDER BY a.starts_at
         LIMIT 200`,
       [REMINDER_LEAD_HOURS],
@@ -39,7 +42,7 @@ export default handler({
     const failed = [];
     for (const appt of rows) {
       try {
-        await sendReminder(appt);
+        await sendReminder(appt, appt.timezone);
         // Marked only after the provider accepted it, so a failure is retried
         // on the next run rather than silently dropped.
         await query('UPDATE appointments SET reminder_sent_at = now() WHERE id = $1', [appt.id]);

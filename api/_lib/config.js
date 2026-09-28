@@ -3,8 +3,12 @@
  * change without reading the rest of the code.
  */
 
-/** The salon's wall clock. Slots are generated in this zone, stored as UTC. */
-export const SALON_TZ = 'America/New_York';
+/**
+ * Fallback wall clock, used only where no tenant is in hand (a stray cron
+ * row, a test). Real requests take the timezone from tenants.timezone,
+ * because the second salon will not be in Florida.
+ */
+export const DEFAULT_TZ = 'America/New_York';
 
 /** Slots are offered on this grid: 09:00, 09:15, 09:30 ... */
 export const SLOT_STEP_MIN = 15;

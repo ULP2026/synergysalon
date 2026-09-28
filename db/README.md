@@ -1,11 +1,24 @@
 # Booking system
 
-Replaces the embedded GoHighLevel calendar with one the salon owns end to end.
+A diary the salon owns, with two front doors onto one database: guests book
+themselves on the website, and the team books leads in the staff console.
 
 ```
-browser  →  /api/…  (Vercel Functions)  →  Postgres
-                          └→ Resend (confirmation, reschedule, cancel, reminder)
+guest   →  /api/book        ┐
+staff   →  /api/staff/…     ├→  Postgres  ─┬→ Resend  (guest email)
+                            ┘              └→ sync_outbox → CENTRO / GoHighLevel
 ```
+
+**Postgres owns the diary. CENTRO is a mirror.** That is the rule the whole
+design rests on: if anyone also books in GoHighLevel's own calendar, only half
+the appointments are protected and double-booking comes back. GHL's calendar
+must be read-only.
+
+Multi-tenant from the first commit. One salon is the first customer, not the
+only one, and retrofitting `tenant_id` later means touching every table and
+every query. A guest's tenant is resolved from the hostname; a staff user's
+comes from their session, so a signed-in user can only ever act on their own
+salon whatever they send.
 
 The rest of synergysalon.com is still static HTML and is unaffected.
 
@@ -59,7 +72,8 @@ savepoints `book.js` relies on.
 | `RESEND_API_KEY` | yes | [resend.com](https://resend.com) API key. Without it, bookings still work and emails are skipped with a warning |
 | `BOOKING_FROM_EMAIL` | no | Defaults to `Synergy Salon <hair@synergysalon.com>`. The domain must be verified in Resend |
 | `SITE_URL` | no | Defaults to `https://synergysalon.com` |
-| `CRON_SECRET` | no | If set, the reminder endpoint requires it. Vercel sends it automatically |
+| `CRON_SECRET` | no | If set, the cron endpoints require it. Vercel sends it automatically |
+| `DEFAULT_TENANT` | no | Tenant slug to use when the hostname matches nothing. For local work and preview deploys |
 
 **3. Create the tables.** Either paste `schema.sql` then `seed.sql` into the
 Supabase SQL editor, or put the connection string in a local `.env` (which is
@@ -107,6 +121,34 @@ in once Dina supplies the menu.
 **Stylist hours are the salon's hours.** All four stylists are seeded with the
 full opening hours and offering every service. Narrow both as soon as the real
 rotas exist, or "first available" will offer a stylist who is not in that day.
+
+## Staff logins
+
+Not seeded: a password does not belong in a file that lives in git.
+
+```bash
+npm run staff:create
+```
+
+Roles are `owner`, `manager` and `front_desk`. Re-running with an existing
+email resets that person's password and signs out their existing sessions,
+which is what you want when someone is locked out or has left.
+
+Sessions are a random token in an HttpOnly cookie, with only its SHA-256
+stored, so a leaked database backup cannot be replayed as a login. No JWT: a
+session that cannot be revoked is the wrong shape for a shared salon computer.
+
+## Syncing to CENTRO
+
+Writes to GoHighLevel go through `sync_outbox`, never inline with the booking.
+The outbox row is written in the same transaction as the appointment and sent
+afterwards. If GHL is down or its token has expired, the salon still has the
+booking and the push retries with a backoff. Calling the CRM inside the
+booking transaction would mean their outage turns guests away.
+
+Each tenant carries its own `ghl_location_id`, `ghl_token` and
+`ghl_calendar_id`. The token is never returned by any endpoint — the tenant
+loader does not even select it.
 
 ## API
 
