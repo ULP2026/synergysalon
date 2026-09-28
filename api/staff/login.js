@@ -53,11 +53,16 @@ export default handler({
     if (!user || !ok || !user.active) {
       if (user) {
         const attempts = user.failed_attempts + 1;
+        // Every parameter is cast. Postgres cannot resolve make_interval from
+        // an untyped parameter, and without these casts a wrong password
+        // raised a 500 instead of being rejected -- so the lockout never
+        // counted, and the one path that must fail safely was the one that
+        // crashed.
         await query(
           `UPDATE staff_users
-              SET failed_attempts = $2,
-                  locked_until = CASE WHEN $2 >= $3
-                                      THEN now() + make_interval(mins => $4)
+              SET failed_attempts = $2::int,
+                  locked_until = CASE WHEN $2::int >= $3::int
+                                      THEN now() + make_interval(mins => $4::int)
                                       ELSE locked_until END
             WHERE id = $1`,
           [user.id, attempts, MAX_ATTEMPTS, LOCK_MINUTES],

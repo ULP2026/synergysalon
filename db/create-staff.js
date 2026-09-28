@@ -22,22 +22,23 @@ if (!url) {
 
 const rl = createInterface({ input: stdin, output: stdout });
 
-/** Reads without echoing, so a password is not left on screen behind someone. */
-async function secret(prompt) {
-  stdout.write(prompt);
-  const wasRaw = stdin.isRaw;
-  stdin.setRawMode?.(true);
-  let out = '';
-  for await (const chunk of stdin) {
-    const s = chunk.toString('utf8');
-    if (s === '\r' || s === '\n') break;
-    if (s === '\u0003') { stdout.write('\n'); process.exit(130); }
-    if (s === '\u007f' || s === '\b') out = out.slice(0, -1);
-    else out += s;
-  }
-  stdin.setRawMode?.(wasRaw ?? false);
-  stdout.write('\n');
-  return out;
+/**
+ * Ask for something that should not be left on screen behind someone.
+ *
+ * This goes through the same readline interface as every other question
+ * rather than reading stdin directly. Two consumers of stdin at once abort
+ * each other, which is exactly what the previous version did: the interface
+ * and the raw read fought over the stream and the whole script died with
+ * ABORT_ERR before anyone could type a password.
+ */
+function askSecret(query) {
+  stdout.write(query);
+  const restore = rl._writeToOutput;
+  rl._writeToOutput = () => {};          // swallow the echo of what is typed
+  return rl.question('').finally(() => {
+    rl._writeToOutput = restore;
+    stdout.write('\n');
+  });
 }
 
 const client = new pg.Client({
@@ -55,26 +56,41 @@ try {
     process.exit(1);
   }
 
+  // Non-interactive path. Terminals vary in how they hand over stdin, and an
+  // owner locked out of the console at 8am does not want to debug a prompt.
+  // Set all four and the questions are skipped entirely:
+  //   $env:STAFF_NAME='Dina Lara'; $env:STAFF_EMAIL='dina@…'
+  //   $env:STAFF_ROLE='owner';     $env:STAFF_PASSWORD='…'
+  //   npm run staff:create
+  const env = process.env;
+  const scripted = Boolean(env.STAFF_EMAIL && env.STAFF_PASSWORD && env.STAFF_NAME);
+
   console.log('\nSalons:');
   tenants.forEach((t, i) => console.log(`  ${i + 1}. ${t.name} (${t.slug})`));
-  const pick = tenants.length === 1
-    ? '1'
+  const pick = tenants.length === 1 || scripted
+    ? (env.STAFF_SALON || '1')
     : await rl.question(`Which salon? [1-${tenants.length}] `);
   const tenant = tenants[Number(pick || '1') - 1];
   if (!tenant) { console.error('No such salon.'); process.exit(1); }
 
-  const name = (await rl.question('Full name: ')).trim();
-  const email = (await rl.question('Email: ')).trim().toLowerCase();
-  const role = (await rl.question('Role [owner/manager/front_desk] (front_desk): ')).trim()
+  const ask = async (query, fromEnv) => (scripted ? fromEnv : (await rl.question(query)).trim());
+
+  const name = await ask('Full name: ', env.STAFF_NAME);
+  const email = (await ask('Email: ', env.STAFF_EMAIL)).toLowerCase();
+  const role = (await ask('Role [owner/manager/front_desk] (front_desk): ', env.STAFF_ROLE))
     || 'front_desk';
   if (!['owner', 'manager', 'front_desk'].includes(role)) {
     console.error(`"${role}" is not a role.`);
     process.exit(1);
   }
 
-  const password = await secret(`Password (min ${MIN_PASSWORD_LENGTH} chars): `);
-  const again = await secret('Again: ');
-  if (password !== again) { console.error('Those did not match.'); process.exit(1); }
+  const password = scripted
+    ? env.STAFF_PASSWORD
+    : await askSecret(`Password (min ${MIN_PASSWORD_LENGTH} chars): `);
+  if (!scripted) {
+    const again = await askSecret('Again: ');
+    if (password !== again) { console.error('Those did not match.'); process.exit(1); }
+  }
 
   const hash = await hashPassword(password);
 

@@ -172,7 +172,7 @@ async function runOne() {
             SET attempts = $2,
                 last_error = $3,
                 state = $4,
-                next_try_at = now() + make_interval(mins => $5)
+                next_try_at = now() + make_interval(mins => $5::int)
           WHERE id = $1`,
         [job.id, attempts, String(err.message).slice(0, 500),
           giveUp ? 'failed' : 'pending', giveUp ? 0 : backoffMinutes(attempts)],
