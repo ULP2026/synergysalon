@@ -39,6 +39,10 @@ CREATE TABLE tenants (
   -- The public site this tenant answers for, used to resolve which salon a
   -- guest is booking with.
   host      text UNIQUE,
+  -- Where this salon's team signs in. A separate host rather than a path so
+  -- the console can be locked down, branded and linked independently of the
+  -- marketing site -- and so each tenant gets its own front door.
+  app_host  text UNIQUE,
 
   -- CENTRO / GoHighLevel. The token is a private integration token scoped to
   -- this sub-account. It is never returned by any endpoint.

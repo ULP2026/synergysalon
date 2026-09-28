@@ -14,17 +14,24 @@ import { HttpError } from './http.js';
 
 async function bySlug(slug) {
   const { rows } = await query(
-    `SELECT id, slug, name, timezone, host, ghl_location_id, ghl_calendar_id
+    `SELECT id, slug, name, timezone, host, app_host,
+            ghl_location_id, ghl_calendar_id
        FROM tenants WHERE slug = $1 AND active`,
     [slug],
   );
   return rows[0] ?? null;
 }
 
+/**
+ * Matches either the public site or the staff console's own subdomain, so
+ * app.synergysalon.com resolves to the same salon as synergysalon.com without
+ * the console having to say which tenant it means.
+ */
 async function byHost(host) {
   const { rows } = await query(
-    `SELECT id, slug, name, timezone, host, ghl_location_id, ghl_calendar_id
-       FROM tenants WHERE host = $1 AND active`,
+    `SELECT id, slug, name, timezone, host, app_host,
+            ghl_location_id, ghl_calendar_id
+       FROM tenants WHERE (host = $1 OR app_host = $1) AND active`,
     [host],
   );
   return rows[0] ?? null;
@@ -51,7 +58,8 @@ export async function tenantForRequest(req) {
 
 export async function tenantForUser(user) {
   const { rows } = await query(
-    `SELECT id, slug, name, timezone, host, ghl_location_id, ghl_calendar_id
+    `SELECT id, slug, name, timezone, host, app_host,
+            ghl_location_id, ghl_calendar_id
        FROM tenants WHERE id = $1 AND active`,
     [user.tenant_id],
   );
