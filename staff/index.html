@@ -4,274 +4,546 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Synergy Salon — Staff</title>
+<title>Synergy Salon · Staff</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
 <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="/apple-touch-icon.png">
-<!-- The console is the tab a stylist keeps open all day beside the booking
+<!-- The app is the tab the front desk keeps open all day beside the booking
      site. The dark brand indigo is what the phone's address bar and the
-     installed-app splash take, so both read as Synergy rather than as a
-     nameless white page. -->
+     installed-app splash take, so both read as Synergy. -->
 <meta name="theme-color" content="#1e1f5c">
 <style>
-  /* The same two faces the public site loads, from the same files, so the
-     console looks like Synergy rather than like a tool bolted onto it. */
+  /* The same sans the public site loads, from the same file. The condensed
+     display face stays on the marketing site: in a tool it fights the UI. */
   @font-face {
     font-family: 'Geist Variable';
     src: url('/assets/c8304767-0bea-4286-af7c-e4e3a1e5d605.woff2') format('woff2-variations');
     font-weight: 100 900; font-display: swap;
   }
-  @font-face {
-    font-family: 'Anton';
-    src: url('/assets/ed1a36a6-045c-40e2-9f8a-93bcb84a31c4.woff2') format('woff2');
-    font-weight: 400; font-display: swap;
-  }
 
   :root {
-    /* Taken from the live site. Its button class is called "btn-orange" but
-       paints #5560A6 -- a leftover name from the template. The brand is indigo. */
+    color-scheme: dark;
+
+    /* Synergy brand, taken from the live site. */
     --indigo-deep: #1e1f5c;
     --indigo:      #353676;
     --periwinkle:  #5560a6;
+    --peri-hover:  #6470b8;
     --peri-soft:   #b9c0e8;
     --peri-pale:   #e6e8f7;
-    --greige:      #f0edee;
 
-    --bg: var(--greige); --card: #ffffff; --ink: #1a1a1a; --muted: #7785ac;
-    --line: var(--peri-pale); --accent: var(--periwinkle);
-    --accent-strong: var(--indigo); --accent-ink: #ffffff;
-    --warn: #db2b39; --ok: #2f7d4f; --radius: 12px;
+    /* Surfaces: navy page, a brand-indigo sidebar, cards one step lighter. */
+    --bg:      #14153a;
+    --side:    var(--indigo-deep);
+    --card:    #1c1d4a;
+    --raise:   #24255a;
+    --field:   #15163d;
+    --line:    #2c2e63;
+    --line-2:  #3a3c7a;
 
-    --display: 'Anton', Impact, 'Arial Narrow Bold', sans-serif;
-    --body: 'Geist Variable', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #14153a; --card: #1c1d4a; --ink: #f2f3fb; --muted: #9aa4cf;
-      --line: #2c2e63; --accent: #8b97d6; --accent-strong: #b9c0e8;
-      --accent-ink: #14153a; --warn: #ff7480; --ok: #6cc08c; --peri-pale: #2c2e63;
-    }
+    --ink:     #f2f3fb;
+    --muted:   #aab2da;   /* 6.5:1 on cards: readable, never faint */
+    --faint:   #8891c2;
+    --link:    var(--peri-soft);
+    --ok:      #7fcf9c;
+    --warn:    #ff9aa2;
+
+    --radius: 14px;
+    --sans: 'Geist Variable', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+    /* One type scale for all UI chrome. */
+    --fs-xs: .78rem;   /* chips, table headers */
+    --fs-sm: .875rem;  /* meta, table cells */
+    --fs-md: 1rem;     /* body */
+    --fs-lg: 1.125rem; /* card titles */
+    --fs-xl: 1.625rem; /* page titles */
   }
 
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
-    font: 16px/1.55 var(--body); -webkit-font-smoothing: antialiased;
+    font: 400 var(--fs-md)/1.5 var(--sans); -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 72px; }
-  h1 {
-    font-family: var(--display); font-weight: 400; font-size: 1.5rem;
-    letter-spacing: .01em; text-transform: uppercase; margin: 0; line-height: 1.1;
-  }
-  h2 { font-size: 1.05rem; margin: 0 0 14px; }
+  h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -.01em; line-height: 1.2; }
+  h1 { font-size: var(--fs-xl); }
+  h2 { font-size: var(--fs-lg); }
+  a { color: var(--link); text-underline-offset: 3px; }
+  a:hover { color: #fff; }
   .muted { color: var(--muted); }
-  .small { font-size: .86rem; }
-  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .grow { flex: 1 1 200px; }
+  .small { font-size: var(--fs-sm); }
   .hidden { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+  /* Visible, consistent focus everywhere. */
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid var(--peri-soft); outline-offset: 2px; border-radius: 10px; }
+
+  .ic {
+    width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
+    stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* ───────────── controls ───────────── */
   button, input, select, textarea { font: inherit; color: inherit; }
   input, select, textarea {
-    width: 100%; padding: 10px 12px; border: 1px solid var(--line);
-    border-radius: 9px; background: var(--card);
+    width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--line-2);
+    border-radius: 10px; background: var(--field); color: var(--ink);
   }
-  textarea { min-height: 70px; resize: vertical; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  label { display: block; margin: 0 0 12px; }
-  label > span {
-    display: block; margin-bottom: 5px; font-size: .78rem; color: var(--muted);
-    text-transform: uppercase; letter-spacing: .06em;
+  textarea { height: auto; min-height: 76px; padding: 10px 12px; resize: vertical; }
+  input::placeholder, textarea::placeholder { color: var(--faint); }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--peri-soft); outline-offset: 1px; border-color: transparent;
   }
+  label { display: block; margin: 0 0 14px; }
+  label > span { display: block; margin-bottom: 6px; font-size: var(--fs-sm); color: var(--muted); font-weight: 500; }
 
   .btn {
-    padding: 10px 18px; border: 0; border-radius: 999px; cursor: pointer;
-    background: var(--accent); color: var(--accent-ink); font-weight: 600;
-    white-space: nowrap; transition: background .15s ease;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 42px; padding: 0 18px; border: 1px solid transparent; border-radius: 999px;
+    background: var(--periwinkle); color: #fff; font-weight: 600; font-size: .95rem;
+    white-space: nowrap; cursor: pointer; text-decoration: none;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
   }
-  .btn:hover:not(:disabled) { background: var(--accent-strong); }
+  .btn:hover:not(:disabled) { background: var(--peri-hover); color: #fff; }
   .btn:disabled { opacity: .55; cursor: default; }
-  .btn.quiet { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
-  .btn.quiet:hover { background: var(--peri-pale); color: var(--indigo); }
-  .btn.tiny { padding: 5px 12px; font-size: .82rem; }
-  .btn.danger { background: transparent; color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); font-weight: 500; }
-  .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--warn) 12%, transparent); }
-
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
-  .brandbar {
-    background: var(--indigo-deep); border-radius: var(--radius) var(--radius) 0 0;
-    padding: 18px 20px; margin: -20px -20px 20px;
+  .btn .ic { width: 18px; height: 18px; }
+  .btn.quiet { background: transparent; color: var(--ink); border-color: var(--line-2); font-weight: 500; }
+  .btn.quiet:hover:not(:disabled) { background: var(--raise); }
+  .btn.sm { height: 34px; padding: 0 14px; font-size: var(--fs-sm); }
+  .btn.block { width: 100%; }
+  .iconbtn {
+    display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0;
+    border: 1px solid transparent; border-radius: 10px; background: transparent;
+    color: var(--muted); cursor: pointer;
   }
-  .brandbar img { display: block; height: 38px; width: auto; }
-  .markchip { display: inline-block; background: var(--indigo-deep); border-radius: 8px; padding: 7px 11px; }
-  .markchip img { display: block; height: 24px; width: auto; }
+  .iconbtn:hover:not(:disabled) { background: var(--raise); color: var(--ink); }
+  .iconbtn.lg { width: 42px; height: 42px; border-color: var(--line-2); border-radius: 999px; }
 
-  .login { max-width: 420px; margin: 8vh auto 0; }
-  .login .sub { margin: 0 0 22px; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .1em; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .card.fill { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+
+  /* Notes: info is periwinkle, trouble is soft red, success is green. */
   .note {
-    padding: 10px 12px; border-radius: 9px; margin-bottom: 14px; font-size: .9rem;
-    background: color-mix(in srgb, var(--accent) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 11px 14px; border-radius: 10px; margin-bottom: 16px; font-size: var(--fs-sm);
+    background: color-mix(in srgb, var(--periwinkle) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--periwinkle) 45%, transparent); color: var(--peri-pale);
   }
-  .note.bad {
-    background: color-mix(in srgb, var(--warn) 10%, transparent);
-    border-color: color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn);
-  }
-  .note.good {
-    background: color-mix(in srgb, var(--ok) 12%, transparent);
-    border-color: color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok);
-  }
+  .note.bad { background: color-mix(in srgb, var(--warn) 10%, transparent); border-color: color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn); }
+  .note.good { background: color-mix(in srgb, var(--ok) 10%, transparent); border-color: color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
 
-  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-  .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
-  .tab {
-    padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line);
-    background: transparent; cursor: pointer; font-weight: 500; color: var(--muted);
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px;
+    border-radius: 999px; font-size: var(--fs-xs); font-weight: 500; white-space: nowrap;
+    border: 1px solid var(--line-2); color: var(--muted); background: transparent;
   }
-  .tab[aria-selected="true"] { background: var(--indigo-deep); border-color: var(--indigo-deep); color: #fff; }
-  .badge {
-    display: inline-block; min-width: 19px; padding: 1px 6px; margin-left: 7px;
-    border-radius: 999px; background: var(--warn); color: #fff;
-    font-size: .72rem; font-weight: 700; text-align: center;
-  }
+  .chip.info { color: var(--peri-soft); border-color: color-mix(in srgb, var(--peri-soft) 35%, transparent); background: color-mix(in srgb, var(--periwinkle) 16%, transparent); }
+  .chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+  .chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  .chip .ic { width: 13px; height: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 
-  .scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
-  table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+  /* Loading placeholders instead of a blank "Loading…" flash. */
+  .sk {
+    display: block; height: 14px; border-radius: 7px;
+    background: linear-gradient(90deg, var(--raise) 0%, #2d2f69 50%, var(--raise) 100%);
+    background-size: 200% 100%; animation: sk 1.6s ease-in-out infinite;
+  }
+  @keyframes sk { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+  @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+  .sk-rows { display: grid; gap: 18px; padding: 8px 0; }
+  .sk-row { display: grid; grid-template-columns: 90px 1fr 120px; gap: 18px; align-items: center; }
+
+  /* Friendly empty states that fill the pane rather than leaving a hole. */
+  .empty {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 48px 16px; text-align: center; min-height: 240px;
+  }
+  .empty .bubble {
+    display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 8px;
+    border-radius: 50%; background: color-mix(in srgb, var(--periwinkle) 22%, transparent); color: var(--peri-soft);
+  }
+  .empty .bubble .ic { width: 26px; height: 26px; }
+  .empty h3 { font-size: var(--fs-lg); }
+  .empty p { margin: 0 0 12px; color: var(--muted); max-width: 36ch; }
+
+  /* ───────────── tables ───────────── */
+  .scroll { overflow-x: auto; margin: 0 -22px; padding: 0 22px; }
+  table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
   thead th {
-    text-align: left; padding: 10px 12px; background: var(--indigo); color: #fff;
-    font-weight: 600; font-size: .76rem; text-transform: uppercase;
-    letter-spacing: .06em; white-space: nowrap;
+    text-align: left; padding: 0 12px 10px; font-size: var(--fs-xs); font-weight: 500;
+    color: var(--muted); white-space: nowrap; border-bottom: 1px solid var(--line);
   }
-  thead th:first-child { border-radius: 8px 0 0 8px; }
-  thead th:last-child { border-radius: 0 8px 8px 0; }
   tbody td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
   tbody tr:last-child td { border-bottom: 0; }
-  tbody tr.off td { opacity: .5; }
-  tbody tr.off .cell-name { text-decoration: line-through; }
-  .cell-time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--indigo); white-space: nowrap; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .cell-time { color: var(--peri-soft); }
-  }
-  .cell-name { font-weight: 600; }
+  tbody tr:hover td { background: color-mix(in srgb, var(--raise) 45%, transparent); }
+  th:first-child, td:first-child { padding-left: 4px; }
+  th:last-child, td:last-child { padding-right: 4px; }
+  tbody tr.off td { opacity: .55; }
+  tbody tr.off .name { text-decoration: line-through; }
+  .time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--peri-soft); white-space: nowrap; }
+  .name { font-weight: 600; color: var(--ink); font-size: .95rem; }
+  /* Buttons are taller than a line of text; pull them up so they sit on the row's first line. */
+  .acts { display: flex; gap: 6px; justify-content: flex-end; align-items: center; white-space: nowrap; margin: -7px 0; }
+  table.mid tbody td { vertical-align: middle; }
+  table.mid .acts { margin: 0; }
+  /* Emails wrap at sensible points instead of being cut mid-address. */
+  .contact-cell { min-width: 180px; max-width: 320px; }
+  /* Emails only break before the @ or after a dot (see mail()), never mid-word. */
+  .email { overflow-wrap: break-word; }
 
-  .pill {
-    display: inline-block; font-size: .7rem; padding: 3px 9px; border-radius: 999px;
-    border: 1px solid var(--line); background: var(--peri-pale); color: var(--indigo);
-    text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; margin: 1px 0;
+  /* ───────────── sign in ───────────── */
+  .auth { min-height: 100dvh; display: grid; place-items: center; padding: 32px 16px; }
+  .auth .card { width: 100%; max-width: 420px; padding: 32px 28px; }
+  .auth .logo { display: block; height: 40px; width: auto; margin: 0 auto 24px; }
+  .auth h1 { text-align: center; font-size: 1.4rem; }
+  .auth .lede { text-align: center; color: var(--muted); margin: 6px 0 24px; font-size: var(--fs-sm); }
+  .auth .switch { text-align: center; margin: 18px 0 0; font-size: var(--fs-sm); color: var(--muted); }
+  .auth .switch a { color: var(--link); font-weight: 600; }
+  .pw { position: relative; }
+  .pw input { padding-right: 48px; }
+  .pw .iconbtn { position: absolute; right: 3px; top: 3px; }
+
+  #boot { min-height: 100dvh; display: grid; place-items: center; }
+  #boot img { height: 36px; opacity: .6; }
+
+  /* ───────────── app shell ───────────── */
+  .app { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100dvh; }
+  .side {
+    position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column;
+    background: var(--side); border-right: 1px solid var(--line); padding: 22px 14px 16px;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .pill { color: var(--peri-soft); }
+  .side .brand { display: block; padding: 0 10px 26px; }
+  .side .brand img { display: block; height: 34px; width: auto; }
+  .nav { display: grid; gap: 4px; }
+  .nav a {
+    display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 14px;
+    border-radius: 999px; color: var(--muted); text-decoration: none; font-weight: 500;
   }
-  .pill.warn { color: var(--warn); background: transparent; border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
-  .pill.ok { color: var(--ok); background: transparent; border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
-  .empty { padding: 44px 0; text-align: center; color: var(--muted); }
+  .nav a:hover { color: var(--ink); background: rgba(255, 255, 255, .05); }
+  .nav a[aria-current="page"] { background: color-mix(in srgb, var(--periwinkle) 62%, transparent); color: #fff; }
+  .nav a[aria-current="page"] .ic { color: var(--peri-pale); }
+  .nav .count {
+    margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px;
+    display: grid; place-items: center; font-size: var(--fs-xs); font-weight: 650;
+    background: var(--peri-soft); color: var(--indigo-deep);
+  }
+  .me { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
+  .me-row { display: flex; align-items: center; gap: 10px; padding: 4px 6px 12px; }
+  .avatar {
+    display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 50%;
+    background: var(--periwinkle); color: #fff; font-weight: 650; font-size: .9rem;
+  }
+  .me-name { font-weight: 600; font-size: .95rem; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .me-role { font-size: var(--fs-sm); color: var(--muted); }
+  .me .signout {
+    width: 100%; justify-content: flex-start; height: 40px; padding: 0 14px;
+    color: var(--muted); border-color: transparent;
+  }
+  .me .signout:hover { color: var(--ink); background: rgba(255, 255, 255, .05) !important; }
+
+  .main { display: flex; flex-direction: column; min-width: 0; min-height: 100dvh; padding: 30px 40px 32px; }
+  .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .pagehead .titles { flex: 1; min-width: 0; }
+  .pagehead .sub { margin: 4px 0 0; color: var(--muted); }
+  .menu-btn { display: none; }
+  .view { flex: 1; display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .toolbar input[type=date] { width: auto; }
+  .toolbar .grow { flex: 1 1 220px; }
+  .toolbar .summary { margin-left: auto; color: var(--muted); font-size: var(--fs-sm); }
+  .search { position: relative; }
+  .search .ic { position: absolute; left: 12px; top: 11px; color: var(--faint); pointer-events: none; }
+  .search input { padding-left: 40px; }
+
+  /* Dashboard */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+  .tile .num { font-size: 2.1rem; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .tile .lbl { color: var(--muted); font-size: var(--fs-sm); margin-top: 2px; }
+  a.tile { display: block; color: inherit; text-decoration: none; }
+  a.tile:hover { border-color: var(--line-2); background: var(--raise); }
+  .upcoming { list-style: none; margin: 0; padding: 0; }
+  .upcoming li + li { border-top: 1px solid var(--line); }
+  .upcoming button {
+    display: grid; grid-template-columns: 112px 1fr auto; gap: 16px; align-items: center; width: 100%;
+    padding: 14px 8px; border: 0; background: transparent; text-align: left; cursor: pointer; border-radius: 10px;
+  }
+  .upcoming button:hover { background: var(--raise); }
+  .upcoming .when { font-size: var(--fs-sm); color: var(--muted); line-height: 1.3; }
+  .upcoming .when b { display: block; color: var(--peri-soft); font-size: .95rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .upcoming .what { font-size: var(--fs-sm); color: var(--muted); }
+  .upcoming .go { color: var(--faint); }
+
+  /* Settings */
+  .locked { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .locked .ic { width: 15px; height: 15px; }
+  select.role { width: 150px; height: 34px; padding: 0 10px; font-size: var(--fs-sm); }
+
+  /* Overflow menu, one floating element shared by every row. */
+  .pop {
+    position: fixed; z-index: 50; min-width: 190px; padding: 6px; border-radius: 12px;
+    background: var(--raise); border: 1px solid var(--line-2); box-shadow: 0 12px 32px rgba(5, 6, 25, .45);
+  }
+  .pop button {
+    display: flex; width: 100%; align-items: center; height: 40px; padding: 0 12px; border: 0;
+    border-radius: 8px; background: transparent; cursor: pointer; text-align: left; font-size: var(--fs-sm);
+  }
+  .pop button:hover, .pop button:focus-visible { background: rgba(255, 255, 255, .07); outline-offset: -2px; }
+  .pop button.danger { color: var(--warn); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60;
+    max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 12px; font-size: var(--fs-sm);
+    background: var(--raise); border: 1px solid var(--line-2); box-shadow: 0 12px 32px rgba(5, 6, 25, .45);
+  }
+  .toast.bad { color: var(--warn); }
 
   dialog {
-    border: 1px solid var(--line); border-radius: var(--radius); padding: 22px;
-    background: var(--card); color: var(--ink); max-width: 480px; width: calc(100% - 32px);
+    border: 1px solid var(--line-2); border-radius: 16px; padding: 26px;
+    background: var(--card); color: var(--ink); max-width: 500px; width: calc(100% - 32px);
   }
-  dialog::backdrop { background: rgba(20, 21, 58, .55); }
+  dialog h2 { margin-bottom: 18px; font-size: 1.25rem; }
+  dialog::backdrop { background: rgba(10, 11, 34, .7); }
+  .dlg-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   @media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
+
+  /* ───────────── responsive ───────────── */
+  /* Tablet: the sidebar folds to an icon rail; labels become tooltips. */
+  @media (max-width: 1023px) and (min-width: 721px) {
+    .app { grid-template-columns: 76px minmax(0, 1fr); }
+    .side { padding: 20px 12px 14px; align-items: center; }
+    .side .brand { padding: 0 0 22px; width: 32px; overflow: hidden; }
+    .side .brand img { height: 36px; max-width: none; }
+    .nav a { width: 48px; height: 48px; padding: 0; justify-content: center; position: relative; }
+    .nav .lbl, .me-name, .me-role, .signout .lbl { display: none; }
+    .nav .count { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; font-size: .68rem; }
+    .me { width: 100%; display: grid; justify-items: center; }
+    .me-row { padding: 4px 0 10px; }
+    .me .signout { width: 48px; padding: 0; justify-content: center; }
+    .main { padding: 26px 28px 28px; }
+  }
+  /* Phone: a drawer behind a menu button, so the content gets the full width. */
+  @media (max-width: 720px) {
+    .app { display: block; }
+    .side {
+      position: fixed; inset: 0 auto 0 0; width: 260px; z-index: 40;
+      transform: translateX(-100%); transition: transform .2s ease;
+    }
+    .app.drawer .side { transform: none; box-shadow: 0 0 48px rgba(5, 6, 25, .6); }
+    .scrim { position: fixed; inset: 0; z-index: 30; background: rgba(10, 11, 34, .6); }
+    .menu-btn { display: inline-grid; }
+    .main { padding: 18px 16px 24px; }
+    .pagehead { flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+    .pagehead .titles { flex-basis: calc(100% - 60px); }
+    .pagehead .primary { width: 100%; }
+    h1 { font-size: 1.4rem; }
+    .card { padding: 18px 16px; }
+    .scroll { margin: 0 -16px; padding: 0 16px; }
+    .toolbar .summary { margin-left: 0; width: 100%; }
+    .upcoming button { grid-template-columns: 84px 1fr; }
+    .upcoming .go { display: none; }
+    .tiles { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+    .tile { padding: 14px; }
+    .tile .num { font-size: 1.6rem; }
+    .toolbar input[type=date] { flex: 1; min-width: 150px; }
+    /* Tables become one card per row, so nothing hides off to the side. */
+    .scroll { overflow: visible; }
+    table.stack thead { display: none; }
+    table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; }
+    table.stack tr { padding: 14px 0; border-bottom: 1px solid var(--line); }
+    table.stack tr:last-child { border-bottom: 0; }
+    table.stack tbody td { padding: 2px 0; border: 0; min-width: 0 !important; max-width: none; background: none !important; }
+    table.stack td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); }
+    table.stack td:empty { display: none; }
+    table.stack .time div { display: inline; margin-left: 6px; }
+    table.stack .acts { justify-content: flex-start; margin: 10px 0 0; }
+    table.stack .acts:empty { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .side { transition: none; } }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <!-- ─────────────────────────── sign in ─────────────────────────── -->
-  <section id="login" class="login hidden">
-    <div class="card">
-      <div class="brandbar">
-        <img src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon">
+<!-- Line icons, drawn once and reused. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M16 3v4M8 3v4M3.5 10h17"/></symbol>
+  <symbol id="i-calendar-plus" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M16 3v4M8 3v4M3.5 10h17M12 13v5M9.5 15.5h5"/></symbol>
+  <symbol id="i-contacts" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M15.5 4.6a3.5 3.5 0 0 1 0 6.8M17.8 14.8c1.9.8 3.1 2.6 3.7 5.2"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6.5h9M17 6.5h3M4 12h3M11 12h9M4 17.5h11M19 17.5h1"/><circle cx="15" cy="6.5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17.5" r="2"/></symbol>
+  <symbol id="i-signout" viewBox="0 0 24 24"><path d="M14.5 4H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3.5M10 16.5 14.5 12 10 7.5M14.5 12H4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.1"/><circle cx="12" cy="12" r="1.1"/><circle cx="18.5" cy="12" r="1.1"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.6 5.6A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.6 3.4M6.6 6.6C3.9 8.3 2.5 12 2.5 12S6 18.5 12 18.5c1.9 0 3.5-.6 4.9-1.5M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/></symbol>
+  <symbol id="i-users-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5 1.7 0 3.2.6 4.4 1.6M18.5 13v6M15.5 16h6"/></symbol>
+</svg>
+
+<div id="boot"><img src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon"></div>
+
+<!-- ─────────────────────────── sign in ─────────────────────────── -->
+<main id="login" class="auth hidden">
+  <div class="card">
+    <img class="logo" src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon">
+    <div id="loginNote" class="note hidden" role="status"></div>
+
+    <form id="loginForm">
+      <h1>Staff sign in</h1>
+      <p class="lede">Use the email and password the salon gave you.</p>
+      <label><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+      <label><span>Password</span>
+        <div class="pw">
+          <input type="password" name="password" autocomplete="current-password" required>
+          <button type="button" class="iconbtn" data-reveal aria-label="Show password" aria-pressed="false">
+            <svg class="ic"><use href="#i-eye"/></svg>
+          </button>
+        </div>
+      </label>
+      <button class="btn block" type="submit">Sign in</button>
+      <p class="switch">New to the team? <a href="#" id="showRequest">Request access</a></p>
+    </form>
+
+    <form id="requestForm" class="hidden">
+      <h1>Request access</h1>
+      <p class="lede">The salon owner approves new accounts.</p>
+      <label><span>Your name</span><input name="name" autocomplete="name" required></label>
+      <label><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+      <label><span>Choose a password</span>
+        <div class="pw">
+          <input type="password" name="password" autocomplete="new-password" minlength="10" required placeholder="At least 10 characters">
+          <button type="button" class="iconbtn" data-reveal aria-label="Show password" aria-pressed="false">
+            <svg class="ic"><use href="#i-eye"/></svg>
+          </button>
+        </div>
+      </label>
+      <label><span>Anything the owner should know</span><input name="note" placeholder="e.g. new stylist, starts Monday"></label>
+      <button class="btn block" type="submit">Send request</button>
+      <p class="switch"><a href="#" id="showLogin">Back to sign in</a></p>
+    </form>
+  </div>
+</main>
+
+<!-- ─────────────────────────── app ─────────────────────────── -->
+<div id="app" class="app hidden">
+  <aside class="side" id="side" aria-label="Main">
+    <a class="brand" href="/staff" data-page="dashboard" aria-label="Synergy Salon, go to Dashboard">
+      <img src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="">
+    </a>
+    <nav class="nav">
+      <a href="/staff" data-page="dashboard" title="Dashboard">
+        <svg class="ic"><use href="#i-dashboard"/></svg><span class="lbl">Dashboard</span></a>
+      <a href="/staff/appointments" data-page="appointments" title="Appointments">
+        <svg class="ic"><use href="#i-calendar"/></svg><span class="lbl">Appointments</span></a>
+      <a href="/staff/contacts" data-page="contacts" title="Contacts">
+        <svg class="ic"><use href="#i-contacts"/></svg><span class="lbl">Contacts</span></a>
+      <a href="/staff/settings" data-page="settings" title="Settings" id="navSettings" class="hidden">
+        <svg class="ic"><use href="#i-settings"/></svg><span class="lbl">Settings</span>
+        <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span></a>
+    </nav>
+    <div class="me">
+      <div class="me-row">
+        <span class="avatar" id="meInitials" aria-hidden="true"></span>
+        <div style="min-width:0">
+          <div class="me-name" id="meName"></div>
+          <div class="me-role" id="meRole"></div>
+        </div>
       </div>
-      <div id="loginNote" class="note hidden"></div>
-
-      <form id="loginForm">
-        <h1>Staff Sign In</h1>
-        <p class="sub">Synergy Salon</p>
-        <label><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
-        <label><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
-        <button class="btn" type="submit" style="width:100%">Sign in</button>
-        <p class="small muted" style="text-align:center;margin:16px 0 0">
-          No account? <a href="#" id="showRequest">Request access</a>
-        </p>
-      </form>
-
-      <form id="requestForm" class="hidden">
-        <h1>Request Access</h1>
-        <p class="sub">An owner has to approve you</p>
-        <label><span>Your name</span><input name="name" required></label>
-        <label><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
-        <label><span>Choose a password</span><input type="password" name="password" autocomplete="new-password" minlength="10" required></label>
-        <label><span>Anything the owner should know</span><input name="note" placeholder="e.g. new stylist, starts Monday"></label>
-        <button class="btn" type="submit" style="width:100%">Send request</button>
-        <p class="small muted" style="text-align:center;margin:16px 0 0">
-          <a href="#" id="showLogin">Back to sign in</a>
-        </p>
-      </form>
-    </div>
-  </section>
-
-  <!-- ─────────────────────────── console ─────────────────────────── -->
-  <section id="console" class="hidden">
-    <div class="topbar">
-      <div>
-        <span class="markchip"><img src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon"></span>
-        <h1 id="salonName" style="margin-top:8px">Synergy Salon</h1>
-        <div class="small muted" id="whoami"></div>
-      </div>
-      <button class="btn quiet" id="signOut">Sign out</button>
-    </div>
-
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="appointments" aria-selected="true">Appointments</button>
-      <button class="tab" role="tab" data-tab="contacts" aria-selected="false">Contacts</button>
-      <button class="tab hidden" role="tab" data-tab="settings" aria-selected="false" id="tabSettings">
-        Settings<span class="badge hidden" id="pendingBadge">0</span>
+      <button class="btn quiet signout" id="signOut" title="Sign out">
+        <svg class="ic"><use href="#i-signout"/></svg><span class="lbl">Sign out</span>
       </button>
     </div>
+  </aside>
+  <div class="scrim hidden" id="scrim"></div>
 
-    <div id="panel-appointments" class="card">
-      <div class="row" style="margin-bottom:16px">
-        <button class="btn quiet" id="prevDay" aria-label="Previous day">←</button>
-        <input type="date" id="dayPicker" style="width:auto">
-        <button class="btn quiet" id="nextDay" aria-label="Next day">→</button>
-        <button class="btn quiet" id="todayBtn">Today</button>
-        <span class="grow"></span>
-        <button class="btn" id="newAppt">New appointment</button>
+  <main class="main">
+    <header class="pagehead">
+      <button class="iconbtn lg menu-btn" id="menuBtn" aria-label="Open menu" aria-controls="side" aria-expanded="false">
+        <svg class="ic"><use href="#i-menu"/></svg>
+      </button>
+      <div class="titles">
+        <h1 id="pageTitle">Dashboard</h1>
+        <p class="sub" id="pageSub"></p>
       </div>
-      <h2 id="dayHeading" class="muted small" style="font-weight:500"></h2>
-      <div class="scroll"><div id="diary"><div class="empty">Loading…</div></div></div>
-    </div>
+      <button class="btn primary" id="primaryBtn">
+        <svg class="ic"><use href="#i-plus"/></svg><span id="primaryLbl">New appointment</span>
+      </button>
+    </header>
 
-    <div id="panel-contacts" class="card hidden">
-      <div class="row" style="margin-bottom:16px">
-        <input id="contactSearch" class="grow" placeholder="Search by name, email or phone…">
-        <select id="contactStatus" style="width:auto">
-          <option value="">All</option>
-          <option value="new">New</option>
-          <option value="contacted">Contacted</option>
-          <option value="booked">Booked</option>
-          <option value="won">Client</option>
-          <option value="lost">Lost</option>
-        </select>
-        <button class="btn" id="newContact">Add contact</button>
+    <!-- Dashboard -->
+    <section class="view" id="view-dashboard">
+      <div class="tiles" id="tiles"></div>
+      <div id="syncNote" class="note hidden" style="margin:0"></div>
+      <div class="card fill">
+        <div class="card-head">
+          <h2>Coming up</h2>
+          <a href="/staff/appointments" data-page="appointments" class="small">See all appointments</a>
+        </div>
+        <div id="upcoming" class="fill-body" style="flex:1;display:flex;flex-direction:column"></div>
       </div>
-      <div class="scroll"><div id="contacts"><div class="empty">Loading…</div></div></div>
-    </div>
+    </section>
 
-    <div id="panel-settings" class="card hidden">
-      <div class="row" style="justify-content:space-between;margin-bottom:6px">
-        <h2 style="margin:0">Team</h2>
-        <button class="btn" id="newMember">Add team member</button>
+    <!-- Appointments -->
+    <section class="view hidden" id="view-appointments">
+      <div class="card fill">
+        <div class="toolbar">
+          <button class="iconbtn lg" id="prevDay" aria-label="Previous day"><svg class="ic"><use href="#i-left"/></svg></button>
+          <input type="date" id="dayPicker" aria-label="Day">
+          <button class="iconbtn lg" id="nextDay" aria-label="Next day"><svg class="ic"><use href="#i-right"/></svg></button>
+          <button class="btn quiet" id="todayBtn">Today</button>
+          <span class="summary" id="dayHeading"></span>
+        </div>
+        <div id="diary" style="flex:1;display:flex;flex-direction:column"></div>
       </div>
-      <p class="small muted" style="margin:0 0 18px">
-        Anyone waiting for approval appears at the top. Approving lets them sign in;
-        rejecting removes the request so they can ask again.
-      </p>
-      <div class="scroll"><div id="team"><div class="empty">Loading…</div></div></div>
-    </div>
-  </section>
+    </section>
+
+    <!-- Contacts -->
+    <section class="view hidden" id="view-contacts">
+      <div class="card fill">
+        <div class="toolbar">
+          <div class="search grow">
+            <svg class="ic"><use href="#i-search"/></svg>
+            <input id="contactSearch" type="search" placeholder="Search name, email or phone" aria-label="Search contacts">
+          </div>
+          <select id="contactStatus" style="width:auto;min-width:150px" aria-label="Show">
+            <option value="">Everyone</option>
+            <option value="new">New</option>
+            <option value="contacted">Contacted</option>
+            <option value="booked">Booked</option>
+            <option value="won">Client</option>
+            <option value="lost">Lost</option>
+          </select>
+        </div>
+        <div id="contacts" style="flex:1;display:flex;flex-direction:column"></div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="view hidden" id="view-settings">
+      <div class="card fill">
+        <div class="card-head" style="margin-bottom:4px"><h2>Team</h2></div>
+        <p class="small muted" style="margin:0 0 18px">
+          People waiting for approval are listed first. Approving lets them sign in;
+          declining removes the request so they can ask again.
+        </p>
+        <div id="team" style="flex:1;display:flex;flex-direction:column"></div>
+      </div>
+    </section>
+  </main>
 </div>
+
+<div id="pop" class="pop hidden" role="menu"></div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
 <dialog id="bookDlg">
   <form method="dialog" id="bookForm">
@@ -279,7 +551,7 @@
     <div id="bookNote" class="note bad hidden"></div>
     <label><span>Client</span><input id="bookName" required></label>
     <div class="two">
-      <label><span>Phone</span><input id="bookPhone"></label>
+      <label><span>Phone</span><input id="bookPhone" type="tel"></label>
       <label><span>Email</span><input type="email" id="bookEmail"></label>
     </div>
     <label><span>Service</span><select id="bookService" required></select></label>
@@ -289,7 +561,7 @@
       <label><span>Time</span><select id="bookTime" required></select></label>
     </div>
     <label><span>Notes</span><textarea id="bookNotes"></textarea></label>
-    <div class="row" style="justify-content:flex-end;margin-top:6px">
+    <div class="dlg-actions">
       <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
       <button class="btn" id="bookSubmit" value="book">Book</button>
     </div>
@@ -309,13 +581,11 @@
         <option value="owner">Owner</option>
       </select></label>
     <label><span>Password</span>
-      <input type="text" name="password" minlength="10" required
-             placeholder="at least 10 characters"></label>
-    <p class="small muted" style="margin:-6px 0 14px">
-      Shown as you type so you can pass it on. They can be given a new one any
-      time by adding them again with the same email.
+      <input type="text" name="password" minlength="10" required placeholder="At least 10 characters"></label>
+    <p class="small muted" style="margin:-6px 0 16px">
+      Shown as you type so you can pass it on to them.
     </p>
-    <div class="row" style="justify-content:flex-end;margin-top:6px">
+    <div class="dlg-actions">
       <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
       <button class="btn" value="save">Add</button>
     </div>
@@ -328,10 +598,10 @@
     <div id="contactNote" class="note bad hidden"></div>
     <label><span>Name</span><input name="name" required></label>
     <div class="two">
-      <label><span>Phone</span><input name="phone"></label>
+      <label><span>Phone</span><input name="phone" type="tel"></label>
       <label><span>Email</span><input type="email" name="email"></label>
     </div>
-    <label><span>Where did they come from?</span><input name="source" placeholder="phone, walk-in, Facebook ad…"></label>
+    <label><span>Where did they hear about us?</span><input name="source" placeholder="Phone, walk-in, Facebook ad…"></label>
     <label class="hidden" id="contactStatusField"><span>Status</span>
       <select name="status">
         <option value="new">New</option>
@@ -341,7 +611,7 @@
         <option value="lost">Lost</option>
       </select></label>
     <label><span>Notes</span><textarea name="notes"></textarea></label>
-    <div class="row" style="justify-content:flex-end;margin-top:6px">
+    <div class="dlg-actions">
       <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
       <button class="btn" value="save" id="contactSave">Add</button>
     </div>
@@ -352,10 +622,17 @@
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/** An email with soft break points before the @ and after each dot. */
+const mail = (e) => esc(e).replace(/@/g, '<wbr>@').replace(/\./g, '.<wbr>');
+const ic = (name) => `<svg class="ic" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+
+const ROLE_LABEL = { owner: 'Owner', manager: 'Manager', front_desk: 'Front desk' };
+const STATUS_LABEL = { new: 'New', contacted: 'Contacted', booked: 'Booked', won: 'Client', lost: 'Lost' };
 
 let me = null;
 let day = null;
 let bookingFor = null;
+let page = null;
 
 /** Every call goes through here, so a lapsed session always lands on the form. */
 async function api(path, options = {}) {
@@ -376,15 +653,77 @@ function note(el, message, kind = 'bad') {
   el.classList.toggle('hidden', !message);
 }
 
+let toastTimer = null;
+function toast(message, kind = '') {
+  const t = $('toast');
+  t.className = `toast ${kind}`;
+  t.textContent = message;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 5000);
+}
+const fail = (err) => { if (err.message !== 'signed out') toast(err.message, 'bad'); };
+
+function skeleton(rows = 4) {
+  return `<div class="sk-rows" aria-label="Loading">${Array.from({ length: rows }, (_, i) => `
+    <div class="sk-row"><span class="sk"></span><span class="sk" style="width:${70 - i * 9}%"></span><span class="sk"></span></div>`).join('')}</div>`;
+}
+
+function emptyState({ icon, title, text, action, actionLabel }) {
+  return `<div class="empty">
+    <span class="bubble">${ic(icon)}</span>
+    <h3>${esc(title)}</h3>
+    <p>${esc(text)}</p>
+    ${action ? `<button class="btn" data-empty="${action}">${ic('plus')}${esc(actionLabel)}</button>` : ''}
+  </div>`;
+}
+// Empty-state buttons do the same thing as the page's primary action.
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-empty]');
+  if (!b) return;
+  if (b.dataset.empty === 'appointment') openBooking(null);
+  if (b.dataset.empty === 'contact') openContact(null);
+});
+
+// ─────────────────────────── dates ───────────────────────────
+
+function salonToday() {
+  return new Date().toLocaleDateString('en-CA',
+    me?.salon?.timezone ? { timeZone: me.salon.timezone } : {});
+}
+function addDays(date, n) {
+  const d = new Date(`${date}T12:00:00Z`);   // midday UTC: no DST edge can roll the date
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function dayLabel(date) {
+  const today = salonToday();
+  if (date === today) return 'Today';
+  if (date === addDays(today, 1)) return 'Tomorrow';
+  return new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US',
+    { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+// ─────────────────────────── sign in ───────────────────────────
+
 function showLogin(message, kind) {
-  $('console').classList.add('hidden');
+  $('boot').classList.add('hidden');
+  $('app').classList.add('hidden');
   $('login').classList.remove('hidden');
   $('requestForm').classList.add('hidden');
   $('loginForm').classList.remove('hidden');
   note($('loginNote'), message, kind || 'bad');
 }
 
-// ───────────────────────────── sign in ─────────────────────────────
+document.querySelectorAll('[data-reveal]').forEach((b) => {
+  b.onclick = () => {
+    const input = b.parentElement.querySelector('input');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    b.setAttribute('aria-pressed', String(show));
+    b.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    b.innerHTML = ic(show ? 'eye-off' : 'eye');
+  };
+});
 
 $('showRequest').onclick = (e) => {
   e.preventDefault();
@@ -405,7 +744,8 @@ $('loginForm').onsubmit = async (e) => {
       body: JSON.stringify({ email: f.get('email'), password: f.get('password') }),
     });
     e.target.reset();
-    await start();
+    // Signing in always starts on the Dashboard.
+    await start('dashboard');
   } catch (err) {
     showLogin(err.message === 'signed out'
       ? 'That email and password do not match.' : err.message);
@@ -434,210 +774,411 @@ $('requestForm').onsubmit = async (e) => {
 
 $('signOut').onclick = async () => {
   await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' });
+  history.replaceState(null, '', '/staff');
   showLogin();
 };
 
-// ───────────────────────────── tabs ─────────────────────────────
+// ─────────────────────────── routing ───────────────────────────
 
-document.querySelectorAll('.tab').forEach((tab) => {
-  tab.onclick = () => {
-    document.querySelectorAll('.tab').forEach((t) =>
-      t.setAttribute('aria-selected', String(t === tab)));
-    for (const name of ['appointments', 'contacts', 'settings']) {
-      $(`panel-${name}`).classList.toggle('hidden', name !== tab.dataset.tab);
-    }
-    if (tab.dataset.tab === 'contacts') loadContacts();
-    if (tab.dataset.tab === 'settings') loadTeam();
-  };
+const PAGES = {
+  dashboard: {
+    path: '/staff', title: 'Dashboard', action: 'New appointment',
+    run: () => openBooking(null), load: () => loadDashboard(),
+  },
+  appointments: {
+    path: '/staff/appointments', title: 'Appointments', action: 'New appointment',
+    sub: 'Check people in and keep the day on track.',
+    run: () => openBooking(null), load: () => loadDay(day || salonToday()),
+  },
+  contacts: {
+    path: '/staff/contacts', title: 'Contacts', action: 'Add contact',
+    sub: 'Everyone who has booked or asked about a visit.',
+    run: () => openContact(null), load: () => loadContacts(),
+  },
+  settings: {
+    path: '/staff/settings', title: 'Settings', action: 'Add team member',
+    sub: 'Choose who can sign in and what they can do.',
+    run: () => openMember(), load: () => loadTeam(),
+  },
+};
+
+function pageFromUrl() {
+  const seg = location.pathname.replace(/\/+$/, '').split('/').pop();
+  return PAGES[seg] ? seg : 'dashboard';
+}
+
+function go(name, { push = true } = {}) {
+  if (name === 'settings' && !me?.user?.canAdmin) name = 'dashboard';
+  const p = PAGES[name];
+  page = name;
+  if (push && location.pathname !== p.path) history.pushState({ page: name }, '', p.path);
+
+  document.querySelectorAll('.nav a').forEach((a) => {
+    if (a.dataset.page === name) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  for (const k of Object.keys(PAGES)) $(`view-${k}`).classList.toggle('hidden', k !== name);
+
+  $('pageTitle').textContent = p.title;
+  $('pageSub').textContent = name === 'dashboard' ? greeting() : p.sub;
+  $('primaryLbl').textContent = p.action;
+  document.title = `${p.title} · Synergy Salon`;
+  closeDrawer();
+  hideMenu();
+  p.load();
+}
+
+$('primaryBtn').onclick = () => PAGES[page].run();
+
+// Any in-app link with data-page routes without a reload; modified clicks
+// (new tab, new window) still behave like normal links.
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[data-page]');
+  if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+  e.preventDefault();
+  go(a.dataset.page);
 });
+window.addEventListener('popstate', () => { if (me) go(pageFromUrl(), { push: false }); });
+
+// Phone drawer
+function closeDrawer() {
+  $('app').classList.remove('drawer');
+  $('scrim').classList.add('hidden');
+  $('menuBtn').setAttribute('aria-expanded', 'false');
+}
+$('menuBtn').onclick = () => {
+  $('app').classList.add('drawer');
+  $('scrim').classList.remove('hidden');
+  $('menuBtn').setAttribute('aria-expanded', 'true');
+  document.querySelector('.nav a[aria-current]')?.focus();
+};
+$('scrim').onclick = closeDrawer;
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(); hideMenu(); } });
+
+// ─────────────────────── overflow menu ───────────────────────
+
+let menuFor = null;
+function showMenu(anchor, items) {
+  const pop = $('pop');
+  if (menuFor === anchor) { hideMenu(); return; }
+  menuFor = anchor;
+  pop.innerHTML = items.map((it, i) =>
+    `<button role="menuitem" data-i="${i}" class="${it.danger ? 'danger' : ''}">${esc(it.label)}</button>`).join('');
+  pop.onclick = (e) => {
+    const b = e.target.closest('button[data-i]');
+    if (!b) return;
+    hideMenu();
+    items[b.dataset.i].run();
+  };
+  pop.classList.remove('hidden');
+  const r = anchor.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = `${Math.max(8, Math.min(r.right - w, innerWidth - w - 8))}px`;
+  pop.style.top = `${r.bottom + 6 + h > innerHeight ? r.top - h - 6 : r.bottom + 6}px`;
+  anchor.setAttribute('aria-expanded', 'true');
+  pop.querySelector('button')?.focus();
+}
+function hideMenu() {
+  if (menuFor) menuFor.setAttribute('aria-expanded', 'false');
+  menuFor = null;
+  $('pop').classList.add('hidden');
+}
+document.addEventListener('click', (e) => {
+  if (menuFor && !e.target.closest('#pop') && e.target.closest('[data-more]') !== menuFor) hideMenu();
+});
+window.addEventListener('scroll', hideMenu, true);
+window.addEventListener('resize', hideMenu);
+
+// ─────────────────────────── dashboard ───────────────────────────
+
+function greeting() {
+  const tz = me?.salon?.timezone;
+  const hour = Number(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, ...(tz ? { timeZone: tz } : {}) }));
+  const part = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const first = (me?.user?.name || '').split(' ')[0];
+  const date = new Date().toLocaleDateString('en-US',
+    { weekday: 'long', month: 'long', day: 'numeric', ...(tz ? { timeZone: tz } : {}) });
+  return `${part}${first ? `, ${first}` : ''}. It's ${date}.`;
+}
+
+function tile(num, label, href) {
+  const inner = `<div class="num">${num}</div><div class="lbl">${esc(label)}</div>`;
+  return href
+    ? `<a class="tile" href="${PAGES[href].path}" data-page="${href}">${inner}</a>`
+    : `<div class="tile">${inner}</div>`;
+}
+
+const UPCOMING = 6;
+let dashSeq = 0;
+
+async function loadDashboard() {
+  const seq = ++dashSeq;
+  const today = salonToday();
+  $('tiles').innerHTML = [0, 1].map(() =>
+    '<div class="tile"><span class="sk" style="height:32px;width:56px"></span><span class="sk" style="margin-top:10px;width:60%"></span></div>').join('');
+  $('upcoming').innerHTML = skeleton(4);
+  $('syncNote').classList.add('hidden');
+
+  try {
+    const first = await api(`/api/staff/diary?date=${today}`);
+    const days = [first];
+    const upcomingOf = (d) => d.appointments
+      .filter((a) => a.status === 'booked' && !a.checkedInAt && new Date(a.startsAt) > Date.now())
+      .map((a) => ({ ...a, date: d.date }));
+    // Look a week ahead only when today alone does not fill the list.
+    if (upcomingOf(first).length < UPCOMING) {
+      const later = await Promise.allSettled(
+        [1, 2, 3, 4, 5, 6].map((n) => api(`/api/staff/diary?date=${addDays(today, n)}`)));
+      later.forEach((r) => r.status === 'fulfilled' && days.push(r.value));
+    }
+    if (seq !== dashSeq) return;
+
+    const pending = me.user.canAdmin ? (me.pendingApprovals || 0) : 0;
+    $('tiles').innerHTML = [
+      tile(first.booked, `booked today`, 'appointments'),
+      tile(first.arriving, 'still to arrive today', 'appointments'),
+      pending ? tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'settings') : '',
+    ].join('');
+
+    const unsynced = first.appointments.filter((a) => a.status !== 'cancelled' && !a.syncedToCentro).length;
+    if (unsynced) {
+      $('syncNote').innerHTML = `${ic('info')}<span>${unsynced === 1 ? '1 of today’s bookings hasn’t' : `${unsynced} of today’s bookings haven’t`} reached CENTRO yet. They are sent across automatically; nothing to do here.</span>`;
+      $('syncNote').className = 'note';
+    }
+
+    const list = days.flatMap(upcomingOf).slice(0, UPCOMING);
+    if (!list.length) {
+      $('upcoming').innerHTML = emptyState({
+        icon: 'calendar', title: 'Nothing on the books yet',
+        text: 'When someone books online or you add an appointment, it will show up here.',
+        action: 'appointment', actionLabel: 'New appointment',
+      });
+      return;
+    }
+    $('upcoming').innerHTML = `<ul class="upcoming">${list.map((a) => `
+      <li><button data-date="${a.date}">
+        <span class="when"><b>${esc(a.time)}</b>${esc(dayLabel(a.date))}</span>
+        <span><span class="name">${esc(a.guestName)}</span>
+          <span class="what" style="display:block">${esc(a.service)} with ${esc(a.stylist)}</span></span>
+        <span class="go">${ic('right')}</span>
+      </button></li>`).join('')}</ul>`;
+  } catch (err) {
+    if (seq !== dashSeq || err.message === 'signed out') return;
+    $('tiles').innerHTML = '';
+    $('upcoming').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load today', text: err.message });
+  }
+}
+
+$('upcoming').onclick = (e) => {
+  const b = e.target.closest('button[data-date]');
+  if (!b) return;
+  day = b.dataset.date;
+  go('appointments');
+};
 
 // ───────────────────────── appointments ─────────────────────────
 
-function statusPills(a) {
+function statusChips(a) {
   const out = [];
-  if (a.status === 'cancelled') out.push('<span class="pill warn">cancelled</span>');
-  if (a.status === 'no_show') out.push('<span class="pill warn">no show</span>');
-  if (a.status === 'completed') out.push('<span class="pill ok">done</span>');
-  if (a.checkedInAt && a.status === 'booked') out.push('<span class="pill ok">here</span>');
-  if (a.channel === 'staff') out.push('<span class="pill">by staff</span>');
-  // Surfaced rather than hidden: the team should learn the CRM is behind from
-  // the console, not from an empty CENTRO later.
+  if (a.status === 'cancelled') out.push('<span class="chip warn">Cancelled</span>');
+  if (a.status === 'no_show') out.push('<span class="chip warn">No show</span>');
+  if (a.status === 'completed') out.push('<span class="chip ok">Done</span>');
+  if (a.checkedInAt && a.status === 'booked') out.push('<span class="chip ok">Here</span>');
+  if (a.channel === 'staff') out.push('<span class="chip">Booked by staff</span>');
+  // Surfaced, calmly: the team should learn the CRM is behind from here,
+  // not from an empty CENTRO later. It is information, not an alarm.
   if (a.status !== 'cancelled' && !a.syncedToCentro) {
-    out.push('<span class="pill warn">not in CENTRO</span>');
+    out.push(`<span class="chip info" title="This booking will be sent to CENTRO automatically.">Not in CENTRO yet</span>`);
   }
-  return out.join(' ');
+  return out.join(' ') || '<span class="chip">Booked</span>';
 }
 
 function actionsFor(a) {
+  const more = `<button class="iconbtn" data-more="${esc(a.ref)}" aria-label="More for ${esc(a.guestName)}" aria-haspopup="menu" aria-expanded="false">${ic('more')}</button>`;
   if (a.status === 'cancelled') {
-    return `<button class="btn quiet tiny" data-act="reopen" data-ref="${a.ref}">Reopen</button>`;
+    return `<button class="btn quiet sm" data-act="reopen" data-ref="${esc(a.ref)}">Reopen</button>`;
   }
   if (a.status !== 'booked') return '';
-  return [
-    a.checkedInAt
-      ? `<button class="btn quiet tiny" data-act="undo_check_in" data-ref="${a.ref}">Undo</button>`
-      : `<button class="btn tiny" data-act="check_in" data-ref="${a.ref}">Check in</button>`,
-    `<button class="btn quiet tiny" data-act="complete" data-ref="${a.ref}">Done</button>`,
-    `<button class="btn quiet tiny" data-act="no_show" data-ref="${a.ref}">No show</button>`,
-    `<button class="btn quiet tiny" data-act="cancel" data-ref="${a.ref}">Cancel</button>`,
-  ].join(' ');
+  return a.checkedInAt
+    ? `<button class="btn quiet sm" data-act="complete" data-ref="${esc(a.ref)}">Done</button>${more}`
+    : `<button class="btn sm" data-act="check_in" data-ref="${esc(a.ref)}">Check in</button>${more}`;
 }
 
+let diaryData = null;
+
 function renderDiary(d) {
-  $('dayHeading').textContent =
-    `${d.heading} · ${d.booked} appointment${d.booked === 1 ? '' : 's'}`
+  diaryData = d;
+  $('dayHeading').textContent = `${d.heading} · ${d.booked} appointment${d.booked === 1 ? '' : 's'}`
     + (d.arriving ? ` · ${d.arriving} still to arrive` : '');
 
   if (!d.appointments.length) {
-    $('diary').innerHTML = '<div class="empty">Nothing booked this day.</div>';
+    $('diary').innerHTML = emptyState({
+      icon: 'calendar', title: 'A free day so far',
+      text: 'Nothing is booked for this day yet.',
+      action: 'appointment', actionLabel: 'New appointment',
+    });
     return;
   }
 
-  $('diary').innerHTML = `
-    <table>
-      <thead><tr><th>Time</th><th>Client</th><th>Stylist</th><th>Service</th><th>Status</th><th></th></tr></thead>
+  $('diary').innerHTML = `<div class="scroll">
+    <table class="stack">
+      <thead><tr><th>Time</th><th>Client</th><th>Stylist</th><th>Service</th><th>Status</th><th><span class="sr">Actions</span></th></tr></thead>
       <tbody>${d.appointments.map((a) => `
         <tr class="${a.status === 'cancelled' ? 'off' : ''}">
-          <td class="cell-time">${esc(a.time)}<div class="small muted">${esc(a.endTime)}</div></td>
-          <td>
-            <div class="cell-name">${esc(a.guestName)}</div>
-            <div class="small muted">${esc([a.guestPhone, a.guestEmail].filter(Boolean).join(' · '))}</div>
+          <td class="time">${esc(a.time)}<div class="small muted" style="font-weight:400">${esc(a.endTime)}</div></td>
+          <td style="min-width:200px">
+            <div class="name">${esc(a.guestName)}</div>
+            <div class="small muted email">${[a.guestPhone, a.guestEmail].filter(Boolean).map(mail).join(' · ')}</div>
             ${a.notes ? `<div class="small" style="margin-top:4px">${esc(a.notes)}</div>` : ''}
             <div class="small muted" style="margin-top:4px">Ref ${esc(a.ref)}</div>
           </td>
-          <td>${esc(a.stylist)}</td>
-          <td>${esc(a.service)}</td>
-          <td>${statusPills(a)}</td>
-          <td style="white-space:nowrap">${actionsFor(a)}</td>
+          <td data-label="Stylist">${esc(a.stylist)}</td>
+          <td data-label="Service">${esc(a.service)}</td>
+          <td><div class="chips" style="margin:0">${statusChips(a)}</div></td>
+          <td><div class="acts">${actionsFor(a)}</div></td>
         </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table></div>`;
 }
 
-$('diary').onclick = async (e) => {
-  const btn = e.target.closest('button[data-act]');
-  if (!btn) return;
-  if (btn.dataset.act === 'cancel'
-      && !confirm('Cancel this appointment? The slot goes back on sale.')) return;
-  btn.disabled = true;
+async function apptAction(ref, act, btn) {
+  if (act === 'cancel' && !confirm('Cancel this appointment? The time goes back on the online booking page.')) return;
+  if (btn) btn.disabled = true;
   try {
-    await api('/api/staff/appointment', {
-      method: 'POST',
-      body: JSON.stringify({ ref: btn.dataset.ref, action: btn.dataset.act }),
-    });
+    await api('/api/staff/appointment', { method: 'POST', body: JSON.stringify({ ref, action: act }) });
     await loadDay(day);
   } catch (err) {
-    if (err.message !== 'signed out') alert(err.message);
-    btn.disabled = false;
+    fail(err);
+    if (btn) btn.disabled = false;
   }
+}
+
+$('diary').onclick = (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (btn) { apptAction(btn.dataset.ref, btn.dataset.act, btn); return; }
+  const more = e.target.closest('button[data-more]');
+  if (!more) return;
+  const a = diaryData.appointments.find((x) => x.ref === more.dataset.more);
+  const items = a.checkedInAt
+    ? [{ label: 'Undo check-in', run: () => apptAction(a.ref, 'undo_check_in') }]
+    : [{ label: 'Mark as done', run: () => apptAction(a.ref, 'complete') }];
+  items.push({ label: 'Didn’t show up', run: () => apptAction(a.ref, 'no_show') });
+  items.push({ label: 'Cancel appointment', danger: true, run: () => apptAction(a.ref, 'cancel') });
+  showMenu(more, items);
 };
 
+let daySeq = 0;
 async function loadDay(date) {
+  const seq = ++daySeq;
   day = date;
   $('dayPicker').value = date;
-  $('diary').innerHTML = '<div class="empty">Loading…</div>';
+  $('dayHeading').textContent = '';
+  $('diary').innerHTML = skeleton(5);
   try {
-    renderDiary(await api(`/api/staff/diary?date=${encodeURIComponent(date)}`));
+    const d = await api(`/api/staff/diary?date=${encodeURIComponent(date)}`);
+    if (seq === daySeq) renderDiary(d);
   } catch (err) {
-    if (err.message !== 'signed out') {
-      $('diary').innerHTML = `<div class="empty">${esc(err.message)}</div>`;
+    if (seq === daySeq && err.message !== 'signed out') {
+      $('diary').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this day', text: err.message });
     }
   }
 }
 
-function salonToday() {
-  return new Date().toLocaleDateString('en-CA',
-    me?.salon?.timezone ? { timeZone: me.salon.timezone } : {});
-}
-function shiftDay(n) {
-  const d = new Date(`${day}T12:00:00`);   // midday: a DST change cannot roll the date
-  d.setDate(d.getDate() + n);
-  loadDay(d.toISOString().slice(0, 10));
-}
-$('prevDay').onclick = () => shiftDay(-1);
-$('nextDay').onclick = () => shiftDay(1);
+$('prevDay').onclick = () => loadDay(addDays(day, -1));
+$('nextDay').onclick = () => loadDay(addDays(day, 1));
 $('todayBtn').onclick = () => loadDay(salonToday());
 $('dayPicker').onchange = (e) => e.target.value && loadDay(e.target.value);
 
 // ───────────────────────────── contacts ─────────────────────────────
 
-function renderContacts(d) {
+let contactList = [];
+
+function renderContacts(d, filtered) {
+  contactList = d.contacts;
   if (!d.contacts.length) {
-    $('contacts').innerHTML = '<div class="empty">No contacts match.</div>';
+    $('contacts').innerHTML = filtered
+      ? emptyState({ icon: 'search', title: 'No one matches', text: 'Try a different name, email or phone number.' })
+      : emptyState({
+        icon: 'contacts', title: 'No contacts yet',
+        text: 'People appear here when they book or when you add them.',
+        action: 'contact', actionLabel: 'Add contact',
+      });
     return;
   }
-  // The server refuses anyone else; hiding the button saves them the error.
-  const canDelete = Boolean(me?.user?.canAdmin);
-  $('contacts').innerHTML = `
-    <table>
-      <thead><tr><th>Name</th><th>Contact</th><th>Source</th><th>Visits</th><th>Next</th><th></th></tr></thead>
+  const dash = '<span class="muted">–</span>';
+  $('contacts').innerHTML = `<div class="scroll">
+    <table class="stack">
+      <thead><tr><th>Name</th><th>Phone and email</th><th>Source</th><th>Visits</th><th>Next</th><th><span class="sr">Actions</span></th></tr></thead>
       <tbody>${d.contacts.map((c) => `
-        <tr data-edit='${esc(JSON.stringify({
-            id: c.id, name: c.name, email: c.email, phone: c.phone,
-            source: c.source, status: c.status, notes: c.notes }))}'>
-          <td>
-            <div class="cell-name">${esc(c.name)}</div>
-            <span class="pill">${esc(c.status)}</span>
-            ${c.inCentro ? '' : '<span class="pill warn">not in CENTRO</span>'}
+        <tr>
+          <td style="min-width:170px">
+            <div class="name">${esc(c.name)}</div>
+            <div class="chips">
+              <span class="chip">${esc(STATUS_LABEL[c.status] || c.status)}</span>
+              ${c.inCentro ? '' : '<span class="chip info" title="They will be sent to CENTRO automatically.">Not in CENTRO yet</span>'}
+            </div>
           </td>
-          <td class="small">${[c.phone, c.email].filter(Boolean).map(esc).join('<br>') || '<span class="muted">—</span>'}</td>
-          <td class="small muted">${esc(c.source || '—')}</td>
-          <td>${c.visits}</td>
-          <td class="small">${c.nextVisit
-            ? esc(new Date(c.nextVisit).toLocaleString('en-GB',
-                { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))
-            : '<span class="muted">—</span>'}</td>
-          <td style="white-space:nowrap">
-            <button class="btn quiet tiny" data-edit-btn="1">Edit</button>
-            <button class="btn tiny" data-book="${c.id}" data-name="${esc(c.name)}"
-                    data-phone="${esc(c.phone)}" data-email="${esc(c.email)}">Book</button>
-            ${canDelete ? `<button class="btn danger tiny" data-delete="${c.id}"
-                    data-name="${esc(c.name)}" data-next="${c.nextVisit ? 1 : ''}">Delete</button>` : ''}
+          <td class="contact-cell">
+            ${c.phone ? `<div>${esc(c.phone)}</div>` : ''}
+            ${c.email ? `<div class="email muted" title="${esc(c.email)}">${mail(c.email)}</div>` : ''}
+            ${!c.phone && !c.email ? dash : ''}
           </td>
+          <td class="muted" data-label="Source">${esc(c.source || '') || dash}</td>
+          <td style="font-variant-numeric:tabular-nums" data-label="Visits">${c.visits}</td>
+          <td data-label="Next visit">${c.nextVisit
+            ? esc(new Date(c.nextVisit).toLocaleString('en-US', {
+                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                ...(me?.salon?.timezone ? { timeZone: me.salon.timezone } : {}) }))
+            : dash}</td>
+          <td><div class="acts">
+            <button class="iconbtn" data-book="${esc(c.id)}" title="Book an appointment" aria-label="Book ${esc(c.name)}">${ic('calendar-plus')}</button>
+            <button class="iconbtn" data-more="${esc(c.id)}" aria-label="More for ${esc(c.name)}" aria-haspopup="menu" aria-expanded="false">${ic('more')}</button>
+          </div></td>
         </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table></div>`;
 }
 
 $('contacts').onclick = (e) => {
   const book = e.target.closest('button[data-book]');
-  if (book) { openBooking({ id: book.dataset.book, ...book.dataset }); return; }
-  const edit = e.target.closest('button[data-edit-btn]');
-  if (edit) { openContact(JSON.parse(edit.closest('tr').dataset.edit)); return; }
-  const del = e.target.closest('button[data-delete]');
-  if (del) deleteContact(del);
+  const more = e.target.closest('button[data-more]');
+  const id = book?.dataset.book || more?.dataset.more;
+  const c = contactList.find((x) => String(x.id) === id);
+  if (!c) return;
+  if (book) { openBooking(c); return; }
+  const items = [{ label: 'Edit details', run: () => openContact(c) }];
+  // The server refuses anyone else; hiding the option saves them the error.
+  if (me?.user?.canAdmin) items.push({ label: 'Delete contact', danger: true, run: () => deleteContact(c) });
+  showMenu(more, items);
 };
 
-async function deleteContact(btn) {
-  const { name, next } = btn.dataset;
+async function deleteContact(c) {
   const warning = [
-    `Delete ${name}?`,
-    'They are removed from this console and from CENTRO. This cannot be undone.',
-    next ? 'Their upcoming appointments are cancelled and the slots go back on sale.' : '',
+    `Delete ${c.name}?`,
+    'They are removed from this app and from CENTRO. This cannot be undone.',
+    c.nextVisit ? 'Their upcoming appointments are cancelled and the times go back on the booking page.' : '',
   ].filter(Boolean).join('\n\n');
   if (!confirm(warning)) return;
-  btn.disabled = true;
   try {
-    await api('/api/staff/contacts', {
-      method: 'DELETE',
-      body: JSON.stringify({ id: btn.dataset.delete }),
-    });
+    await api('/api/staff/contacts', { method: 'DELETE', body: JSON.stringify({ id: c.id }) });
+    toast(`${c.name} was deleted.`);
     await loadContacts();
-  } catch (err) {
-    if (err.message !== 'signed out') alert(err.message);
-    btn.disabled = false;
-  }
+  } catch (err) { fail(err); }
 }
 
 let searchTimer = null;
+let contactSeq = 0;
 async function loadContacts() {
-  const q = encodeURIComponent($('contactSearch').value.trim());
-  const s = encodeURIComponent($('contactStatus').value);
+  const seq = ++contactSeq;
+  const qv = $('contactSearch').value.trim();
+  const sv = $('contactStatus').value;
+  if (!contactList.length) $('contacts').innerHTML = skeleton(6);
   try {
-    renderContacts(await api(`/api/staff/contacts?q=${q}&status=${s}`));
+    const d = await api(`/api/staff/contacts?q=${encodeURIComponent(qv)}&status=${encodeURIComponent(sv)}`);
+    if (seq === contactSeq) renderContacts(d, Boolean(qv || sv));
   } catch (err) {
-    if (err.message !== 'signed out') {
-      $('contacts').innerHTML = `<div class="empty">${esc(err.message)}</div>`;
+    if (seq === contactSeq && err.message !== 'signed out') {
+      $('contacts').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load contacts', text: err.message });
     }
   }
 }
@@ -666,8 +1207,6 @@ function openContact(contact) {
   $('contactDlg').showModal();
 }
 
-$('newContact').onclick = () => openContact(null);
-
 $('contactForm').onsubmit = async (e) => {
   if (e.submitter?.value !== 'save') return;
   e.preventDefault();
@@ -689,33 +1228,6 @@ $('contactForm').onsubmit = async (e) => {
   }
 };
 
-// ---- adding a team member ----
-
-$('newMember').onclick = () => {
-  $('memberForm').reset();
-  note($('memberNote'), '');
-  $('memberDlg').showModal();
-};
-
-$('memberForm').onsubmit = async (e) => {
-  if (e.submitter?.value !== 'save') return;
-  e.preventDefault();
-  const f = new FormData(e.target);
-  try {
-    await api('/api/staff/team', {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'create', name: f.get('name'), email: f.get('email'),
-        role: f.get('role'), password: f.get('password'),
-      }),
-    });
-    $('memberDlg').close();
-    await loadTeam();
-  } catch (err) {
-    note($('memberNote'), err.message);
-  }
-};
-
 // ───────────────────────────── booking ─────────────────────────────
 
 function openBooking(contact) {
@@ -728,17 +1240,17 @@ function openBooking(contact) {
   $('bookNotes').value = '';
 
   $('bookService').innerHTML = me.services.map((s) =>
-    `<option value="${s.slug}">${esc(s.name)} · ${s.durationMin} min${s.price != null ? ` · $${s.price}` : ''}</option>`).join('');
+    `<option value="${esc(s.slug)}">${esc(s.name)} · ${s.durationMin} min${s.price != null ? ` · $${s.price}` : ''}</option>`).join('');
   $('bookStylist').innerHTML = '<option value="any">First available</option>'
-    + me.stylists.map((s) => `<option value="${s.slug}">${esc(s.name)}</option>`).join('');
-  $('bookDate').value = day || salonToday();
+    + me.stylists.map((s) => `<option value="${esc(s.slug)}">${esc(s.name)}</option>`).join('');
+  $('bookDate').value = (page === 'appointments' && day) || salonToday();
   $('bookDlg').showModal();
   loadTimes();
 }
 
 async function loadTimes() {
   const sel = $('bookTime');
-  sel.innerHTML = '<option value="">Loading…</option>';
+  sel.innerHTML = '<option value="">Finding free times…</option>';
   try {
     const d = await api('/api/staff/availability?' + new URLSearchParams({
       service: $('bookService').value,
@@ -781,8 +1293,9 @@ $('bookForm').onsubmit = async (e) => {
       }),
     });
     $('bookDlg').close();
-    document.querySelector('.tab[data-tab="appointments"]').click();
-    await loadDay($('bookDate').value);
+    day = $('bookDate').value;
+    toast(`Booked ${$('bookName').value}.`);
+    go('appointments');
   } catch (err) {
     note($('bookNote'), err.message);
     // Somebody took it while this dialog was open; show what is left.
@@ -790,47 +1303,89 @@ $('bookForm').onsubmit = async (e) => {
   } finally { $('bookSubmit').disabled = false; }
 };
 
-$('newAppt').onclick = () => openBooking(null);
-
 // ───────────────────────────── settings ─────────────────────────────
 
-function renderTeam(d) {
-  const roleSelect = (m) => `
-    <select data-role="${m.id}" style="width:auto;padding:5px 8px;font-size:.85rem">
-      ${['owner', 'manager', 'front_desk'].map((r) =>
-        `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r.replace('_', ' ')}</option>`).join('')}
-    </select>`;
+let teamData = null;
 
-  $('team').innerHTML = `
-    <table>
-      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+function openMember() {
+  $('memberForm').reset();
+  note($('memberNote'), '');
+  // Only an owner can make another owner; say so by not offering it.
+  $('memberForm').elements.role.querySelector('[value=owner]').disabled = me.user.role !== 'owner';
+  $('memberDlg').showModal();
+}
+
+$('memberForm').onsubmit = async (e) => {
+  if (e.submitter?.value !== 'save') return;
+  e.preventDefault();
+  const f = new FormData(e.target);
+  try {
+    await api('/api/staff/team', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'create', name: f.get('name'), email: f.get('email'),
+        role: f.get('role'), password: f.get('password'),
+      }),
+    });
+    $('memberDlg').close();
+    toast(`${f.get('name')} can sign in now.`);
+    await loadTeam();
+  } catch (err) {
+    note($('memberNote'), err.message);
+  }
+};
+
+function roleControl(m, d) {
+  const you = m.id === d.you.id;
+  const iAmOwner = d.you.role === 'owner';
+  // Every row someone may edit gets the same dropdown. The rest say why not.
+  if (you) {
+    return `<span class="locked" title="You can't change your own role">${ic('lock')}${esc(ROLE_LABEL[m.role] || m.role)}</span>`;
+  }
+  if (m.role === 'owner' && !iAmOwner) {
+    return `<span class="locked" title="Only an owner can change another owner">${ic('lock')}Owner</span>`;
+  }
+  const pick = m.status === 'pending' ? 'front_desk' : m.role;
+  return `<select class="role" data-role="${esc(m.id)}" ${m.status === 'pending' ? 'data-pending="1"' : ''} aria-label="Role for ${esc(m.name)}">
+    ${['front_desk', 'manager', 'owner'].map((r) =>
+      `<option value="${r}" ${pick === r ? 'selected' : ''} ${r === 'owner' && !iAmOwner ? 'disabled' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
+  </select>`;
+}
+
+function renderTeam(d) {
+  teamData = d;
+  $('team').innerHTML = `<div class="scroll">
+    <table class="mid stack">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th><span class="sr">Actions</span></th></tr></thead>
       <tbody>${d.members.map((m) => {
         const you = m.id === d.you.id;
         const pending = m.status === 'pending';
-        const actions = you ? ''
+        const lockedOwner = m.role === 'owner' && d.you.role !== 'owner';
+        const actions = you || lockedOwner ? ''
           : pending
-            ? `<button class="btn tiny" data-act="approve" data-id="${m.id}">Approve</button>
-               <button class="btn quiet tiny" data-act="reject" data-id="${m.id}">Reject</button>`
+            ? `<button class="btn sm" data-act="approve" data-id="${esc(m.id)}">Approve</button>
+               <button class="btn quiet sm" data-act="reject" data-id="${esc(m.id)}">Decline</button>`
             : m.status === 'disabled'
-              ? `<button class="btn quiet tiny" data-act="enable" data-id="${m.id}">Re-enable</button>`
-              : `<button class="btn quiet tiny" data-act="disable" data-id="${m.id}">Disable</button>`;
+              ? `<button class="btn quiet sm" data-act="enable" data-id="${esc(m.id)}">Turn back on</button>`
+              : `<button class="btn quiet sm" data-act="disable" data-id="${esc(m.id)}">Turn off</button>`;
         return `
         <tr class="${m.status === 'disabled' ? 'off' : ''}">
-          <td>
-            <div class="cell-name">${esc(m.name)}${you ? ' <span class="pill">you</span>' : ''}</div>
+          <td style="min-width:160px">
+            <div class="name">${esc(m.name)}${you ? ' <span class="chip" style="margin-left:4px">You</span>' : ''}</div>
             ${m.note ? `<div class="small muted">${esc(m.note)}</div>` : ''}
           </td>
-          <td class="small">${esc(m.email)}</td>
-          <td>${you || pending ? esc(m.role.replace('_', ' ')) : roleSelect(m)}</td>
-          <td>${pending ? '<span class="pill warn">waiting</span>'
-                        : m.status === 'disabled' ? '<span class="pill warn">disabled</span>'
-                        : '<span class="pill ok">active</span>'}</td>
-          <td style="white-space:nowrap">${actions}</td>
+          <td class="muted email" style="min-width:180px">${mail(m.email)}</td>
+          <td>${roleControl(m, d)}</td>
+          <td>${pending ? '<span class="chip info">Waiting for approval</span>'
+                        : m.status === 'disabled' ? '<span class="chip">Turned off</span>'
+                        : '<span class="chip ok">Active</span>'}</td>
+          <td><div class="acts">${actions}</div></td>
         </tr>`;
       }).join('')}
       </tbody>
-    </table>`;
+    </table></div>`;
 
+  me.pendingApprovals = d.pending;
   $('pendingBadge').textContent = d.pending;
   $('pendingBadge').classList.toggle('hidden', !d.pending);
 }
@@ -839,15 +1394,13 @@ $('team').onclick = async (e) => {
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
   const act = btn.dataset.act;
-  if (act === 'disable' && !confirm('Disable this account? They are signed out immediately.')) return;
-  if (act === 'reject' && !confirm('Reject this request? They can ask again.')) return;
+  if (act === 'disable' && !confirm('Turn off this account? They are signed out straight away.')) return;
+  if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
 
-  let role;
-  if (act === 'approve') {
-    role = prompt('Role for this person: owner, manager or front_desk', 'front_desk');
-    if (role === null) return;
-    role = role.trim().toLowerCase().replace(/[\s-]+/g, '_') || 'front_desk';
-  }
+  // Approving uses the role picked in that row's dropdown.
+  const role = act === 'approve'
+    ? btn.closest('tr').querySelector('select[data-role]')?.value || 'front_desk'
+    : undefined;
 
   btn.disabled = true;
   try {
@@ -856,35 +1409,37 @@ $('team').onclick = async (e) => {
     });
     await loadTeam();
   } catch (err) {
-    if (err.message !== 'signed out') alert(err.message);
+    fail(err);
     btn.disabled = false;
   }
 };
 
 $('team').onchange = async (e) => {
   const sel = e.target.closest('select[data-role]');
-  if (!sel) return;
+  if (!sel || sel.dataset.pending) return;   // pending rows apply the role on Approve
   try {
     await api('/api/staff/team', {
       method: 'POST',
       body: JSON.stringify({ id: sel.dataset.role, action: 'role', role: sel.value }),
     });
-  } catch (err) { alert(err.message); loadTeam(); }
+    toast('Role updated.');
+  } catch (err) { fail(err); loadTeam(); }
 };
 
 async function loadTeam() {
+  if (!teamData) $('team').innerHTML = skeleton(4);
   try {
     renderTeam(await api('/api/staff/team'));
   } catch (err) {
     if (err.message !== 'signed out') {
-      $('team').innerHTML = `<div class="empty">${esc(err.message)}</div>`;
+      $('team').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load the team', text: err.message });
     }
   }
 }
 
 // ───────────────────────────── boot ─────────────────────────────
 
-async function start() {
+async function start(landing) {
   try {
     me = await api('/api/staff/me');
   } catch {
@@ -894,14 +1449,27 @@ async function start() {
     showLogin();
     return;
   }
+  $('boot').classList.add('hidden');
   $('login').classList.add('hidden');
-  $('console').classList.remove('hidden');
-  $('salonName').textContent = me.salon.name;
-  $('whoami').textContent = `${me.user.name} · ${me.user.role.replace('_', ' ')}`;
-  $('tabSettings').classList.toggle('hidden', !me.user.canAdmin);
+  $('app').classList.remove('hidden');
+
+  const initials = me.user.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  $('meInitials').textContent = initials || '·';
+  $('meName').textContent = me.user.name;
+  $('meRole').textContent = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
+  $('signOut').title = `Sign out ${me.user.name}`;
+  $('navSettings').classList.toggle('hidden', !me.user.canAdmin);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
-  await loadDay(salonToday());
+
+  day = salonToday();
+  teamData = null;
+  contactList = [];
+  // A fresh sign-in lands on the Dashboard; a reload stays where it was.
+  const target = landing || pageFromUrl();
+  go(target, { push: false });
+  const want = PAGES[page].path;
+  if (location.pathname !== want) history.replaceState({ page }, '', want);
 }
 
 start();

@@ -40,6 +40,17 @@
       "permanent": false
     },
     {
+      "source": "/staff/:path(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "synergysalon.com"
+        }
+      ],
+      "destination": "https://app.synergysalon.com/staff/:path",
+      "permanent": false
+    },
+    {
       "source": "/join",
       "destination": "https://join.synergysalon.com/",
       "permanent": false
@@ -84,6 +95,12 @@
     {
       "path": "/api/cron/sync",
       "schedule": "30 14 * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/staff/:page(dashboard|appointments|contacts|settings)",
+      "destination": "/staff/index.html"
     }
   ]
 }
