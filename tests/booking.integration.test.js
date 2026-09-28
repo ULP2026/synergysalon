@@ -42,7 +42,7 @@ function insert(client, { ref, stylist = 'dina', start = START, minutes = 60 }) 
        during, guest_name, guest_email, manage_token
      )
      SELECT t.id, $1, s.id, v.id, $3, $4, 0,
-            tstzrange($3, $3 + make_interval(mins => $4), '[)'),
+            tstzrange($3::timestamptz, $3::timestamptz + make_interval(mins => $4::int), '[)'),
             'Test Guest', 'test@example.com', $5
        FROM tenants t
        JOIN stylists s ON s.tenant_id = t.id AND s.slug = $2

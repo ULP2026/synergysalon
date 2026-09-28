@@ -128,7 +128,8 @@ export default handler({
           `UPDATE appointments
               SET starts_at = $2,
                   stylist_id = $3,
-                  during = tstzrange($2, $2 + make_interval(mins => duration_min + buffer_min), '[)'),
+                  during = tstzrange($2::timestamptz,
+                                     $2::timestamptz + make_interval(mins => duration_min + buffer_min), '[)'),
                   updated_at = now()
             WHERE id = $1
             RETURNING *`,

@@ -52,7 +52,8 @@ async function insertFor(client, stylistId, ctx) {
          ) VALUES (
            $1, $2, $3, $4, $5, $6,
            $7, $8, $9,
-           tstzrange($6, $6 + make_interval(mins => $7 + $8), '[)'),
+           tstzrange($6::timestamptz,
+                     $6::timestamptz + make_interval(mins => $7::int + $8::int), '[)'),
            'booked', $10, $11,
            $12, $13, $14, $15, $16
          )
