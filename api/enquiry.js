@@ -158,9 +158,20 @@ export default handler({
         await enqueueSync(client, tenant.id, 'contact.created', { contactId });
       }
 
-      // Only attempt the appointment once they have actually finished, and
-      // only if we can resolve both a service and a real time.
-      if (!body.complete || !serviceSlug || !start) {
+      // Book as soon as there is enough to book with, rather than waiting for
+      // the wizard to say it has finished.
+      //
+      // That signal proved unreliable three separate ways -- the thank-you
+      // panel, the Confirm click, a shared debounce -- and each time the
+      // symptom was identical and silent: a lead saved, no appointment, and a
+      // guest shown a thank-you. Having chosen a service, a stylist, a day and
+      // a time, and typed their name and number, somebody has said everything
+      // a booking needs. The flag is now only a hint.
+      //
+      // The cost is booking for someone who fills the last step and walks
+      // away. That shows up in the diary where the salon can cancel it, which
+      // is the better failure of the two.
+      if (!serviceSlug || !start) {
         return { contactId, booked: null };
       }
 
