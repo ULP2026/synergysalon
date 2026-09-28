@@ -75,10 +75,14 @@ try {
 
   const name = await ask('Full name: ', env.STAFF_NAME);
   const email = (await ask('Email: ', env.STAFF_EMAIL)).toLowerCase();
-  const role = (await ask('Role [owner/manager/front_desk] (front_desk): ', env.STAFF_ROLE))
-    || 'front_desk';
-  if (!['owner', 'manager', 'front_desk'].includes(role)) {
-    console.error(`"${role}" is not a role.`);
+  // Forgiving on purpose: "Owner", "OWNER", "front desk" and "front-desk" all
+  // mean the obvious thing. Rejecting a capital letter and exiting is a
+  // pointless way to make somebody start again.
+  const ROLES = ['owner', 'manager', 'front_desk'];
+  const role = ((await ask('Role [owner/manager/front_desk] (front_desk): ', env.STAFF_ROLE)) || '')
+    .trim().toLowerCase().replace(/[\s-]+/g, '_') || 'front_desk';
+  if (!ROLES.includes(role)) {
+    console.error(`"${role}" is not a role. Use one of: ${ROLES.join(', ')}`);
     process.exit(1);
   }
 
