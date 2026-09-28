@@ -13,7 +13,8 @@ import { DateTime } from 'luxon';
 
 import { pool, query, transaction } from '../_lib/db.js';
 import {
-  GhlError, cancelAppointment, createAppointment, updateAppointment, upsertContact,
+  GhlError, cancelAppointment, createAppointment, deleteContact,
+  updateAppointment, updateContact, upsertContact,
 } from '../_lib/ghl.js';
 import { handler, json } from '../_lib/http.js';
 
@@ -35,7 +36,7 @@ function backoffMinutes(attempts) {
 async function claim(client) {
   const { rows } = await client.query(
     `SELECT o.*, t.id AS tenant_id, t.timezone,
-            t.ghl_location_id, t.ghl_token, t.ghl_calendar_id
+            t.ghl_location_id, t.ghl_token, t.ghl_calendar_id, t.ghl_user_id
        FROM sync_outbox o
        JOIN tenants t ON t.id = o.tenant_id
       WHERE o.state = 'pending' AND o.next_try_at <= now()
@@ -49,12 +50,13 @@ async function claim(client) {
 
 async function loadAppointment(client, id) {
   const { rows } = await client.query(
-    `SELECT a.*, s.name AS stylist_name, v.name AS service_name,
-            l.ghl_contact_id AS lead_contact_id
+    `SELECT a.*, s.name AS stylist_name, s.ghl_user_id AS stylist_ghl_user_id,
+            v.name AS service_name,
+            ct.ghl_contact_id AS contact_ghl_id
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
-       LEFT JOIN leads l ON l.id = a.lead_id
+       LEFT JOIN contacts ct ON ct.id = a.contact_id
       WHERE a.id = $1`,
     [id],
   );
@@ -86,7 +88,7 @@ async function pushAppointment(client, job, tenant) {
     return { updated: appt.ghl_appointment_id };
   }
 
-  const contactId = appt.lead_contact_id ?? await upsertContact(tenant, {
+  const contactId = appt.contact_ghl_id ?? await upsertContact(tenant, {
     name: appt.guest_name,
     email: appt.guest_email,
     phone: appt.guest_phone,
@@ -96,6 +98,7 @@ async function pushAppointment(client, job, tenant) {
 
   const eventId = await createAppointment(tenant, {
     contactId,
+    assignedUserId: appt.stylist_ghl_user_id || tenant.ghl_user_id,
     startsAt: startsAt.toISO(),
     endsAt: endsAt.toISO(),
     title,
@@ -108,32 +111,62 @@ async function pushAppointment(client, job, tenant) {
     'UPDATE appointments SET ghl_appointment_id = $2 WHERE id = $1',
     [appt.id, eventId],
   );
-  if (appt.lead_id && !appt.lead_contact_id) {
+  if (appt.contact_id && !appt.contact_ghl_id) {
     await client.query(
-      'UPDATE leads SET ghl_contact_id = $2 WHERE id = $1 AND ghl_contact_id IS NULL',
-      [appt.lead_id, contactId],
+      'UPDATE contacts SET ghl_contact_id = $2 WHERE id = $1 AND ghl_contact_id IS NULL',
+      [appt.contact_id, contactId],
     );
   }
   return { created: eventId };
 }
 
-async function pushLead(client, job, tenant) {
-  const { rows } = await client.query('SELECT * FROM leads WHERE id = $1', [job.lead_id]);
-  const lead = rows[0];
-  if (!lead) return { skipped: 'lead no longer exists' };
+async function pushContact(client, job, tenant) {
+  const { rows } = await client.query('SELECT * FROM contacts WHERE id = $1', [job.contact_id]);
+  const contact = rows[0];
+  if (!contact) return { skipped: 'contact no longer exists' };
+
+  // Editing somebody's email must not leave two of them in CENTRO, so once
+  // we know their id we update by id rather than matching on their details.
+  if (contact.ghl_contact_id) {
+    await updateContact(tenant, contact.ghl_contact_id, contact);
+    return { updated: contact.ghl_contact_id };
+  }
 
   const contactId = await upsertContact(tenant, {
-    name: lead.name,
-    email: lead.email,
-    phone: lead.phone,
-    source: lead.source || 'Staff console',
-    tags: ['lead'],
+    name: contact.name,
+    email: contact.email,
+    phone: contact.phone,
+    source: contact.source || 'Staff console',
+    tags: ['contact'],
   });
   await client.query(
-    'UPDATE leads SET ghl_contact_id = $2, updated_at = now() WHERE id = $1',
-    [lead.id, contactId],
+    'UPDATE contacts SET ghl_contact_id = $2, updated_at = now() WHERE id = $1',
+    [contact.id, contactId],
   );
   return { contact: contactId };
+}
+
+/**
+ * Mirror a deletion. The contact row is already gone, so everything needed
+ * travels in the payload.
+ *
+ * Their upcoming appointments are cancelled before the contact is removed, so
+ * CENTRO's calendar never keeps a slot blocked by somebody who no longer
+ * exists, whatever CENTRO itself does with a deleted contact's events. A
+ * retry repeats both steps, which is harmless: cancelling twice and deleting
+ * something already gone both succeed.
+ */
+async function removeContact(job, tenant) {
+  const { ghlContactId, ghlAppointmentIds = [] } = job.payload || {};
+  for (const eventId of ghlAppointmentIds) {
+    try {
+      await cancelAppointment(tenant, eventId);
+    } catch (err) {
+      if (!(err instanceof GhlError && err.status === 404)) throw err;
+    }
+  }
+  if (ghlContactId) await deleteContact(tenant, ghlContactId);
+  return { deleted: ghlContactId ?? null, cancelled: ghlAppointmentIds.length };
 }
 
 /** Process one job. Returns a short description for the response. */
@@ -148,12 +181,14 @@ async function runOne() {
       ghl_location_id: job.ghl_location_id,
       ghl_token: job.ghl_token,
       ghl_calendar_id: job.ghl_calendar_id,
+      ghl_user_id: job.ghl_user_id,
     };
 
     try {
-      const result = job.kind.startsWith('appointment.')
-        ? await pushAppointment(client, job, tenant)
-        : await pushLead(client, job, tenant);
+      let result;
+      if (job.kind === 'contact.deleted') result = await removeContact(job, tenant);
+      else if (job.kind.startsWith('appointment.')) result = await pushAppointment(client, job, tenant);
+      else result = await pushContact(client, job, tenant);
 
       await client.query(
         `UPDATE sync_outbox SET state = 'done', done_at = now(), attempts = attempts + 1
@@ -172,7 +207,7 @@ async function runOne() {
             SET attempts = $2,
                 last_error = $3,
                 state = $4,
-                next_try_at = now() + make_interval(mins => $5)
+                next_try_at = now() + make_interval(mins => $5::int)
           WHERE id = $1`,
         [job.id, attempts, String(err.message).slice(0, 500),
           giveUp ? 'failed' : 'pending', giveUp ? 0 : backoffMinutes(attempts)],

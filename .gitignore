@@ -15,4 +15,6 @@ Synergy PMC.md
 node_modules/
 .env
 .env.*
+# The template carries no secrets and is how a new machine knows what to fill in.
+!.env.example
 .vercel/

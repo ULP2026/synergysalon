@@ -70,7 +70,7 @@ export async function currentUser(req) {
   if (!token) return null;
 
   const { rows } = await query(
-    `SELECT u.id, u.tenant_id, u.email, u.name, u.role, u.active,
+    `SELECT u.id, u.tenant_id, u.email, u.name, u.role, u.active, u.status,
             s.id AS session_id, s.last_seen_at, t.slug AS tenant_slug, t.timezone
        FROM staff_sessions s
        JOIN staff_users u ON u.id = s.user_id
@@ -80,7 +80,10 @@ export async function currentUser(req) {
   );
 
   const user = rows[0];
-  if (!user || !user.active) return null;
+  // A pending account has been created but not approved, and a disabled one
+  // has had access taken away. Neither should survive on a cookie issued
+  // earlier: revoking access has to take effect the same afternoon.
+  if (!user || !user.active || user.status !== 'active') return null;
 
   const stale = !user.last_seen_at
     || Date.now() - new Date(user.last_seen_at).getTime() > TOUCH_AFTER_MIN * 60_000;

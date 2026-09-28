@@ -5,28 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Synergy Salon — Staff</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
+<link rel="apple-touch-icon" type="image/png" sizes="180x180" href="/apple-touch-icon.png">
+<!-- The console is the tab a stylist keeps open all day beside the booking
+     site. The dark brand indigo is what the phone's address bar and the
+     installed-app splash take, so both read as Synergy rather than as a
+     nameless white page. -->
+<meta name="theme-color" content="#1e1f5c">
 <style>
-  /* The same two faces the public site loads, served from the same files, so
-     the console looks like Synergy rather than like a tool bolted onto it.
-     FK Screamer is deliberately not used: the site references it at a path
-     that does not exist, and Anton is what actually renders there. */
+  /* The same two faces the public site loads, from the same files, so the
+     console looks like Synergy rather than like a tool bolted onto it. */
   @font-face {
     font-family: 'Geist Variable';
     src: url('/assets/c8304767-0bea-4286-af7c-e4e3a1e5d605.woff2') format('woff2-variations');
-    font-weight: 100 900;
-    font-display: swap;
+    font-weight: 100 900; font-display: swap;
   }
   @font-face {
     font-family: 'Anton';
     src: url('/assets/ed1a36a6-045c-40e2-9f8a-93bcb84a31c4.woff2') format('woff2');
-    font-weight: 400;
-    font-display: swap;
+    font-weight: 400; font-display: swap;
   }
 
   :root {
-    /* Taken from the live site, not invented. The public stylesheet calls the
-       button class "btn-orange" but paints it #5560A6 -- a leftover name from
-       the template. The brand is indigo. */
+    /* Taken from the live site. Its button class is called "btn-orange" but
+       paints #5560A6 -- a leftover name from the template. The brand is indigo. */
     --indigo-deep: #1e1f5c;
     --indigo:      #353676;
     --periwinkle:  #5560a6;
@@ -34,216 +37,327 @@
     --peri-pale:   #e6e8f7;
     --greige:      #f0edee;
 
-    --bg: var(--greige);
-    --card: #ffffff;
-    --ink: #1a1a1a;
-    --ink-soft: #3d3d3d;
-    --muted: #7785ac;
-    --line: var(--peri-pale);
-    --accent: var(--periwinkle);
-    --accent-strong: var(--indigo);
-    --accent-ink: #ffffff;
-    --warn: #db2b39;
-    --radius: 12px;
+    --bg: var(--greige); --card: #ffffff; --ink: #1a1a1a; --muted: #7785ac;
+    --line: var(--peri-pale); --accent: var(--periwinkle);
+    --accent-strong: var(--indigo); --accent-ink: #ffffff;
+    --warn: #db2b39; --ok: #2f7d4f; --radius: 12px;
 
     --display: 'Anton', Impact, 'Arial Narrow Bold', sans-serif;
     --body: 'Geist Variable', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
-
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #14153a; --card: #1c1d4a; --ink: #f2f3fb; --ink-soft: #d4d8f0;
-      --muted: #9aa4cf; --line: #2c2e63;
-      --accent: #8b97d6; --accent-strong: #b9c0e8; --accent-ink: #14153a;
-      --warn: #ff7480;
+      --bg: #14153a; --card: #1c1d4a; --ink: #f2f3fb; --muted: #9aa4cf;
+      --line: #2c2e63; --accent: #8b97d6; --accent-strong: #b9c0e8;
+      --accent-ink: #14153a; --warn: #ff7480; --ok: #6cc08c; --peri-pale: #2c2e63;
     }
-  }
-  :root[data-theme="dark"] {
-    --bg: #14153a; --card: #1c1d4a; --ink: #f2f3fb; --ink-soft: #d4d8f0;
-    --muted: #9aa4cf; --line: #2c2e63;
-    --accent: #8b97d6; --accent-strong: #b9c0e8; --accent-ink: #14153a;
-    --warn: #ff7480;
   }
 
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
-    font: 16px/1.55 var(--body);
-    -webkit-font-smoothing: antialiased;
+    font: 16px/1.55 var(--body); -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
-
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 72px; }
   h1 {
-    font-family: var(--display); font-weight: 400;
-    font-size: 1.6rem; letter-spacing: 0.01em; text-transform: uppercase;
-    margin: 0; line-height: 1.1;
+    font-family: var(--display); font-weight: 400; font-size: 1.5rem;
+    letter-spacing: .01em; text-transform: uppercase; margin: 0; line-height: 1.1;
   }
+  h2 { font-size: 1.05rem; margin: 0 0 14px; }
   .muted { color: var(--muted); }
-  .small { font-size: 0.86rem; }
+  .small { font-size: .86rem; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .grow { flex: 1 1 200px; }
+  .hidden { display: none !important; }
 
-  button, input, select { font: inherit; color: inherit; }
-  input, select {
-    width: 100%; padding: 11px 12px; border: 1px solid var(--line);
+  button, input, select, textarea { font: inherit; color: inherit; }
+  input, select, textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line);
     border-radius: 9px; background: var(--card);
   }
-  input:focus-visible, select:focus-visible, button:focus-visible {
-    outline: 2px solid var(--accent); outline-offset: 2px;
-  }
-  label { display: block; margin: 0 0 14px; }
-  label span {
-    display: block; margin-bottom: 5px; font-size: 0.8rem;
-    color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+  textarea { min-height: 70px; resize: vertical; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  label { display: block; margin: 0 0 12px; }
+  label > span {
+    display: block; margin-bottom: 5px; font-size: .78rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em;
   }
 
   .btn {
-    padding: 12px 22px; border: 0; border-radius: 999px; cursor: pointer;
+    padding: 10px 18px; border: 0; border-radius: 999px; cursor: pointer;
     background: var(--accent); color: var(--accent-ink); font-weight: 600;
-    transition: background 0.15s ease;
+    white-space: nowrap; transition: background .15s ease;
   }
   .btn:hover:not(:disabled) { background: var(--accent-strong); }
-  .btn:disabled { opacity: 0.55; cursor: default; }
-  .btn.quiet {
-    background: transparent; color: var(--muted);
-    border: 1px solid var(--line); font-weight: 500;
-  }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .btn.quiet { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
   .btn.quiet:hover { background: var(--peri-pale); color: var(--indigo); }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .btn.quiet:hover { background: var(--line); color: var(--ink); }
-  }
+  .btn.tiny { padding: 5px 12px; font-size: .82rem; }
+  .btn.danger { background: transparent; color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); font-weight: 500; }
+  .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--warn) 12%, transparent); }
 
-  .card {
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: var(--radius); padding: 22px;
-  }
-
-  /* The logo's wordmark is white -- it is drawn for the site's dark header.
-     On a pale card two thirds of it vanish, so it gets the same dark ground
-     here rather than a recoloured copy that would drift from the brand. */
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
   .brandbar {
-    background: var(--indigo-deep);
-    border-radius: var(--radius) var(--radius) 0 0;
-    padding: 20px 22px;
-    margin: -22px -22px 22px;
+    background: var(--indigo-deep); border-radius: var(--radius) var(--radius) 0 0;
+    padding: 18px 20px; margin: -20px -20px 20px;
   }
-  .brandbar .mark { display: block; height: 40px; width: auto; }
+  .brandbar img { display: block; height: 38px; width: auto; }
+  .markchip { display: inline-block; background: var(--indigo-deep); border-radius: 8px; padding: 7px 11px; }
+  .markchip img { display: block; height: 24px; width: auto; }
 
-  .markchip {
-    display: inline-block; background: var(--indigo-deep);
-    border-radius: 9px; padding: 8px 12px; margin-bottom: 10px;
+  .login { max-width: 420px; margin: 8vh auto 0; }
+  .login .sub { margin: 0 0 22px; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .1em; }
+  .note {
+    padding: 10px 12px; border-radius: 9px; margin-bottom: 14px; font-size: .9rem;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   }
-  .markchip img { display: block; height: 26px; width: auto; }
-
-  /* sign in */
-  .login { max-width: 400px; margin: 10vh auto 0; }
-  .login h1 { margin-bottom: 6px; }
-  .login p.sub {
-    margin: 0 0 24px; color: var(--muted); font-size: 0.82rem;
-    text-transform: uppercase; letter-spacing: 0.1em;
-  }
-  .error {
+  .note.bad {
     background: color-mix(in srgb, var(--warn) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
-    color: var(--warn); padding: 10px 12px; border-radius: 9px;
-    margin-bottom: 16px; font-size: 0.9rem;
+    border-color: color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn);
+  }
+  .note.good {
+    background: color-mix(in srgb, var(--ok) 12%, transparent);
+    border-color: color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok);
   }
 
-  /* diary */
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; flex-wrap: wrap; margin-bottom: 22px;
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tab {
+    padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line);
+    background: transparent; cursor: pointer; font-weight: 500; color: var(--muted);
   }
-  .daynav { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
-  .daynav .btn.quiet { padding: 9px 15px; }
-  .daynav input[type=date] { width: auto; }
+  .tab[aria-selected="true"] { background: var(--indigo-deep); border-color: var(--indigo-deep); color: #fff; }
+  .badge {
+    display: inline-block; min-width: 19px; padding: 1px 6px; margin-left: 7px;
+    border-radius: 999px; background: var(--warn); color: #fff;
+    font-size: .72rem; font-weight: 700; text-align: center;
+  }
 
-  .appt {
-    display: grid; grid-template-columns: 96px 1fr; gap: 16px;
-    padding: 15px 0; border-top: 1px solid var(--line);
+  .scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+  thead th {
+    text-align: left; padding: 10px 12px; background: var(--indigo); color: #fff;
+    font-weight: 600; font-size: .76rem; text-transform: uppercase;
+    letter-spacing: .06em; white-space: nowrap;
   }
-  .appt:first-of-type { border-top: 0; }
-  .appt .when {
-    font-weight: 600; font-variant-numeric: tabular-nums; color: var(--indigo);
-  }
+  thead th:first-child { border-radius: 8px 0 0 8px; }
+  thead th:last-child { border-radius: 0 8px 8px 0; }
+  tbody td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr.off td { opacity: .5; }
+  tbody tr.off .cell-name { text-decoration: line-through; }
+  .cell-time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--indigo); white-space: nowrap; }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .appt .when { color: var(--peri-soft); }
+    :root:not([data-theme="light"]) .cell-time { color: var(--peri-soft); }
   }
-  .appt .who { font-weight: 600; }
-  .appt.cancelled .who, .appt.cancelled .when { text-decoration: line-through; opacity: 0.5; }
-  .tag {
-    display: inline-block; font-size: 0.68rem; padding: 3px 9px; border-radius: 999px;
+  .cell-name { font-weight: 600; }
+
+  .pill {
+    display: inline-block; font-size: .7rem; padding: 3px 9px; border-radius: 999px;
     border: 1px solid var(--line); background: var(--peri-pale); color: var(--indigo);
-    margin-left: 7px; vertical-align: 1px; text-transform: uppercase; letter-spacing: 0.05em;
+    text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; margin: 1px 0;
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .tag { background: var(--line); color: var(--peri-soft); }
+    :root:not([data-theme="light"]) .pill { color: var(--peri-soft); }
   }
-  .tag.warn {
-    color: var(--warn); background: transparent;
-    border-color: color-mix(in srgb, var(--warn) 45%, transparent);
-  }
+  .pill.warn { color: var(--warn); background: transparent; border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .pill.ok { color: var(--ok); background: transparent; border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
   .empty { padding: 44px 0; text-align: center; color: var(--muted); }
-  .hidden { display: none; }
+
+  dialog {
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 22px;
+    background: var(--card); color: var(--ink); max-width: 480px; width: calc(100% - 32px);
+  }
+  dialog::backdrop { background: rgba(20, 21, 58, .55); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  @media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-
 <div class="wrap">
 
-  <!-- ─────────────── sign in ─────────────── -->
+  <!-- ─────────────────────────── sign in ─────────────────────────── -->
   <section id="login" class="login hidden">
     <div class="card">
       <div class="brandbar">
-        <img class="mark" src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon">
+        <img src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon">
       </div>
-      <h1>Staff Sign In</h1>
-      <p class="sub">Synergy Salon</p>
-      <div id="loginError" class="error hidden"></div>
+      <div id="loginNote" class="note hidden"></div>
+
       <form id="loginForm">
-        <label>
-          <span>Email</span>
-          <input type="email" name="email" autocomplete="username" required autofocus>
-        </label>
-        <label>
-          <span>Password</span>
-          <input type="password" name="password" autocomplete="current-password" required>
-        </label>
+        <h1>Staff Sign In</h1>
+        <p class="sub">Synergy Salon</p>
+        <label><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+        <label><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
         <button class="btn" type="submit" style="width:100%">Sign in</button>
+        <p class="small muted" style="text-align:center;margin:16px 0 0">
+          No account? <a href="#" id="showRequest">Request access</a>
+        </p>
+      </form>
+
+      <form id="requestForm" class="hidden">
+        <h1>Request Access</h1>
+        <p class="sub">An owner has to approve you</p>
+        <label><span>Your name</span><input name="name" required></label>
+        <label><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+        <label><span>Choose a password</span><input type="password" name="password" autocomplete="new-password" minlength="10" required></label>
+        <label><span>Anything the owner should know</span><input name="note" placeholder="e.g. new stylist, starts Monday"></label>
+        <button class="btn" type="submit" style="width:100%">Send request</button>
+        <p class="small muted" style="text-align:center;margin:16px 0 0">
+          <a href="#" id="showLogin">Back to sign in</a>
+        </p>
       </form>
     </div>
   </section>
 
-  <!-- ─────────────── diary ─────────────── -->
+  <!-- ─────────────────────────── console ─────────────────────────── -->
   <section id="console" class="hidden">
     <div class="topbar">
       <div>
-        <span class="markchip">
-          <img src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon">
-        </span>
-        <h1 id="salonName">Synergy Salon</h1>
+        <span class="markchip"><img src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon"></span>
+        <h1 id="salonName" style="margin-top:8px">Synergy Salon</h1>
         <div class="small muted" id="whoami"></div>
       </div>
       <button class="btn quiet" id="signOut">Sign out</button>
     </div>
 
-    <div class="daynav">
-      <button class="btn quiet" id="prevDay" aria-label="Previous day">←</button>
-      <input type="date" id="dayPicker">
-      <button class="btn quiet" id="nextDay" aria-label="Next day">→</button>
-      <button class="btn quiet" id="today">Today</button>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="appointments" aria-selected="true">Appointments</button>
+      <button class="tab" role="tab" data-tab="contacts" aria-selected="false">Contacts</button>
+      <button class="tab hidden" role="tab" data-tab="settings" aria-selected="false" id="tabSettings">
+        Settings<span class="badge hidden" id="pendingBadge">0</span>
+      </button>
     </div>
 
-    <div class="card">
-      <div class="small muted" id="dayHeading" style="margin-bottom:14px"></div>
-      <div id="diary"><div class="empty">Loading…</div></div>
+    <div id="panel-appointments" class="card">
+      <div class="row" style="margin-bottom:16px">
+        <button class="btn quiet" id="prevDay" aria-label="Previous day">←</button>
+        <input type="date" id="dayPicker" style="width:auto">
+        <button class="btn quiet" id="nextDay" aria-label="Next day">→</button>
+        <button class="btn quiet" id="todayBtn">Today</button>
+        <span class="grow"></span>
+        <button class="btn" id="newAppt">New appointment</button>
+      </div>
+      <h2 id="dayHeading" class="muted small" style="font-weight:500"></h2>
+      <div class="scroll"><div id="diary"><div class="empty">Loading…</div></div></div>
+    </div>
+
+    <div id="panel-contacts" class="card hidden">
+      <div class="row" style="margin-bottom:16px">
+        <input id="contactSearch" class="grow" placeholder="Search by name, email or phone…">
+        <select id="contactStatus" style="width:auto">
+          <option value="">All</option>
+          <option value="new">New</option>
+          <option value="contacted">Contacted</option>
+          <option value="booked">Booked</option>
+          <option value="won">Client</option>
+          <option value="lost">Lost</option>
+        </select>
+        <button class="btn" id="newContact">Add contact</button>
+      </div>
+      <div class="scroll"><div id="contacts"><div class="empty">Loading…</div></div></div>
+    </div>
+
+    <div id="panel-settings" class="card hidden">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <h2 style="margin:0">Team</h2>
+        <button class="btn" id="newMember">Add team member</button>
+      </div>
+      <p class="small muted" style="margin:0 0 18px">
+        Anyone waiting for approval appears at the top. Approving lets them sign in;
+        rejecting removes the request so they can ask again.
+      </p>
+      <div class="scroll"><div id="team"><div class="empty">Loading…</div></div></div>
     </div>
   </section>
-
 </div>
+
+<dialog id="bookDlg">
+  <form method="dialog" id="bookForm">
+    <h2 id="bookTitle">New appointment</h2>
+    <div id="bookNote" class="note bad hidden"></div>
+    <label><span>Client</span><input id="bookName" required></label>
+    <div class="two">
+      <label><span>Phone</span><input id="bookPhone"></label>
+      <label><span>Email</span><input type="email" id="bookEmail"></label>
+    </div>
+    <label><span>Service</span><select id="bookService" required></select></label>
+    <label><span>Stylist</span><select id="bookStylist"></select></label>
+    <div class="two">
+      <label><span>Date</span><input type="date" id="bookDate" required></label>
+      <label><span>Time</span><select id="bookTime" required></select></label>
+    </div>
+    <label><span>Notes</span><textarea id="bookNotes"></textarea></label>
+    <div class="row" style="justify-content:flex-end;margin-top:6px">
+      <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
+      <button class="btn" id="bookSubmit" value="book">Book</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="memberDlg">
+  <form method="dialog" id="memberForm">
+    <h2>Add team member</h2>
+    <div id="memberNote" class="note bad hidden"></div>
+    <label><span>Name</span><input name="name" required></label>
+    <label><span>Email</span><input type="email" name="email" required></label>
+    <label><span>Role</span>
+      <select name="role">
+        <option value="front_desk">Front desk</option>
+        <option value="manager">Manager</option>
+        <option value="owner">Owner</option>
+      </select></label>
+    <label><span>Password</span>
+      <input type="text" name="password" minlength="10" required
+             placeholder="at least 10 characters"></label>
+    <p class="small muted" style="margin:-6px 0 14px">
+      Shown as you type so you can pass it on. They can be given a new one any
+      time by adding them again with the same email.
+    </p>
+    <div class="row" style="justify-content:flex-end;margin-top:6px">
+      <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
+      <button class="btn" value="save">Add</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="contactDlg">
+  <form method="dialog" id="contactForm">
+    <h2 id="contactTitle">Add contact</h2>
+    <div id="contactNote" class="note bad hidden"></div>
+    <label><span>Name</span><input name="name" required></label>
+    <div class="two">
+      <label><span>Phone</span><input name="phone"></label>
+      <label><span>Email</span><input type="email" name="email"></label>
+    </div>
+    <label><span>Where did they come from?</span><input name="source" placeholder="phone, walk-in, Facebook ad…"></label>
+    <label class="hidden" id="contactStatusField"><span>Status</span>
+      <select name="status">
+        <option value="new">New</option>
+        <option value="contacted">Contacted</option>
+        <option value="booked">Booked</option>
+        <option value="won">Client</option>
+        <option value="lost">Lost</option>
+      </select></label>
+    <label><span>Notes</span><textarea name="notes"></textarea></label>
+    <div class="row" style="justify-content:flex-end;margin-top:6px">
+      <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
+      <button class="btn" value="save" id="contactSave">Add</button>
+    </div>
+  </form>
+</dialog>
 
 <script type="module">
 const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/** Every call goes through here so a lapsed session always lands on the form. */
+let me = null;
+let day = null;
+let bookingFor = null;
+
+/** Every call goes through here, so a lapsed session always lands on the form. */
 async function api(path, options = {}) {
   const res = await fetch(path, {
     credentials: 'same-origin',
@@ -256,63 +370,167 @@ async function api(path, options = {}) {
   return data;
 }
 
-function showLogin(message) {
+function note(el, message, kind = 'bad') {
+  el.className = `note ${kind}`;
+  el.textContent = message || '';
+  el.classList.toggle('hidden', !message);
+}
+
+function showLogin(message, kind) {
   $('console').classList.add('hidden');
   $('login').classList.remove('hidden');
-  const box = $('loginError');
-  if (message) { box.textContent = message; box.classList.remove('hidden'); }
-  else box.classList.add('hidden');
+  $('requestForm').classList.add('hidden');
+  $('loginForm').classList.remove('hidden');
+  note($('loginNote'), message, kind || 'bad');
 }
 
-function showConsole(me) {
-  $('login').classList.add('hidden');
-  $('console').classList.remove('hidden');
-  $('salonName').textContent = me.salon.name;
-  $('whoami').textContent = `${me.user.name} · ${me.user.role.replace('_', ' ')}`;
+// ───────────────────────────── sign in ─────────────────────────────
+
+$('showRequest').onclick = (e) => {
+  e.preventDefault();
+  $('loginForm').classList.add('hidden');
+  $('requestForm').classList.remove('hidden');
+  note($('loginNote'), '');
+};
+$('showLogin').onclick = (e) => { e.preventDefault(); showLogin(); };
+
+$('loginForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    const f = new FormData(e.target);
+    await api('/api/staff/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: f.get('email'), password: f.get('password') }),
+    });
+    e.target.reset();
+    await start();
+  } catch (err) {
+    showLogin(err.message === 'signed out'
+      ? 'That email and password do not match.' : err.message);
+  } finally { btn.disabled = false; }
+};
+
+$('requestForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    const f = new FormData(e.target);
+    const r = await api('/api/staff/request-access', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: f.get('name'), email: f.get('email'),
+        password: f.get('password'), note: f.get('note'),
+      }),
+    });
+    e.target.reset();
+    showLogin(r.message, 'good');
+  } catch (err) {
+    note($('loginNote'), err.message);
+  } finally { btn.disabled = false; }
+};
+
+$('signOut').onclick = async () => {
+  await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' });
+  showLogin();
+};
+
+// ───────────────────────────── tabs ─────────────────────────────
+
+document.querySelectorAll('.tab').forEach((tab) => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach((t) =>
+      t.setAttribute('aria-selected', String(t === tab)));
+    for (const name of ['appointments', 'contacts', 'settings']) {
+      $(`panel-${name}`).classList.toggle('hidden', name !== tab.dataset.tab);
+    }
+    if (tab.dataset.tab === 'contacts') loadContacts();
+    if (tab.dataset.tab === 'settings') loadTeam();
+  };
+});
+
+// ───────────────────────── appointments ─────────────────────────
+
+function statusPills(a) {
+  const out = [];
+  if (a.status === 'cancelled') out.push('<span class="pill warn">cancelled</span>');
+  if (a.status === 'no_show') out.push('<span class="pill warn">no show</span>');
+  if (a.status === 'completed') out.push('<span class="pill ok">done</span>');
+  if (a.checkedInAt && a.status === 'booked') out.push('<span class="pill ok">here</span>');
+  if (a.channel === 'staff') out.push('<span class="pill">by staff</span>');
+  // Surfaced rather than hidden: the team should learn the CRM is behind from
+  // the console, not from an empty CENTRO later.
+  if (a.status !== 'cancelled' && !a.syncedToCentro) {
+    out.push('<span class="pill warn">not in CENTRO</span>');
+  }
+  return out.join(' ');
 }
 
-const escape = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
-  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function actionsFor(a) {
+  if (a.status === 'cancelled') {
+    return `<button class="btn quiet tiny" data-act="reopen" data-ref="${a.ref}">Reopen</button>`;
+  }
+  if (a.status !== 'booked') return '';
+  return [
+    a.checkedInAt
+      ? `<button class="btn quiet tiny" data-act="undo_check_in" data-ref="${a.ref}">Undo</button>`
+      : `<button class="btn tiny" data-act="check_in" data-ref="${a.ref}">Check in</button>`,
+    `<button class="btn quiet tiny" data-act="complete" data-ref="${a.ref}">Done</button>`,
+    `<button class="btn quiet tiny" data-act="no_show" data-ref="${a.ref}">No show</button>`,
+    `<button class="btn quiet tiny" data-act="cancel" data-ref="${a.ref}">Cancel</button>`,
+  ].join(' ');
+}
 
-function renderDiary(data) {
-  $('dayHeading').textContent = `${data.heading} · ${data.booked} booked`;
-  const box = $('diary');
+function renderDiary(d) {
+  $('dayHeading').textContent =
+    `${d.heading} · ${d.booked} appointment${d.booked === 1 ? '' : 's'}`
+    + (d.arriving ? ` · ${d.arriving} still to arrive` : '');
 
-  if (!data.appointments.length) {
-    box.innerHTML = '<div class="empty">Nothing booked this day.</div>';
+  if (!d.appointments.length) {
+    $('diary').innerHTML = '<div class="empty">Nothing booked this day.</div>';
     return;
   }
 
-  box.innerHTML = data.appointments.map((a) => {
-    const tags = [
-      a.status === 'cancelled' ? '<span class="tag warn">cancelled</span>' : '',
-      a.channel === 'staff' ? '<span class="tag">by staff</span>' : '',
-      // Surfaced rather than hidden: the team should know when the CRM has
-      // not caught up, instead of finding an empty CENTRO later.
-      a.status === 'booked' && !a.syncedToCentro
-        ? '<span class="tag warn">not in CENTRO yet</span>' : '',
-    ].join('');
-
-    const contact = [a.guestPhone, a.guestEmail].filter(Boolean).join(' · ');
-
-    return `
-      <div class="appt ${a.status === 'cancelled' ? 'cancelled' : ''}">
-        <div>
-          <div class="when">${escape(a.time)}</div>
-          <div class="small muted">${escape(a.endTime)}</div>
-        </div>
-        <div>
-          <div class="who">${escape(a.guestName)}${tags}</div>
-          <div class="small muted">${escape(a.service)} with ${escape(a.stylist)}</div>
-          ${contact ? `<div class="small muted">${escape(contact)}</div>` : ''}
-          ${a.notes ? `<div class="small" style="margin-top:6px">${escape(a.notes)}</div>` : ''}
-          <div class="small muted" style="margin-top:6px">Ref ${escape(a.ref)}</div>
-        </div>
-      </div>`;
-  }).join('');
+  $('diary').innerHTML = `
+    <table>
+      <thead><tr><th>Time</th><th>Client</th><th>Stylist</th><th>Service</th><th>Status</th><th></th></tr></thead>
+      <tbody>${d.appointments.map((a) => `
+        <tr class="${a.status === 'cancelled' ? 'off' : ''}">
+          <td class="cell-time">${esc(a.time)}<div class="small muted">${esc(a.endTime)}</div></td>
+          <td>
+            <div class="cell-name">${esc(a.guestName)}</div>
+            <div class="small muted">${esc([a.guestPhone, a.guestEmail].filter(Boolean).join(' · '))}</div>
+            ${a.notes ? `<div class="small" style="margin-top:4px">${esc(a.notes)}</div>` : ''}
+            <div class="small muted" style="margin-top:4px">Ref ${esc(a.ref)}</div>
+          </td>
+          <td>${esc(a.stylist)}</td>
+          <td>${esc(a.service)}</td>
+          <td>${statusPills(a)}</td>
+          <td style="white-space:nowrap">${actionsFor(a)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
 
-let day = null;
+$('diary').onclick = async (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  if (btn.dataset.act === 'cancel'
+      && !confirm('Cancel this appointment? The slot goes back on sale.')) return;
+  btn.disabled = true;
+  try {
+    await api('/api/staff/appointment', {
+      method: 'POST',
+      body: JSON.stringify({ ref: btn.dataset.ref, action: btn.dataset.act }),
+    });
+    await loadDay(day);
+  } catch (err) {
+    if (err.message !== 'signed out') alert(err.message);
+    btn.disabled = false;
+  }
+};
 
 async function loadDay(date) {
   day = date;
@@ -322,70 +540,371 @@ async function loadDay(date) {
     renderDiary(await api(`/api/staff/diary?date=${encodeURIComponent(date)}`));
   } catch (err) {
     if (err.message !== 'signed out') {
-      $('diary').innerHTML = `<div class="empty">${escape(err.message)}</div>`;
+      $('diary').innerHTML = `<div class="empty">${esc(err.message)}</div>`;
     }
   }
 }
 
-function shiftDay(days) {
-  const d = new Date(`${day}T12:00:00`);   // midday, so a DST change cannot roll the date
-  d.setDate(d.getDate() + days);
+function salonToday() {
+  return new Date().toLocaleDateString('en-CA',
+    me?.salon?.timezone ? { timeZone: me.salon.timezone } : {});
+}
+function shiftDay(n) {
+  const d = new Date(`${day}T12:00:00`);   // midday: a DST change cannot roll the date
+  d.setDate(d.getDate() + n);
   loadDay(d.toISOString().slice(0, 10));
 }
+$('prevDay').onclick = () => shiftDay(-1);
+$('nextDay').onclick = () => shiftDay(1);
+$('todayBtn').onclick = () => loadDay(salonToday());
+$('dayPicker').onchange = (e) => e.target.value && loadDay(e.target.value);
 
-$('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const button = e.target.querySelector('button');
-  button.disabled = true;
-  try {
-    const form = new FormData(e.target);
-    await api('/api/staff/login', {
-      method: 'POST',
-      body: JSON.stringify({ email: form.get('email'), password: form.get('password') }),
-    });
-    e.target.reset();
-    await start();
-  } catch (err) {
-    showLogin(err.message === 'signed out' ? 'That email and password do not match.' : err.message);
-  } finally {
-    button.disabled = false;
+// ───────────────────────────── contacts ─────────────────────────────
+
+function renderContacts(d) {
+  if (!d.contacts.length) {
+    $('contacts').innerHTML = '<div class="empty">No contacts match.</div>';
+    return;
   }
-});
-
-$('signOut').addEventListener('click', async () => {
-  await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' });
-  showLogin();
-});
-
-$('prevDay').addEventListener('click', () => shiftDay(-1));
-$('nextDay').addEventListener('click', () => shiftDay(1));
-$('today').addEventListener('click', () => loadDay(todayInSalon()));
-$('dayPicker').addEventListener('change', (e) => e.target.value && loadDay(e.target.value));
-
-let salonTz = null;
-function todayInSalon() {
-  // The front desk may be on a laptop set to another timezone; the diary is
-  // always the salon's day.
-  return new Date().toLocaleDateString('en-CA', salonTz ? { timeZone: salonTz } : {});
+  // The server refuses anyone else; hiding the button saves them the error.
+  const canDelete = Boolean(me?.user?.canAdmin);
+  $('contacts').innerHTML = `
+    <table>
+      <thead><tr><th>Name</th><th>Contact</th><th>Source</th><th>Visits</th><th>Next</th><th></th></tr></thead>
+      <tbody>${d.contacts.map((c) => `
+        <tr data-edit='${esc(JSON.stringify({
+            id: c.id, name: c.name, email: c.email, phone: c.phone,
+            source: c.source, status: c.status, notes: c.notes }))}'>
+          <td>
+            <div class="cell-name">${esc(c.name)}</div>
+            <span class="pill">${esc(c.status)}</span>
+            ${c.inCentro ? '' : '<span class="pill warn">not in CENTRO</span>'}
+          </td>
+          <td class="small">${[c.phone, c.email].filter(Boolean).map(esc).join('<br>') || '<span class="muted">—</span>'}</td>
+          <td class="small muted">${esc(c.source || '—')}</td>
+          <td>${c.visits}</td>
+          <td class="small">${c.nextVisit
+            ? esc(new Date(c.nextVisit).toLocaleString('en-GB',
+                { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))
+            : '<span class="muted">—</span>'}</td>
+          <td style="white-space:nowrap">
+            <button class="btn quiet tiny" data-edit-btn="1">Edit</button>
+            <button class="btn tiny" data-book="${c.id}" data-name="${esc(c.name)}"
+                    data-phone="${esc(c.phone)}" data-email="${esc(c.email)}">Book</button>
+            ${canDelete ? `<button class="btn danger tiny" data-delete="${c.id}"
+                    data-name="${esc(c.name)}" data-next="${c.nextVisit ? 1 : ''}">Delete</button>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
+
+$('contacts').onclick = (e) => {
+  const book = e.target.closest('button[data-book]');
+  if (book) { openBooking({ id: book.dataset.book, ...book.dataset }); return; }
+  const edit = e.target.closest('button[data-edit-btn]');
+  if (edit) { openContact(JSON.parse(edit.closest('tr').dataset.edit)); return; }
+  const del = e.target.closest('button[data-delete]');
+  if (del) deleteContact(del);
+};
+
+async function deleteContact(btn) {
+  const { name, next } = btn.dataset;
+  const warning = [
+    `Delete ${name}?`,
+    'They are removed from this console and from CENTRO. This cannot be undone.',
+    next ? 'Their upcoming appointments are cancelled and the slots go back on sale.' : '',
+  ].filter(Boolean).join('\n\n');
+  if (!confirm(warning)) return;
+  btn.disabled = true;
+  try {
+    await api('/api/staff/contacts', {
+      method: 'DELETE',
+      body: JSON.stringify({ id: btn.dataset.delete }),
+    });
+    await loadContacts();
+  } catch (err) {
+    if (err.message !== 'signed out') alert(err.message);
+    btn.disabled = false;
+  }
+}
+
+let searchTimer = null;
+async function loadContacts() {
+  const q = encodeURIComponent($('contactSearch').value.trim());
+  const s = encodeURIComponent($('contactStatus').value);
+  try {
+    renderContacts(await api(`/api/staff/contacts?q=${q}&status=${s}`));
+  } catch (err) {
+    if (err.message !== 'signed out') {
+      $('contacts').innerHTML = `<div class="empty">${esc(err.message)}</div>`;
+    }
+  }
+}
+$('contactSearch').oninput = () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(loadContacts, 250);
+};
+$('contactStatus').onchange = loadContacts;
+
+let editingContact = null;
+
+function openContact(contact) {
+  const f = $('contactForm');
+  f.reset();
+  note($('contactNote'), '');
+  editingContact = contact ? contact.id : null;
+  $('contactTitle').textContent = contact ? `Edit ${contact.name}` : 'Add contact';
+  $('contactSave').textContent = contact ? 'Save' : 'Add';
+  // Status is only meaningful once somebody exists; a new contact starts new.
+  $('contactStatusField').classList.toggle('hidden', !contact);
+  if (contact) {
+    for (const k of ['name', 'email', 'phone', 'source', 'notes', 'status']) {
+      if (f.elements[k]) f.elements[k].value = contact[k] || '';
+    }
+  }
+  $('contactDlg').showModal();
+}
+
+$('newContact').onclick = () => openContact(null);
+
+$('contactForm').onsubmit = async (e) => {
+  if (e.submitter?.value !== 'save') return;
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const body = {
+    name: f.get('name'), email: f.get('email'), phone: f.get('phone'),
+    source: f.get('source'), notes: f.get('notes'),
+  };
+  if (editingContact) { body.id = editingContact; body.status = f.get('status'); }
+  try {
+    await api('/api/staff/contacts', {
+      method: editingContact ? 'PATCH' : 'POST',
+      body: JSON.stringify(body),
+    });
+    $('contactDlg').close();
+    await loadContacts();
+  } catch (err) {
+    note($('contactNote'), err.message);
+  }
+};
+
+// ---- adding a team member ----
+
+$('newMember').onclick = () => {
+  $('memberForm').reset();
+  note($('memberNote'), '');
+  $('memberDlg').showModal();
+};
+
+$('memberForm').onsubmit = async (e) => {
+  if (e.submitter?.value !== 'save') return;
+  e.preventDefault();
+  const f = new FormData(e.target);
+  try {
+    await api('/api/staff/team', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'create', name: f.get('name'), email: f.get('email'),
+        role: f.get('role'), password: f.get('password'),
+      }),
+    });
+    $('memberDlg').close();
+    await loadTeam();
+  } catch (err) {
+    note($('memberNote'), err.message);
+  }
+};
+
+// ───────────────────────────── booking ─────────────────────────────
+
+function openBooking(contact) {
+  bookingFor = contact?.id || null;
+  note($('bookNote'), '');
+  $('bookTitle').textContent = contact?.name ? `Book ${contact.name}` : 'New appointment';
+  $('bookName').value = contact?.name || '';
+  $('bookPhone').value = contact?.phone || '';
+  $('bookEmail').value = contact?.email || '';
+  $('bookNotes').value = '';
+
+  $('bookService').innerHTML = me.services.map((s) =>
+    `<option value="${s.slug}">${esc(s.name)} · ${s.durationMin} min${s.price != null ? ` · $${s.price}` : ''}</option>`).join('');
+  $('bookStylist').innerHTML = '<option value="any">First available</option>'
+    + me.stylists.map((s) => `<option value="${s.slug}">${esc(s.name)}</option>`).join('');
+  $('bookDate').value = day || salonToday();
+  $('bookDlg').showModal();
+  loadTimes();
+}
+
+async function loadTimes() {
+  const sel = $('bookTime');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  try {
+    const d = await api('/api/staff/availability?' + new URLSearchParams({
+      service: $('bookService').value,
+      stylist: $('bookStylist').value,
+      date: $('bookDate').value,
+    }));
+    const slots = d.days[0]?.slots ?? [];
+    sel.innerHTML = slots.length
+      ? slots.map((s) => `<option value="${s.start}">${new Date(s.start)
+          .toLocaleTimeString('en-US', {
+            hour: 'numeric', minute: '2-digit', timeZone: me.salon.timezone,
+          })}</option>`).join('')
+      : '<option value="">Nothing free that day</option>';
+  } catch (err) {
+    sel.innerHTML = '<option value="">Could not load times</option>';
+    if (err.message !== 'signed out') note($('bookNote'), err.message);
+  }
+}
+$('bookService').onchange = loadTimes;
+$('bookStylist').onchange = loadTimes;
+$('bookDate').onchange = loadTimes;
+
+$('bookForm').onsubmit = async (e) => {
+  if (e.submitter?.value !== 'book') return;
+  e.preventDefault();
+  if (!$('bookTime').value) { note($('bookNote'), 'Pick a time.'); return; }
+  $('bookSubmit').disabled = true;
+  try {
+    await api('/api/staff/book', {
+      method: 'POST',
+      body: JSON.stringify({
+        contact: bookingFor,
+        name: $('bookName').value,
+        phone: $('bookPhone').value,
+        email: $('bookEmail').value,
+        service: $('bookService').value,
+        stylist: $('bookStylist').value,
+        start: $('bookTime').value,
+        notes: $('bookNotes').value,
+      }),
+    });
+    $('bookDlg').close();
+    document.querySelector('.tab[data-tab="appointments"]').click();
+    await loadDay($('bookDate').value);
+  } catch (err) {
+    note($('bookNote'), err.message);
+    // Somebody took it while this dialog was open; show what is left.
+    if (/taken|available|free/i.test(err.message)) loadTimes();
+  } finally { $('bookSubmit').disabled = false; }
+};
+
+$('newAppt').onclick = () => openBooking(null);
+
+// ───────────────────────────── settings ─────────────────────────────
+
+function renderTeam(d) {
+  const roleSelect = (m) => `
+    <select data-role="${m.id}" style="width:auto;padding:5px 8px;font-size:.85rem">
+      ${['owner', 'manager', 'front_desk'].map((r) =>
+        `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r.replace('_', ' ')}</option>`).join('')}
+    </select>`;
+
+  $('team').innerHTML = `
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+      <tbody>${d.members.map((m) => {
+        const you = m.id === d.you.id;
+        const pending = m.status === 'pending';
+        const actions = you ? ''
+          : pending
+            ? `<button class="btn tiny" data-act="approve" data-id="${m.id}">Approve</button>
+               <button class="btn quiet tiny" data-act="reject" data-id="${m.id}">Reject</button>`
+            : m.status === 'disabled'
+              ? `<button class="btn quiet tiny" data-act="enable" data-id="${m.id}">Re-enable</button>`
+              : `<button class="btn quiet tiny" data-act="disable" data-id="${m.id}">Disable</button>`;
+        return `
+        <tr class="${m.status === 'disabled' ? 'off' : ''}">
+          <td>
+            <div class="cell-name">${esc(m.name)}${you ? ' <span class="pill">you</span>' : ''}</div>
+            ${m.note ? `<div class="small muted">${esc(m.note)}</div>` : ''}
+          </td>
+          <td class="small">${esc(m.email)}</td>
+          <td>${you || pending ? esc(m.role.replace('_', ' ')) : roleSelect(m)}</td>
+          <td>${pending ? '<span class="pill warn">waiting</span>'
+                        : m.status === 'disabled' ? '<span class="pill warn">disabled</span>'
+                        : '<span class="pill ok">active</span>'}</td>
+          <td style="white-space:nowrap">${actions}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
+
+  $('pendingBadge').textContent = d.pending;
+  $('pendingBadge').classList.toggle('hidden', !d.pending);
+}
+
+$('team').onclick = async (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  if (act === 'disable' && !confirm('Disable this account? They are signed out immediately.')) return;
+  if (act === 'reject' && !confirm('Reject this request? They can ask again.')) return;
+
+  let role;
+  if (act === 'approve') {
+    role = prompt('Role for this person: owner, manager or front_desk', 'front_desk');
+    if (role === null) return;
+    role = role.trim().toLowerCase().replace(/[\s-]+/g, '_') || 'front_desk';
+  }
+
+  btn.disabled = true;
+  try {
+    await api('/api/staff/team', {
+      method: 'POST', body: JSON.stringify({ id: btn.dataset.id, action: act, role }),
+    });
+    await loadTeam();
+  } catch (err) {
+    if (err.message !== 'signed out') alert(err.message);
+    btn.disabled = false;
+  }
+};
+
+$('team').onchange = async (e) => {
+  const sel = e.target.closest('select[data-role]');
+  if (!sel) return;
+  try {
+    await api('/api/staff/team', {
+      method: 'POST',
+      body: JSON.stringify({ id: sel.dataset.role, action: 'role', role: sel.value }),
+    });
+  } catch (err) { alert(err.message); loadTeam(); }
+};
+
+async function loadTeam() {
+  try {
+    renderTeam(await api('/api/staff/team'));
+  } catch (err) {
+    if (err.message !== 'signed out') {
+      $('team').innerHTML = `<div class="empty">${esc(err.message)}</div>`;
+    }
+  }
+}
+
+// ───────────────────────────── boot ─────────────────────────────
 
 async function start() {
   try {
-    const me = await api('/api/staff/me');
-    salonTz = me.salon.timezone;
-    showConsole(me);
-    await loadDay(todayInSalon());
+    me = await api('/api/staff/me');
   } catch {
-    // Any failure to identify the caller means the same thing to a person
-    // standing at the front desk: show the form. Reporting "Request failed
-    // (404)" above a login box tells them nothing they can act on and looks
-    // like the salon's system is broken.
+    // Any failure to identify the caller means the same thing to someone at
+    // the front desk: show the form. "Request failed (404)" above a login box
+    // tells them nothing they can act on.
     showLogin();
+    return;
   }
+  $('login').classList.add('hidden');
+  $('console').classList.remove('hidden');
+  $('salonName').textContent = me.salon.name;
+  $('whoami').textContent = `${me.user.name} · ${me.user.role.replace('_', ' ')}`;
+  $('tabSettings').classList.toggle('hidden', !me.user.canAdmin);
+  $('pendingBadge').textContent = me.pendingApprovals ?? 0;
+  $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
+  await loadDay(salonToday());
 }
 
 start();
 </script>
-
 </body>
 </html>

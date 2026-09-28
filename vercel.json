@@ -2,6 +2,22 @@
   "cleanUrls": true,
   "redirects": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.synergysalon.com"
+        }
+      ],
+      "destination": "/staff",
+      "permanent": false
+    },
+    {
+      "source": "/book",
+      "destination": "/?book=1",
+      "permanent": false
+    },
+    {
       "source": "/:path(.*)",
       "has": [
         {
@@ -36,6 +52,21 @@
   ],
   "headers": [
     {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.synergysalon.com"
+        }
+      ],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {
@@ -53,18 +84,6 @@
     {
       "path": "/api/cron/sync",
       "schedule": "30 14 * * *"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/:path((?!api/|assets/).*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.synergysalon.com"
-        }
-      ],
-      "destination": "/staff/index.html"
     }
   ]
 }

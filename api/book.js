@@ -45,8 +45,12 @@ export default handler({
     // drains on a schedule would leave the salon's CRM a day behind. The
     // outbox row is already committed, so a failure here is picked up by the
     // cron rather than lost.
+    // Not drain(1): the queue may already hold older jobs, and draining a
+    // single one would push somebody else's contact while this appointment sat
+    // waiting for a cron that runs once a day. Bounded so a large backlog
+    // cannot hold up the reply.
     try {
-      await drain(1);
+      await drain(10);
     } catch (err) {
       console.error('CENTRO sync deferred for', appointment.ref, err);
     }

@@ -8,10 +8,10 @@
  */
 import { DateTime } from 'luxon';
 
-import { requireStaff } from '../_lib/auth.js';
-import { query } from '../_lib/db.js';
-import { handler, json, requireDate } from '../_lib/http.js';
-import { tenantForUser } from '../_lib/tenant.js';
+import { requireStaff } from '../../_lib/auth.js';
+import { query } from '../../_lib/db.js';
+import { handler, json, requireDate } from '../../_lib/http.js';
+import { tenantForUser } from '../../_lib/tenant.js';
 
 export default handler({
   async GET(req, res) {
@@ -28,18 +28,18 @@ export default handler({
     const to = day.endOf('day');
 
     const { rows } = await query(
-      `SELECT a.ref, a.starts_at, a.duration_min, a.status, a.channel,
+      `SELECT a.ref, a.starts_at, a.duration_min, a.status, a.channel, a.checked_in_at,
               a.guest_name, a.guest_email, a.guest_phone, a.notes,
               a.price_cents, a.ghl_appointment_id,
               s.slug AS stylist_slug, s.name AS stylist_name,
               v.name AS service_name,
               b.name AS booked_by_name,
-              l.id AS lead_id
+              ct.id AS contact_id
          FROM appointments a
          JOIN stylists s ON s.id = a.stylist_id
          JOIN services v ON v.id = a.service_id
          LEFT JOIN staff_users b ON b.id = a.booked_by
-         LEFT JOIN leads l ON l.id = a.lead_id
+         LEFT JOIN contacts ct ON ct.id = a.contact_id
         WHERE a.tenant_id = $1 AND a.starts_at >= $2 AND a.starts_at <= $3
         ORDER BY a.starts_at, s.sort_order`,
       [tenant.id, from.toISO(), to.toISO()],
@@ -55,6 +55,7 @@ export default handler({
         durationMin: r.duration_min,
         status: r.status,
         channel: r.channel,
+        checkedInAt: r.checked_in_at,
         service: r.service_name,
         stylist: r.stylist_name,
         stylistSlug: r.stylist_slug,
@@ -64,7 +65,7 @@ export default handler({
         notes: r.notes,
         price: r.price_cents == null ? null : r.price_cents / 100,
         bookedBy: r.booked_by_name,
-        leadId: r.lead_id,
+        contactId: r.contact_id,
         // Lets the console show which bookings have not reached CENTRO yet,
         // rather than the team discovering it from an empty CRM.
         syncedToCentro: Boolean(r.ghl_appointment_id),
@@ -75,7 +76,8 @@ export default handler({
       date,
       timezone: tenant.timezone,
       heading: day.toFormat('cccc d LLLL yyyy'),
-      booked: appointments.filter((a) => a.status === 'booked').length,
+      booked: appointments.filter((a) => a.status !== 'cancelled').length,
+      arriving: appointments.filter((a) => a.status === 'booked' && !a.checkedInAt).length,
       appointments,
     });
   },

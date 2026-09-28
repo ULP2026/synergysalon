@@ -31,7 +31,7 @@ export default handler({
         WHERE a.status = 'booked'
           AND a.reminder_sent_at IS NULL
           AND a.starts_at > now()
-          AND a.starts_at <= now() + make_interval(hours => $1)
+          AND a.starts_at <= now() + make_interval(hours => $1::int)
           AND a.guest_email <> ''
         ORDER BY a.starts_at
         LIMIT 200`,

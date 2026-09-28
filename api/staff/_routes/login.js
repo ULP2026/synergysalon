@@ -11,11 +11,11 @@
  * an in-process counter resets on every cold start, which is to say it stops
  * nobody.
  */
-import { assertSameOrigin, createSession } from '../_lib/auth.js';
-import { query } from '../_lib/db.js';
-import { HttpError, handler, json, readJson, requireEmail, requireString } from '../_lib/http.js';
-import { verifyPassword } from '../_lib/password.js';
-import { tenantForRequest } from '../_lib/tenant.js';
+import { assertSameOrigin, createSession } from '../../_lib/auth.js';
+import { query } from '../../_lib/db.js';
+import { HttpError, handler, json, readJson, requireEmail, requireString } from '../../_lib/http.js';
+import { verifyPassword } from '../../_lib/password.js';
+import { tenantForRequest } from '../../_lib/tenant.js';
 
 const MAX_ATTEMPTS = 8;
 const LOCK_MINUTES = 15;
@@ -33,7 +33,7 @@ export default handler({
     const password = requireString(body.password, 'Password', { max: 200 });
 
     const { rows } = await query(
-      `SELECT id, tenant_id, email, password_hash, name, role, active,
+      `SELECT id, tenant_id, email, password_hash, name, role, active, status,
               failed_attempts, locked_until
          FROM staff_users
         WHERE tenant_id = $1 AND lower(email) = $2`,
@@ -50,14 +50,29 @@ export default handler({
     // reveal which addresses exist.
     const ok = await verifyPassword(password, user?.password_hash);
 
-    if (!user || !ok || !user.active) {
+    // Someone whose request has not been approved gets told that, not
+    // "wrong password". They know their password is right, and a misleading
+    // message sends them to the front desk to reset something that is fine.
+    if (user && ok && user.status === 'pending') {
+      throw new HttpError(403, 'Your account is waiting for approval by the salon owner.');
+    }
+    if (user && ok && (user.status === 'disabled' || !user.active)) {
+      throw new HttpError(403, 'That account has been disabled. Please speak to the owner.');
+    }
+
+    if (!user || !ok) {
       if (user) {
         const attempts = user.failed_attempts + 1;
+        // Every parameter is cast. Postgres cannot resolve make_interval from
+        // an untyped parameter, and without these casts a wrong password
+        // raised a 500 instead of being rejected -- so the lockout never
+        // counted, and the one path that must fail safely was the one that
+        // crashed.
         await query(
           `UPDATE staff_users
-              SET failed_attempts = $2,
-                  locked_until = CASE WHEN $2 >= $3
-                                      THEN now() + make_interval(mins => $4)
+              SET failed_attempts = $2::int,
+                  locked_until = CASE WHEN $2::int >= $3::int
+                                      THEN now() + make_interval(mins => $4::int)
                                       ELSE locked_until END
             WHERE id = $1`,
           [user.id, attempts, MAX_ATTEMPTS, LOCK_MINUTES],

@@ -1,7 +1,7 @@
 /**
  * A thin client for the CENTRO / GoHighLevel v2 API.
  *
- * Only the four calls the mirror needs. This is deliberately not a general
+ * Only the calls the mirror needs. This is deliberately not a general
  * wrapper: every endpoint added here is another thing that can fail during a
  * booking, and the whole point of the outbox is that CENTRO is downstream.
  *
@@ -76,13 +76,35 @@ export async function upsertContact(tenant, { name, email, phone, source, tags =
   return id;
 }
 
+/**
+ * Update a contact we already know the id of.
+ *
+ * Upsert matches on email or phone, so editing either of those would create a
+ * second CENTRO contact and leave the salon with the person twice. Once the id
+ * is known, the id is what should be used.
+ */
+export function updateContact(tenant, contactId, { name, email, phone }) {
+  const parts = String(name || '').trim().split(/\s+/);
+  return call(tenant, 'PUT', `/contacts/${contactId}`, {
+    firstName: parts[0] || undefined,
+    lastName: parts.slice(1).join(' ') || undefined,
+    name: name || undefined,
+    email: email || undefined,
+    phone: phone || undefined,
+  });
+}
+
 export async function createAppointment(tenant, {
-  contactId, startsAt, endsAt, title, notes, calendarId,
+  contactId, startsAt, endsAt, title, notes, calendarId, assignedUserId,
 }) {
   const data = await call(tenant, 'POST', '/calendars/events/appointments', {
     calendarId: calendarId || tenant.ghl_calendar_id,
     locationId: tenant.ghl_location_id,
     contactId,
+    // Required, and the error when it is missing says only "a team member
+    // needs to be selected": CENTRO's calendars are service_booking type and
+    // refuse an unassigned event.
+    assignedUserId,
     startTime: startsAt,
     endTime: endsAt,
     title,
@@ -124,6 +146,21 @@ export function cancelAppointment(tenant, eventId) {
     appointmentStatus: 'cancelled',
     toNotify: false,
   });
+}
+
+/**
+ * Remove a contact the salon has deleted.
+ *
+ * A 404 counts as done: the contact is gone either way, whether somebody
+ * removed it in CENTRO first or an earlier attempt succeeded and the reply was
+ * lost. Treating it as a failure would leave a job that can never succeed.
+ */
+export async function deleteContact(tenant, contactId) {
+  try {
+    await call(tenant, 'DELETE', `/contacts/${contactId}`);
+  } catch (err) {
+    if (!(err instanceof GhlError && err.status === 404)) throw err;
+  }
 }
 
 export { GhlError };
