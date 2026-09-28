@@ -93,6 +93,8 @@
   .btn.quiet { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
   .btn.quiet:hover { background: var(--peri-pale); color: var(--indigo); }
   .btn.tiny { padding: 5px 12px; font-size: .82rem; }
+  .btn.danger { background: transparent; color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); font-weight: 500; }
+  .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--warn) 12%, transparent); }
 
   .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
   .brandbar {
@@ -564,6 +566,8 @@ function renderContacts(d) {
     $('contacts').innerHTML = '<div class="empty">No contacts match.</div>';
     return;
   }
+  // The server refuses anyone else; hiding the button saves them the error.
+  const canDelete = Boolean(me?.user?.canAdmin);
   $('contacts').innerHTML = `
     <table>
       <thead><tr><th>Name</th><th>Contact</th><th>Source</th><th>Visits</th><th>Next</th><th></th></tr></thead>
@@ -587,6 +591,8 @@ function renderContacts(d) {
             <button class="btn quiet tiny" data-edit-btn="1">Edit</button>
             <button class="btn tiny" data-book="${c.id}" data-name="${esc(c.name)}"
                     data-phone="${esc(c.phone)}" data-email="${esc(c.email)}">Book</button>
+            ${canDelete ? `<button class="btn danger tiny" data-delete="${c.id}"
+                    data-name="${esc(c.name)}" data-next="${c.nextVisit ? 1 : ''}">Delete</button>` : ''}
           </td>
         </tr>`).join('')}
       </tbody>
@@ -597,8 +603,31 @@ $('contacts').onclick = (e) => {
   const book = e.target.closest('button[data-book]');
   if (book) { openBooking({ id: book.dataset.book, ...book.dataset }); return; }
   const edit = e.target.closest('button[data-edit-btn]');
-  if (edit) openContact(JSON.parse(edit.closest('tr').dataset.edit));
+  if (edit) { openContact(JSON.parse(edit.closest('tr').dataset.edit)); return; }
+  const del = e.target.closest('button[data-delete]');
+  if (del) deleteContact(del);
 };
+
+async function deleteContact(btn) {
+  const { name, next } = btn.dataset;
+  const warning = [
+    `Delete ${name}?`,
+    'They are removed from this console and from CENTRO. This cannot be undone.',
+    next ? 'Their upcoming appointments are cancelled and the slots go back on sale.' : '',
+  ].filter(Boolean).join('\n\n');
+  if (!confirm(warning)) return;
+  btn.disabled = true;
+  try {
+    await api('/api/staff/contacts', {
+      method: 'DELETE',
+      body: JSON.stringify({ id: btn.dataset.delete }),
+    });
+    await loadContacts();
+  } catch (err) {
+    if (err.message !== 'signed out') alert(err.message);
+    btn.disabled = false;
+  }
+}
 
 let searchTimer = null;
 async function loadContacts() {
