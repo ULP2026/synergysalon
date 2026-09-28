@@ -292,8 +292,12 @@ async function start() {
     salonTz = me.salon.timezone;
     showConsole(me);
     await loadDay(todayInSalon());
-  } catch (err) {
-    if (err.message !== 'signed out') showLogin(err.message);
+  } catch {
+    // Any failure to identify the caller means the same thing to a person
+    // standing at the front desk: show the form. Reporting "Request failed
+    // (404)" above a login box tells them nothing they can act on and looks
+    // like the salon's system is broken.
+    showLogin();
   }
 }
 
