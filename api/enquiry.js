@@ -30,32 +30,35 @@ import { drain } from './cron/sync.js';
 /**
  * What the wizard calls a service, and what it is in the database.
  *
- * The four cut types are all mapped to one Haircut because that is all the
- * menu holds today. The guest's actual choice is kept in the notes, so a
- * bang trim booked as an hour is visible to the front desk rather than
- * silently eating a stylist's morning. Split these into real services as
- * soon as Dina supplies their durations.
+ * One to one, because the menu now holds every option the wizard offers. The
+ * only deliberate merges are where two labels are genuinely the same work:
+ * keratin and Brazilian blowout, Olaplex and K18.
+ *
+ * "Not sure yet" is absent on purpose. Someone who has not chosen cannot be
+ * booked, so they are saved as a lead for the salon to call.
  */
 const SERVICE_BY_LABEL = {
-  'balayage': 'balayage',
-  'highlights & foils': 'highlights-and-foils',
-  'highlights and foils': 'highlights-and-foils',
-  'corrective color': 'corrective-color',
-  'keratin & brazilian blowout': 'keratin-and-brazilian-blowout',
-  'keratin and brazilian blowout': 'keratin-and-brazilian-blowout',
-  'bond repair: olaplex & k18': 'bond-repair',
-  'bond repair': 'bond-repair',
-  'ai scalp analysis': 'ai-scalp-analysis',
-  "women's cuts": 'haircuts',
-  "men's cuts": 'haircuts',
-  'teens & kids': 'haircuts',
-  'bangs': 'haircuts',
-  'haircut': 'haircuts',
-  'blowouts & sets': 'blowouts',
-  'blowout & styling': 'blowouts',
-  'special event & updos': 'special-event',
-  'special event & updo': 'special-event',
-  'extensions': 'extensions',
+  "single process color": "single-process-color",
+  "highlights & foils": "highlights-and-foils",
+  "balayage": "balayage",
+  "biolage highlights": "biolage-highlights",
+  "gloss or toner": "gloss-or-toner",
+  "corrective color": "corrective-color",
+  "color & cut": "color-and-cut",
+  "women's cut": "womens-cut",
+  "men's cut": "mens-cut",
+  "teen cut": "teen-cut",
+  "kids' cut": "kids-cut",
+  "bang trim": "bang-trim",
+  "keratin treatment": "keratin-and-brazilian-blowout",
+  "brazilian blowout": "keratin-and-brazilian-blowout",
+  "olaplex bond repair": "bond-repair",
+  "k18 treatment": "bond-repair",
+  "ai scalp analysis": "ai-scalp-analysis",
+  "blowout": "blowouts",
+  "special occasion updo": "special-event",
+  "bridal styling": "bridal-styling",
+  "extensions": "extensions",
 };
 
 const clean = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
