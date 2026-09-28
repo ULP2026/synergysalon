@@ -15,6 +15,7 @@ import {
   HttpError, handler, json, optionalPhone, readJson, requireString,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import { drain } from '../../cron/sync.js';
 
 const STATUSES = ['new', 'contacted', 'booked', 'won', 'lost'];
 
@@ -110,6 +111,77 @@ export default handler({
     });
 
     return json(res, 201, {
+      id: contact.id,
+      name: contact.name,
+      email: contact.email,
+      phone: contact.phone,
+      status: contact.status,
+    });
+  },
+
+  /**
+   * PATCH — edit somebody's details.
+   *
+   * The change is pushed to CENTRO by id rather than by matching on email or
+   * phone. Correcting either of those is the most common edit there is, and
+   * matching would leave the salon with the same person twice.
+   */
+  async PATCH(req, res) {
+    assertSameOrigin(req);
+    const user = await requireStaff(req);
+    const tenant = await tenantForUser(user);
+    const body = await readJson(req);
+
+    const id = requireString(body.id, 'Contact', { max: 64 });
+    const name = requireString(body.name, 'Name', { max: 120 });
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const phone = optionalPhone(body.phone);
+    if (!email && !phone) {
+      throw new HttpError(400, 'A contact needs an email address or a phone number.');
+    }
+    const status = STATUSES.includes(body.status) ? body.status : null;
+
+    const contact = await transaction(async (client) => {
+      const { rows: dup } = await client.query(
+        `SELECT name FROM contacts
+          WHERE tenant_id = $1 AND id <> $2
+            AND (($3 <> '' AND lower(email) = $3) OR ($4 <> '' AND phone = $4))
+          LIMIT 1`,
+        [tenant.id, id, email, phone],
+      );
+      if (dup[0]) {
+        throw new HttpError(409, `Those details already belong to ${dup[0].name}.`, 'DUPLICATE');
+      }
+
+      const { rows } = await client.query(
+        `UPDATE contacts
+            SET name = $3, email = $4, phone = $5,
+                source = COALESCE(NULLIF($6, ''), source),
+                notes = $7,
+                status = COALESCE($8::contact_status, status),
+                updated_at = now()
+          WHERE id = $2 AND tenant_id = $1
+          RETURNING *`,
+        [
+          tenant.id, id, name, email, phone,
+          typeof body.source === 'string' ? body.source.trim().slice(0, 60) : '',
+          typeof body.notes === 'string' ? body.notes.trim().slice(0, 2000) : '',
+          status,
+        ],
+      );
+      if (!rows[0]) throw new HttpError(404, 'That contact no longer exists.');
+
+      await enqueueSync(client, tenant.id, 'contact.updated', { contactId: id });
+      return rows[0];
+    });
+
+    try {
+      await drain(10);
+    } catch (err) {
+      console.error('CENTRO sync deferred for contact', id, err);
+    }
+
+    return json(res, 200, {
       id: contact.id,
       name: contact.name,
       email: contact.email,

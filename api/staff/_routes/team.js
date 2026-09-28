@@ -9,7 +9,10 @@
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
-import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
+import {
+  HttpError, handler, json, readJson, requireEmail, requireString,
+} from '../../_lib/http.js';
+import { MIN_PASSWORD_LENGTH, hashPassword } from '../../_lib/password.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
 const ADMIN = ['owner', 'manager'];
@@ -58,8 +61,40 @@ export default handler({
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
 
-    const id = requireString(body.id, 'Member', { max: 64 });
     const action = requireString(body.action, 'Action', { max: 20 });
+
+    // Adding somebody directly, rather than waiting for them to ask. The
+    // account is active immediately, because an owner adding a person has
+    // already made the decision that approval exists to capture.
+    if (action === 'create') {
+      const name = requireString(body.name, 'Name', { max: 120 });
+      const email = requireEmail(body.email);
+      const password = requireString(body.password, 'Password', { max: 200 });
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        throw new HttpError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      }
+      const role = ROLES.includes(body.role) ? body.role : 'front_desk';
+      if (role === 'owner' && user.role !== 'owner') {
+        throw new HttpError(403, 'Only an owner can make someone else an owner.');
+      }
+
+      const { rows: exists } = await query(
+        'SELECT id FROM staff_users WHERE tenant_id = $1 AND lower(email) = $2',
+        [tenant.id, email],
+      );
+      if (exists[0]) throw new HttpError(409, 'Someone already has that email address.');
+
+      const { rows } = await query(
+        `INSERT INTO staff_users (tenant_id, email, password_hash, name, role,
+                                  status, approved_at, approved_by)
+         VALUES ($1, $2, $3, $4, $5, 'active', now(), $6)
+         RETURNING id, name, email, role`,
+        [tenant.id, email, await hashPassword(password), name, role, user.id],
+      );
+      return json(res, 201, { ok: true, member: rows[0] });
+    }
+
+    const id = requireString(body.id, 'Member', { max: 64 });
 
     const { rows } = await query(
       'SELECT id, name, role, status FROM staff_users WHERE id = $1 AND tenant_id = $2',

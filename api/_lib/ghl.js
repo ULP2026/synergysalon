@@ -76,6 +76,24 @@ export async function upsertContact(tenant, { name, email, phone, source, tags =
   return id;
 }
 
+/**
+ * Update a contact we already know the id of.
+ *
+ * Upsert matches on email or phone, so editing either of those would create a
+ * second CENTRO contact and leave the salon with the person twice. Once the id
+ * is known, the id is what should be used.
+ */
+export function updateContact(tenant, contactId, { name, email, phone }) {
+  const parts = String(name || '').trim().split(/\s+/);
+  return call(tenant, 'PUT', `/contacts/${contactId}`, {
+    firstName: parts[0] || undefined,
+    lastName: parts.slice(1).join(' ') || undefined,
+    name: name || undefined,
+    email: email || undefined,
+    phone: phone || undefined,
+  });
+}
+
 export async function createAppointment(tenant, {
   contactId, startsAt, endsAt, title, notes, calendarId, assignedUserId,
 }) {

@@ -13,7 +13,8 @@ import { DateTime } from 'luxon';
 
 import { pool, query, transaction } from '../_lib/db.js';
 import {
-  GhlError, cancelAppointment, createAppointment, updateAppointment, upsertContact,
+  GhlError, cancelAppointment, createAppointment, updateAppointment,
+  updateContact, upsertContact,
 } from '../_lib/ghl.js';
 import { handler, json } from '../_lib/http.js';
 
@@ -123,6 +124,13 @@ async function pushContact(client, job, tenant) {
   const { rows } = await client.query('SELECT * FROM contacts WHERE id = $1', [job.contact_id]);
   const contact = rows[0];
   if (!contact) return { skipped: 'contact no longer exists' };
+
+  // Editing somebody's email must not leave two of them in CENTRO, so once
+  // we know their id we update by id rather than matching on their details.
+  if (contact.ghl_contact_id) {
+    await updateContact(tenant, contact.ghl_contact_id, contact);
+    return { updated: contact.ghl_contact_id };
+  }
 
   const contactId = await upsertContact(tenant, {
     name: contact.name,

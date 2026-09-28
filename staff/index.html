@@ -250,8 +250,11 @@
     </div>
 
     <div id="panel-settings" class="card hidden">
-      <h2>Team</h2>
-      <p class="small muted" style="margin:-8px 0 18px">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <h2 style="margin:0">Team</h2>
+        <button class="btn" id="newMember">Add team member</button>
+      </div>
+      <p class="small muted" style="margin:0 0 18px">
         Anyone waiting for approval appears at the top. Approving lets them sign in;
         rejecting removes the request so they can ask again.
       </p>
@@ -283,9 +286,35 @@
   </form>
 </dialog>
 
+<dialog id="memberDlg">
+  <form method="dialog" id="memberForm">
+    <h2>Add team member</h2>
+    <div id="memberNote" class="note bad hidden"></div>
+    <label><span>Name</span><input name="name" required></label>
+    <label><span>Email</span><input type="email" name="email" required></label>
+    <label><span>Role</span>
+      <select name="role">
+        <option value="front_desk">Front desk</option>
+        <option value="manager">Manager</option>
+        <option value="owner">Owner</option>
+      </select></label>
+    <label><span>Password</span>
+      <input type="text" name="password" minlength="10" required
+             placeholder="at least 10 characters"></label>
+    <p class="small muted" style="margin:-6px 0 14px">
+      Shown as you type so you can pass it on. They can be given a new one any
+      time by adding them again with the same email.
+    </p>
+    <div class="row" style="justify-content:flex-end;margin-top:6px">
+      <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
+      <button class="btn" value="save">Add</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="contactDlg">
   <form method="dialog" id="contactForm">
-    <h2>Add contact</h2>
+    <h2 id="contactTitle">Add contact</h2>
     <div id="contactNote" class="note bad hidden"></div>
     <label><span>Name</span><input name="name" required></label>
     <div class="two">
@@ -293,10 +322,18 @@
       <label><span>Email</span><input type="email" name="email"></label>
     </div>
     <label><span>Where did they come from?</span><input name="source" placeholder="phone, walk-in, Facebook ad…"></label>
+    <label class="hidden" id="contactStatusField"><span>Status</span>
+      <select name="status">
+        <option value="new">New</option>
+        <option value="contacted">Contacted</option>
+        <option value="booked">Booked</option>
+        <option value="won">Client</option>
+        <option value="lost">Lost</option>
+      </select></label>
     <label><span>Notes</span><textarea name="notes"></textarea></label>
     <div class="row" style="justify-content:flex-end;margin-top:6px">
       <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
-      <button class="btn" value="save">Add</button>
+      <button class="btn" value="save" id="contactSave">Add</button>
     </div>
   </form>
 </dialog>
@@ -523,7 +560,9 @@ function renderContacts(d) {
     <table>
       <thead><tr><th>Name</th><th>Contact</th><th>Source</th><th>Visits</th><th>Next</th><th></th></tr></thead>
       <tbody>${d.contacts.map((c) => `
-        <tr>
+        <tr data-edit='${esc(JSON.stringify({
+            id: c.id, name: c.name, email: c.email, phone: c.phone,
+            source: c.source, status: c.status, notes: c.notes }))}'>
           <td>
             <div class="cell-name">${esc(c.name)}</div>
             <span class="pill">${esc(c.status)}</span>
@@ -536,16 +575,21 @@ function renderContacts(d) {
             ? esc(new Date(c.nextVisit).toLocaleString('en-GB',
                 { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))
             : '<span class="muted">—</span>'}</td>
-          <td><button class="btn tiny" data-book="${c.id}" data-name="${esc(c.name)}"
-                      data-phone="${esc(c.phone)}" data-email="${esc(c.email)}">Book</button></td>
+          <td style="white-space:nowrap">
+            <button class="btn quiet tiny" data-edit-btn="1">Edit</button>
+            <button class="btn tiny" data-book="${c.id}" data-name="${esc(c.name)}"
+                    data-phone="${esc(c.phone)}" data-email="${esc(c.email)}">Book</button>
+          </td>
         </tr>`).join('')}
       </tbody>
     </table>`;
 }
 
 $('contacts').onclick = (e) => {
-  const btn = e.target.closest('button[data-book]');
-  if (btn) openBooking({ id: btn.dataset.book, ...btn.dataset });
+  const book = e.target.closest('button[data-book]');
+  if (book) { openBooking({ id: book.dataset.book, ...book.dataset }); return; }
+  const edit = e.target.closest('button[data-edit-btn]');
+  if (edit) openContact(JSON.parse(edit.closest('tr').dataset.edit));
 };
 
 let searchTimer = null;
@@ -566,28 +610,72 @@ $('contactSearch').oninput = () => {
 };
 $('contactStatus').onchange = loadContacts;
 
-$('newContact').onclick = () => {
-  $('contactForm').reset();
+let editingContact = null;
+
+function openContact(contact) {
+  const f = $('contactForm');
+  f.reset();
   note($('contactNote'), '');
+  editingContact = contact ? contact.id : null;
+  $('contactTitle').textContent = contact ? `Edit ${contact.name}` : 'Add contact';
+  $('contactSave').textContent = contact ? 'Save' : 'Add';
+  // Status is only meaningful once somebody exists; a new contact starts new.
+  $('contactStatusField').classList.toggle('hidden', !contact);
+  if (contact) {
+    for (const k of ['name', 'email', 'phone', 'source', 'notes', 'status']) {
+      if (f.elements[k]) f.elements[k].value = contact[k] || '';
+    }
+  }
   $('contactDlg').showModal();
-};
+}
+
+$('newContact').onclick = () => openContact(null);
 
 $('contactForm').onsubmit = async (e) => {
   if (e.submitter?.value !== 'save') return;
   e.preventDefault();
   const f = new FormData(e.target);
+  const body = {
+    name: f.get('name'), email: f.get('email'), phone: f.get('phone'),
+    source: f.get('source'), notes: f.get('notes'),
+  };
+  if (editingContact) { body.id = editingContact; body.status = f.get('status'); }
   try {
     await api('/api/staff/contacts', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: f.get('name'), email: f.get('email'), phone: f.get('phone'),
-        source: f.get('source'), notes: f.get('notes'),
-      }),
+      method: editingContact ? 'PATCH' : 'POST',
+      body: JSON.stringify(body),
     });
     $('contactDlg').close();
     await loadContacts();
   } catch (err) {
     note($('contactNote'), err.message);
+  }
+};
+
+// ---- adding a team member ----
+
+$('newMember').onclick = () => {
+  $('memberForm').reset();
+  note($('memberNote'), '');
+  $('memberDlg').showModal();
+};
+
+$('memberForm').onsubmit = async (e) => {
+  if (e.submitter?.value !== 'save') return;
+  e.preventDefault();
+  const f = new FormData(e.target);
+  try {
+    await api('/api/staff/team', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'create', name: f.get('name'), email: f.get('email'),
+        role: f.get('role'), password: f.get('password'),
+      }),
+    });
+    $('memberDlg').close();
+    await loadTeam();
+  } catch (err) {
+    note($('memberNote'), err.message);
   }
 };
 
