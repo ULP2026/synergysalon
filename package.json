@@ -1,0 +1,17 @@
+{
+  "name": "synergy-salon",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:setup": "node db/setup.js",
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "dependencies": {
+    "luxon": "^3.5.0",
+    "pg": "^8.13.1",
+    "resend": "^4.0.1"
+  }
+}

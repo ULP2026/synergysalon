@@ -10,3 +10,9 @@ Rent a Chair.html
 Rent a Chair - Thank You.html
 Synergy PMC.md
 *.pdf
+
+# Booking system
+node_modules/
+.env
+.env.*
+.vercel/
