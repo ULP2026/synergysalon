@@ -77,12 +77,16 @@ export async function upsertContact(tenant, { name, email, phone, source, tags =
 }
 
 export async function createAppointment(tenant, {
-  contactId, startsAt, endsAt, title, notes, calendarId,
+  contactId, startsAt, endsAt, title, notes, calendarId, assignedUserId,
 }) {
   const data = await call(tenant, 'POST', '/calendars/events/appointments', {
     calendarId: calendarId || tenant.ghl_calendar_id,
     locationId: tenant.ghl_location_id,
     contactId,
+    // Required, and the error when it is missing says only "a team member
+    // needs to be selected": CENTRO's calendars are service_booking type and
+    // refuse an unassigned event.
+    assignedUserId,
     startTime: startsAt,
     endTime: endsAt,
     title,

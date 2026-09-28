@@ -44,6 +44,12 @@ console.log(`  sub-account : ${location.name}`);
 console.log(`  calendar    : ${calendar.name} (${calendar.calendarType})`);
 console.log(`  timezone    : ${location.timezone}`);
 
+// CENTRO will not accept an appointment without a team member, so the
+// calendar's own is stored as the default for every stylist we have not
+// mapped individually.
+const defaultUser = calendar.teamMembers?.[0]?.userId ?? null;
+console.log(`  team member : ${defaultUser ?? 'NONE -- appointments will be refused'}`);
+
 const client = new pg.Client({
   connectionString: DATABASE_URL,
   ssl: DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
@@ -53,10 +59,11 @@ await client.connect();
 try {
   const { rows } = await client.query(
     `UPDATE tenants
-        SET ghl_location_id = $2, ghl_token = $3, ghl_calendar_id = $4
+        SET ghl_location_id = $2, ghl_token = $3, ghl_calendar_id = $4,
+            ghl_user_id = $5
       WHERE slug = $1
       RETURNING name, timezone`,
-    [slug, GHL_LOCATION_ID, GHL_TOKEN, GHL_CALENDAR_ID],
+    [slug, GHL_LOCATION_ID, GHL_TOKEN, GHL_CALENDAR_ID, defaultUser],
   );
   if (!rows.length) {
     console.error(`No tenant with slug "${slug}". Run "npm run db:setup" first.`);

@@ -35,7 +35,7 @@ function backoffMinutes(attempts) {
 async function claim(client) {
   const { rows } = await client.query(
     `SELECT o.*, t.id AS tenant_id, t.timezone,
-            t.ghl_location_id, t.ghl_token, t.ghl_calendar_id
+            t.ghl_location_id, t.ghl_token, t.ghl_calendar_id, t.ghl_user_id
        FROM sync_outbox o
        JOIN tenants t ON t.id = o.tenant_id
       WHERE o.state = 'pending' AND o.next_try_at <= now()
@@ -49,7 +49,8 @@ async function claim(client) {
 
 async function loadAppointment(client, id) {
   const { rows } = await client.query(
-    `SELECT a.*, s.name AS stylist_name, v.name AS service_name,
+    `SELECT a.*, s.name AS stylist_name, s.ghl_user_id AS stylist_ghl_user_id,
+            v.name AS service_name,
             ct.ghl_contact_id AS contact_ghl_id
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
@@ -96,6 +97,7 @@ async function pushAppointment(client, job, tenant) {
 
   const eventId = await createAppointment(tenant, {
     contactId,
+    assignedUserId: appt.stylist_ghl_user_id || tenant.ghl_user_id,
     startsAt: startsAt.toISO(),
     endsAt: endsAt.toISO(),
     title,
@@ -148,6 +150,7 @@ async function runOne() {
       ghl_location_id: job.ghl_location_id,
       ghl_token: job.ghl_token,
       ghl_calendar_id: job.ghl_calendar_id,
+      ghl_user_id: job.ghl_user_id,
     };
 
     try {
