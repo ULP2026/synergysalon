@@ -15,7 +15,8 @@ export default handler({
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
 
-    const [services, stylists] = await Promise.all([
+    const canAdmin = ['owner', 'manager'].includes(user.role);
+    const [services, stylists, pending] = await Promise.all([
       query(
         `SELECT slug, name, duration_min, price_cents, consult_first
            FROM services WHERE tenant_id = $1 AND active ORDER BY sort_order`,
@@ -26,10 +27,15 @@ export default handler({
           WHERE tenant_id = $1 AND active ORDER BY sort_order`,
         [tenant.id],
       ),
+      // Drives the badge on Settings, so a request does not sit unseen.
+      canAdmin
+        ? query("SELECT count(*)::int n FROM staff_users WHERE tenant_id = $1 AND status = 'pending'", [tenant.id])
+        : Promise.resolve({ rows: [{ n: 0 }] }),
     ]);
 
     return json(res, 200, {
-      user: { name: user.name, email: user.email, role: user.role },
+      user: { name: user.name, email: user.email, role: user.role, canAdmin },
+      pendingApprovals: pending.rows[0].n,
       salon: { name: tenant.name, timezone: tenant.timezone },
       services: services.rows.map((s) => ({
         slug: s.slug,

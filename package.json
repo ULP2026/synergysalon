@@ -9,7 +9,8 @@
     "db:setup": "node --env-file-if-exists=.env db/setup.js",
     "test": "node --env-file-if-exists=.env --test \"tests/*.test.js\"",
     "staff:create": "node --env-file-if-exists=.env db/create-staff.js",
-    "ghl:link": "node --env-file-if-exists=.env db/link-ghl.js"
+    "ghl:link": "node --env-file-if-exists=.env db/link-ghl.js",
+    "db:migrate": "node --env-file-if-exists=.env db/migrate.js"
   },
   "dependencies": {
     "luxon": "^3.5.0",

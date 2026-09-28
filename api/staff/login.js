@@ -33,7 +33,7 @@ export default handler({
     const password = requireString(body.password, 'Password', { max: 200 });
 
     const { rows } = await query(
-      `SELECT id, tenant_id, email, password_hash, name, role, active,
+      `SELECT id, tenant_id, email, password_hash, name, role, active, status,
               failed_attempts, locked_until
          FROM staff_users
         WHERE tenant_id = $1 AND lower(email) = $2`,
@@ -50,7 +50,17 @@ export default handler({
     // reveal which addresses exist.
     const ok = await verifyPassword(password, user?.password_hash);
 
-    if (!user || !ok || !user.active) {
+    // Someone whose request has not been approved gets told that, not
+    // "wrong password". They know their password is right, and a misleading
+    // message sends them to the front desk to reset something that is fine.
+    if (user && ok && user.status === 'pending') {
+      throw new HttpError(403, 'Your account is waiting for approval by the salon owner.');
+    }
+    if (user && ok && (user.status === 'disabled' || !user.active)) {
+      throw new HttpError(403, 'That account has been disabled. Please speak to the owner.');
+    }
+
+    if (!user || !ok) {
       if (user) {
         const attempts = user.failed_attempts + 1;
         // Every parameter is cast. Postgres cannot resolve make_interval from

@@ -21,11 +21,11 @@ export const SLOT_TAKEN = 'SLOT_TAKEN';
  * still has the booking and the push retries. Calling the CRM inline would
  * mean their outage turns guests away.
  */
-export async function enqueueSync(client, tenantId, kind, { appointmentId = null, leadId = null, payload = {} } = {}) {
+export async function enqueueSync(client, tenantId, kind, { appointmentId = null, contactId = null, payload = {} } = {}) {
   await client.query(
-    `INSERT INTO sync_outbox (tenant_id, kind, appointment_id, lead_id, payload)
+    `INSERT INTO sync_outbox (tenant_id, kind, appointment_id, contact_id, payload)
      VALUES ($1, $2, $3, $4, $5)`,
-    [tenantId, kind, appointmentId, leadId, JSON.stringify(payload)],
+    [tenantId, kind, appointmentId, contactId, JSON.stringify(payload)],
   );
 }
 
@@ -37,7 +37,7 @@ export async function enqueueSync(client, tenantId, kind, { appointmentId = null
 async function insertFor(client, stylistId, ctx) {
   const {
     tenant, service, startsAt, guestName, guestEmail, guestPhone, notes,
-    channel, bookedBy, leadId,
+    channel, bookedBy, contactId,
   } = ctx;
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -45,7 +45,7 @@ async function insertFor(client, stylistId, ctx) {
     try {
       const { rows } = await client.query(
         `INSERT INTO appointments (
-           tenant_id, ref, stylist_id, service_id, lead_id, starts_at,
+           tenant_id, ref, stylist_id, service_id, contact_id, starts_at,
            duration_min, buffer_min, price_cents, during,
            status, channel, booked_by,
            guest_name, guest_email, guest_phone, notes, manage_token
@@ -60,7 +60,7 @@ async function insertFor(client, stylistId, ctx) {
          RETURNING id, ref, starts_at, duration_min, price_cents,
                    guest_name, guest_email, guest_phone, manage_token, channel`,
         [
-          tenant.id, newRef(), stylistId, service.id, leadId, startsAt.toISO(),
+          tenant.id, newRef(), stylistId, service.id, contactId, startsAt.toISO(),
           service.duration_min, service.buffer_min, service.price_cents,
           channel, bookedBy,
           guestName, guestEmail, guestPhone, notes, newToken(),
@@ -96,7 +96,7 @@ async function insertFor(client, stylistId, ctx) {
  */
 export async function createBooking(client, tenant, {
   serviceSlug, stylistSlug, start, guestName, guestEmail = '', guestPhone = '',
-  notes = '', channel = 'online', bookedBy = null, leadId = null, minLeadMin,
+  notes = '', channel = 'online', bookedBy = null, contactId = null, minLeadMin,
 }) {
   const startsAt = DateTime.fromISO(start, { setZone: true }).setZone(tenant.timezone);
   if (!startsAt.isValid) throw new HttpError(400, 'That appointment time is not valid.');
@@ -125,7 +125,7 @@ export async function createBooking(client, tenant, {
 
   const ctx = {
     tenant, service, startsAt, guestName, guestEmail, guestPhone, notes,
-    channel, bookedBy, leadId,
+    channel, bookedBy, contactId,
   };
 
   for (const stylistId of order) {
@@ -133,13 +133,13 @@ export async function createBooking(client, tenant, {
     if (booked) {
       await enqueueSync(client, tenant.id, 'appointment.booked', {
         appointmentId: booked.id,
-        leadId,
+        contactId,
       });
-      if (leadId) {
+      if (contactId) {
         await client.query(
-          `UPDATE leads SET status = 'booked', updated_at = now()
+          `UPDATE contacts SET status = 'booked', updated_at = now()
             WHERE id = $1 AND tenant_id = $2 AND status IN ('new', 'contacted')`,
-          [leadId, tenant.id],
+          [contactId, tenant.id],
         );
       }
       return booked;

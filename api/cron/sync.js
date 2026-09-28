@@ -50,11 +50,11 @@ async function claim(client) {
 async function loadAppointment(client, id) {
   const { rows } = await client.query(
     `SELECT a.*, s.name AS stylist_name, v.name AS service_name,
-            l.ghl_contact_id AS lead_contact_id
+            ct.ghl_contact_id AS contact_ghl_id
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
-       LEFT JOIN leads l ON l.id = a.lead_id
+       LEFT JOIN contacts ct ON ct.id = a.contact_id
       WHERE a.id = $1`,
     [id],
   );
@@ -86,7 +86,7 @@ async function pushAppointment(client, job, tenant) {
     return { updated: appt.ghl_appointment_id };
   }
 
-  const contactId = appt.lead_contact_id ?? await upsertContact(tenant, {
+  const contactId = appt.contact_ghl_id ?? await upsertContact(tenant, {
     name: appt.guest_name,
     email: appt.guest_email,
     phone: appt.guest_phone,
@@ -108,30 +108,30 @@ async function pushAppointment(client, job, tenant) {
     'UPDATE appointments SET ghl_appointment_id = $2 WHERE id = $1',
     [appt.id, eventId],
   );
-  if (appt.lead_id && !appt.lead_contact_id) {
+  if (appt.contact_id && !appt.contact_ghl_id) {
     await client.query(
-      'UPDATE leads SET ghl_contact_id = $2 WHERE id = $1 AND ghl_contact_id IS NULL',
-      [appt.lead_id, contactId],
+      'UPDATE contacts SET ghl_contact_id = $2 WHERE id = $1 AND ghl_contact_id IS NULL',
+      [appt.contact_id, contactId],
     );
   }
   return { created: eventId };
 }
 
-async function pushLead(client, job, tenant) {
-  const { rows } = await client.query('SELECT * FROM leads WHERE id = $1', [job.lead_id]);
-  const lead = rows[0];
-  if (!lead) return { skipped: 'lead no longer exists' };
+async function pushContact(client, job, tenant) {
+  const { rows } = await client.query('SELECT * FROM contacts WHERE id = $1', [job.contact_id]);
+  const contact = rows[0];
+  if (!contact) return { skipped: 'contact no longer exists' };
 
   const contactId = await upsertContact(tenant, {
-    name: lead.name,
-    email: lead.email,
-    phone: lead.phone,
-    source: lead.source || 'Staff console',
-    tags: ['lead'],
+    name: contact.name,
+    email: contact.email,
+    phone: contact.phone,
+    source: contact.source || 'Staff console',
+    tags: ['contact'],
   });
   await client.query(
-    'UPDATE leads SET ghl_contact_id = $2, updated_at = now() WHERE id = $1',
-    [lead.id, contactId],
+    'UPDATE contacts SET ghl_contact_id = $2, updated_at = now() WHERE id = $1',
+    [contact.id, contactId],
   );
   return { contact: contactId };
 }
@@ -153,7 +153,7 @@ async function runOne() {
     try {
       const result = job.kind.startsWith('appointment.')
         ? await pushAppointment(client, job, tenant)
-        : await pushLead(client, job, tenant);
+        : await pushContact(client, job, tenant);
 
       await client.query(
         `UPDATE sync_outbox SET state = 'done', done_at = now(), attempts = attempts + 1
