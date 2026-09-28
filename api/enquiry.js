@@ -175,6 +175,41 @@ export default handler({
         return { contactId, booked: null };
       }
 
+      // One person, one appointment. This endpoint is called on every
+      // keystroke, so without this a guest typing their email address books
+      // themselves in once per character -- which is exactly what happened:
+      // two bookings for the same slot, one from "test232" and one from
+      // "test232@gmail.com", with different stylists.
+      const { rows: live } = await client.query(
+        `SELECT id, ref, starts_at FROM appointments
+          WHERE contact_id = $1 AND status = 'booked' AND starts_at >= now()
+          ORDER BY created_at DESC LIMIT 1`,
+        [contactId],
+      );
+
+      if (live[0]) {
+        const same = new Date(live[0].starts_at).getTime() === start.toMillis();
+        if (same) return { contactId, booked: null, already: live[0].ref };
+        // They have changed their mind mid-flow: move the appointment they
+        // already have rather than leaving the salon holding both.
+        try {
+          await client.query(
+            `UPDATE appointments
+                SET starts_at = $2::timestamptz,
+                    during = tstzrange($2::timestamptz,
+                             $2::timestamptz + make_interval(mins => duration_min + buffer_min), '[)'),
+                    updated_at = now()
+              WHERE id = $1`,
+            [live[0].id, start.toISO()],
+          );
+          await enqueueSync(client, tenant.id, 'appointment.rescheduled',
+                            { appointmentId: live[0].id });
+          return { contactId, booked: null, already: live[0].ref, moved: true };
+        } catch {
+          return { contactId, booked: null, already: live[0].ref };
+        }
+      }
+
       try {
         const appt = await createBooking(client, tenant, {
           serviceSlug,
@@ -212,7 +247,7 @@ export default handler({
     return json(res, 200, {
       saved: true,
       contactId: result.contactId,
-      ref: result.booked?.ref ?? null,
+      ref: result.booked?.ref ?? result.already ?? null,
       stylist: result.booked?.stylist_name ?? null,
       startsAt: result.booked?.starts_at ?? null,
       bookingError: result.bookingError ?? null,
