@@ -122,6 +122,10 @@
     var email = (document.getElementById('bk-email') || {}).value || '';
     var phone = (document.getElementById('bk-phone') || {}).value || '';
     if (!name.trim() || (!email.trim() && !phone.trim())) return null;
+    // Before the bundle hydrates, the fields still hold their own bindings.
+    // Posting "{{ bkName }}" as somebody's name creates a junk lead and, worse,
+    // burns the one completion send on nonsense.
+    if (/\{\{/.test(name + email + phone)) return null;
     return {
       name: name, email: email, phone: phone,
       serviceLabel: answers.service, who: answers.who, history: answers.history,
@@ -131,11 +135,20 @@
     };
   }
 
+  var finishPending = false;
+
   function send(complete) {
     var body = payload(complete);
     if (!body) return;
     var key = JSON.stringify(body);
-    if ((key === lastSent && !complete) || sending) return;
+    // A send already in flight must never swallow the finished one: that is
+    // the difference between a booking and a lead nobody knows to call. Hold
+    // it and fire it the moment the current request lands.
+    if (sending) {
+      if (complete) finishPending = true;
+      return;
+    }
+    if (key === lastSent && !complete) return;
     sending = true; lastSent = key;
     fetch(ENDPOINT, {
       method: 'POST',
@@ -169,7 +182,10 @@
         }
       })
       .catch(function () { lastSent = ''; })
-      .then(function () { sending = false; });
+      .then(function () {
+        sending = false;
+        if (finishPending) { finishPending = false; send(true); }
+      });
   }
 
   function later(complete) {
