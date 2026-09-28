@@ -1,7 +1,7 @@
 /**
  * A thin client for the CENTRO / GoHighLevel v2 API.
  *
- * Only the four calls the mirror needs. This is deliberately not a general
+ * Only the calls the mirror needs. This is deliberately not a general
  * wrapper: every endpoint added here is another thing that can fail during a
  * booking, and the whole point of the outbox is that CENTRO is downstream.
  *
@@ -146,6 +146,21 @@ export function cancelAppointment(tenant, eventId) {
     appointmentStatus: 'cancelled',
     toNotify: false,
   });
+}
+
+/**
+ * Remove a contact the salon has deleted.
+ *
+ * A 404 counts as done: the contact is gone either way, whether somebody
+ * removed it in CENTRO first or an earlier attempt succeeded and the reply was
+ * lost. Treating it as a failure would leave a job that can never succeed.
+ */
+export async function deleteContact(tenant, contactId) {
+  try {
+    await call(tenant, 'DELETE', `/contacts/${contactId}`);
+  } catch (err) {
+    if (!(err instanceof GhlError && err.status === 404)) throw err;
+  }
 }
 
 export { GhlError };

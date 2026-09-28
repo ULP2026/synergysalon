@@ -108,7 +108,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 25 tests; the database ones skip without DATABASE_URL
+npm test                    # 31 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and

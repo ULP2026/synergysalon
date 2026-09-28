@@ -13,8 +13,8 @@ import { DateTime } from 'luxon';
 
 import { pool, query, transaction } from '../_lib/db.js';
 import {
-  GhlError, cancelAppointment, createAppointment, updateAppointment,
-  updateContact, upsertContact,
+  GhlError, cancelAppointment, createAppointment, deleteContact,
+  updateAppointment, updateContact, upsertContact,
 } from '../_lib/ghl.js';
 import { handler, json } from '../_lib/http.js';
 
@@ -146,6 +146,29 @@ async function pushContact(client, job, tenant) {
   return { contact: contactId };
 }
 
+/**
+ * Mirror a deletion. The contact row is already gone, so everything needed
+ * travels in the payload.
+ *
+ * Their upcoming appointments are cancelled before the contact is removed, so
+ * CENTRO's calendar never keeps a slot blocked by somebody who no longer
+ * exists, whatever CENTRO itself does with a deleted contact's events. A
+ * retry repeats both steps, which is harmless: cancelling twice and deleting
+ * something already gone both succeed.
+ */
+async function removeContact(job, tenant) {
+  const { ghlContactId, ghlAppointmentIds = [] } = job.payload || {};
+  for (const eventId of ghlAppointmentIds) {
+    try {
+      await cancelAppointment(tenant, eventId);
+    } catch (err) {
+      if (!(err instanceof GhlError && err.status === 404)) throw err;
+    }
+  }
+  if (ghlContactId) await deleteContact(tenant, ghlContactId);
+  return { deleted: ghlContactId ?? null, cancelled: ghlAppointmentIds.length };
+}
+
 /** Process one job. Returns a short description for the response. */
 async function runOne() {
   return transaction(async (client) => {
@@ -162,9 +185,10 @@ async function runOne() {
     };
 
     try {
-      const result = job.kind.startsWith('appointment.')
-        ? await pushAppointment(client, job, tenant)
-        : await pushContact(client, job, tenant);
+      let result;
+      if (job.kind === 'contact.deleted') result = await removeContact(job, tenant);
+      else if (job.kind.startsWith('appointment.')) result = await pushAppointment(client, job, tenant);
+      else result = await pushContact(client, job, tenant);
 
       await client.query(
         `UPDATE sync_outbox SET state = 'done', done_at = now(), attempts = attempts + 1
