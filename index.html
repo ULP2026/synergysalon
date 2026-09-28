@@ -205,9 +205,17 @@
   }
 
   document.addEventListener('click', function (e) {
-    var el = e.target && e.target.closest
-      ? e.target.closest('.bk-opt, .bk-person, .bk-day, .bk-time') : null;
+    if (!e.target || !e.target.closest) return;
+
+    var el = e.target.closest('.bk-opt, .bk-person, .bk-day, .bk-time');
     if (el) { record(el); later(false); }
+
+    // The guest pressing Confirm is the one signal that cannot be missed.
+    // Waiting for the thank-you panel to appear meant relying on the design
+    // tool's own rendering, and when that did not fire the booking was never
+    // attempted -- the lead saved and the appointment silently did not.
+    var next = e.target.closest('.bk-next');
+    if (next && /confirm|book/i.test(next.textContent || '')) later(true);
   }, true);
 
   ['input', 'change'].forEach(function (evt) {
