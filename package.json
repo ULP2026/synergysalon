@@ -6,8 +6,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "db:setup": "node db/setup.js",
-    "test": "node --test \"tests/*.test.js\""
+    "db:setup": "node --env-file-if-exists=.env db/setup.js",
+    "test": "node --env-file-if-exists=.env --test \"tests/*.test.js\""
   },
   "dependencies": {
     "luxon": "^3.5.0",

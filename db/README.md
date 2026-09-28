@@ -31,9 +31,25 @@ running the race for real.
 
 ## Setting it up
 
-**1. Create a Postgres database.** Vercel → Storage → Postgres (Neon) is the
-path of least resistance: it sets `DATABASE_URL` on the project for you. Any
-Postgres 14+ works.
+**1. Point it at Postgres.** Supabase is Postgres, so nothing here changes —
+but take the connection string from **Project Settings → Database → Connection
+string → Transaction pooler**, not the one labelled "direct connection".
+
+Two reasons, both of which cost an afternoon to discover:
+
+- Supabase's direct connection is **IPv6 only**, and Vercel's functions do not
+  reach it. The pooler is reachable over IPv4.
+- Functions start and stop constantly. Without a pooler, a busy morning opens
+  more connections than the database will allow.
+
+The pooler string uses port **6543** and looks like:
+
+```
+postgres://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+```
+
+Transaction-mode pooling supports everything this code does, including the
+savepoints `book.js` relies on.
 
 **2. Set the environment variables** on the Vercel project:
 
@@ -45,10 +61,13 @@ Postgres 14+ works.
 | `SITE_URL` | no | Defaults to `https://synergysalon.com` |
 | `CRON_SECRET` | no | If set, the reminder endpoint requires it. Vercel sends it automatically |
 
-**3. Create the tables:**
+**3. Create the tables.** Either paste `schema.sql` then `seed.sql` into the
+Supabase SQL editor, or put the connection string in a local `.env` (which is
+gitignored) and run:
 
 ```bash
-DATABASE_URL='postgres://…' npm run db:setup
+echo "DATABASE_URL=postgres://…" > .env
+npm run db:setup
 ```
 
 Idempotent — it skips the seed if services already exist. `--reset` drops
@@ -57,9 +76,21 @@ everything first and asks for confirmation when the database is not local.
 **4. Check it:**
 
 ```bash
-npm test                                   # slot arithmetic, no database needed
-DATABASE_URL='postgres://…' npm test       # also the double-booking guarantee
+npm test
 ```
+
+With no `.env` this runs the slot arithmetic only and skips the rest. With a
+`DATABASE_URL` it also runs the double-booking tests against the real
+database, which is the only way that guarantee is actually proven.
+
+### A note on Supabase's other half
+
+These tables are reached only by the API functions, over the Postgres
+connection, using credentials that are not in the browser. They are not
+exposed through Supabase's REST API and no anon key touches them. If anyone
+later turns on the REST API for these tables, enable row level security first
+— an unprotected `appointments` table is every guest's name, email and phone
+number.
 
 ## Before this can go live
 

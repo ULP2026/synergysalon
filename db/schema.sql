@@ -6,8 +6,18 @@
 -- requests read before either writes. Postgres refusing to store overlapping
 -- ranges for one stylist is the only version of this that is actually true.
 
-CREATE EXTENSION IF NOT EXISTS btree_gist;   -- lets an exclusion constraint mix = and &&
-CREATE EXTENSION IF NOT EXISTS pgcrypto;     -- gen_random_uuid()
+-- Supabase keeps extensions in an "extensions" schema rather than public. If
+-- btree_gist is already installed there, CREATE EXTENSION below is a no-op and
+-- the gist operator class stays where the search path cannot see it, and the
+-- exclusion constraint then fails with "no default operator class". Naming the
+-- schema here covers that case and is harmless on a plain Postgres, where a
+-- schema that does not exist is simply ignored.
+SET search_path = public, extensions;
+
+-- Lets one exclusion constraint mix = (on the stylist) with && (on the time).
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+-- gen_random_uuid() is core Postgres from 13 onwards, so no pgcrypto here.
 
 -- ---------------------------------------------------------------- services
 
