@@ -11,11 +11,11 @@
  * an in-process counter resets on every cold start, which is to say it stops
  * nobody.
  */
-import { assertSameOrigin, createSession } from '../_lib/auth.js';
-import { query } from '../_lib/db.js';
-import { HttpError, handler, json, readJson, requireEmail, requireString } from '../_lib/http.js';
-import { verifyPassword } from '../_lib/password.js';
-import { tenantForRequest } from '../_lib/tenant.js';
+import { assertSameOrigin, createSession } from '../../_lib/auth.js';
+import { query } from '../../_lib/db.js';
+import { HttpError, handler, json, readJson, requireEmail, requireString } from '../../_lib/http.js';
+import { verifyPassword } from '../../_lib/password.js';
+import { tenantForRequest } from '../../_lib/tenant.js';
 
 const MAX_ATTEMPTS = 8;
 const LOCK_MINUTES = 15;

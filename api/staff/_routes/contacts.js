@@ -8,13 +8,13 @@
  * is the same person, and keeping leads and clients apart guarantees they end
  * up in both with somebody merging them by hand later.
  */
-import { assertSameOrigin, requireStaff } from '../_lib/auth.js';
-import { enqueueSync } from '../_lib/booking.js';
-import { query, transaction } from '../_lib/db.js';
+import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { enqueueSync } from '../../_lib/booking.js';
+import { query, transaction } from '../../_lib/db.js';
 import {
   HttpError, handler, json, optionalPhone, readJson, requireString,
-} from '../_lib/http.js';
-import { tenantForUser } from '../_lib/tenant.js';
+} from '../../_lib/http.js';
+import { tenantForUser } from '../../_lib/tenant.js';
 
 const STATUSES = ['new', 'contacted', 'booked', 'won', 'lost'];
 

@@ -5,11 +5,11 @@
  * time. A guest should not book online for ten minutes' time, but a member of
  * staff looking at the person in front of them should be able to.
  */
-import { requireStaff } from '../_lib/auth.js';
-import { availableSlots } from '../_lib/availability.js';
-import { pool } from '../_lib/db.js';
-import { handler, json, requireDate, requireId } from '../_lib/http.js';
-import { tenantForUser } from '../_lib/tenant.js';
+import { requireStaff } from '../../_lib/auth.js';
+import { availableSlots } from '../../_lib/availability.js';
+import { pool } from '../../_lib/db.js';
+import { handler, json, requireDate, requireId } from '../../_lib/http.js';
+import { tenantForUser } from '../../_lib/tenant.js';
 
 export default handler({
   async GET(req, res) {

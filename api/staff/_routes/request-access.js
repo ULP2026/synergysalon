@@ -10,12 +10,12 @@
  * console holds the salon's entire client list, and a form that says "that
  * email already works here" tells a stranger who does.
  */
-import { query } from '../_lib/db.js';
+import { query } from '../../_lib/db.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
-} from '../_lib/http.js';
-import { MIN_PASSWORD_LENGTH, hashPassword } from '../_lib/password.js';
-import { tenantForRequest } from '../_lib/tenant.js';
+} from '../../_lib/http.js';
+import { MIN_PASSWORD_LENGTH, hashPassword } from '../../_lib/password.js';
+import { tenantForRequest } from '../../_lib/tenant.js';
 
 const SENT = {
   ok: true,

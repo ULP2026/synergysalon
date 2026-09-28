@@ -7,10 +7,10 @@
  * Owners and managers only. A front-desk account can use the console all day
  * but cannot grant anybody else access to the salon's client list.
  */
-import { assertSameOrigin, requireStaff } from '../_lib/auth.js';
-import { query } from '../_lib/db.js';
-import { HttpError, handler, json, readJson, requireString } from '../_lib/http.js';
-import { tenantForUser } from '../_lib/tenant.js';
+import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { query } from '../../_lib/db.js';
+import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
+import { tenantForUser } from '../../_lib/tenant.js';
 
 const ADMIN = ['owner', 'manager'];
 const ROLES = ['owner', 'manager', 'front_desk'];

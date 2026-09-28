@@ -10,15 +10,15 @@
  * minutes' time, but a member of staff looking at the person in front of them
  * absolutely can.
  */
-import { assertSameOrigin, requireStaff } from '../_lib/auth.js';
-import { createBooking } from '../_lib/booking.js';
-import { transaction } from '../_lib/db.js';
-import { sendConfirmation } from '../_lib/email.js';
+import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { createBooking } from '../../_lib/booking.js';
+import { transaction } from '../../_lib/db.js';
+import { sendConfirmation } from '../../_lib/email.js';
 import {
   HttpError, handler, json, optionalPhone, readJson, requireId, requireString,
-} from '../_lib/http.js';
-import { tenantForUser } from '../_lib/tenant.js';
-import { drain } from '../cron/sync.js';
+} from '../../_lib/http.js';
+import { tenantForUser } from '../../_lib/tenant.js';
+import { drain } from '../../cron/sync.js';
 
 export default handler({
   async POST(req, res) {

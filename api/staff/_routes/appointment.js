@@ -7,12 +7,12 @@
  * no-show appointment still occupied the stylist's time, and letting the
  * diary re-sell it would rewrite history.
  */
-import { assertSameOrigin, requireStaff } from '../_lib/auth.js';
-import { enqueueSync } from '../_lib/booking.js';
-import { EXCLUSION_VIOLATION, transaction } from '../_lib/db.js';
-import { sendCancellation } from '../_lib/email.js';
-import { HttpError, handler, json, readJson, requireString } from '../_lib/http.js';
-import { tenantForUser } from '../_lib/tenant.js';
+import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { enqueueSync } from '../../_lib/booking.js';
+import { EXCLUSION_VIOLATION, transaction } from '../../_lib/db.js';
+import { sendCancellation } from '../../_lib/email.js';
+import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
+import { tenantForUser } from '../../_lib/tenant.js';
 
 export default handler({
   async POST(req, res) {

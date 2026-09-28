@@ -8,10 +8,10 @@
  */
 import { DateTime } from 'luxon';
 
-import { requireStaff } from '../_lib/auth.js';
-import { query } from '../_lib/db.js';
-import { handler, json, requireDate } from '../_lib/http.js';
-import { tenantForUser } from '../_lib/tenant.js';
+import { requireStaff } from '../../_lib/auth.js';
+import { query } from '../../_lib/db.js';
+import { handler, json, requireDate } from '../../_lib/http.js';
+import { tenantForUser } from '../../_lib/tenant.js';
 
 export default handler({
   async GET(req, res) {
