@@ -95,6 +95,19 @@ export default handler({
     // ours should not be distinguishable from one that never existed.
     if (!owner) return json(res, 404, { error: 'No calendar here.' });
 
+    // Nothing tells us when somebody subscribes, so the fetch itself is the
+    // evidence. Recorded before the body is built: a calendar service that
+    // times out mid-response still came and asked, and the person is still
+    // connected. Failing to write it must never fail the feed.
+    query(
+      `UPDATE staff_users
+          SET calendar_last_fetch = now(),
+              calendar_fetches = calendar_fetches + 1,
+              calendar_last_agent = left($2, 200)
+        WHERE calendar_token = $1`,
+      [token, String(req.headers['user-agent'] || '')],
+    ).catch((err) => console.error('calendar check-in not recorded', err));
+
     const wholeShop = !owner.stylist_id;
     const stylist = {
       name: wholeShop ? owner.salon : owner.stylist_name,

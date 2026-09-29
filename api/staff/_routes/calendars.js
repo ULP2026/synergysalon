@@ -43,9 +43,25 @@ function connectLinks(req, token) {
   };
 }
 
+/**
+ * Which calendar service came for the feed, as far as the user agent says.
+ *
+ * Deliberately a guess rather than a fact. Google identifies itself clearly,
+ * Apple's devices less so, and anything unrecognised is reported as
+ * "a calendar app" instead of being forced into one of three boxes.
+ */
+function providerFrom(agent) {
+  const a = String(agent || '');
+  if (/Google/i.test(a)) return 'google';
+  if (/CalendarAgent|Mac OS X|iOS|iPhone|iPad|dataaccessd/i.test(a)) return 'apple';
+  if (/Outlook|Microsoft|Office/i.test(a)) return 'outlook';
+  return a ? 'other' : null;
+}
+
 async function mine(userId) {
   const { rows } = await query(
     `SELECT u.calendar_token, u.name,
+            u.calendar_last_fetch, u.calendar_fetches, u.calendar_last_agent,
             s.id AS stylist_id, s.name AS stylist_name,
             count(a.id) FILTER (
               WHERE a.status = 'booked' AND a.starts_at >= now()
@@ -78,6 +94,12 @@ export default handler({
         ? 'Your own appointments'
         : `Every appointment at ${tenant.name}`,
       upcoming: row.upcoming,
+      // "Connected" means a calendar service has actually fetched this feed,
+      // not that somebody pressed a button. Nothing else would be true.
+      connected: Boolean(row.calendar_last_fetch),
+      lastFetch: row.calendar_last_fetch,
+      fetches: row.calendar_fetches,
+      provider: providerFrom(row.calendar_last_agent),
       ...connectLinks(req, row.calendar_token),
     });
   },
@@ -93,7 +115,13 @@ export default handler({
     const { rows } = await query(
       `UPDATE staff_users
           SET calendar_token = replace(gen_random_uuid()::text, '-', '')
-                            || replace(gen_random_uuid()::text, '-', '')
+                            || replace(gen_random_uuid()::text, '-', ''),
+              -- The old link is dead, so the evidence that something was
+              -- subscribed to it is dead with it. Leaving it would show
+              -- "Connected" for a URL nothing can reach any more.
+              calendar_last_fetch = NULL,
+              calendar_fetches = 0,
+              calendar_last_agent = NULL
         WHERE id = $1
         RETURNING calendar_token`,
       [user.id],

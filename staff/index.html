@@ -493,6 +493,21 @@
   .manual code { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
                  background:var(--raise); border:1px solid var(--line); border-radius:8px;
                  padding:9px 11px; font-size:var(--fs-xs); color:var(--muted); margin:8px 0 10px; }
+
+  .conn.on { border-color: var(--ok); box-shadow: 0 0 0 1px var(--ok) inset; }
+  .conn.on .go { color: var(--ok); }
+  .conn-h .state { margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+                   font-size: var(--fs-xs); font-weight: 650; color: var(--ok); }
+  .conn-h .state svg { width: 14px; height: 14px; stroke: var(--ok); stroke-width: 3;
+                       fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .waiting { display:flex; align-items:center; gap:10px; padding:12px 14px; margin-bottom:14px;
+             border:1px solid var(--line); border-radius:10px; background:var(--card);
+             font-size:var(--fs-sm); color:var(--muted); }
+  .waiting .dot { width:9px; height:9px; border-radius:50%; flex:none; background:var(--faint);
+                  animation: pulse 1.6s ease-in-out infinite; }
+  .waiting.on .dot { background: var(--ok); animation: none; }
+  @keyframes pulse { 0%,100% { opacity:.3 } 50% { opacity:1 } }
+  @media (prefers-reduced-motion: reduce) { .waiting .dot { animation: none; } }
 </style>
 </head>
 <body>
@@ -2012,8 +2027,33 @@ const CAL_APPS = [
 
 let feedData = null;
 
+function agoText(iso) {
+  const secs = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 90) return 'just now';
+  if (secs < 5400) return `${Math.round(secs / 60)} min ago`;
+  if (secs < 172800) return `${Math.round(secs / 3600)} hours ago`;
+  return `${Math.round(secs / 86400)} days ago`;
+}
+
+const TICK = '<svg viewBox="0 0 24 24"><path d="m5 13 4.5 4.5L19 7"/></svg>';
+
 function renderFeeds(d) {
   feedData = d;
+
+  // The honest version of a "Connected" light. Nothing tells us when somebody
+  // subscribes, so what is shown is whether a calendar service has actually
+  // come and read the feed -- which is the thing that matters anyway, since a
+  // subscription that never fetches shows an empty calendar.
+  const connected = d.connected;
+  const banner = connected
+    ? `<div class="waiting on"><span class="dot"></span><span>
+         <b>Connected.</b> Your calendar app last checked ${esc(agoText(d.lastFetch))}.
+       </span></div>`
+    : `<div class="waiting"><span class="dot"></span><span>
+         Not connected yet. Pick your calendar app below &mdash; this turns green once it
+         comes and fetches your appointments, usually within a few minutes.
+       </span></div>`;
+
   $('feeds').innerHTML = `
     <div class="scope">
       <div class="what">
@@ -2023,22 +2063,35 @@ function renderFeeds(d) {
       <span class="chip">${d.scope === 'mine' ? 'Your diary' : 'Whole shop'}</span>
     </div>
 
+    ${banner}
+
     <div class="conns">
-      ${CAL_APPS.map((app) => `
-        <div class="conn">
-          <div class="conn-h">${app.logo}<b>${esc(app.name)}</b></div>
+      ${CAL_APPS.map((app) => {
+        // Only the app that actually fetched is marked. Where the user agent
+        // does not say which one it was, none of the three is claimed rather
+        // than the wrong one being lit up.
+        const isThis = connected && d.provider === app.key;
+        return `<div class="conn ${isThis ? 'on' : ''}">
+          <div class="conn-h">${app.logo}<b>${esc(app.name)}</b>
+            ${isThis ? `<span class="state">${TICK}Connected</span>` : ''}</div>
           <p>${esc(app.blurb)}</p>
           <a class="go" href="${esc(d[app.key])}" target="_blank" rel="noopener">
-            <svg class="ic"><use href="#i-link"/></svg>Connect</a>
-        </div>`).join('')}
+            <svg class="ic"><use href="#i-link"/></svg>${isThis ? 'Connect another device' : 'Connect'}</a>
+        </div>`;
+      }).join('')}
     </div>
+
+    ${connected && !CAL_APPS.some((a) => a.key === d.provider)
+      ? '<p class="small muted" style="margin:14px 0 0">A calendar app is connected, '
+        + 'though it did not say which one.</p>' : ''}
 
     <div class="manual">
       <div class="small muted">Or add this address by hand:</div>
       <code title="${esc(d.url)}">${esc(d.url)}</code>
       <div class="acts">
         <button class="btn quiet" data-copy>Copy link</button>
-        <button class="btn quiet" data-regen>Disconnect everywhere</button>
+        <button class="btn quiet" data-check>Check again</button>
+        ${connected ? '<button class="btn quiet" data-regen>Disconnect everywhere</button>' : ''}
       </div>
     </div>`;
 }
@@ -2055,6 +2108,9 @@ async function loadFeeds() {
 }
 
 $('feeds').onclick = async (e) => {
+  // The connection happens on somebody else's server, so there is nothing to
+  // listen for. Asking again is the whole mechanism.
+  if (e.target.closest('button[data-check]')) { loadFeeds(); return; }
   if (e.target.closest('button[data-copy]')) {
     try {
       await navigator.clipboard.writeText(feedData.url);
