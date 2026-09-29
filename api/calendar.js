@@ -69,17 +69,51 @@ export default handler({
       return json(res, 404, { error: 'No calendar here.' });
     }
 
+    // A link belongs to a person. If that person also stands behind a chair,
+    // the feed is their own appointments; if they do not -- an owner, the
+    // front desk -- it is the whole shop's day, which is what they are
+    // actually trying to see.
     const { rows: found } = await query(
-      `SELECT s.id, s.name, t.name AS salon, t.timezone
+      `SELECT u.tenant_id, u.name, s.id AS stylist_id, s.name AS stylist_name,
+              t.name AS salon, t.timezone
+         FROM staff_users u
+         JOIN tenants t ON t.id = u.tenant_id
+         LEFT JOIN stylists s ON s.staff_user_id = u.id AND s.active
+        WHERE u.calendar_token = $1 AND u.active AND t.active
+        UNION ALL
+       -- Links handed out before a calendar belonged to a person. Kept
+       -- working so nobody's phone quietly stops updating.
+       SELECT s.tenant_id, s.name, s.id, s.name, t.name, t.timezone
          FROM stylists s
          JOIN tenants t ON t.id = s.tenant_id
-        WHERE s.calendar_token = $1 AND t.active`,
+        WHERE s.calendar_token = $1 AND s.active AND t.active
+        LIMIT 1`,
       [token],
     );
-    const stylist = found[0];
+    const owner = found[0];
     // The same answer as a malformed token: a valid-looking one that is not
     // ours should not be distinguishable from one that never existed.
-    if (!stylist) return json(res, 404, { error: 'No calendar here.' });
+    if (!owner) return json(res, 404, { error: 'No calendar here.' });
+
+    // Nothing tells us when somebody subscribes, so the fetch itself is the
+    // evidence. Recorded before the body is built: a calendar service that
+    // times out mid-response still came and asked, and the person is still
+    // connected. Failing to write it must never fail the feed.
+    query(
+      `UPDATE staff_users
+          SET calendar_last_fetch = now(),
+              calendar_fetches = calendar_fetches + 1,
+              calendar_last_agent = left($2, 200)
+        WHERE calendar_token = $1`,
+      [token, String(req.headers['user-agent'] || '')],
+    ).catch((err) => console.error('calendar check-in not recorded', err));
+
+    const wholeShop = !owner.stylist_id;
+    const stylist = {
+      name: wholeShop ? owner.salon : owner.stylist_name,
+      salon: owner.salon,
+      timezone: owner.timezone,
+    };
 
     const from = DateTime.now().minus({ days: DAYS_BACK }).toISO();
     const to = DateTime.now().plus({ days: DAYS_AHEAD }).toISO();
@@ -87,12 +121,15 @@ export default handler({
     const { rows } = await query(
       `SELECT a.ref, a.starts_at, a.duration_min, a.status, a.updated_at,
               a.guest_name, a.guest_email, a.guest_phone, a.notes,
-              v.name AS service_name
+              v.name AS service_name, st.name AS stylist_name
          FROM appointments a
          JOIN services v ON v.id = a.service_id
-        WHERE a.stylist_id = $1 AND a.starts_at >= $2 AND a.starts_at <= $3
+         JOIN stylists st ON st.id = a.stylist_id
+        WHERE ($1::uuid IS NULL OR a.stylist_id = $1::uuid)
+          AND a.tenant_id = $4
+          AND a.starts_at >= $2 AND a.starts_at <= $3
         ORDER BY a.starts_at`,
-      [stylist.id, from, to],
+      [owner.stylist_id, from, to, owner.tenant_id],
     );
 
     const lines = [
@@ -101,7 +138,9 @@ export default handler({
       'PRODID:-//Synergy Salon//Staff diary//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      `X-WR-CALNAME:${ics(`${stylist.name} · ${stylist.salon}`)}`,
+      // A stylist's feed says whose it is; the shop-wide one is just the shop,
+      // rather than its own name twice.
+      `X-WR-CALNAME:${ics(wholeShop ? stylist.salon : `${stylist.name} · ${stylist.salon}`)}`,
       `X-WR-TIMEZONE:${ics(stylist.timezone)}`,
       // Most clients treat this as a hint, not an instruction, but it is the
       // only way to ask for anything faster than their own default.
@@ -127,7 +166,9 @@ export default handler({
         `DTSTAMP:${stamp(r.updated_at || starts)}`,
         `DTSTART:${stamp(starts)}`,
         `DTEND:${stamp(ends.toJSDate())}`,
-        `SUMMARY:${ics(`${r.guest_name} · ${r.service_name}`)}`,
+        `SUMMARY:${ics(wholeShop
+          ? `${r.guest_name} · ${r.service_name} (${r.stylist_name})`
+          : `${r.guest_name} · ${r.service_name}`)}`,
         `DESCRIPTION:${ics(detail)}`,
         // Cancelled appointments are sent rather than dropped: a client who
         // vanishes from the feed silently is one the stylist still turns up
