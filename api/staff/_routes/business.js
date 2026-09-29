@@ -1,6 +1,6 @@
 /**
- * GET   /api/staff/business — what the shop tells its customers.
- * PATCH /api/staff/business — change it. Owners only.
+ * GET   /api/staff/business: what the shop tells its customers.
+ * PATCH /api/staff/business: change it. Owners and managers.
  *
  * Deliberately narrow. This edits the shop's name, logo and contact details,
  * and nothing operational: not the timezone, which would move every slot in
@@ -15,8 +15,12 @@ import {
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
-/** Changing the face of the business is the owner's call, not a manager's. */
-const CAN_EDIT = ['owner'];
+/**
+ * The same people who run Settings. Owner-only left the salon's own manager
+ * looking at a form they could not type in, while the address and phone
+ * customers see needed fixing; front desk still only reads it.
+ */
+const CAN_EDIT = ['owner', 'manager'];
 
 const MAX_LOGO = 400 * 1024;
 
