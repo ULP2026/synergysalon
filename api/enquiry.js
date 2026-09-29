@@ -19,6 +19,7 @@
 import { DateTime } from 'luxon';
 
 import { createBooking, enqueueSync } from './_lib/booking.js';
+import { ONLINE_BOOKING } from './_lib/config.js';
 import { transaction } from './_lib/db.js';
 import { sendConfirmation } from './_lib/email.js';
 import {
@@ -242,7 +243,7 @@ export default handler({
       // The cost is booking for someone who fills the last step and walks
       // away. That shows up in the diary where the salon can cancel it, which
       // is the better failure of the two.
-      if (!serviceSlug || !start) {
+      if (!serviceSlug || !start || !ONLINE_BOOKING) {
         return { contactId, booked: null };
       }
 

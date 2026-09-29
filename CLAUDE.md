@@ -143,6 +143,19 @@ must stay that way — anything committed here is served publicly.
 
 ## Still outstanding
 
+- **Online booking is paused.** Stylists have not set their individual hours
+  yet, and the public calendar sold 9 AM slots with stylists who do not start
+  then. Every "Book" link now opens an "Online appointments are coming soon,
+  please call" notice, and `ONLINE_BOOKING = false` in `api/_lib/config.js`
+  makes the server refuse online bookings too (leads are still saved as
+  contacts; staff bookings are unaffected). The full booking popup is still in
+  every page, untouched, behind the notice, and commit `ae6b0ab` on main
+  is the site exactly as it was before the pause.
+  To restore: delete the block between `ss-booking-paused:start` and
+  `ss-booking-paused:end` in the static head of `index.html` and the four
+  service pages, and set `ONLINE_BOOKING` back to `true`. Do it only once
+  availability respects each stylist's hours.
+
 - **Service durations need Dina.** Every one in `db/seed.sql` and
   `db/migrations/004` is an industry estimate, and they decide which slots get
   sold. A wrong one either wastes a chair or sells an appointment that cannot
