@@ -10,6 +10,19 @@
  */
 export const DEFAULT_TZ = 'America/New_York';
 
+/**
+ * Whether guests may book themselves in from the website.
+ *
+ * Off while the stylists set their individual hours: the public calendar
+ * offered 9 AM with stylists who do not start then, and guests took it. The
+ * site shows "Online appointments are coming soon" and a phone number
+ * instead (see CLAUDE.md), and the server refuses online bookings
+ * as well, so a page cached from before cannot slip one through. Leads are
+ * still saved as contacts. Staff bookings in the console are unaffected.
+ * Turn back on together with restoring the website popup.
+ */
+export const ONLINE_BOOKING = false;
+
 /** Slots are offered on this grid: 09:00, 09:15, 09:30 ... */
 export const SLOT_STEP_MIN = 15;
 

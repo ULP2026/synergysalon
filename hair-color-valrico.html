@@ -29,6 +29,157 @@
       This page requires JavaScript to display.
     </div>
   </noscript>
+<!-- ss-booking-paused:start
+     Online booking is paused while the stylists set their hours. Every "Book"
+     link opens this "coming soon" notice instead of the booking popup, which
+     is still in the page untouched. To bring the popup back, delete from
+     ss-booking-paused:start to ss-booking-paused:end on all five pages and
+     set ONLINE_BOOKING back to true in api/_lib/config.js (see CLAUDE.md). -->
+<style id="ss-soon-css">
+.ss-soon{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:1.25rem;font-family:'Geist Variable',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+.ss-soon[hidden]{display:none}
+.ss-soon-back{position:absolute;inset:0;background:rgba(20,5,40,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:ss-fade .3s cubic-bezier(.33,1,.68,1)}
+.ss-soon-panel{position:relative;width:min(30rem,calc(100vw - 2.5rem));background:#fff;border-radius:24px;padding:2.5rem 2rem 2rem;text-align:center;box-shadow:0 40px 100px -30px rgba(20,5,40,.6);animation:ss-rise .35s cubic-bezier(.33,1,.68,1)}
+.ss-soon-x{position:absolute;top:.9rem;right:.9rem;width:2.5rem;height:2.5rem;border:0;border-radius:50%;background:#f1f1f8;color:#1E1F5C;display:grid;place-items:center;cursor:pointer;transition:background .2s}
+.ss-soon-x:hover{background:#e6e8f7}
+.ss-soon-x svg{width:1.1rem;height:1.1rem}
+.ss-soon-ic{width:4rem;height:4rem;margin:0 auto 1.25rem;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#e6e8f7,#f3eefc);color:#5560A6;box-shadow:0 0 0 6px rgba(85,96,166,.08)}
+.ss-soon-ic svg{width:1.85rem;height:1.85rem}
+.ss-soon-eye{display:inline-block;margin:0 0 .75rem;padding:.3rem .8rem;border-radius:999px;background:#f3eefc;color:#5d43a8;font-size:.72rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+.ss-soon h2{margin:0;font-family:'FK Screamer Trial','Anton','Geist Variable',sans-serif;font-weight:700;text-transform:uppercase;line-height:.98;letter-spacing:.005em;font-size:clamp(1.9rem,1.5rem + 1.6vw,2.5rem);color:#1E1F5C;text-wrap:balance}
+.ss-soon p{margin:1rem auto 0;max-width:24rem;color:#4a4a57;font-size:1rem;line-height:1.6}
+.ss-soon-num{display:block;margin:1.25rem 0 0;font-size:1.6rem;font-weight:650;letter-spacing:.02em;color:#1E1F5C;text-decoration:none}
+.ss-soon-acts{display:flex;flex-direction:column;gap:.6rem;margin-top:1.5rem}
+.ss-soon-call{display:inline-flex;align-items:center;justify-content:center;gap:.6rem;height:3.25rem;padding:0 1.75rem;border-radius:1.625rem;background:#5560A6;color:#fff;font-size:1rem;font-weight:500;text-decoration:none;transition:background .3s}
+.ss-soon-call:hover{background:#353676}
+.ss-soon-call svg{width:1.15rem;height:1.15rem}
+.ss-soon-close{height:3rem;border:1px solid #d9dcef;border-radius:1.5rem;background:#fff;color:#1E1F5C;font:inherit;font-size:.95rem;font-weight:500;cursor:pointer;transition:background .2s}
+.ss-soon-close:hover{background:#f4f4fb}
+.ss-soon a:focus-visible,.ss-soon button:focus-visible{outline:2px solid #5560A6;outline-offset:3px}
+html.ss-soon-lock,html.ss-soon-lock body{overflow:hidden}
+@keyframes ss-fade{from{opacity:0}}
+@keyframes ss-rise{from{opacity:0;transform:translateY(16px) scale(.98)}}
+@media (prefers-reduced-motion:reduce){.ss-soon-back,.ss-soon-panel{animation:none}}
+</style>
+<script id="ss-booking-paused">
+(function () {
+  // Runs in the static head because a script inside the design bundle never
+  // executes (see CLAUDE.md). Binds to window in the capture phase, which runs
+  // before the bundle's own document-level listener, so a "Book" click is
+  // stopped here and the booking popup never opens.
+  if (window.__ssBookingPaused) return;
+  window.__ssBookingPaused = true;
+
+  // The page later swaps its whole document, head included, so a stylesheet
+  // left in the head is lost. Keep its text and carry it inside the notice.
+  var CSS = (document.getElementById('ss-soon-css') || {}).textContent || '';
+  var PHONE = '813.654.2055';
+  var TEL = 'tel:+18136542055';
+  var el = null;
+  var lastFocus = null;
+
+  // Old links (/book, ?book=1) opened the booking popup on arrival. Take the
+  // flag out of the address before the page's own code can see it, and show
+  // this notice instead.
+  var openOnLoad = false;
+  try {
+    var u = new URL(location.href);
+    if (u.searchParams.get('book') === '1') {
+      openOnLoad = true;
+      u.searchParams.delete('book');
+      history.replaceState(history.state, '', u.pathname + u.search + u.hash);
+    }
+  } catch (e) {}
+
+  // The same links the booking popup answered to.
+  function isBookLink(a) {
+    var href = a.getAttribute('href') || '';
+    var txt = (a.textContent || '').toLowerCase();
+    return /Book Appointment/.test(href) || /^\/book(\?|$)/.test(href)
+      || a.classList.contains('tcard') || (href === '#contact' && /book/.test(txt));
+  }
+
+  function build() {
+    el = document.createElement('div');
+    el.className = 'ss-soon';
+    el.hidden = true;
+    el.setAttribute('data-lenis-prevent', '');
+    el.innerHTML = '<style>' + CSS + '</style>' +
+      '<div class="ss-soon-back" data-close></div>' +
+      '<div class="ss-soon-panel" role="dialog" aria-modal="true" aria-labelledby="ss-soon-h" aria-describedby="ss-soon-p">' +
+        '<button type="button" class="ss-soon-x" data-close aria-label="Close">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
+        '<div class="ss-soon-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+          '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M12 12.5v3l2 1.2"/></svg></div>' +
+        '<span class="ss-soon-eye">Book with Synergy</span>' +
+        '<h2 id="ss-soon-h">Online appointments are coming soon.</h2>' +
+        '<p id="ss-soon-p">We’re setting up each stylist’s hours so you can book online with confidence. ' +
+          'For now, please call Synergy Salon and we’ll find a time that works for you.</p>' +
+        '<a class="ss-soon-num" href="' + TEL + '">' + PHONE + '</a>' +
+        '<div class="ss-soon-acts">' +
+          '<a class="ss-soon-call" href="' + TEL + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">' +
+            '<path d="M5 4h3.5l1.7 4.3-2.2 1.4a11 11 0 0 0 6.3 6.3l1.4-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5A16.5 16.5 0 0 1 3.5 5.6 1.5 1.5 0 0 1 5 4z"/></svg>' +
+            'Call to book</a>' +
+          '<button type="button" class="ss-soon-close" data-close>Close</button>' +
+        '</div>' +
+      '</div>';
+    el.addEventListener('click', function (e) {
+      if (e.target.closest('[data-close]')) close();
+    });
+  }
+
+  function open() {
+    // The page swaps its whole document once it has loaded, which takes this
+    // notice with it; build it again whenever it is no longer in the page.
+    if (!el) build();
+    if (!document.body.contains(el)) document.body.appendChild(el);
+    // The phone menu may be open behind the link that was tapped.
+    if (document.body.classList.contains('drawer-open')) {
+      var x = document.querySelector('.drawer-close');
+      if (x) x.click();
+    }
+    lastFocus = document.activeElement;
+    el.hidden = false;
+    document.documentElement.classList.add('ss-soon-lock');
+    var call = el.querySelector('.ss-soon-call');
+    if (call) call.focus();
+  }
+
+  function close() {
+    if (!el || el.hidden) return;
+    el.hidden = true;
+    document.documentElement.classList.remove('ss-soon-lock');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  window.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a') : null;
+    if (!a || a.closest('.ss-soon') || a.closest('.bk-modal')) return;
+    if (!isBookLink(a)) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    open();
+  }, true);
+
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && el && !el.hidden) { e.stopImmediatePropagation(); close(); }
+  }, true);
+
+  if (openOnLoad) {
+    // Wait for the page to finish swapping itself in, or the notice would be
+    // thrown away with the document it was added to.
+    var tries = 0;
+    var wait = setInterval(function () {
+      tries += 1;
+      if (document.querySelector('.zunar') || tries > 60) {
+        clearInterval(wait);
+        setTimeout(open, 350);
+      }
+    }, 150);
+  }
+})();
+</script>
+<!-- ss-booking-paused:end -->
 <script>
 (function () {
   if (window.__ssBooking) return;
