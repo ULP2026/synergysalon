@@ -75,6 +75,15 @@ it finished — that signal failed four separate ways. Because it is called on
 every keystroke, it also refuses to create a second appointment for a guest who
 already has one.
 
+**Identity comes from the session id, not from the email box.** The wizard
+mints an id when it opens and sends it with every call; the server resolves the
+contact from that first and falls back to email or phone. Keying on the email
+alone meant every prefix of an address looked like a new person — one guest
+booking once produced five contacts and four appointments — and every prefix
+was then rejected by CENTRO with a permanent 422, which killed the appointment
+push attached to it. A detail is only stored or sent once it is whole: a
+half-typed address is not a worse email, it is not an email yet.
+
 ## Gotchas worth knowing before you hit them
 
 **Untyped query parameters.** `tstzrange($1, $1 + make_interval(mins => $2))`
