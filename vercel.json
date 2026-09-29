@@ -100,7 +100,7 @@
   "rewrites": [
     {
       "source": "/staff/:page(dashboard|appointments|contacts|settings)",
-      "destination": "/staff/index.html"
+      "destination": "/staff"
     }
   ]
 }
