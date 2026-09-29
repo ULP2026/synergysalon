@@ -133,7 +133,13 @@ function notesFrom(body) {
     const v = Array.isArray(value) ? value.filter(Boolean).join(', ') : clean(value, 400);
     if (v) lines.push(`${label}: ${v}`);
   };
-  add('Service', body.serviceLabel);
+  // Guests can choose several services for one visit. The appointment is
+  // booked against one of them; the stylist sets the real length from this.
+  const services = Array.isArray(body.services)
+    ? body.services.map((v) => clean(v, 80)).filter(Boolean).slice(0, 12)
+    : [];
+  if (services.length > 1) add('Services', services);
+  else add('Service', services[0] || body.serviceLabel);
   add('Appointment for', body.who);
   add('Hair history (12 months)', body.history);
   add('Heard about us', body.heard);
@@ -190,9 +196,13 @@ export default handler({
                   email = CASE WHEN $3 <> '' THEN $3 ELSE email END,
                   phone = CASE WHEN $4 <> '' THEN $4 ELSE phone END,
                   session_id = COALESCE(NULLIF($6, ''), session_id),
+                  -- "How did you hear" is now the last question, asked after
+                  -- the contact already exists, so fill the source in late.
+                  source = CASE WHEN $7::text <> '' AND source = 'Website booking form'
+                                THEN $7::text ELSE source END,
                   notes = $5, updated_at = now()
             WHERE id = $1`,
-          [contactId, name, email, phone, notesFrom(body), sessionId],
+          [contactId, name, email, phone, notesFrom(body), sessionId, clean(body.heard, 60)],
         );
 
         // Their details changed after CENTRO already had them — an address
