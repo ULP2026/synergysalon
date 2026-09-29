@@ -85,6 +85,15 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/s/:slug*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ],
   "crons": [
@@ -98,6 +107,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/s/:slug",
+      "destination": "/book/index.html"
+    },
     {
       "source": "/calendar/:token.ics",
       "destination": "/api/calendar?k=:token"

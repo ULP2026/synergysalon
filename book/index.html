@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Book an appointment</title>
+<meta name="description" content="Book an appointment online.">
+<!-- Each shop's page is its own thing; nothing here should be indexed under
+     one shared URL until a shop has a domain of its own. -->
+<meta name="robots" content="noindex, nofollow">
+<style>
+  /* Deliberately unbranded. This page is served to every shop on the
+     platform, so it carries no salon's colours until that shop sets one --
+     a barber given a hair salon's palette will not use it. */
+  :root {
+    color-scheme: light;
+    --accent: #1f2937;
+    --accent-ink: #ffffff;
+    --bg: #f6f6f4;
+    --card: #ffffff;
+    --ink: #17181c;
+    --muted: #63666f;
+    --faint: #9a9ea8;
+    --line: #e5e5e2;
+    --raise: #f2f2ef;
+    --ok: #2f7d4f;
+    --bad: #c42b37;
+    --radius: 16px;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--sans); color: var(--ink); background: var(--bg);
+    font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 64px; }
+
+  header.shop { text-align: center; padding: 20px 0 22px; }
+  header.shop h1 { margin: 0; font-size: 1.55rem; letter-spacing: -.01em; }
+  header.shop p { margin: 6px 0 0; color: var(--muted); font-size: .95rem; }
+
+  /* One dot per step, because a numbered "step 3 of 7" invites people to
+     count how much is left and close the tab. */
+  .steps { display: flex; gap: 6px; justify-content: center; margin: 0 0 22px; }
+  .steps i { width: 30px; height: 4px; border-radius: 99px; background: var(--line); }
+  .steps i.on { background: var(--accent); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 18px; }
+  h2 { margin: 0 0 4px; font-size: 1.12rem; }
+  .lede { margin: 0 0 16px; color: var(--muted); font-size: .92rem; }
+
+  .opts { display: grid; gap: 8px; }
+  .opt {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    padding: 14px; border: 1.5px solid var(--line); border-radius: 12px;
+    background: var(--card); font: inherit; color: inherit; cursor: pointer;
+  }
+  .opt:hover { border-color: var(--faint); background: var(--raise); }
+  .opt[aria-pressed="true"] { border-color: var(--accent); background: var(--raise); }
+  .opt .t { flex: 1; min-width: 0; }
+  .opt .t b { display: block; font-weight: 600; }
+  .opt .t span { display: block; color: var(--muted); font-size: .85rem; }
+  .opt .meta { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+  .cat { margin: 18px 0 8px; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+  .cat:first-child { margin-top: 0; }
+
+  .days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+  .days::-webkit-scrollbar { display: none; }
+  .day {
+    flex: none; width: 66px; padding: 10px 0; border: 1.5px solid var(--line);
+    border-radius: 12px; background: var(--card); font: inherit; cursor: pointer; text-align: center;
+  }
+  .day[aria-pressed="true"] { border-color: var(--accent); background: var(--raise); }
+  .day:disabled { opacity: .35; cursor: default; }
+  .day b { display: block; font-size: 1.15rem; }
+  .day span { display: block; font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  .times { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin-top: 16px; }
+  .time { padding: 12px 6px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); font: inherit; cursor: pointer; }
+  .time[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+
+  label { display: block; margin-bottom: 12px; }
+  label span { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 5px; }
+  input, textarea {
+    width: 100%; padding: 12px; font: inherit; color: inherit;
+    background: var(--card); border: 1.5px solid var(--line); border-radius: 10px;
+  }
+  input:focus, textarea:focus, .opt:focus-visible, .time:focus-visible, .day:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px;
+  }
+  textarea { min-height: 76px; resize: vertical; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 20px; border-radius: 999px; border: 1.5px solid transparent;
+    background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .btn[disabled] { opacity: .45; cursor: default; }
+  .btn.quiet { background: none; color: var(--muted); border-color: var(--line); }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 18px; }
+  .row .btn:last-child { margin-left: auto; }
+
+  .note { padding: 12px 14px; border-radius: 10px; font-size: .9rem; margin-bottom: 14px; }
+  .note.bad { background: #fdeceD; color: var(--bad); }
+  .muted { color: var(--muted); }
+  .small { font-size: .85rem; }
+  .sum { margin: 0 0 16px; padding: 14px; background: var(--raise); border-radius: 12px; font-size: .9rem; }
+  .sum div + div { margin-top: 3px; }
+  .hidden { display: none !important; }
+  .skel { height: 58px; border-radius: 12px; background: linear-gradient(90deg, var(--raise), var(--line), var(--raise)); background-size: 200% 100%; animation: sh 1.2s linear infinite; }
+  @keyframes sh { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+
+  .done { text-align: center; padding: 10px 0 6px; }
+  .done .tick { width: 58px; height: 58px; margin: 0 auto 14px; border-radius: 50%; background: var(--ok); display: grid; place-items: center; }
+  .done .tick svg { width: 28px; height: 28px; stroke: #fff; stroke-width: 2.5; fill: none; }
+  .ref { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.3rem; letter-spacing: .06em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="shop">
+    <h1 id="shopName">Book an appointment</h1>
+    <p id="shopSub">Loading…</p>
+  </header>
+
+  <div class="steps" id="steps" aria-hidden="true"></div>
+  <div id="note" class="note bad hidden" role="status"></div>
+  <main class="card" id="panel"><div class="opts"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div></main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // The shop is named by the path -- /s/<slug> -- so one deployment serves
+  // every shop on the platform. A shop that later points its own domain here
+  // is matched by hostname instead and this is ignored.
+  var SLUG = (location.pathname.match(/^\/s\/([a-z0-9][a-z0-9-]{1,48})/i) || [])[1] || '';
+  var qs = function (extra) {
+    return (SLUG ? '?salon=' + encodeURIComponent(SLUG) : '?') + (extra ? '&' + extra : '');
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+
+  var state = { step: 0, shop: null, services: [], service: null, stylist: 'any', day: null, slot: null, avail: null };
+  var STEPS = 5;
+
+  function note(message) {
+    var n = $('note');
+    if (!message) { n.classList.add('hidden'); return; }
+    n.textContent = message;
+    n.classList.remove('hidden');
+  }
+
+  function dots() {
+    $('steps').innerHTML = new Array(STEPS).fill(0)
+      .map(function (_, i) { return '<i class="' + (i <= state.step ? 'on' : '') + '"></i>'; }).join('');
+  }
+
+  function api(path) {
+    return fetch(path, { headers: { Accept: 'application/json' } }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) throw new Error(d.error || 'Something went wrong.');
+        return d;
+      });
+    });
+  }
+
+  function money(v) { return v == null ? '' : '$' + Number(v).toFixed(0); }
+  function mins(v) { return v + ' min'; }
+
+  // ── step 1: what are they having done ──────────────────────────────────
+  function stepService() {
+    state.step = 0; dots();
+    var byCat = {};
+    state.services.forEach(function (s) { (byCat[s.category || 'Services'] = byCat[s.category || 'Services'] || []).push(s); });
+
+    var html = '<h2>What can we do for you?</h2><p class="lede">Pick a service to see when we are free.</p>';
+    Object.keys(byCat).forEach(function (cat) {
+      html += '<div class="cat">' + esc(cat) + '</div><div class="opts">';
+      byCat[cat].forEach(function (s) {
+        html += '<button class="opt" data-svc="' + esc(s.slug) + '">'
+          + '<span class="t"><b>' + esc(s.name) + '</b>'
+          + (s.blurb ? '<span>' + esc(s.blurb) + '</span>' : '') + '</span>'
+          + '<span class="meta">' + mins(s.durationMin) + (s.price != null ? ' · ' + money(s.price) : '') + '</span>'
+          + '</button>';
+      });
+      html += '</div>';
+    });
+    $('panel').innerHTML = html;
+    $('panel').onclick = function (e) {
+      var b = e.target.closest('button[data-svc]');
+      if (!b) return;
+      state.service = state.services.filter(function (s) { return s.slug === b.dataset.svc; })[0];
+      state.stylist = 'any'; state.day = null; state.slot = null;
+      stepStylist();
+    };
+  }
+
+  // ── step 2: with whom ──────────────────────────────────────────────────
+  function stepStylist() {
+    state.step = 1; dots();
+    var who = (state.shop.stylists || []).filter(function (p) {
+      return !state.service.stylists.length || state.service.stylists.indexOf(p.slug) > -1;
+    });
+    // One person in the shop is not a choice, so do not present it as one.
+    if (who.length < 2) { state.stylist = who.length ? who[0].slug : 'any'; return stepWhen(); }
+
+    var html = '<h2>Anyone in particular?</h2><p class="lede">' + esc(state.service.name) + '</p><div class="opts">'
+      + '<button class="opt" data-who="any"><span class="t"><b>First available</b>'
+      + '<span>Usually the soonest appointment</span></span></button>';
+    who.forEach(function (p) {
+      html += '<button class="opt" data-who="' + esc(p.slug) + '"><span class="t"><b>' + esc(p.name) + '</b>'
+        + (p.title ? '<span>' + esc(p.title) + '</span>' : '') + '</span></button>';
+    });
+    html += '</div><div class="row"><button class="btn quiet" data-back>Back</button></div>';
+    $('panel').innerHTML = html;
+    $('panel').onclick = function (e) {
+      if (e.target.closest('[data-back]')) return stepService();
+      var b = e.target.closest('button[data-who]');
+      if (!b) return;
+      state.stylist = b.dataset.who;
+      stepWhen();
+    };
+  }
+
+  // ── step 3: when ───────────────────────────────────────────────────────
+  function stepWhen() {
+    state.step = 2; dots();
+    $('panel').innerHTML = '<h2>When suits?</h2><p class="lede">Checking the diary…</p>'
+      + '<div class="opts"><div class="skel"></div><div class="skel"></div></div>';
+    note('');
+
+    var from = new Date();
+    var to = new Date(Date.now() + 27 * 864e5);
+    var iso = function (d) { return d.toISOString().slice(0, 10); };
+
+    api('/api/availability' + qs('service=' + encodeURIComponent(state.service.slug)
+      + (state.stylist !== 'any' ? '&stylist=' + encodeURIComponent(state.stylist) : '')
+      + '&from=' + iso(from) + '&to=' + iso(to)))
+      .then(function (d) {
+        state.avail = d;
+        var open = (d.days || []).filter(function (x) { return x.slots.length; });
+        if (!open.length) {
+          $('panel').innerHTML = '<h2>Nothing free just now</h2>'
+            + '<p class="lede">There are no open times in the next four weeks for this service. '
+            + 'Try another stylist, or give us a ring.</p>'
+            + '<div class="row"><button class="btn quiet" data-back>Back</button></div>';
+          $('panel').onclick = function () { stepStylist(); };
+          return;
+        }
+        state.day = state.day && open.filter(function (x) { return x.date === state.day; }).length
+          ? state.day : open[0].date;
+        renderWhen(open);
+      })
+      .catch(function (err) {
+        note(err.message);
+        $('panel').innerHTML = '<h2>Couldn’t load the diary</h2><p class="lede">' + esc(err.message) + '</p>'
+          + '<div class="row"><button class="btn quiet" data-back>Back</button></div>';
+        $('panel').onclick = function () { stepStylist(); };
+      });
+  }
+
+  function renderWhen(open) {
+    var tz = state.avail.timezone;
+    var label = function (isoDate, opts) {
+      // Rendered on the shop's clock, not the phone's: a guest booking from
+      // another timezone must see the time they will actually turn up at.
+      return new Date(isoDate + 'T12:00:00Z').toLocaleDateString('en-US', opts);
+    };
+    var chosen = open.filter(function (d) { return d.date === state.day; })[0] || open[0];
+
+    var html = '<h2>When suits?</h2><p class="lede">' + esc(state.service.name)
+      + (state.stylist === 'any' ? '' : ' · ' + esc(nameOf(state.stylist))) + '</p><div class="days">';
+    open.forEach(function (d) {
+      html += '<button class="day" data-day="' + esc(d.date) + '" aria-pressed="' + (d.date === chosen.date) + '">'
+        + '<span>' + label(d.date, { weekday: 'short' }) + '</span>'
+        + '<b>' + label(d.date, { day: 'numeric' }) + '</b>'
+        + '<span>' + label(d.date, { month: 'short' }) + '</span></button>';
+    });
+    html += '</div><div class="times">';
+    chosen.slots.forEach(function (s) {
+      html += '<button class="time" data-slot="' + esc(s.start) + '" aria-pressed="' + (state.slot === s.start) + '">'
+        + esc(new Date(s.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz }))
+        + '</button>';
+    });
+    html += '</div><div class="row"><button class="btn quiet" data-back>Back</button></div>';
+    $('panel').innerHTML = html;
+
+    $('panel').onclick = function (e) {
+      if (e.target.closest('[data-back]')) return stepStylist();
+      var d = e.target.closest('button[data-day]');
+      if (d) { state.day = d.dataset.day; state.slot = null; return renderWhen(open); }
+      var t = e.target.closest('button[data-slot]');
+      if (!t) return;
+      state.slot = t.dataset.slot;
+      stepDetails();
+    };
+  }
+
+  function nameOf(slug) {
+    var p = (state.shop.stylists || []).filter(function (x) { return x.slug === slug; })[0];
+    return p ? p.name : '';
+  }
+
+  // ── step 4: who are they ───────────────────────────────────────────────
+  function stepDetails() {
+    state.step = 3; dots();
+    $('panel').innerHTML = '<h2>Your details</h2><p class="lede">So we know who to expect.</p>'
+      + summary()
+      + '<form id="f" novalidate>'
+      + '<label><span>Name</span><input name="name" autocomplete="name" required></label>'
+      + '<label><span>Email</span><input name="email" type="email" autocomplete="email" required></label>'
+      + '<label><span>Phone</span><input name="phone" type="tel" autocomplete="tel"></label>'
+      + '<label><span>Anything we should know?</span><textarea name="notes" placeholder="Optional"></textarea></label>'
+      + '<div class="row"><button type="button" class="btn quiet" data-back>Back</button>'
+      + '<button class="btn" type="submit">Confirm booking</button></div></form>';
+
+    $('panel').querySelector('[data-back]').onclick = function () { stepWhen(); };
+    $('f').onsubmit = function (e) {
+      e.preventDefault();
+      var f = new FormData(e.target);
+      var name = (f.get('name') || '').trim();
+      var email = (f.get('email') || '').trim();
+      if (!name) return note('Please tell us your name.');
+      if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) return note('That email address does not look right.');
+      note('');
+
+      var btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true; btn.textContent = 'Booking…';
+      fetch('/api/book' + qs(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service: state.service.slug,
+          stylist: state.stylist,
+          start: state.slot,
+          name: name, email: email,
+          phone: (f.get('phone') || '').trim(),
+          notes: (f.get('notes') || '').trim(),
+        }),
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          if (!r.ok) throw new Error(d.error || 'That booking could not be completed.');
+          return d;
+        });
+      }).then(stepDone).catch(function (err) {
+        btn.disabled = false; btn.textContent = 'Confirm booking';
+        note(err.message);
+        // The slot going while they typed is the one failure worth sending
+        // them back for, rather than leaving them staring at a time that is
+        // no longer there.
+        if (/taken|not available/i.test(err.message)) { state.slot = null; setTimeout(stepWhen, 1200); }
+      });
+    };
+  }
+
+  function summary() {
+    var tz = (state.avail && state.avail.timezone) || 'UTC';
+    var when = new Date(state.slot);
+    return '<div class="sum">'
+      + '<div><b>' + esc(state.service.name) + '</b></div>'
+      + '<div class="muted">' + esc(when.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz }))
+      + ' at ' + esc(when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz })) + '</div>'
+      + (state.stylist === 'any' ? '' : '<div class="muted">with ' + esc(nameOf(state.stylist)) + '</div>')
+      + '<div class="muted">' + mins(state.service.durationMin)
+      + (state.service.price != null ? ' · ' + money(state.service.price) : '') + '</div>'
+      + '</div>';
+  }
+
+  // ── step 5: done ───────────────────────────────────────────────────────
+  function stepDone(d) {
+    state.step = 4; dots();
+    var tz = (state.avail && state.avail.timezone) || 'UTC';
+    var when = new Date(d.startsAt || state.slot);
+    $('panel').innerHTML = '<div class="done">'
+      + '<div class="tick"><svg viewBox="0 0 24 24"><path d="m5 13 4.5 4.5L19 7"/></svg></div>'
+      + '<h2>You’re booked in</h2>'
+      + '<p class="lede">' + esc(when.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz }))
+      + ' at ' + esc(when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz }))
+      + (d.stylist ? ' with ' + esc(d.stylist) : '') + '</p>'
+      + (d.ref ? '<p class="ref">' + esc(d.ref) + '</p><p class="small muted">Keep this reference in case you need to change anything.</p>' : '')
+      + '<p class="small muted">A confirmation is on its way to your email.</p>'
+      + '</div>';
+    $('panel').onclick = null;
+  }
+
+  // ── boot ───────────────────────────────────────────────────────────────
+  dots();
+  api('/api/services' + qs())
+    .then(function (d) {
+      state.shop = d;
+      state.services = d.services || [];
+      document.title = 'Book · ' + d.salon.name;
+      $('shopName').textContent = d.salon.name;
+      $('shopSub').textContent = state.services.length
+        ? 'Book online in under a minute' : '';
+      if (!state.services.length) {
+        $('panel').innerHTML = '<h2>Not taking online bookings yet</h2>'
+          + '<p class="lede">This shop has not finished setting up its services. Please give them a ring.</p>';
+        return;
+      }
+      stepService();
+    })
+    .catch(function (err) {
+      $('shopName').textContent = 'Not found';
+      $('shopSub').textContent = '';
+      $('panel').innerHTML = '<h2>We can’t find that shop</h2><p class="lede">' + esc(err.message) + '</p>';
+    });
+})();
+</script>
+</body>
+</html>

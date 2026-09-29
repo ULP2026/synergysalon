@@ -6,8 +6,16 @@
  * answer it from the hostname, with an environment variable as the fallback
  * for local work and preview deploys.
  *
- * There is deliberately no way for a guest to name a tenant in a query
- * string: that is how one salon ends up reading another's diary.
+ * A guest may name a salon by slug, but only when the hostname does not
+ * already answer the question, and only on the public endpoints. The
+ * distinction matters: naming a salon on a *staff* endpoint is how one salon
+ * ends up reading another's diary, which is why the staff path resolves from
+ * the session and nothing else. On the public path the guest is choosing whose
+ * booking page to open -- they see services and free slots, and create their
+ * own appointment. That is the same information the salon prints on its door.
+ *
+ * A salon with its own domain is matched by host and the slug is ignored, so
+ * a shop cannot be addressed under a competitor's domain.
  */
 import { query } from './db.js';
 import { HttpError } from './http.js';
@@ -47,8 +55,19 @@ export async function tenantForRequest(req) {
     .split(':')[0]
     .replace(/^www\./, '');
 
-  const found = (host && await byHost(host))
-    || (process.env.DEFAULT_TENANT && await bySlug(process.env.DEFAULT_TENANT));
+  // Host first, always: a salon that has pointed a domain here owns that
+  // domain's traffic, whatever the URL asks for.
+  let found = host && await byHost(host);
+
+  // Then the slug, for the shops that have no domain of their own yet. Most
+  // new customers never will -- they have a Facebook page and a phone number.
+  if (!found) {
+    const url = new URL(req.url, 'http://localhost');
+    const asked = (url.searchParams.get('salon') || '').trim().toLowerCase();
+    if (/^[a-z0-9][a-z0-9-]{1,48}$/.test(asked)) found = await bySlug(asked);
+  }
+
+  if (!found && process.env.DEFAULT_TENANT) found = await bySlug(process.env.DEFAULT_TENANT);
 
   if (!found) {
     throw new HttpError(404, 'No salon is configured for this address.');
