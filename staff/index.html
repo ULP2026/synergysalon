@@ -33,8 +33,7 @@
     --peri-pale:   #e6e8f7;
     --greige:      #f0edee;
 
-    /* Light and calm: the site's greige page, white cards, indigo ink.
-       Only the sidebar is dark (see .side below). */
+    /* Light and calm: the site's greige page, white cards, indigo ink. */
     --bg:      var(--greige);
     --side:    var(--indigo-deep);
     --card:    #ffffff;
@@ -237,90 +236,98 @@
   #boot img { height: 36px; opacity: .6; }
 
   /* ───────────── app shell ───────────── */
-  /* A fixed sidebar and a main pane. The only dark surface in the app: the
-     sidebar re-declares the tokens it uses, so everything inside reads
-     light-on-indigo without special cases. */
-  .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100dvh; }
-  .side {
-    --ink: #f2f3fb; --muted: #c3c9ea; --faint: #9aa3d3; --focus: var(--peri-soft);
-    position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column;
-    padding: 20px 14px 14px; color: var(--ink); color-scheme: dark; overflow-y: auto;
-    background: linear-gradient(180deg, #23246b 0%, var(--indigo-deep) 48%, #18194c 100%);
-    box-shadow: 1px 0 0 rgba(255, 255, 255, .04), 12px 0 40px -24px rgba(20, 21, 58, .6);
-    z-index: 30;
-  }
-  /* The crescent alone, set on a small tile with a soft ring so it sits in
-     the rail rather than floating on it. */
-  .side .mark {
-    display: grid; place-items: center; width: 44px; height: 44px; margin: 2px 8px 26px;
-    border-radius: 14px; background: #fff; flex: none;
-    box-shadow: 0 0 0 4px rgba(185, 192, 232, .12), 0 10px 22px -10px rgba(0, 0, 0, .55);
-    transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
-  }
-  .side .mark:hover { transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(185, 192, 232, .2), 0 14px 26px -12px rgba(0, 0, 0, .6); }
-  .side .mark img { width: 30px; height: 30px; display: block; }
+  .app { display: flex; flex-direction: column; min-height: 100dvh; }
 
-  .nav { display: grid; gap: 3px; }
+  /* Nav capsule centred, the signed-in user parked on the right. The 1fr
+     either side is what keeps the nav centred on the page rather than
+     centred on the space the user chip leaves over. */
+  .topbar {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    gap: 12px; padding: 18px 24px 4px; position: sticky; top: 0; z-index: 20;
+    background: linear-gradient(rgba(245, 244, 250, .92) 70%, transparent);
+  }
+  .navpill {
+    grid-column: 2; display: flex; align-items: center; gap: 4px; max-width: 100%;
+    background: var(--card); border: 1px solid var(--hair); border-radius: 999px;
+    padding: 8px 12px 8px 8px; box-shadow: var(--e2);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .navpill::-webkit-scrollbar { display: none; }
+  .navpill .brand { display: grid; place-items: center; padding: 0 10px 0 8px; flex: none; }
+  .navpill .brand img { display: block; height: 26px; width: auto; }
+  .nav { display: flex; align-items: center; gap: 2px; }
   .nav a, .nav .parent {
-    position: relative; display: flex; align-items: center; gap: 12px; width: 100%;
-    height: 42px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent;
-    color: var(--muted); text-decoration: none; font: inherit; font-weight: 500; font-size: .95rem;
-    cursor: pointer; text-align: left;
-    transition: background-color var(--t) var(--ease), color var(--t) var(--ease);
+    display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 15px;
+    border-radius: 999px; color: var(--muted); text-decoration: none; background: transparent;
+    font: inherit; font-weight: 500; font-size: var(--fs-sm); white-space: nowrap; cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: background-color var(--t) var(--ease), color var(--t) var(--ease), border-color var(--t) var(--ease);
   }
-  .nav a:hover, .nav .parent:hover { color: var(--ink); background: rgba(255, 255, 255, .06); }
-  .nav a[aria-current="page"] {
-    color: #fff; background: rgba(126, 138, 210, .30);
-    box-shadow: inset 0 0 0 1px rgba(185, 192, 232, .16);
+  .nav a:hover, .nav .parent:hover { color: var(--ink); background: var(--raise); }
+  /* The current page is ringed rather than filled: a filled pill in a white
+     capsule reads as a button somebody should press. */
+  .nav a[aria-current="page"], .nav .parent.current {
+    color: var(--indigo); border-color: var(--periwinkle);
+    background: var(--card); font-weight: 650;
   }
-  .nav a[aria-current="page"] .ic { color: var(--peri-pale); }
-  .nav .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav a[aria-current="page"] .ic, .nav .parent.current .ic { color: var(--periwinkle); }
+  .nav .caret { width: 15px; height: 15px; margin-left: -2px; transition: transform var(--t) var(--ease); }
+  .nav .parent[aria-expanded="true"] .caret { transform: rotate(180deg); }
   .nav .count {
     min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
     display: grid; place-items: center; font-size: var(--fs-xs); font-weight: 650;
-    background: var(--peri-soft); color: var(--indigo-deep);
+    background: var(--periwinkle); color: #fff;
   }
-  .nav .caret { width: 16px; height: 16px; transition: transform var(--t) var(--ease); }
-  .group.open .caret { transform: rotate(180deg); }
-  .group.has-current > .parent { color: var(--ink); }
-  /* Children are not built yet: present and navigable, but visibly quieter. */
-  .subnav { display: none; margin: 2px 0 4px 21px; padding-left: 12px; border-left: 1px solid rgba(185, 192, 232, .16); }
-  .group.open .subnav { display: grid; gap: 2px; }
-  .subnav a { height: 36px; font-size: var(--fs-sm); color: var(--faint); }
-  .subnav a .ic { width: 17px; height: 17px; }
+
+  /* Marketing's pages drop down under the capsule. The panel sits outside
+     the capsule because the capsule scrolls sideways on small screens, and
+     anything inside it would be clipped. */
+  .mkt-menu {
+    position: fixed; z-index: 40; min-width: 230px; padding: 6px;
+    background: var(--card); border: 1px solid var(--hair); border-radius: 16px;
+    box-shadow: var(--e2); display: grid; gap: 2px;
+    animation: dlg-in .16s var(--ease);
+  }
+  .mkt-menu[hidden] { display: none; }
+  .mkt-menu a {
+    display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px;
+    border-radius: 10px; color: var(--muted); text-decoration: none; font-size: var(--fs-sm); font-weight: 500;
+  }
+  .mkt-menu a:hover { background: var(--raise); color: var(--ink); }
+  .mkt-menu a[aria-current="page"] { color: var(--indigo); background: var(--peri-pale); font-weight: 650; }
+  .mkt-menu .lbl { flex: 1; }
   .soon-tag {
     font-size: .66rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase;
-    color: var(--faint); border: 1px solid rgba(185, 192, 232, .22); border-radius: 999px; padding: 1px 7px;
+    color: var(--faint); border: 1px solid var(--line-2); border-radius: 999px; padding: 1px 7px;
   }
-  .subnav a[aria-current="page"] .soon-tag { color: var(--peri-pale); border-color: rgba(230, 232, 247, .35); }
 
-  .me {
-    margin-top: auto; display: flex; align-items: center; gap: 10px;
-    padding: 10px; border-radius: 16px; background: rgba(255, 255, 255, .05);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
+  .mepill {
+    grid-column: 3; justify-self: end; flex: none;
+    display: flex; align-items: center; gap: 9px; height: 58px; padding: 0 18px 0 10px;
+    background: var(--card); border: 1px solid var(--hair); border-radius: 999px;
+    box-shadow: var(--e2); font: inherit; color: var(--ink); cursor: pointer;
+    transition: background-color var(--t) var(--ease), transform var(--t) var(--ease);
   }
-  .me .who { flex: 1; min-width: 0; line-height: 1.25; }
-  .me-name { font-weight: 600; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .me-role { font-size: var(--fs-xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .me .iconbtn { color: var(--muted); }
-  .me .iconbtn:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+  .mepill:hover { background: var(--raise); }
+  .mepill:active { transform: scale(.98); }
+  .mepill .me-name {
+    font-weight: 600; font-size: var(--fs-sm); max-width: 16ch;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .avatar {
-    display: grid; place-items: center; width: 38px; height: 38px; flex: none; overflow: hidden;
+    display: grid; place-items: center; width: 36px; height: 36px; flex: none; overflow: hidden;
     border-radius: 50%; background: var(--periwinkle); color: #fff; font-weight: 650; font-size: .88rem;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, .14);
   }
 
   .main {
-    display: flex; flex-direction: column; min-width: 0; min-height: 100dvh;
-    width: 100%; max-width: 1440px; padding: 30px 40px 32px;
+    display: flex; flex-direction: column; min-width: 0; flex: 1;
+    width: 100%; max-width: 1340px; margin: 0 auto; padding: 22px 40px 32px;
   }
   .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
   .pagehead .titles { flex: 1; min-width: 0; }
   .pagehead h1 { font-size: 1.75rem; letter-spacing: -.02em; }
   .pagehead .sub { margin: 6px 0 0; color: var(--muted); }
-  .menu-btn { display: none; }
-  .scrim { display: none; }
   .view { flex: 1; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
 
   .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
@@ -387,29 +394,22 @@
   @media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
 
   /* ───────────── responsive ───────────── */
-  /* Tablet: the sidebar folds to an icon rail; labels become tooltips. */
-  @media (max-width: 1024px) and (min-width: 721px) {
-    .app { grid-template-columns: 78px minmax(0, 1fr); }
-    .side { padding: 18px 12px 12px; align-items: center; }
-    .side .mark { margin: 2px 0 22px; }
-    .nav { width: 100%; justify-items: center; }
-    .nav a, .nav .parent { width: 48px; height: 44px; padding: 0; justify-content: center; }
-    .nav .lbl, .nav .caret, .soon-tag, .me .who { display: none; }
-    .nav .count { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; font-size: .68rem; padding: 0 5px; }
-    .subnav { margin: 2px 0 4px; padding: 4px 0 0; border-left: 0; border-top: 1px solid rgba(185, 192, 232, .16); justify-items: center; }
-    .subnav a { width: 44px; height: 38px; }
-    .me { flex-direction: column; padding: 8px 6px; }
-    .main { padding: 24px 28px 28px; }
+  /* The capsule keeps its shape and scrolls sideways rather than becoming a
+     drawer: the items fit on a phone once the labels drop away. */
+  @media (max-width: 1100px) {
+    .main { padding: 20px 24px 28px; }
   }
-  /* Phone: a drawer behind a menu button, so the content gets the full width. */
+  @media (max-width: 860px) {
+    .topbar { grid-template-columns: minmax(0, 1fr) auto; padding: 12px 16px 4px; }
+    .navpill { grid-column: 1; justify-self: start; }
+    .navpill .brand { display: none; }
+    .mepill { grid-column: 2; height: 50px; padding: 0 8px; }
+    .mepill .me-name { display: none; }
+    .nav a, .nav .parent { padding: 0 12px; }
+    .nav .lbl, .nav .caret { display: none; }
+    .nav a[aria-current="page"] .lbl, .nav .parent.current .lbl { display: inline; }
+  }
   @media (max-width: 720px) {
-    .app { display: block; }
-    .side { position: fixed; inset: 0 auto 0 0; width: 272px; transform: translateX(-100%);
-            transition: transform .22s var(--ease); }
-    .app.drawer .side { transform: none; }
-    .app.drawer .scrim { display: block; position: fixed; inset: 0; z-index: 25;
-            background: rgba(20, 21, 58, .45); animation: fade .2s var(--ease); }
-    .menu-btn { display: inline-grid; }
     .main { padding: 16px 16px 24px; }
     .pagehead { flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
     .pagehead .primary { width: 100%; }
@@ -675,9 +675,9 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: .01ms !important; }
     .btn:hover:not(:disabled), .btn:active:not(:disabled), a.tile:hover, .conn:hover,
-    .side .mark:hover, .iconbtn:active:not(:disabled) { transform: none; }
+    .mepill:active, .iconbtn:active:not(:disabled) { transform: none; }
     dialog[open], dialog.closing, .view:not(.hidden) { animation: fade .01ms; }
-    .side { transition: none; }
+    .mkt-menu { animation: none; }
   }
 </style>
 </head>
@@ -763,57 +763,47 @@
 
 <!-- ─────────────────────────── app ─────────────────────────── -->
 <div id="app" class="app hidden">
-  <!-- A fixed sidebar: the app is growing past four pages (Marketing has
-       four children of its own), and a rail holds that without crowding. -->
-  <aside class="side" id="side" aria-label="Main">
-    <a class="mark" href="/staff" data-page="dashboard" aria-label="Synergy Salon, go to Dashboard" title="Dashboard">
-      <img src="/favicon-512x512.png" alt="">
-    </a>
-    <nav class="nav">
-      <a href="/staff" data-page="dashboard" title="Dashboard">
-        <svg class="ic"><use href="#i-dashboard"/></svg><span class="lbl">Dashboard</span></a>
-      <a href="/staff/appointments" data-page="appointments" title="Appointments">
-        <svg class="ic"><use href="#i-calendar"/></svg><span class="lbl">Appointments</span></a>
-      <a href="/staff/contacts" data-page="contacts" title="Contacts">
-        <svg class="ic"><use href="#i-contacts"/></svg><span class="lbl">Contacts</span></a>
-      <div class="group" id="mktGroup">
-        <button type="button" class="parent" id="mktToggle" aria-expanded="false" aria-controls="mktList" title="Marketing">
+  <!-- The chrome is a floating capsule rather than a sidebar: the diary is
+       the widest thing here and wants the room. -->
+  <header class="topbar">
+    <nav class="navpill" aria-label="Main">
+      <a class="brand" href="/staff" data-page="dashboard" aria-label="Synergy Salon, go to Dashboard">
+        <img src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="">
+      </a>
+      <div class="nav">
+        <a href="/staff" data-page="dashboard" title="Dashboard">
+          <svg class="ic"><use href="#i-dashboard"/></svg><span class="lbl">Dashboard</span></a>
+        <a href="/staff/appointments" data-page="appointments" title="Appointments">
+          <svg class="ic"><use href="#i-calendar"/></svg><span class="lbl">Appointments</span></a>
+        <a href="/staff/contacts" data-page="contacts" title="Contacts">
+          <svg class="ic"><use href="#i-contacts"/></svg><span class="lbl">Contacts</span></a>
+        <button type="button" class="parent" id="mktToggle" aria-expanded="false" aria-controls="mktList" aria-haspopup="true" title="Marketing">
           <svg class="ic"><use href="#i-megaphone"/></svg><span class="lbl">Marketing</span>
           <svg class="ic caret" aria-hidden="true"><use href="#i-down"/></svg>
         </button>
-        <div class="subnav" id="mktList">
-          <a href="/staff/marketing/automation" data-page="automation" title="Automation">
-            <svg class="ic"><use href="#i-zap"/></svg><span class="lbl">Automation</span><span class="soon-tag">Soon</span></a>
-          <a href="/staff/marketing/promotions" data-page="promotions" title="Promotions">
-            <svg class="ic"><use href="#i-tag"/></svg><span class="lbl">Promotions</span><span class="soon-tag">Soon</span></a>
-          <a href="/staff/marketing/sms" data-page="sms" title="SMS">
-            <svg class="ic"><use href="#i-message"/></svg><span class="lbl">SMS</span><span class="soon-tag">Soon</span></a>
-          <a href="/staff/marketing/email" data-page="email" title="Email">
-            <svg class="ic"><use href="#i-mail"/></svg><span class="lbl">Email</span><span class="soon-tag">Soon</span></a>
-        </div>
+        <a href="/staff/settings" data-page="settings" title="Settings" id="navSettings" class="hidden">
+          <svg class="ic"><use href="#i-settings"/></svg><span class="lbl">Settings</span>
+          <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span></a>
       </div>
-      <a href="/staff/settings" data-page="settings" title="Settings" id="navSettings" class="hidden">
-        <svg class="ic"><use href="#i-settings"/></svg><span class="lbl">Settings</span>
-        <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span></a>
     </nav>
-    <div class="me">
+    <button class="mepill" id="meBtn" data-more="me" aria-haspopup="menu" aria-expanded="false">
       <span class="avatar" id="meInitials" aria-hidden="true"></span>
-      <div class="who">
-        <div class="me-name" id="meName"></div>
-        <div class="me-role" id="meRole"></div>
-      </div>
-      <button type="button" class="iconbtn" id="signOut" title="Sign out" aria-label="Sign out">
-        <svg class="ic"><use href="#i-signout"/></svg>
-      </button>
+      <span class="me-name" id="meName"></span>
+    </button>
+    <div class="mkt-menu" id="mktList" role="menu" aria-label="Marketing" hidden>
+      <a href="/staff/marketing/automation" data-page="automation" role="menuitem">
+        <svg class="ic"><use href="#i-zap"/></svg><span class="lbl">Automation</span><span class="soon-tag">Soon</span></a>
+      <a href="/staff/marketing/promotions" data-page="promotions" role="menuitem">
+        <svg class="ic"><use href="#i-tag"/></svg><span class="lbl">Promotions</span><span class="soon-tag">Soon</span></a>
+      <a href="/staff/marketing/sms" data-page="sms" role="menuitem">
+        <svg class="ic"><use href="#i-message"/></svg><span class="lbl">SMS</span><span class="soon-tag">Soon</span></a>
+      <a href="/staff/marketing/email" data-page="email" role="menuitem">
+        <svg class="ic"><use href="#i-mail"/></svg><span class="lbl">Email</span><span class="soon-tag">Soon</span></a>
     </div>
-  </aside>
-  <div class="scrim" id="scrim"></div>
+  </header>
 
   <main class="main">
     <header class="pagehead">
-      <button type="button" class="iconbtn lg menu-btn" id="menuBtn" aria-label="Open menu" aria-controls="side" aria-expanded="false">
-        <svg class="ic"><use href="#i-menu"/></svg>
-      </button>
       <div class="titles">
         <h1 id="pageTitle">Dashboard</h1>
         <p class="sub" id="pageSub"></p>
@@ -1220,8 +1210,7 @@ function paintMe() {
   else pic.textContent = initials || '·';
   $('meName').textContent = me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
-  $('meRole').textContent = meSubtitle;
-  $('meName').title = me.user.name;
+  $('meBtn').title = meSubtitle;
 }
 async function signOutNow() {
   await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' });
@@ -1291,13 +1280,11 @@ function go(name, { push = true } = {}) {
   page = name;
   if (push && location.pathname !== p.path) history.pushState({ page: name }, '', p.path);
 
-  document.querySelectorAll('.nav a').forEach((a) => {
+  document.querySelectorAll('.nav a, .mkt-menu a').forEach((a) => {
     if (a.dataset.page === name) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
-  const inMkt = p.group === 'marketing';
-  $('mktGroup').classList.toggle('has-current', inMkt);
-  if (inMkt) { $('mktGroup').classList.add('open'); $('mktToggle').setAttribute('aria-expanded', 'true'); }
+  $('mktToggle').classList.toggle('current', p.group === 'marketing');
   const view = p.view || name;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
 
@@ -1307,7 +1294,7 @@ function go(name, { push = true } = {}) {
   $('primaryBtn').classList.toggle('hidden', !p.action);
   if (p.action) $('primaryLbl').textContent = p.action;
   document.title = `${p.title} · Synergy Salon`;
-  closeDrawer();
+  closeMarketing();
   hideMenu();
   p.load();
 }
@@ -1326,29 +1313,38 @@ window.addEventListener('popstate', () => { if (me) go(pageFromUrl(), { push: fa
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideMenu(); });
 
-// The way out, always on screen at the foot of the sidebar.
-$('signOut').onclick = signOutNow;
+// Who is signed in, and the way out. They live behind the chip, the one
+// thing in the bar that is about the person rather than the page.
+$('meBtn').onclick = () => showMenu($('meBtn'), [
+  { label: meSubtitle || 'Signed in', run: () => {} },
+  { label: 'Sign out', danger: true, run: signOutNow },
+]);
 
-// Phone: the sidebar is a drawer behind the menu button.
-function closeDrawer() {
-  $('app').classList.remove('drawer');
-  $('menuBtn').setAttribute('aria-expanded', 'false');
+// Marketing's pages drop down under its button. Placed by hand because the
+// panel lives outside the capsule, which scrolls sideways on a phone.
+function closeMarketing() {
+  $('mktList').hidden = true;
+  $('mktToggle').setAttribute('aria-expanded', 'false');
 }
-$('menuBtn').onclick = () => {
-  $('app').classList.add('drawer');
-  $('menuBtn').setAttribute('aria-expanded', 'true');
-  document.querySelector('.nav a[aria-current]')?.focus();
+$('mktToggle').onclick = (e) => {
+  e.stopPropagation();
+  if (!$('mktList').hidden) return closeMarketing();
+  hideMenu();
+  const r = $('mktToggle').getBoundingClientRect();
+  const panel = $('mktList');
+  panel.hidden = false;
+  const left = Math.min(Math.max(8, r.left), window.innerWidth - panel.offsetWidth - 8);
+  panel.style.left = `${left}px`;
+  panel.style.top = `${r.bottom + 10}px`;
+  $('mktToggle').setAttribute('aria-expanded', 'true');
+  panel.querySelector('a[aria-current]')?.focus();
 };
-$('scrim').onclick = closeDrawer;
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
-
-// Marketing opens and closes in place; it is also opened for you whenever
-// one of its pages is the current one.
-$('mktToggle').onclick = () => {
-  const open = !$('mktGroup').classList.contains('open');
-  $('mktGroup').classList.toggle('open', open);
-  $('mktToggle').setAttribute('aria-expanded', String(open));
-};
+document.addEventListener('click', (e) => {
+  if (!$('mktList').hidden && !e.target.closest('#mktList')) closeMarketing();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMarketing(); });
+window.addEventListener('resize', closeMarketing);
+document.querySelector('.navpill').addEventListener('scroll', closeMarketing);
 
 // ─────────────────────── overflow menu ───────────────────────
 
