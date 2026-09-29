@@ -54,7 +54,15 @@
     --sk-hi:   #ebebf5;
     --shadow:  0 12px 32px rgba(30, 31, 92, .14);
 
-    --radius: 14px;
+    /* Two elevation levels, and one motion rhythm for every hover and press.
+       Depth comes from soft shadows rather than heavy borders. */
+    --hair:    rgba(30, 31, 92, .07);
+    --e1: 0 1px 2px rgba(30, 31, 92, .05), 0 6px 20px -10px rgba(30, 31, 92, .16);
+    --e2: 0 2px 6px rgba(30, 31, 92, .06), 0 22px 48px -20px rgba(30, 31, 92, .30);
+    --ease: cubic-bezier(.2, .7, .2, 1);
+    --t: .18s;
+
+    --radius: 18px;
     --sans: 'Geist Variable', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
     /* One type scale for all UI chrome. */
@@ -68,7 +76,12 @@
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: var(--bg); color: var(--ink);
+    margin: 0; color: var(--ink);
+    background:
+      radial-gradient(900px 520px at 88% -10%, rgba(85, 96, 166, .15), transparent 62%),
+      radial-gradient(720px 480px at -6% 108%, rgba(185, 192, 232, .30), transparent 60%),
+      linear-gradient(180deg, #f5f4fa 0%, #efedf4 100%);
+    background-attachment: fixed;
     font: 400 var(--fs-md)/1.5 var(--sans); -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -.01em; line-height: 1.2; }
@@ -109,12 +122,18 @@
     height: 42px; padding: 0 18px; border: 1px solid transparent; border-radius: 999px;
     background: var(--periwinkle); color: #fff; font-weight: 600; font-size: .95rem;
     white-space: nowrap; cursor: pointer; text-decoration: none;
-    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+    box-shadow: 0 1px 2px rgba(30, 31, 92, .14), 0 8px 18px -10px rgba(85, 96, 166, .7);
+    transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease),
+                color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease);
   }
-  .btn:hover:not(:disabled) { background: var(--peri-hover); color: #fff; }
-  .btn:disabled { opacity: .55; cursor: default; }
+  .btn:hover:not(:disabled) {
+    background: var(--peri-hover); color: #fff; transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(30, 31, 92, .14), 0 12px 24px -12px rgba(53, 54, 118, .75);
+  }
+  .btn:active:not(:disabled) { transform: translateY(0) scale(.98); box-shadow: 0 1px 2px rgba(30, 31, 92, .16); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
   .btn .ic { width: 18px; height: 18px; }
-  .btn.quiet { background: transparent; color: var(--ink); border-color: var(--line-2); font-weight: 500; }
+  .btn.quiet { background: rgba(255, 255, 255, .72); color: var(--ink); border-color: var(--line-2); font-weight: 500; box-shadow: none; }
   .btn.quiet:hover:not(:disabled) { background: var(--peri-pale); color: var(--indigo); }
   .btn.sm { height: 34px; padding: 0 14px; font-size: var(--fs-sm); }
   .btn.block { width: 100%; }
@@ -122,11 +141,13 @@
     display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0;
     border: 1px solid transparent; border-radius: 10px; background: transparent;
     color: var(--muted); cursor: pointer;
+    transition: background-color var(--t) var(--ease), color var(--t) var(--ease), transform var(--t) var(--ease);
   }
+  .iconbtn:active:not(:disabled) { transform: scale(.94); }
   .iconbtn:hover:not(:disabled) { background: var(--raise); color: var(--ink); }
   .iconbtn.lg { width: 42px; height: 42px; border-color: var(--line-2); border-radius: 999px; }
 
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; box-shadow: 0 1px 2px rgba(30, 31, 92, .04); }
+  .card { background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 24px; box-shadow: var(--e1); }
   .card.fill { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 
@@ -216,74 +237,91 @@
   #boot img { height: 36px; opacity: .6; }
 
   /* ───────────── app shell ───────────── */
-  .app { display: flex; flex-direction: column; min-height: 100dvh; }
+  /* A fixed sidebar and a main pane. The only dark surface in the app: the
+     sidebar re-declares the tokens it uses, so everything inside reads
+     light-on-indigo without special cases. */
+  .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100dvh; }
+  .side {
+    --ink: #f2f3fb; --muted: #c3c9ea; --faint: #9aa3d3; --focus: var(--peri-soft);
+    position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column;
+    padding: 20px 14px 14px; color: var(--ink); color-scheme: dark; overflow-y: auto;
+    background: linear-gradient(180deg, #23246b 0%, var(--indigo-deep) 48%, #18194c 100%);
+    box-shadow: 1px 0 0 rgba(255, 255, 255, .04), 12px 0 40px -24px rgba(20, 21, 58, .6);
+    z-index: 30;
+  }
+  /* The crescent alone, set on a small tile with a soft ring so it sits in
+     the rail rather than floating on it. */
+  .side .mark {
+    display: grid; place-items: center; width: 44px; height: 44px; margin: 2px 8px 26px;
+    border-radius: 14px; background: #fff; flex: none;
+    box-shadow: 0 0 0 4px rgba(185, 192, 232, .12), 0 10px 22px -10px rgba(0, 0, 0, .55);
+    transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
+  }
+  .side .mark:hover { transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(185, 192, 232, .2), 0 14px 26px -12px rgba(0, 0, 0, .6); }
+  .side .mark img { width: 30px; height: 30px; display: block; }
 
-  /* Nav capsule centred, the signed-in user parked on the right. The 1fr
-     either side is what keeps the nav centred on the page rather than
-     centred on the space the user chip leaves over. */
-  .topbar {
-    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-    gap: 12px; padding: 18px 24px 4px; position: sticky; top: 0; z-index: 20;
-    background: linear-gradient(var(--bg) 72%, transparent);
+  .nav { display: grid; gap: 3px; }
+  .nav a, .nav .parent {
+    position: relative; display: flex; align-items: center; gap: 12px; width: 100%;
+    height: 42px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent;
+    color: var(--muted); text-decoration: none; font: inherit; font-weight: 500; font-size: .95rem;
+    cursor: pointer; text-align: left;
+    transition: background-color var(--t) var(--ease), color var(--t) var(--ease);
   }
-  .navpill {
-    grid-column: 2; display: flex; align-items: center; gap: 4px; max-width: 100%;
-    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
-    padding: 8px 12px 8px 8px; box-shadow: 0 6px 22px rgba(30, 31, 92, .07);
-    overflow-x: auto; scrollbar-width: none;
-  }
-  .navpill::-webkit-scrollbar { display: none; }
-  .navpill .brand { display: grid; place-items: center; padding: 0 8px; flex: none; }
-  .navpill .brand img { display: block; height: 26px; width: auto; }
-  .nav { display: flex; align-items: center; gap: 2px; }
-  .nav a {
-    display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 15px;
-    border-radius: 999px; color: var(--muted); text-decoration: none;
-    font-weight: 500; font-size: var(--fs-sm); white-space: nowrap;
-    border: 1.5px solid transparent;
-  }
-  .nav a:hover { color: var(--ink); background: var(--raise); }
-  /* The current page is ringed rather than filled: a filled pill in a white
-     capsule reads as a button somebody should press. */
+  .nav a:hover, .nav .parent:hover { color: var(--ink); background: rgba(255, 255, 255, .06); }
   .nav a[aria-current="page"] {
-    color: var(--indigo); border-color: var(--periwinkle);
-    background: var(--card); font-weight: 650;
+    color: #fff; background: rgba(126, 138, 210, .30);
+    box-shadow: inset 0 0 0 1px rgba(185, 192, 232, .16);
   }
-  .nav a[aria-current="page"] .ic { color: var(--periwinkle); }
+  .nav a[aria-current="page"] .ic { color: var(--peri-pale); }
+  .nav .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .nav .count {
     min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
     display: grid; place-items: center; font-size: var(--fs-xs); font-weight: 650;
-    background: var(--periwinkle); color: #fff;
+    background: var(--peri-soft); color: var(--indigo-deep);
   }
+  .nav .caret { width: 16px; height: 16px; transition: transform var(--t) var(--ease); }
+  .group.open .caret { transform: rotate(180deg); }
+  .group.has-current > .parent { color: var(--ink); }
+  /* Children are not built yet: present and navigable, but visibly quieter. */
+  .subnav { display: none; margin: 2px 0 4px 21px; padding-left: 12px; border-left: 1px solid rgba(185, 192, 232, .16); }
+  .group.open .subnav { display: grid; gap: 2px; }
+  .subnav a { height: 36px; font-size: var(--fs-sm); color: var(--faint); }
+  .subnav a .ic { width: 17px; height: 17px; }
+  .soon-tag {
+    font-size: .66rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--faint); border: 1px solid rgba(185, 192, 232, .22); border-radius: 999px; padding: 1px 7px;
+  }
+  .subnav a[aria-current="page"] .soon-tag { color: var(--peri-pale); border-color: rgba(230, 232, 247, .35); }
 
-  .mepill {
-    grid-column: 3; justify-self: end; flex: none;
-    display: flex; align-items: center; gap: 9px; height: 58px; padding: 0 18px 0 10px;
-    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
-    box-shadow: 0 6px 22px rgba(30, 31, 92, .07);
-    font: inherit; color: var(--ink); cursor: pointer;
+  .me {
+    margin-top: auto; display: flex; align-items: center; gap: 10px;
+    padding: 10px; border-radius: 16px; background: rgba(255, 255, 255, .05);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
   }
-  .mepill:hover { background: var(--raise); }
-  .mepill .me-name {
-    font-weight: 600; font-size: var(--fs-sm); max-width: 16ch;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+  .me .who { flex: 1; min-width: 0; line-height: 1.25; }
+  .me-name { font-weight: 600; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .me-role { font-size: var(--fs-xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .me .iconbtn { color: var(--muted); }
+  .me .iconbtn:hover { background: rgba(255, 255, 255, .08); color: #fff; }
   .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .avatar {
-    display: grid; place-items: center; width: 36px; height: 36px; flex: none;
-    overflow: hidden;
-    border-radius: 50%; background: var(--periwinkle); color: #fff;
-    font-weight: 650; font-size: .88rem;
+    display: grid; place-items: center; width: 38px; height: 38px; flex: none; overflow: hidden;
+    border-radius: 50%; background: var(--periwinkle); color: #fff; font-weight: 650; font-size: .88rem;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .14);
   }
 
   .main {
-    display: flex; flex-direction: column; min-width: 0; flex: 1;
-    width: 100%; max-width: 1340px; margin: 0 auto; padding: 22px 40px 32px;
+    display: flex; flex-direction: column; min-width: 0; min-height: 100dvh;
+    width: 100%; max-width: 1440px; padding: 30px 40px 32px;
   }
-  .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
   .pagehead .titles { flex: 1; min-width: 0; }
-  .pagehead .sub { margin: 4px 0 0; color: var(--muted); }
-  .view { flex: 1; display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+  .pagehead h1 { font-size: 1.75rem; letter-spacing: -.02em; }
+  .pagehead .sub { margin: 6px 0 0; color: var(--muted); }
+  .menu-btn { display: none; }
+  .scrim { display: none; }
+  .view { flex: 1; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
 
   .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
   .toolbar input[type=date] { width: auto; }
@@ -295,16 +333,18 @@
 
   /* Dashboard */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
-  .tile { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: 0 1px 2px rgba(30, 31, 92, .04); }
+  .tile { background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--e1);
+          transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease), border-color var(--t) var(--ease); }
   .tile .num { color: var(--indigo); font-size: 2.1rem; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .tile .lbl { color: var(--muted); font-size: var(--fs-sm); margin-top: 2px; }
   a.tile { display: block; color: inherit; text-decoration: none; }
-  a.tile:hover { border-color: var(--line-2); box-shadow: 0 2px 10px rgba(30, 31, 92, .06); }
+  a.tile:hover { border-color: color-mix(in srgb, var(--periwinkle) 35%, transparent); box-shadow: var(--e2); transform: translateY(-2px); }
   .upcoming { list-style: none; margin: 0; padding: 0; }
   .upcoming li + li { border-top: 1px solid var(--line); }
   .upcoming button {
     display: grid; grid-template-columns: 112px 1fr auto; gap: 16px; align-items: center; width: 100%;
-    padding: 14px 8px; border: 0; background: transparent; text-align: left; cursor: pointer; border-radius: 10px;
+    padding: 14px 10px; border: 0; background: transparent; text-align: left; cursor: pointer; border-radius: 12px;
+    transition: background-color var(--t) var(--ease);
   }
   .upcoming button:hover { background: var(--raise); }
   .upcoming .when { font-size: var(--fs-sm); color: var(--muted); line-height: 1.3; }
@@ -347,22 +387,29 @@
   @media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
 
   /* ───────────── responsive ───────────── */
-  /* The capsule keeps its shape and scrolls sideways rather than becoming a
-     drawer: four items fit on a phone once the labels drop away. */
-  @media (max-width: 1100px) {
-    .main { padding: 20px 24px 28px; }
-  }
-  @media (max-width: 860px) {
-    .topbar { grid-template-columns: minmax(0, 1fr) auto; padding: 12px 16px 4px; }
-    .navpill { grid-column: 1; }
-    .mepill { grid-column: 2; height: 50px; padding: 0 12px 0 8px; }
-    .mepill .me-name { display: none; }
-    .nav a { padding: 0 12px; }
-    .nav .lbl { display: none; }
-    .nav a[aria-current="page"] .lbl { display: inline; }
+  /* Tablet: the sidebar folds to an icon rail; labels become tooltips. */
+  @media (max-width: 1024px) and (min-width: 721px) {
+    .app { grid-template-columns: 78px minmax(0, 1fr); }
+    .side { padding: 18px 12px 12px; align-items: center; }
+    .side .mark { margin: 2px 0 22px; }
+    .nav { width: 100%; justify-items: center; }
+    .nav a, .nav .parent { width: 48px; height: 44px; padding: 0; justify-content: center; }
+    .nav .lbl, .nav .caret, .soon-tag, .me .who { display: none; }
+    .nav .count { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; font-size: .68rem; padding: 0 5px; }
+    .subnav { margin: 2px 0 4px; padding: 4px 0 0; border-left: 0; border-top: 1px solid rgba(185, 192, 232, .16); justify-items: center; }
+    .subnav a { width: 44px; height: 38px; }
+    .me { flex-direction: column; padding: 8px 6px; }
+    .main { padding: 24px 28px 28px; }
   }
   /* Phone: a drawer behind a menu button, so the content gets the full width. */
   @media (max-width: 720px) {
+    .app { display: block; }
+    .side { position: fixed; inset: 0 auto 0 0; width: 272px; transform: translateX(-100%);
+            transition: transform .22s var(--ease); }
+    .app.drawer .side { transform: none; }
+    .app.drawer .scrim { display: block; position: fixed; inset: 0; z-index: 25;
+            background: rgba(20, 21, 58, .45); animation: fade .2s var(--ease); }
+    .menu-btn { display: inline-grid; }
     .main { padding: 16px 16px 24px; }
     .pagehead { flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
     .pagehead .primary { width: 100%; }
@@ -514,6 +561,124 @@
   .conn .acct { padding: 0 16px 12px; font-size: var(--fs-xs); color: var(--ok); font-weight: 600;
                 overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .conn .setup { padding: 0 16px 14px; font-size: var(--fs-xs); color: var(--faint); }
+
+  /* ── interaction: rows and lists that open something ───────────────── */
+  tbody tr.clickable { cursor: pointer; }
+  tbody tr.clickable td { transition: background-color var(--t) var(--ease); }
+  .rowlink { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+  .rowlink:hover { color: var(--indigo); text-decoration: underline; text-underline-offset: 3px; }
+  .conn { transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease), border-color var(--t) var(--ease); }
+  .conn:hover { box-shadow: var(--e2); transform: translateY(-2px); }
+  .seg { background: rgba(255, 255, 255, .6); }
+  .seg button { transition: background-color var(--t) var(--ease), color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
+  input, select, textarea { transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
+  input:hover, select:hover, textarea:hover { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { box-shadow: 0 0 0 4px rgba(85, 96, 166, .16); }
+
+  dialog { border: 1px solid var(--hair); border-radius: 20px; box-shadow: var(--e2); }
+  dialog[open] { animation: dlg-in .2s var(--ease); }
+  dialog::backdrop { background: rgba(20, 21, 58, .42); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  dialog[open]::backdrop { animation: fade .2s var(--ease); }
+  dialog.closing { animation: dlg-out .14s ease-in forwards; }
+  dialog.closing::backdrop { animation: fade-out .14s ease-in forwards; }
+  @keyframes dlg-in { from { opacity: 0; transform: translateY(8px) scale(.985); } }
+  @keyframes dlg-out { to { opacity: 0; transform: translateY(6px) scale(.99); } }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes fade-out { to { opacity: 0; } }
+  .view:not(.hidden) { animation: view-in .22s var(--ease); }
+  @keyframes view-in { from { opacity: 0; transform: translateY(4px); } }
+
+  /* ── Coming soon: the Billing pattern, as a full page ──────────────── */
+  .soon-card { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+               gap: 14px; padding: clamp(32px, 6vw, 72px); min-height: 360px; }
+  .soon-card .bubble { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 18px;
+                       background: var(--peri-pale); color: var(--periwinkle); }
+  .soon-card .bubble .ic { width: 28px; height: 28px; }
+  .soon-card h2 { font-size: 1.5rem; letter-spacing: -.01em; }
+  .soon-card .chip { height: 26px; padding: 0 12px; background: var(--raise); border-color: var(--line); color: var(--muted); }
+  .soon-card p { margin: 0; color: var(--muted); max-width: 52ch; line-height: 1.6; }
+
+  /* ── contact detail: a large two-column profile ─────────────────────── */
+  dialog.xl { max-width: 1140px; width: calc(100% - 48px); height: min(840px, calc(100dvh - 48px));
+              padding: 0; overflow: hidden; }
+  dialog.xl[open] { display: flex; flex-direction: column; }
+  .px-head { display: flex; align-items: center; gap: 16px; padding: 22px 24px 20px 28px;
+             border-bottom: 1px solid var(--hair); background: linear-gradient(180deg, #fff, #fbfbfe); }
+  .px-head .avatar { width: 54px; height: 54px; font-size: 1.1rem; box-shadow: 0 0 0 4px var(--peri-pale); }
+  .px-head .who { flex: 1; min-width: 0; }
+  .px-head h2 { margin: 0; font-size: 1.4rem; letter-spacing: -.015em; overflow-wrap: anywhere; }
+  .px-head .chips { margin-top: 6px; }
+  .px-head .acts { margin: 0; gap: 8px; }
+  .px-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 38fr) minmax(0, 62fr); }
+  .px-left { overflow-y: auto; padding: 22px 26px 26px 28px; background: #fafafd; border-right: 1px solid var(--hair); }
+  .px-right { overflow-y: auto; padding: 22px 28px 28px; display: flex; flex-direction: column; min-height: 0; }
+  .px-sec + .px-sec { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--hair); }
+  .px-sec h3 { margin: 0 0 12px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .08em;
+               text-transform: uppercase; color: var(--faint); }
+  .px-dl { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 10px 12px; margin: 0; font-size: var(--fs-sm); }
+  .px-dl dt { color: var(--muted); }
+  .px-dl dd { margin: 0; min-width: 0; overflow-wrap: break-word; }
+  .px-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .px-stats div { background: var(--card); border: 1px solid var(--hair); border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 2px rgba(30, 31, 92, .04); }
+  .px-stats b { display: block; font-size: 1.05rem; color: var(--indigo); font-variant-numeric: tabular-nums; }
+  .px-stats span { font-size: var(--fs-xs); color: var(--muted); }
+  .px-appts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .px-appts li { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 12px;
+                 background: var(--card); border: 1px solid var(--hair); font-size: var(--fs-sm); }
+  .px-appts .when { font-weight: 600; color: var(--accent-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .px-appts .what { flex: 1; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .px-none { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: var(--fs-sm); }
+  .px-none .ic { color: var(--faint); }
+  .px-danger { margin-top: 22px; }
+  .px-danger button { color: var(--warn); background: none; border: 0; padding: 0; font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+  .px-danger button:hover { text-decoration: underline; }
+
+  .tl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .tl-head h3 { margin: 0; font-size: var(--fs-lg); }
+  .tl-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tl-filters button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px;
+    border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--muted);
+    font: inherit; font-size: var(--fs-xs); font-weight: 600; cursor: pointer;
+    transition: background-color var(--t) var(--ease), color var(--t) var(--ease), border-color var(--t) var(--ease); }
+  .tl-filters button:hover { border-color: var(--line-2); color: var(--ink); }
+  .tl-filters button[aria-pressed="true"] { background: var(--indigo-deep); border-color: var(--indigo-deep); color: #fff; }
+  .tl-filters .n { font-variant-numeric: tabular-nums; opacity: .75; }
+  .tl { list-style: none; margin: 0; padding: 0; }
+  .tl li { position: relative; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 14px; padding-bottom: 22px; }
+  .tl li::before { content: ''; position: absolute; left: 18px; top: 40px; bottom: 2px; width: 2px; border-radius: 2px; background: var(--line); }
+  .tl li:last-child::before { display: none; }
+  .tl .dot { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px;
+             background: var(--peri-pale); color: var(--periwinkle); box-shadow: 0 0 0 4px var(--card); }
+  .tl .dot .ic { width: 18px; height: 18px; }
+  .tl .t-email .dot { background: #e9ebf8; color: var(--indigo); }
+  .tl .t-form .dot { background: color-mix(in srgb, var(--ok) 12%, #fff); color: var(--ok); }
+  .tl .t-sync .dot { background: var(--raise); color: var(--muted); }
+  .tl .t-lead .dot { background: var(--raise); color: var(--indigo); }
+  .tl .what b { display: block; font-weight: 600; font-size: .95rem; }
+  .tl .what span { display: block; color: var(--muted); font-size: var(--fs-sm); margin-top: 2px; }
+  .tl .what .ref { font-size: var(--fs-xs); color: var(--faint); }
+  .tl time { text-align: right; font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; line-height: 1.4; font-variant-numeric: tabular-nums; }
+  .tl time b { display: block; color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 860px) {
+    dialog.xl { width: 100%; max-width: none; height: 100dvh; max-height: none; border-radius: 0; margin: 0; }
+    .px-body { grid-template-columns: 1fr; overflow-y: auto; }
+    .px-left, .px-right { overflow: visible; }
+    .px-left { border-right: 0; border-bottom: 1px solid var(--hair); }
+    .px-head { flex-wrap: wrap; padding: 18px; }
+    .px-head .acts { width: 100%; }
+    .tl li { grid-template-columns: 38px minmax(0, 1fr); }
+    .tl time { grid-column: 2; text-align: left; }
+  }
+
+  /* Motion is decoration here: with reduced motion it becomes fades or nothing. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: .01ms !important; }
+    .btn:hover:not(:disabled), .btn:active:not(:disabled), a.tile:hover, .conn:hover,
+    .side .mark:hover, .iconbtn:active:not(:disabled) { transform: none; }
+    dialog[open], dialog.closing, .view:not(.hidden) { animation: fade .01ms; }
+    .side { transition: none; }
+  }
 </style>
 </head>
 <body>
@@ -537,6 +702,18 @@
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/></symbol>
+  <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M3.5 10v4a1 1 0 0 0 1 1h2l5.5 4V5L6.5 9h-2a1 1 0 0 0-1 1Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2.5 4.5 13.5h6.5l-1 8 8.5-11h-6.5l1-8Z"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.3 13.7 13.7 20.3a2 2 0 0 1-2.8 0L3.5 12.9V3.5h9.4l7.4 7.4a2 2 0 0 1 0 2.8Z"/><circle cx="8" cy="8" r="1.3"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H9l-4.5 4v-4A1.5 1.5 0 0 1 4 14.5z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-form" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"/><path d="M14 3.5V8h4M9 12.5h6M9 16h6"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 24 24"><path d="M19.5 11A7.5 7.5 0 0 0 6 6.8L4.5 8.5M4.5 4v4.5H9M4.5 13A7.5 7.5 0 0 0 18 17.2l1.5-1.7M19.5 20v-4.5H15"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1-4 4-6 7.5-6s6.5 2 7.5 6"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"/><path d="M14 3.5V8h4"/></symbol>
   <symbol id="i-users-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5 1.7 0 3.2.6 4.4 1.6M18.5 13v6M15.5 16h6"/></symbol>
 </svg>
 
@@ -586,34 +763,57 @@
 
 <!-- ─────────────────────────── app ─────────────────────────── -->
 <div id="app" class="app hidden">
-  <!-- The chrome is a floating capsule rather than a sidebar: the console is
-       four pages, and a full-height rail spends 240px saying so on every
-       screen. The diary is the widest thing here and wants the room. -->
-  <header class="topbar">
-    <nav class="navpill" aria-label="Main">
-      <a class="brand" href="/staff" data-page="dashboard" aria-label="Synergy Salon, go to Dashboard">
-        <img src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="">
-      </a>
-      <div class="nav">
-        <a href="/staff" data-page="dashboard" title="Dashboard">
-          <svg class="ic"><use href="#i-dashboard"/></svg><span class="lbl">Dashboard</span></a>
-        <a href="/staff/appointments" data-page="appointments" title="Appointments">
-          <svg class="ic"><use href="#i-calendar"/></svg><span class="lbl">Appointments</span></a>
-        <a href="/staff/contacts" data-page="contacts" title="Contacts">
-          <svg class="ic"><use href="#i-contacts"/></svg><span class="lbl">Contacts</span></a>
-        <a href="/staff/settings" data-page="settings" title="Settings" id="navSettings" class="hidden">
-          <svg class="ic"><use href="#i-settings"/></svg><span class="lbl">Settings</span>
-          <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span></a>
+  <!-- A fixed sidebar: the app is growing past four pages (Marketing has
+       four children of its own), and a rail holds that without crowding. -->
+  <aside class="side" id="side" aria-label="Main">
+    <a class="mark" href="/staff" data-page="dashboard" aria-label="Synergy Salon, go to Dashboard" title="Dashboard">
+      <img src="/favicon-512x512.png" alt="">
+    </a>
+    <nav class="nav">
+      <a href="/staff" data-page="dashboard" title="Dashboard">
+        <svg class="ic"><use href="#i-dashboard"/></svg><span class="lbl">Dashboard</span></a>
+      <a href="/staff/appointments" data-page="appointments" title="Appointments">
+        <svg class="ic"><use href="#i-calendar"/></svg><span class="lbl">Appointments</span></a>
+      <a href="/staff/contacts" data-page="contacts" title="Contacts">
+        <svg class="ic"><use href="#i-contacts"/></svg><span class="lbl">Contacts</span></a>
+      <div class="group" id="mktGroup">
+        <button type="button" class="parent" id="mktToggle" aria-expanded="false" aria-controls="mktList" title="Marketing">
+          <svg class="ic"><use href="#i-megaphone"/></svg><span class="lbl">Marketing</span>
+          <svg class="ic caret" aria-hidden="true"><use href="#i-down"/></svg>
+        </button>
+        <div class="subnav" id="mktList">
+          <a href="/staff/marketing/automation" data-page="automation" title="Automation">
+            <svg class="ic"><use href="#i-zap"/></svg><span class="lbl">Automation</span><span class="soon-tag">Soon</span></a>
+          <a href="/staff/marketing/promotions" data-page="promotions" title="Promotions">
+            <svg class="ic"><use href="#i-tag"/></svg><span class="lbl">Promotions</span><span class="soon-tag">Soon</span></a>
+          <a href="/staff/marketing/sms" data-page="sms" title="SMS">
+            <svg class="ic"><use href="#i-message"/></svg><span class="lbl">SMS</span><span class="soon-tag">Soon</span></a>
+          <a href="/staff/marketing/email" data-page="email" title="Email">
+            <svg class="ic"><use href="#i-mail"/></svg><span class="lbl">Email</span><span class="soon-tag">Soon</span></a>
+        </div>
       </div>
+      <a href="/staff/settings" data-page="settings" title="Settings" id="navSettings" class="hidden">
+        <svg class="ic"><use href="#i-settings"/></svg><span class="lbl">Settings</span>
+        <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span></a>
     </nav>
-    <button class="mepill" id="meBtn" data-more="me" aria-haspopup="menu" aria-expanded="false">
+    <div class="me">
       <span class="avatar" id="meInitials" aria-hidden="true"></span>
-      <span class="me-name" id="meName"></span>
-    </button>
-  </header>
+      <div class="who">
+        <div class="me-name" id="meName"></div>
+        <div class="me-role" id="meRole"></div>
+      </div>
+      <button type="button" class="iconbtn" id="signOut" title="Sign out" aria-label="Sign out">
+        <svg class="ic"><use href="#i-signout"/></svg>
+      </button>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
   <main class="main">
     <header class="pagehead">
+      <button type="button" class="iconbtn lg menu-btn" id="menuBtn" aria-label="Open menu" aria-controls="side" aria-expanded="false">
+        <svg class="ic"><use href="#i-menu"/></svg>
+      </button>
       <div class="titles">
         <h1 id="pageTitle">Dashboard</h1>
         <p class="sub" id="pageSub"></p>
@@ -677,6 +877,11 @@
       </div>
     </section>
 
+    <!-- Coming soon (Marketing) -->
+    <section class="view hidden" id="view-soon">
+      <div class="card soon-card" id="soonCard"></div>
+    </section>
+
     <!-- Settings -->
     <section class="view hidden" id="view-settings">
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
@@ -721,7 +926,7 @@
         <div class="card-head" style="margin-bottom:4px"><h2>Calendars</h2></div>
         <p class="small muted" style="margin:0 0 18px">
           Put your appointments on your own phone. Connect once and your calendar
-          app keeps itself up to date. This is your link and nobody else&rsquo;s &mdash;
+          app keeps itself up to date. This is your link and nobody else&rsquo;s:
           treat it like a password, and disconnect if it ever goes astray.
         </p>
         <div id="feeds"></div>
@@ -790,6 +995,25 @@
       <button class="btn" value="save">Add</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="personDlg" class="xl" aria-labelledby="pxName">
+  <header class="px-head">
+    <span class="avatar" id="pxAvatar" aria-hidden="true"></span>
+    <div class="who">
+      <h2 id="pxName"></h2>
+      <div class="chips" id="pxChips"></div>
+    </div>
+    <div class="acts">
+      <button type="button" class="btn" id="pxBook"><svg class="ic"><use href="#i-calendar-plus"/></svg>Book appointment</button>
+      <button type="button" class="btn quiet" id="pxEdit"><svg class="ic"><use href="#i-edit"/></svg>Edit</button>
+      <button type="button" class="iconbtn lg" id="pxClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    </div>
+  </header>
+  <div class="px-body">
+    <div class="px-left" id="pxLeft"></div>
+    <div class="px-right" id="pxRight"></div>
+  </div>
 </dialog>
 
 <dialog id="contactDlg">
@@ -882,6 +1106,7 @@ document.addEventListener('click', (e) => {
   if (!b) return;
   if (b.dataset.empty === 'appointment') openBooking(null);
   if (b.dataset.empty === 'contact') openContact(null);
+  // 'person-book' is handled by the contact profile itself.
 });
 
 // ─────────────────────────── dates ───────────────────────────
@@ -983,7 +1208,8 @@ function paintMe() {
   else pic.textContent = initials || '·';
   $('meName').textContent = me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
-  $('meBtn').title = meSubtitle;
+  $('meRole').textContent = meSubtitle;
+  $('meName').title = me.user.name;
 }
 async function signOutNow() {
   await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' });
@@ -1016,7 +1242,31 @@ const PAGES = {
     sub: 'Choose who can sign in and what they can do.',
     run: () => openMember(), load: () => showSetting(setTab),
   },
+  // Marketing: placeholders until each is built, in the same shape as Billing.
+  automation: soonPage('automation', 'Automation', 'zap',
+    'Automation recipes will live here: reminders, follow-ups and win-back messages that run on their own. Nothing is running yet.'),
+  promotions: soonPage('promotions', 'Promotions', 'tag',
+    'Seasonal announcements and client offers will be planned here. Nothing has been sent to anyone.'),
+  sms: soonPage('sms', 'SMS', 'message',
+    'Two-way text conversations with clients will live here. No texts are sent from this app yet.'),
+  email: soonPage('email', 'Email', 'mail',
+    'Newsletters and email campaigns will be written and scheduled here. Nothing is being sent from this page yet.'),
 };
+
+function soonPage(key, title, icon, copy) {
+  return {
+    path: `/staff/marketing/${key}`, title, group: 'marketing', view: 'soon',
+    sub: 'Part of Marketing, coming soon.',
+    load: () => {
+      $('soonCard').innerHTML = `
+        <span class="bubble">${ic(icon)}</span>
+        <h2>${esc(title)}</h2>
+        <span class="chip">Coming soon</span>
+        <p>${esc(copy)}</p>`;
+    },
+  };
+}
+const VIEWS = ['dashboard', 'appointments', 'contacts', 'soon', 'settings'];
 
 function pageFromUrl() {
   const seg = location.pathname.replace(/\/+$/, '').split('/').pop();
@@ -1033,17 +1283,24 @@ function go(name, { push = true } = {}) {
     if (a.dataset.page === name) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
-  for (const k of Object.keys(PAGES)) $(`view-${k}`).classList.toggle('hidden', k !== name);
+  const inMkt = p.group === 'marketing';
+  $('mktGroup').classList.toggle('has-current', inMkt);
+  if (inMkt) { $('mktGroup').classList.add('open'); $('mktToggle').setAttribute('aria-expanded', 'true'); }
+  const view = p.view || name;
+  for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
 
   $('pageTitle').textContent = p.title;
   $('pageSub').textContent = name === 'dashboard' ? greeting() : p.sub;
-  $('primaryLbl').textContent = p.action;
+  // One primary action per view, and none where there is nothing to do yet.
+  $('primaryBtn').classList.toggle('hidden', !p.action);
+  if (p.action) $('primaryLbl').textContent = p.action;
   document.title = `${p.title} · Synergy Salon`;
+  closeDrawer();
   hideMenu();
   p.load();
 }
 
-$('primaryBtn').onclick = () => PAGES[page].run();
+$('primaryBtn').onclick = () => PAGES[page].run && PAGES[page].run();
 
 // Any in-app link with data-page routes without a reload; modified clicks
 // (new tab, new window) still behave like normal links.
@@ -1057,13 +1314,29 @@ window.addEventListener('popstate', () => { if (me) go(pageFromUrl(), { push: fa
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideMenu(); });
 
-// Who is signed in, and the way out. In the sidebar these were always on
-// screen; in the capsule they live behind the chip, which is the one thing
-// there that is about the person rather than the page.
-$('meBtn').onclick = () => showMenu($('meBtn'), [
-  { label: meSubtitle || 'Signed in', run: () => {} },
-  { label: 'Sign out', danger: true, run: signOutNow },
-]);
+// The way out, always on screen at the foot of the sidebar.
+$('signOut').onclick = signOutNow;
+
+// Phone: the sidebar is a drawer behind the menu button.
+function closeDrawer() {
+  $('app').classList.remove('drawer');
+  $('menuBtn').setAttribute('aria-expanded', 'false');
+}
+$('menuBtn').onclick = () => {
+  $('app').classList.add('drawer');
+  $('menuBtn').setAttribute('aria-expanded', 'true');
+  document.querySelector('.nav a[aria-current]')?.focus();
+};
+$('scrim').onclick = closeDrawer;
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+// Marketing opens and closes in place; it is also opened for you whenever
+// one of its pages is the current one.
+$('mktToggle').onclick = () => {
+  const open = !$('mktGroup').classList.contains('open');
+  $('mktGroup').classList.toggle('open', open);
+  $('mktToggle').setAttribute('aria-expanded', String(open));
+};
 
 // ─────────────────────── overflow menu ───────────────────────
 
@@ -1375,7 +1648,7 @@ function renderMonth(d) {
     const cls = a.status === 'cancelled' ? 'off' : (a.syncedToCentro ? '' : 'pending');
     const title = `${a.time} · ${a.guestName} · ${a.service} with ${a.stylist}`
       + (a.status === 'cancelled' ? ' (cancelled)' : '')
-      + (a.syncedToCentro ? '' : ' — not in CENTRO yet');
+      + (a.syncedToCentro ? '' : ' · not in CENTRO yet');
     return `<button class="cal-ev ${cls}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
               title="${esc(title)}"><b>${esc(a.time.replace(':00', ''))}</b> ${esc(a.guestName)}</button>`;
   };
@@ -1469,9 +1742,9 @@ function renderContacts(d, filtered) {
     <table class="stack">
       <thead><tr><th>Name</th><th>Phone and email</th><th>Source</th><th>Visits</th><th>Next</th><th><span class="sr">Actions</span></th></tr></thead>
       <tbody>${d.contacts.map((c) => `
-        <tr>
+        <tr class="clickable" data-open="${esc(c.id)}">
           <td style="min-width:170px">
-            <div class="name">${esc(c.name)}</div>
+            <button type="button" class="rowlink name" data-open="${esc(c.id)}">${esc(c.name)}</button>
             <div class="chips">
               <span class="chip">${esc(STATUS_LABEL[c.status] || c.status)}</span>
               ${c.inCentro ? '' : '<span class="chip info" title="They will be sent to CENTRO automatically.">Not in CENTRO yet</span>'}
@@ -1502,6 +1775,12 @@ $('contacts').onclick = (e) => {
   const book = e.target.closest('button[data-book]');
   const more = e.target.closest('button[data-more]');
   const id = book?.dataset.book || more?.dataset.more;
+  // Anywhere else on the row opens the person's profile.
+  if (!id) {
+    const row = e.target.closest('[data-open]');
+    if (row && !e.target.closest('a')) openPerson(row.dataset.open);
+    return;
+  }
   const c = contactList.find((x) => String(x.id) === id);
   if (!c) return;
   if (book) { openBooking(c); return; }
@@ -1524,6 +1803,201 @@ async function deleteContact(c) {
     await loadContacts();
   } catch (err) { fail(err); }
 }
+
+// ───────────────────────── contact profile ─────────────────────────
+
+let person = null;          // { contact, appointments, activity } for the open profile
+let tlFilter = 'all';
+
+const TL_TYPES = [
+  ['all', 'All'], ['appointment', 'Appointments'], ['email', 'Email'],
+  ['sms', 'SMS'], ['automation', 'Automations'], ['form', 'Forms'],
+];
+const TL_ICON = { appointment: 'calendar', email: 'mail', sms: 'message', automation: 'zap', form: 'form', sync: 'sync', lead: 'user' };
+
+function fmtWhen(iso, opts) {
+  return new Date(iso).toLocaleString('en-US', { ...opts, ...(me?.salon?.timezone ? { timeZone: me.salon.timezone } : {}) });
+}
+function ago(iso) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 0) return 'upcoming';
+  if (s < 60) return 'just now';
+  const m = s / 60, h = m / 60, d = h / 24;
+  if (m < 60) return `${Math.round(m)} min ago`;
+  if (h < 24) return `${Math.round(h)} hr ago`;
+  if (d < 30) return `${Math.round(d)} day${Math.round(d) === 1 ? '' : 's'} ago`;
+  const mo = d / 30.4;
+  if (mo < 12) return `${Math.round(mo)} mo ago`;
+  return `${Math.round(mo / 12)} yr ago`;
+}
+function initialsOf(name) {
+  return (name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '·';
+}
+
+async function openPerson(id) {
+  const c = contactList.find((x) => String(x.id) === String(id));
+  person = null;
+  tlFilter = 'all';
+  // Paint what the list already knows at once, then fill in the rest.
+  $('pxAvatar').textContent = initialsOf(c?.name);
+  $('pxName').textContent = c?.name || '';
+  $('pxChips').innerHTML = c ? personChips(c) : '';
+  $('pxLeft').innerHTML = skeleton(6);
+  $('pxRight').innerHTML = skeleton(5);
+  const dlg = $('personDlg');
+  dlg.classList.remove('closing');
+  if (!dlg.open) dlg.showModal();
+  try {
+    person = await api(`/api/staff/contacts?id=${encodeURIComponent(id)}`);
+    renderPerson();
+  } catch (err) {
+    if (err.message === 'signed out') return;
+    $('pxLeft').innerHTML = '';
+    $('pxRight').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this contact', text: err.message });
+  }
+}
+
+function personChips(c) {
+  return [
+    `<span class="chip">${esc(STATUS_LABEL[c.status] || c.status)}</span>`,
+    c.source ? `<span class="chip">${esc(c.source)}</span>` : '',
+    c.inCentro
+      ? '<span class="chip ok">In CENTRO</span>'
+      : '<span class="chip info" title="They will be sent to CENTRO automatically.">Not in CENTRO yet</span>',
+  ].join(' ');
+}
+
+function renderPerson() {
+  const { contact: c, appointments: appts, activity } = person;
+  $('pxAvatar').textContent = initialsOf(c.name);
+  $('pxName').textContent = c.name;
+  $('pxChips').innerHTML = personChips(c);
+
+  const dash = '<span class="muted">–</span>';
+  const upcoming = appts.filter((a) => a.status === 'booked' && new Date(a.startsAt) > Date.now())
+    .sort((x, y) => new Date(x.startsAt) - new Date(y.startsAt));
+  const past = appts.filter((a) => !upcoming.includes(a));
+  const visits = appts.filter((a) => a.status !== 'cancelled').length;
+  const short = (iso) => fmtWhen(iso, { month: 'short', day: 'numeric', year: 'numeric' });
+  const apptRow = (a) => `<li>
+      <span class="when">${esc(fmtWhen(a.startsAt, { month: 'short', day: 'numeric' }))}</span>
+      <span class="what" title="${esc(a.service)} with ${esc(a.stylist)}">${esc(a.service)} · ${esc(a.stylist)}</span>
+      ${a.status === 'cancelled' ? '<span class="chip warn">Cancelled</span>'
+        : a.status === 'completed' ? '<span class="chip ok">Done</span>'
+        : a.status === 'no_show' ? '<span class="chip warn">No show</span>'
+        : new Date(a.startsAt) > Date.now() ? '<span class="chip info">Upcoming</span>' : '<span class="chip">Booked</span>'}
+    </li>`;
+
+  $('pxLeft').innerHTML = `
+    <section class="px-sec">
+      <h3>Contact</h3>
+      <dl class="px-dl">
+        <dt>Phone</dt><dd>${c.phone ? `<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : dash}</dd>
+        <dt>Email</dt><dd>${c.email ? `<a class="email" href="mailto:${esc(c.email)}">${esc(c.email).replace('@', '<wbr>@')}</a>` : dash}</dd>
+        <dt>Source</dt><dd>${esc(c.source || '') || dash}</dd>
+        <dt>Added</dt><dd>${esc(short(c.createdAt))}</dd>
+      </dl>
+    </section>
+    <section class="px-sec">
+      <h3>Appointments</h3>
+      <div class="px-stats">
+        <div><b>${visits}</b><span>Visits</span></div>
+        <div><b>${upcoming[0] ? esc(fmtWhen(upcoming[0].startsAt, { month: 'short', day: 'numeric' })) : '–'}</b><span>Next</span></div>
+        <div><b>${c.lastVisitAt ? esc(fmtWhen(c.lastVisitAt, { month: 'short', day: 'numeric' })) : '–'}</b><span>Last visit</span></div>
+      </div>
+      ${appts.length
+        ? `<ul class="px-appts">${[...upcoming, ...past].slice(0, 5).map(apptRow).join('')}</ul>`
+        : `<p class="px-none">${ic('calendar')}No appointments yet.</p>`}
+    </section>
+    <section class="px-sec">
+      <h3>Tags and status</h3>
+      <div class="chips">${personChips(c)}</div>
+    </section>
+    <section class="px-sec">
+      <h3>Notes</h3>
+      ${c.notes ? `<p class="small" style="margin:0;white-space:pre-line">${esc(c.notes)}</p>` : `<p class="px-none">${ic('edit')}No notes yet.</p>`}
+    </section>
+    <section class="px-sec">
+      <h3>Documents</h3>
+      <p class="px-none">${ic('doc')}No documents yet.</p>
+    </section>
+    ${me?.user?.canAdmin ? '<div class="px-danger"><button type="button" id="pxDelete">Delete contact</button></div>' : ''}`;
+
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const all = person.activity;
+  const count = (t) => (t === 'all' ? all.length : all.filter((e) => e.type === t).length);
+  const shown = tlFilter === 'all' ? all : all.filter((e) => e.type === tlFilter);
+  const filters = TL_TYPES.map(([t, label]) =>
+    `<button type="button" data-tl="${t}" aria-pressed="${tlFilter === t}">${esc(label)} <span class="n">${count(t)}</span></button>`).join('');
+
+  let body;
+  if (!all.length) {
+    body = emptyState({
+      icon: 'calendar', title: 'No activity yet',
+      text: 'Bookings, reminders and form submissions for this person will appear here as they happen.',
+      action: 'person-book', actionLabel: 'Book appointment',
+    });
+  } else if (!shown.length) {
+    const why = {
+      sms: 'Texting clients from this app is coming soon, so there are no messages to show yet.',
+      automation: 'Automations are coming soon. Nothing has run for this person.',
+      email: 'No emails have been sent to this person yet.',
+      form: 'This person did not come in through the website form.',
+      appointment: 'No appointments yet.',
+    }[tlFilter];
+    body = `<p class="px-none" style="padding:12px 0">${ic(TL_ICON[tlFilter] || 'info')}${esc(why || 'Nothing here yet.')}</p>`;
+  } else {
+    body = `<ol class="tl">${shown.map((e) => `
+      <li class="t-${esc(e.type)}">
+        <span class="dot">${ic(TL_ICON[e.type] || 'info')}</span>
+        <div class="what"><b>${esc(e.title)}</b>
+          ${e.detail ? `<span>${esc(e.detail)}</span>` : ''}
+          ${e.ref ? `<span class="ref">Ref ${esc(e.ref)}</span>` : ''}</div>
+        <time datetime="${esc(e.at)}"><b>${esc(ago(e.at))}</b>${esc(fmtWhen(e.at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))}</time>
+      </li>`).join('')}</ol>`;
+  }
+  $('pxRight').innerHTML = `<div class="tl-head"><h3>Activity</h3><div class="tl-filters" role="group" aria-label="Filter activity">${filters}</div></div>${body}`;
+}
+
+$('pxRight').onclick = (e) => {
+  const f = e.target.closest('button[data-tl]');
+  if (f) { tlFilter = f.dataset.tl; renderTimeline(); return; }
+  if (e.target.closest('button[data-empty="person-book"]')) bookFromPerson();
+};
+
+function closePerson() {
+  const dlg = $('personDlg');
+  if (!dlg.open) return;
+  // Let the exit fade finish, unless motion is reduced.
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { dlg.close(); return; }
+  dlg.classList.add('closing');
+  setTimeout(() => { dlg.classList.remove('closing'); dlg.close(); }, 140);
+}
+$('pxClose').onclick = closePerson;
+$('personDlg').addEventListener('cancel', (e) => { e.preventDefault(); closePerson(); });
+$('personDlg').addEventListener('click', (e) => { if (e.target === $('personDlg')) closePerson(); });
+
+function currentPerson() {
+  const c = person?.contact || null;
+  return c && { ...c, nextVisit: person.appointments.some((a) => a.status === 'booked' && new Date(a.startsAt) > Date.now()) };
+}
+function bookFromPerson() {
+  const c = currentPerson(); if (!c) return;
+  closePerson(); setTimeout(() => openBooking(c), 150);
+}
+$('pxBook').onclick = bookFromPerson;
+$('pxEdit').onclick = () => {
+  const c = currentPerson(); if (!c) return;
+  closePerson(); setTimeout(() => openContact(c), 150);
+};
+$('pxLeft').onclick = (e) => {
+  if (!e.target.closest('#pxDelete')) return;
+  const c = currentPerson(); if (!c) return;
+  closePerson(); setTimeout(() => deleteContact(c), 150);
+};
 
 let searchTimer = null;
 let contactSeq = 0;
@@ -2047,7 +2521,7 @@ const TICK = '<svg viewBox="0 0 24 24"><path d="m5 13 4.5 4.5L19 7"/></svg>';
  * Google is the odd one out, and deliberately so.
  *
  * The other two are subscriptions: we hand over a URL and hope a calendar app
- * eventually fetches it. Google is *granted* — the person signs in, picks an
+ * eventually fetches it. Google is *granted*: the person signs in, picks an
  * account and agrees, and from then on appointments are written into that
  * calendar as real events. So this card knows for certain whether it is on,
  * and which account it is on, rather than inferring it from a user agent.
@@ -2136,7 +2610,7 @@ function renderFeeds(d) {
          <b>Connected.</b> Your calendar app last checked ${esc(agoText(d.lastFetch))}.
        </span></div>`
     : `<div class="waiting"><span class="dot"></span><span>
-         Not connected yet. Pick your calendar app below &mdash; this turns green once it
+         Not connected yet. Pick your calendar app below; this turns green once it
          comes and fetches your appointments, usually within a few minutes.
        </span></div>`;
 
@@ -2222,7 +2696,7 @@ $('feeds').onclick = async (e) => {
     } catch {
       // Clipboard access is refused outside a secure context and in some
       // embedded browsers; selecting it by hand still works.
-      toast('Couldn’t copy automatically — select the link and copy it.', 'bad');
+      toast('Couldn’t copy automatically. Select the link and copy it.', 'bad');
     }
     return;
   }

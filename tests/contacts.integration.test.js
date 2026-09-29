@@ -13,7 +13,8 @@ import { DateTime } from 'luxon';
 import pg from 'pg';
 
 import { DEFAULT_TZ } from '../api/_lib/config.js';
-import { removeContact } from '../api/staff/_routes/contacts.js';
+import { pool } from '../api/_lib/db.js';
+import { contactDetail, removeContact } from '../api/staff/_routes/contacts.js';
 
 const url = process.env.DATABASE_URL;
 const skip = url ? false : 'DATABASE_URL is not set';
@@ -167,5 +168,48 @@ test('an unknown contact is reported, not silently accepted', { skip }, async ()
     assert.equal(removed, null);
   } finally {
     await client.end();
+  }
+});
+
+test('a contact\'s detail shows what really happened, newest first, and nothing else', { skip }, async () => {
+  const client = connect();
+  await client.connect();
+  try {
+    await cleanup(client);
+    const tenant = await tenantId(client);
+    const id = await addContact(client, tenant);
+    // Came in through the website wizard, which is what a session id means.
+    await client.query("UPDATE contacts SET session_id = 'zz-session', source = 'Instagram' WHERE id = $1", [id]);
+    await addAppointment(client, id, { ref: 'ZZDELD', start: PAST, status: 'completed' });
+    await client.query("UPDATE appointments SET reminder_sent_at = $1::timestamptz WHERE ref = 'ZZDELD'",
+                       [PAST.minus({ days: 1 }).toISO()]);
+    await addAppointment(client, id, { ref: 'ZZDELE', start: FUTURE });
+    await client.query(
+      `INSERT INTO sync_outbox (tenant_id, kind, contact_id, state, done_at)
+       VALUES ($1, 'contact.created', $2, 'done', now())`,
+      [tenant, id],
+    );
+
+    const d = await contactDetail(tenant, id);
+    assert.equal(d.contact.name, 'ZZ Delete Me');
+    assert.deepEqual(d.appointments.map((a) => a.ref), ['ZZDELE', 'ZZDELD']);
+
+    const titles = d.activity.map((e) => e.title);
+    assert.ok(titles.includes('Filled in the website booking form'));
+    assert.ok(titles.includes('Reminder email sent'));
+    assert.ok(titles.includes('Marked as done'));
+    assert.ok(titles.includes('Sent to CENTRO'));
+    assert.equal(titles.filter((t) => t === 'Booked by staff' || t === 'Booked online').length, 2);
+    // No messaging history exists yet, so none is shown.
+    assert.ok(!d.activity.some((e) => e.type === 'sms' || e.type === 'automation'));
+    const times = d.activity.map((e) => new Date(e.at).getTime());
+    assert.deepEqual(times, [...times].sort((x, y) => y - x));
+
+    assert.equal(await contactDetail(tenant, '00000000-0000-0000-0000-000000000000'), null);
+  } finally {
+    await cleanup(client).catch(() => {});
+    await client.end();
+    await pool().end().catch(() => {});
+    globalThis.__synergyPool = undefined;
   }
 });

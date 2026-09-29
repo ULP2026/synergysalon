@@ -1,7 +1,8 @@
 /**
- * /api/staff/contacts — everyone the salon knows.
+ * /api/staff/contacts: everyone the salon knows.
  *
  *   GET     ?q=&status=&limit=   search and list
+ *   GET     ?id=                 one person, their appointments and activity
  *   POST                         add somebody
  *   PATCH                        edit somebody
  *   DELETE                       remove somebody, here and in CENTRO
@@ -14,7 +15,7 @@ import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { enqueueSync } from '../../_lib/booking.js';
 import { query, transaction } from '../../_lib/db.js';
 import {
-  HttpError, handler, json, optionalPhone, readJson, requireString,
+  HttpError, handler, json, optionalPhone, readJson, requireId, requireString,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { drain } from '../../cron/sync.js';
@@ -88,11 +89,121 @@ export async function removeContact(client, tenantId, id) {
   return { name: contact.name, cancelled: cancelled.length, inCentro: Boolean(contact.ghl_contact_id) };
 }
 
+/**
+ * One contact for the detail view: who they are, their appointments, and a
+ * timeline of what has actually happened with them.
+ *
+ * Every event comes from a timestamp the system already records. Nothing is
+ * inferred and nothing is padded: there is no SMS or automation history yet,
+ * so there are no SMS or automation events, rather than placeholders that
+ * look like activity. The console says so instead.
+ */
+export async function contactDetail(tenantId, id) {
+  const { rows: found } = await query(
+    `SELECT id, name, email, phone, source, status, notes, created_at,
+            first_booked_at, last_visit_at, ghl_contact_id, session_id
+       FROM contacts WHERE id = $1::uuid AND tenant_id = $2::uuid`,
+    [id, tenantId],
+  );
+  const c = found[0];
+  if (!c) return null;
+
+  const { rows: appts } = await query(
+    `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.status, a.channel,
+            a.created_at, a.updated_at, a.cancelled_at, a.checked_in_at,
+            a.reminder_sent_at, a.ghl_appointment_id,
+            s.name AS stylist, v.name AS service
+       FROM appointments a
+       JOIN stylists s ON s.id = a.stylist_id
+       JOIN services v ON v.id = a.service_id
+      WHERE a.contact_id = $1::uuid AND a.tenant_id = $2::uuid
+      ORDER BY a.starts_at DESC
+      LIMIT 100`,
+    [id, tenantId],
+  );
+
+  // Pushes to CENTRO that went through, for this person or their bookings.
+  const { rows: synced } = await query(
+    `SELECT kind, done_at FROM sync_outbox
+      WHERE tenant_id = $2::uuid AND state = 'done' AND done_at IS NOT NULL
+        AND (contact_id = $1::uuid
+             OR appointment_id IN (SELECT id FROM appointments WHERE contact_id = $1::uuid))
+      ORDER BY done_at DESC
+      LIMIT 100`,
+    [id, tenantId],
+  );
+
+  const activity = [];
+  const add = (type, at, title, detail = '', ref = null) => {
+    if (at) activity.push({ type, at, title, detail, ref });
+  };
+
+  // A contact with a booking session came in through the website wizard.
+  add(c.session_id ? 'form' : 'lead', c.created_at,
+      c.session_id ? 'Filled in the website booking form' : 'Added as a contact',
+      c.source ? `Source: ${c.source}` : '');
+
+  for (const a of appts) {
+    const what = `${a.service} with ${a.stylist}`;
+    add('appointment', a.created_at, a.channel === 'staff' ? 'Booked by staff' : 'Booked online',
+        what, a.ref);
+    add('appointment', a.checked_in_at, 'Checked in', what, a.ref);
+    add('appointment', a.cancelled_at, 'Appointment cancelled', what, a.ref);
+    // These two have no timestamp of their own; the last update is when
+    // somebody marked them.
+    if (a.status === 'completed') add('appointment', a.updated_at, 'Marked as done', what, a.ref);
+    if (a.status === 'no_show') add('appointment', a.updated_at, 'Didn’t show up', what, a.ref);
+    add('email', a.reminder_sent_at, 'Reminder email sent', what, a.ref);
+  }
+  for (const s of synced) {
+    add('sync', s.done_at, 'Sent to CENTRO', s.kind.replace('.', ' ').replace(/_/g, ' '));
+  }
+  activity.sort((x, y) => new Date(y.at) - new Date(x.at));
+
+  return {
+    contact: {
+      id: c.id,
+      name: c.name,
+      email: c.email,
+      phone: c.phone,
+      source: c.source,
+      status: c.status,
+      notes: c.notes,
+      createdAt: c.created_at,
+      firstBookedAt: c.first_booked_at,
+      lastVisitAt: c.last_visit_at,
+      inCentro: Boolean(c.ghl_contact_id),
+    },
+    appointments: appts.map((a) => ({
+      ref: a.ref,
+      startsAt: a.starts_at,
+      durationMin: a.duration_min,
+      status: a.status,
+      channel: a.channel,
+      checkedInAt: a.checked_in_at,
+      service: a.service,
+      stylist: a.stylist,
+      syncedToCentro: Boolean(a.ghl_appointment_id),
+    })),
+    activity,
+  };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
     const url = new URL(req.url, 'http://localhost');
+
+    if (url.searchParams.has('id')) {
+      const id = requireId(url.searchParams.get('id'), 'Contact');
+      // Anything that is not a uuid cannot be a contact; saying so beats a
+      // cast error from Postgres.
+      const detail = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
+        ? await contactDetail(tenant.id, id) : null;
+      if (!detail) throw new HttpError(404, 'No such contact.');
+      return json(res, 200, detail);
+    }
 
     const q = (url.searchParams.get('q') || '').trim().slice(0, 80);
     const status = url.searchParams.get('status');
@@ -189,7 +300,7 @@ export default handler({
   },
 
   /**
-   * PATCH — edit somebody's details.
+   * PATCH: edit somebody's details.
    *
    * The change is pushed to CENTRO by id rather than by matching on email or
    * phone. Correcting either of those is the most common edit there is, and
