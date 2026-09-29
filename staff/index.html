@@ -689,6 +689,19 @@
   @keyframes view-in { from { opacity: 0; transform: translateY(4px); } }
 
 
+  /* ── Settings, CENTRO: stylist links and the booking test ─────────── */
+  .cx-sec { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+  .cx-sec h3 { margin: 0 0 6px; font-size: 1rem; }
+  .cx-sec > p { margin: 0 0 14px; max-width: 72ch; line-height: 1.55; }
+  .cx-list { display: grid; gap: 8px; }
+  .cx-row { display: grid; grid-template-columns: minmax(0, 1fr) 240px auto; align-items: center; gap: 12px;
+            padding: 12px 14px; border-radius: 14px; background: var(--raise); }
+  .cx-name { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+  .cx-row select { height: 38px; }
+  @media (max-width: 720px) {
+    .cx-row { grid-template-columns: 1fr; }
+  }
+
   /* ── contact detail: a large two-column profile ─────────────────────── */
   dialog.xl { max-width: 1140px; width: calc(100% - 48px); height: min(840px, calc(100dvh - 48px));
               padding: 0; overflow: hidden; }
@@ -2854,6 +2867,87 @@ function renderCentro(r) {
     </div>`;
   $('centroRetry').onclick = async (e) => { e.currentTarget.disabled = true; await loadCentro(true); };
   $('centroCheck').onclick = () => loadCentro();
+  $('centro').insertAdjacentHTML('beforeend', `
+    <div class="cx-sec">
+      <h3>Stylists&rsquo; hours from CENTRO</h3>
+      <p class="small muted">Online, each stylist is offered only the times CENTRO says they are free: the hours set for
+        them on the calendar, anything already booked there, and the calendars they connected in CENTRO. Link each
+        stylist to their CENTRO user. A stylist who is not linked is not offered online.</p>
+      <div id="cxStylists">${skeleton(3)}</div>
+    </div>
+    <div class="cx-sec">
+      <h3>Test online booking</h3>
+      <p class="small muted">Online booking is paused and the website shows &ldquo;coming soon&rdquo;. This opens the real
+        booking popup in a new tab for you only, for 12 hours. Bookings made there are real: name test guests
+        &ldquo;ZZ&rdquo; and delete them afterwards, here and in CENTRO.</p>
+      <button type="button" class="btn" id="cxPreview">${ic('calendar-plus')}<span>Open booking test</span></button>
+    </div>`);
+  $('cxPreview').onclick = async (e) => {
+    const b = e.currentTarget;
+    // Opened before the request so the browser does not treat it as a popup.
+    const tab = window.open('about:blank', '_blank');
+    b.disabled = true;
+    try {
+      const r = await api('/api/staff/centro', { method: 'POST', body: JSON.stringify({ action: 'preview' }) });
+      if (tab) tab.location = r.url; else location.href = r.url;
+    } catch (err) { if (tab) tab.close(); fail(err); }
+    b.disabled = false;
+  };
+  loadStylistLinks();
+}
+
+async function loadStylistLinks() {
+  try {
+    renderStylistLinks(await api('/api/staff/centro?stylists=1'));
+  } catch (err) {
+    if (err.message !== 'signed out' && $('cxStylists')) {
+      $('cxStylists').innerHTML = `<div class="note bad">${ic('info')}<span>${esc(err.message)}</span></div>`;
+    }
+  }
+}
+
+function renderStylistLinks(d) {
+  const box = $('cxStylists');
+  if (!box) return;
+  if (!d.linked) { box.innerHTML = '<p class="small muted">Link the salon to CENTRO first.</p>'; return; }
+  const label = (m) => m.name || `CENTRO user ${m.id.slice(-6)}`;
+  const tz = me?.salon?.timezone ? { timeZone: me.salon.timezone } : {};
+  box.innerHTML = `<div class="cx-list">${d.stylists.map((s) => {
+    const pick = s.ghlUserId || s.suggest || '';
+    const known = d.team.some((m) => m.id === s.ghlUserId);
+    const status = s.ghlUserId
+      ? (s.next
+        ? `<span class="chip ok">Next free ${esc(new Date(s.next).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', ...tz }))}</span>`
+        : `<span class="chip warn">${esc(s.note || 'No free times')}</span>`)
+      : '<span class="chip info">Not linked, not offered online</span>';
+    return `<div class="cx-row" data-stylist="${esc(s.slug)}">
+      <div class="cx-name"><strong>${esc(s.name)}</strong>${status}
+        ${s.ghlUserId && !s.onCalendar ? '<div class="small" style="color:var(--warn);margin-top:4px">This user is not on the CENTRO calendar, so bookings for them are refused.</div>' : ''}</div>
+      <select aria-label="CENTRO user for ${esc(s.name)}">
+        <option value="">Not linked</option>
+        ${d.team.map((m) => `<option value="${esc(m.id)}" ${m.id === pick ? 'selected' : ''}>${esc(label(m))}</option>`).join('')}
+        ${s.ghlUserId && !known ? `<option value="${esc(s.ghlUserId)}" selected>${esc(`CENTRO user ${s.ghlUserId.slice(-6)}`)}</option>` : ''}
+      </select>
+      <button type="button" class="btn quiet" data-save ${pick === (s.ghlUserId || '') ? 'disabled' : ''}>${s.suggest && !s.ghlUserId ? 'Link' : 'Save'}</button>
+    </div>`;
+  }).join('')}</div>`;
+  box.onchange = (e) => {
+    const row = e.target.closest('.cx-row');
+    if (row) row.querySelector('[data-save]').disabled = false;
+  };
+  box.onclick = async (e) => {
+    const btn = e.target.closest('[data-save]');
+    if (!btn) return;
+    const row = btn.closest('.cx-row');
+    btn.disabled = true;
+    try {
+      await api('/api/staff/centro', { method: 'POST', body: JSON.stringify({
+        action: 'link', stylist: row.dataset.stylist, ghlUserId: row.querySelector('select').value || null,
+      }) });
+      toast('Saved. Checking CENTRO for their free times…');
+      await loadStylistLinks();
+    } catch (err) { fail(err); btn.disabled = false; }
+  };
 }
 
 document.addEventListener('click', (e) => {
