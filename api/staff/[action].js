@@ -15,12 +15,14 @@ import { json } from '../_lib/http.js';
 import appointment from './_routes/appointment.js';
 import availability from './_routes/availability.js';
 import book from './_routes/book.js';
+import business from './_routes/business.js';
 import calendars from './_routes/calendars.js';
 import contacts from './_routes/contacts.js';
 import diary from './_routes/diary.js';
 import login from './_routes/login.js';
 import logout from './_routes/logout.js';
 import me from './_routes/me.js';
+import profile from './_routes/profile.js';
 import requestAccess from './_routes/request-access.js';
 import team from './_routes/team.js';
 
@@ -28,12 +30,14 @@ const ROUTES = {
   appointment,
   availability,
   book,
+  business,
   calendars,
   contacts,
   diary,
   login,
   logout,
   me,
+  profile,
   'request-access': requestAccess,
   team,
 };

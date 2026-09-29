@@ -34,7 +34,10 @@ export default handler({
     ]);
 
     return json(res, 200, {
-      user: { name: user.name, email: user.email, role: user.role, canAdmin },
+      user: {
+        name: user.name, email: user.email, role: user.role, canAdmin,
+        avatar: user.avatar ?? null,
+      },
       pendingApprovals: pending.rows[0].n,
       salon: { name: tenant.name, timezone: tenant.timezone },
       services: services.rows.map((s) => ({

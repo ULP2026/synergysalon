@@ -70,7 +70,7 @@ export async function currentUser(req) {
   if (!token) return null;
 
   const { rows } = await query(
-    `SELECT u.id, u.tenant_id, u.email, u.name, u.role, u.active, u.status,
+    `SELECT u.id, u.tenant_id, u.email, u.name, u.role, u.active, u.status, u.avatar,
             s.id AS session_id, s.last_seen_at, t.slug AS tenant_slug, t.timezone
        FROM staff_sessions s
        JOIN staff_users u ON u.id = s.user_id

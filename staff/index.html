@@ -268,8 +268,10 @@
     font-weight: 600; font-size: var(--fs-sm); max-width: 16ch;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .avatar {
     display: grid; place-items: center; width: 36px; height: 36px; flex: none;
+    overflow: hidden;
     border-radius: 50%; background: var(--periwinkle); color: #fff;
     font-weight: 650; font-size: .88rem;
   }
@@ -447,6 +449,26 @@
                white-space:nowrap; background:var(--raise); border:1px solid var(--line);
                border-radius:8px; padding:8px 10px; font-size:var(--fs-xs); color:var(--muted); }
   .feed .acts { display:flex; gap:8px; flex:0 0 auto; }
+
+  .wrapseg { flex-wrap:wrap; align-self:flex-start; margin-bottom:2px; }
+  .setpane { }
+  .soon { padding:18px 0 8px; }
+  .prow { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  .pic { width:76px; height:76px; border-radius:50%; flex:none; object-fit:cover;
+         background:var(--periwinkle); color:#fff; display:grid; place-items:center;
+         font-weight:650; font-size:1.5rem; overflow:hidden; }
+  .pic img { width:100%; height:100%; object-fit:cover; display:block; }
+  .logo-box { width:110px; height:110px; border-radius:14px; border:1px dashed var(--line-2);
+              background:var(--raise); display:grid; place-items:center; overflow:hidden; flex:none; }
+  .logo-box img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:0 18px; }
+  .fields .wide { grid-column:1/-1; }
+  .subhead { margin:26px 0 12px; padding-top:20px; border-top:1px solid var(--line);
+             font-size:var(--fs-md); font-weight:650; }
+  .readonly { display:flex; gap:22px; flex-wrap:wrap; margin-top:18px; padding-top:16px;
+              border-top:1px solid var(--line); }
+  .readonly div span { display:block; font-size:var(--fs-xs); text-transform:uppercase;
+              letter-spacing:.06em; color:var(--faint); font-weight:650; margin-bottom:2px; }
 </style>
 </head>
 <body>
@@ -611,7 +633,35 @@
 
     <!-- Settings -->
     <section class="view hidden" id="view-settings">
-      <div class="card fill">
+      <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
+        <button type="button" data-set="profile" aria-pressed="true">My profile</button>
+        <button type="button" data-set="business" aria-pressed="false">Business profile</button>
+        <button type="button" data-set="team" aria-pressed="false">Team</button>
+        <button type="button" data-set="calendars" aria-pressed="false">Calendars</button>
+        <button type="button" data-set="billing" aria-pressed="false">Billing</button>
+      </div>
+
+      <!-- My profile -->
+      <div class="card setpane" id="set-profile">
+        <div class="card-head" style="margin-bottom:4px"><h2>My profile</h2></div>
+        <p class="small muted" style="margin:0 0 18px">
+          Your picture and details. Only you can change these.
+        </p>
+        <div id="profile"></div>
+      </div>
+
+      <!-- Business profile -->
+      <div class="card setpane hidden" id="set-business">
+        <div class="card-head" style="margin-bottom:4px"><h2>Business profile</h2></div>
+        <p class="small muted" style="margin:0 0 18px">
+          What customers see: the name on the booking page, the logo and how to reach you.
+          Only the owner can change this.
+        </p>
+        <div id="business"></div>
+      </div>
+
+      <!-- Team -->
+      <div class="card setpane hidden" id="set-team">
         <div class="card-head" style="margin-bottom:4px"><h2>Team</h2></div>
         <p class="small muted" style="margin:0 0 18px">
           People waiting for approval are listed first. Approving lets them sign in;
@@ -620,16 +670,28 @@
         <div id="team" style="flex:1;display:flex;flex-direction:column"></div>
       </div>
 
-      <div class="card">
-        <div class="card-head" style="margin-bottom:4px"><h2>Calendar feeds</h2></div>
+      <!-- Calendars -->
+      <div class="card setpane hidden" id="set-calendars">
+        <div class="card-head" style="margin-bottom:4px"><h2>Calendars</h2></div>
         <p class="small muted" style="margin:0 0 18px">
-          Each stylist can add their own link to Google Calendar, Apple Calendar or
-          Outlook and see their appointments on their phone, kept up to date
-          automatically. The link is a password — anyone who has it can read that
-          diary — so send it to the stylist directly and regenerate it if it goes
-          astray. Changes here are read-only: the salon’s diary stays the diary.
+          Add your link to Google Calendar, Apple Calendar or Outlook and your appointments
+          appear on your own phone, kept up to date automatically. The link is a password —
+          anyone holding it can read that diary — so send it to the person directly and
+          regenerate it if it goes astray. It is read-only: the salon’s diary stays the diary.
         </p>
         <div id="feeds"></div>
+      </div>
+
+      <!-- Billing -->
+      <div class="card setpane hidden" id="set-billing">
+        <div class="card-head" style="margin-bottom:4px"><h2>Billing</h2></div>
+        <div class="soon">
+          <span class="chip">Coming soon</span>
+          <p class="small muted" style="margin:12px 0 0;max-width:46ch">
+            Plans, invoices and payment details will live here. Nothing is being
+            charged today.
+          </p>
+        </div>
       </div>
     </section>
   </main>
@@ -866,6 +928,18 @@ $('requestForm').onsubmit = async (e) => {
 };
 
 let meSubtitle = '';
+
+/** The chip in the corner, painted from whatever `me` currently holds. */
+function paintMe() {
+  const initials = me.user.name.split(/\s+/).filter(Boolean).slice(0, 2)
+    .map((w) => w[0]).join('').toUpperCase();
+  const pic = $('meInitials');
+  if (me.user.avatar) pic.innerHTML = `<img src="${esc(me.user.avatar)}" alt="">`;
+  else pic.textContent = initials || '·';
+  $('meName').textContent = me.user.name;
+  meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
+  $('meBtn').title = meSubtitle;
+}
 async function signOutNow() {
   await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' });
   history.replaceState(null, '', '/staff');
@@ -895,7 +969,7 @@ const PAGES = {
   settings: {
     path: '/staff/settings', title: 'Settings', action: 'Add team member',
     sub: 'Choose who can sign in and what they can do.',
-    run: () => openMember(), load: () => { loadTeam(); loadFeeds(); },
+    run: () => openMember(), load: () => showSetting(setTab),
   },
 };
 
@@ -1666,6 +1740,223 @@ $('team').onchange = async (e) => {
   } catch (err) { fail(err); loadTeam(); }
 };
 
+// ─────────────────────── settings sections ───────────────────────
+
+let setTab = 'profile';
+
+function showSetting(name) {
+  // Everyone can see the business profile even though only the owner may edit
+  // it: a stylist should be able to check the address a customer was given.
+  setTab = name;
+  for (const b of $('setSeg').querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', String(b.dataset.set === name));
+  }
+  for (const k of ['profile', 'business', 'team', 'calendars', 'billing']) {
+    $('set-' + k).classList.toggle('hidden', k !== name);
+  }
+  if (name === 'profile') loadProfile();
+  if (name === 'business') loadBusiness();
+  if (name === 'team') loadTeam();
+  if (name === 'calendars') loadFeeds();
+}
+$('setSeg').onclick = (e) => {
+  const b = e.target.closest('button[data-set]');
+  if (b && b.dataset.set !== setTab) showSetting(b.dataset.set);
+};
+
+/**
+ * Shrink a chosen picture in the browser before it is ever sent.
+ *
+ * A phone camera produces four megabytes; an avatar is shown at 76 pixels.
+ * Resizing here keeps the row small and the upload instant on a salon's wifi,
+ * and means no bucket, credentials or lifecycle rules are needed for
+ * something the size of a favicon.
+ */
+function shrink(file, box, type = 'image/jpeg') {
+  return new Promise((resolve, reject) => {
+    if (!/^image\//.test(file.type)) return reject(new Error('That is not an image.'));
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, box / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const c = Object.assign(document.createElement('canvas'), { width: w, height: h });
+      const g = c.getContext('2d');
+      // A logo is often a PNG with a transparent background; flattening it
+      // onto white beats the black a JPEG would give it.
+      if (type === 'image/jpeg') { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); }
+      g.drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL(type, 0.86));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('That image could not be read.')); };
+    img.src = url;
+  });
+}
+
+// ── my profile ──────────────────────────────────────────────────────────
+let profileData = null;
+
+function renderProfile(d) {
+  profileData = d;
+  const initials = (d.name || '').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
+  $('profile').innerHTML = `
+    <div class="prow">
+      <div class="pic">${d.avatar ? `<img src="${esc(d.avatar)}" alt="">` : esc(initials || '·')}</div>
+      <div>
+        <div class="acts" style="margin:0 0 6px">
+          <button class="btn quiet" id="pickPic" type="button">Upload picture</button>
+          ${d.avatar ? '<button class="btn quiet" id="dropPic" type="button">Remove</button>' : ''}
+        </div>
+        <div class="small muted">A square photo works best. It is resized before it is saved.</div>
+        <input type="file" id="picFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+      </div>
+    </div>
+
+    <form id="profileForm">
+      <div class="fields">
+        <label><span>Name</span><input name="name" value="${esc(d.name)}" autocomplete="name" required></label>
+        <label><span>Email</span><input name="email" type="email" value="${esc(d.email)}" autocomplete="email" required></label>
+        <label><span>Phone</span><input name="phone" type="tel" value="${esc(d.phone || '')}" autocomplete="tel"></label>
+      </div>
+      <button class="btn" type="submit">Save details</button>
+    </form>
+
+    <div class="subhead">Change password</div>
+    <form id="pwForm">
+      <div class="fields">
+        <label><span>Current password</span><input name="currentPassword" type="password" autocomplete="current-password" required></label>
+        <label><span>New password</span><input name="newPassword" type="password" autocomplete="new-password"
+          minlength="${d.minPasswordLength}" required placeholder="At least ${d.minPasswordLength} characters"></label>
+      </div>
+      <button class="btn quiet" type="submit">Change password</button>
+    </form>
+
+    <div class="readonly">
+      <div><span>Role</span>${esc(ROLE_LABEL[d.role] || d.role)}</div>
+      <div><span>Member since</span>${esc(new Date(d.since).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))}</div>
+    </div>`;
+
+  $('pickPic').onclick = () => $('picFile').click();
+  $('picFile').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try { await saveProfile({ avatar: await shrink(file, 256) }); } catch (err) { fail(err); }
+  };
+  if ($('dropPic')) $('dropPic').onclick = () => saveProfile({ avatar: null }).catch(fail);
+
+  $('profileForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    saveProfile({ name: f.get('name'), email: f.get('email'), phone: f.get('phone') }).catch(fail);
+  };
+
+  $('pwForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    try {
+      await api('/api/staff/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          currentPassword: f.get('currentPassword'), newPassword: f.get('newPassword'),
+        }),
+      });
+      e.target.reset();
+      toast('Password changed.');
+    } catch (err) { fail(err); }
+    btn.disabled = false;
+  };
+}
+
+async function saveProfile(patch) {
+  const d = await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify(patch) });
+  toast('Saved.');
+  // The chip in the corner is the same person; keep it honest without a reload.
+  if (me) { me.user.name = d.name; me.user.avatar = d.avatar; paintMe(); }
+  renderProfile(Object.assign({}, profileData, d));
+}
+
+async function loadProfile() {
+  $('profile').innerHTML = skeleton(4);
+  try { renderProfile(await api('/api/staff/profile')); } catch (err) {
+    if (err.message !== 'signed out') {
+      $('profile').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load your profile', text: err.message });
+    }
+  }
+}
+
+// ── business profile ────────────────────────────────────────────────────
+function renderBusiness(d) {
+  const ro = d.canEdit ? '' : 'disabled';
+  $('business').innerHTML = `
+    <div class="prow">
+      <div class="logo-box">${d.logo ? `<img src="${esc(d.logo)}" alt="">` : '<span class="small muted">No logo</span>'}</div>
+      <div>
+        ${d.canEdit ? `<div class="acts" style="margin:0 0 6px">
+          <button class="btn quiet" id="pickLogo" type="button">Upload logo</button>
+          ${d.logo ? '<button class="btn quiet" id="dropLogo" type="button">Remove</button>' : ''}
+        </div>` : ''}
+        <div class="small muted">Shown on your booking page. A PNG with a transparent background works best.</div>
+        <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+      </div>
+    </div>
+
+    <form id="bizForm">
+      <div class="fields">
+        <label class="wide"><span>Business name</span><input name="name" value="${esc(d.name)}" ${ro} required></label>
+        <label class="wide"><span>Address</span><input name="address" value="${esc(d.address || '')}" ${ro} placeholder="Street, town, state, zip"></label>
+        <label><span>Phone</span><input name="phone" type="tel" value="${esc(d.phone || '')}" ${ro}></label>
+        <label><span>Email</span><input name="email" type="email" value="${esc(d.email || '')}" ${ro}></label>
+        <label class="wide"><span>Website</span><input name="website" value="${esc(d.website || '')}" ${ro} placeholder="yourshop.com"></label>
+        <label class="wide"><span>About</span><textarea name="about" rows="3" ${ro}
+          placeholder="A sentence customers see when they book">${esc(d.about || '')}</textarea></label>
+      </div>
+      ${d.canEdit ? '<button class="btn" type="submit">Save business profile</button>'
+        : '<p class="small muted">Only the owner can change these details.</p>'}
+    </form>
+
+    <div class="readonly">
+      <div><span>Booking page</span><a href="${esc(d.bookingUrl)}" target="_blank" rel="noopener">${esc(d.bookingUrl)}</a></div>
+      <div><span>Time zone</span>${esc(d.timezone)}</div>
+    </div>`;
+
+  if (!d.canEdit) return;
+  $('pickLogo').onclick = () => $('logoFile').click();
+  $('logoFile').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try { await saveBusiness({ logo: await shrink(file, 512, 'image/png') }); } catch (err) { fail(err); }
+  };
+  if ($('dropLogo')) $('dropLogo').onclick = () => saveBusiness({ logo: null }).catch(fail);
+
+  $('bizForm').onsubmit = (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    saveBusiness({
+      name: f.get('name'), address: f.get('address'), phone: f.get('phone'),
+      email: f.get('email'), website: f.get('website'), about: f.get('about'),
+    }).catch(fail);
+  };
+}
+
+async function saveBusiness(patch) {
+  await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify(patch) });
+  toast('Saved.');
+  await loadBusiness();
+}
+
+async function loadBusiness() {
+  $('business').innerHTML = skeleton(4);
+  try { renderBusiness(await api('/api/staff/business')); } catch (err) {
+    if (err.message !== 'signed out') {
+      $('business').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load the business profile', text: err.message });
+    }
+  }
+}
+
 // ─────────────────────── calendar feeds ───────────────────────
 
 function renderFeeds(d) {
@@ -1759,11 +2050,7 @@ async function start(landing) {
   $('login').classList.add('hidden');
   $('app').classList.remove('hidden');
 
-  const initials = me.user.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-  $('meInitials').textContent = initials || '·';
-  $('meName').textContent = me.user.name;
-  meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
-  $('meBtn').title = meSubtitle;
+  paintMe();
   $('navSettings').classList.toggle('hidden', !me.user.canAdmin);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
