@@ -17,6 +17,7 @@ import availability from './_routes/availability.js';
 import book from './_routes/book.js';
 import business from './_routes/business.js';
 import calendars from './_routes/calendars.js';
+import centro from './_routes/centro.js';
 import contacts from './_routes/contacts.js';
 import diary from './_routes/diary.js';
 import login from './_routes/login.js';
@@ -32,6 +33,7 @@ const ROUTES = {
   book,
   business,
   calendars,
+  centro,
   contacts,
   diary,
   login,

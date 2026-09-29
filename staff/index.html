@@ -889,6 +889,7 @@
         <button type="button" data-set="business" aria-pressed="false">Business profile</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="calendars" aria-pressed="false">Calendars</button>
+        <button type="button" data-set="centro" aria-pressed="false">CENTRO</button>
         <button type="button" data-set="billing" aria-pressed="false">Billing</button>
       </div>
 
@@ -930,6 +931,17 @@
           treat it like a password, and disconnect if it ever goes astray.
         </p>
         <div id="feeds"></div>
+      </div>
+
+      <!-- CENTRO -->
+      <div class="card setpane hidden" id="set-centro">
+        <div class="card-head" style="margin-bottom:4px"><h2>CENTRO</h2></div>
+        <p class="small muted" style="margin:0 0 18px">
+          Every booking, cancellation and check-in made here is copied to the salon&rsquo;s
+          CENTRO calendar. This app is the diary; CENTRO follows it, so make changes here
+          rather than in CENTRO.
+        </p>
+        <div id="centro"></div>
       </div>
 
       <!-- Billing -->
@@ -1423,8 +1435,16 @@ async function loadDashboard() {
       pending ? tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'settings') : '',
     ].join('');
 
-    const unsynced = first.appointments.filter((a) => a.status !== 'cancelled' && !a.syncedToCentro).length;
-    if (unsynced) {
+    const live = first.appointments.filter((a) => a.status !== 'cancelled');
+    const refused = live.filter((a) => a.syncFailed).length;
+    const unsynced = live.filter((a) => !a.syncedToCentro).length;
+    // "Nothing to do here" is only true while the bookings are on their way.
+    // One CENTRO refused will not arrive on its own, so say so and say where.
+    if (refused) {
+      const who = refused === 1 ? '1 of today’s bookings' : `${refused} of today’s bookings`;
+      $('syncNote').innerHTML = `${ic('info')}<span>CENTRO refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. ${me.user.canAdmin ? '<a href="/staff/settings" data-centro>See why and retry</a>.' : 'Ask an owner or manager to check Settings, CENTRO.'}</span>`;
+      $('syncNote').className = 'note bad';
+    } else if (unsynced) {
       $('syncNote').innerHTML = `${ic('info')}<span>${unsynced === 1 ? '1 of today’s bookings hasn’t' : `${unsynced} of today’s bookings haven’t`} reached CENTRO yet. They are sent across automatically; nothing to do here.</span>`;
       $('syncNote').className = 'note';
     }
@@ -1470,7 +1490,9 @@ function statusChips(a) {
   if (a.channel === 'staff') out.push('<span class="chip">Booked by staff</span>');
   // Surfaced, calmly: the team should learn the CRM is behind from here,
   // not from an empty CENTRO later. It is information, not an alarm.
-  if (a.status !== 'cancelled' && !a.syncedToCentro) {
+  if (a.status !== 'cancelled' && a.syncFailed) {
+    out.push(`<span class="chip warn" title="CENTRO refused this booking. Settings, CENTRO shows why and can retry.">CENTRO sync failed</span>`);
+  } else if (a.status !== 'cancelled' && !a.syncedToCentro) {
     out.push(`<span class="chip info" title="This booking will be sent to CENTRO automatically.">Not in CENTRO yet</span>`);
   }
   return out.join(' ') || '<span class="chip">Booked</span>';
@@ -2270,13 +2292,14 @@ function showSetting(name) {
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
   }
-  for (const k of ['profile', 'business', 'team', 'calendars', 'billing']) {
+  for (const k of ['profile', 'business', 'team', 'calendars', 'centro', 'billing']) {
     $('set-' + k).classList.toggle('hidden', k !== name);
   }
   if (name === 'profile') loadProfile();
   if (name === 'business') loadBusiness();
   if (name === 'team') loadTeam();
   if (name === 'calendars') loadFeeds();
+  if (name === 'centro') loadCentro();
 }
 $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
@@ -2656,6 +2679,76 @@ function renderFeeds(d) {
       </div>
     </div>`;
 }
+
+/* ── CENTRO: is the diary reaching it? ─────────────────────────────── */
+const SYNC_KIND = {
+  'appointment.booked': 'New booking', 'appointment.created': 'New booking',
+  'appointment.cancelled': 'Cancellation', 'appointment.status': 'Status change',
+  'appointment.deleted': 'Deleted booking', 'contact.created': 'New contact',
+  'contact.updated': 'Contact change', 'contact.deleted': 'Deleted contact',
+};
+
+async function loadCentro(retry = false) {
+  if (!retry) $('centro').innerHTML = skeleton(3);
+  try {
+    const r = retry
+      ? await api('/api/staff/centro', { method: 'POST', body: JSON.stringify({ action: 'retry' }) })
+      : await api('/api/staff/centro');
+    renderCentro(r);
+    if (r.retried) {
+      const { sent, stillFailing } = r.retried;
+      toast(stillFailing
+        ? `${sent} sent to CENTRO; ${stillFailing} still refused.`
+        : sent ? `${sent} sent to CENTRO.` : 'Nothing was waiting to be sent.', stillFailing ? 'bad' : '');
+    }
+  } catch (err) {
+    if (err.message !== 'signed out') {
+      $('centro').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t check CENTRO', text: err.message });
+    }
+  }
+}
+
+function renderCentro(r) {
+  if (!r.linked) {
+    $('centro').innerHTML = `<div class="note bad">${ic('info')}<span>This salon is not linked to CENTRO, so nothing is being copied there. Linking needs the sub-account&rsquo;s private integration token; see the setup notes.</span></div>`;
+    return;
+  }
+  const c = r.check || {};
+  const pending = r.queue?.pending || 0;
+  const failed = r.queue?.failed || 0;
+  const head = c.ok
+    ? `<div class="note good">${ic('sync')}<span>Connected to <strong>${esc(c.location?.name || 'CENTRO')}</strong>, calendar <strong>${esc(c.calendar?.name || '')}</strong>.</span></div>`
+    : `<div class="note bad">${ic('info')}<span>${(c.problems || ['CENTRO could not be checked.']).map(esc).join('<br>')}</span></div>`;
+  const stats = `
+    <div class="px-stats" style="margin:4px 0 18px">
+      <div><b>${pending}</b><span>Waiting to send</span></div>
+      <div><b>${failed}</b><span>Refused by CENTRO</span></div>
+      <div><b>${c.calendar?.teamMembers ?? '–'}</b><span>Calendar team members</span></div>
+    </div>`;
+  const list = r.failed.length ? `
+    <h3 class="small muted" style="margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em;font-size:var(--fs-xs)">Refused</h3>
+    <ul class="px-appts" style="margin:0 0 18px">
+      ${r.failed.map((f) => `<li style="display:block">
+        <div><strong>${esc(SYNC_KIND[f.kind] || f.kind)}</strong>${f.ref ? ` · ${esc(f.guestName || '')} · ${esc(f.ref)}` : ''}${f.startsAt ? ` · ${esc(fmtWhen(f.startsAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}` : ''}</div>
+        <div class="small muted" style="margin-top:4px;overflow-wrap:anywhere">${esc(f.error || 'No reason given.')}</div>
+      </li>`).join('')}
+    </ul>` : '';
+  $('centro').innerHTML = head + stats + list + `
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button type="button" class="btn" id="centroRetry" ${failed || pending ? '' : 'disabled'}>${ic('sync')}<span>Send again</span></button>
+      <button type="button" class="btn quiet" id="centroCheck">Check connection</button>
+    </div>`;
+  $('centroRetry').onclick = async (e) => { e.currentTarget.disabled = true; await loadCentro(true); };
+  $('centroCheck').onclick = () => loadCentro();
+}
+
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[data-centro]');
+  if (!a) return;
+  e.preventDefault();
+  setTab = 'centro';
+  go('settings');
+});
 
 async function loadFeeds() {
   $('feeds').innerHTML = skeleton(3);

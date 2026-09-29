@@ -1,6 +1,6 @@
 /**
- * GET /api/staff/diary?date=YYYY-MM-DD — one day's book, by stylist.
- * GET /api/staff/diary?month=YYYY-MM    — the same rows for a whole month.
+ * GET /api/staff/diary?date=YYYY-MM-DD: one day's book, by stylist.
+ * GET /api/staff/diary?month=YYYY-MM   : the same rows for a whole month.
  *
  * One query serves both because the month view is the day view zoomed out:
  * the same appointments, grouped by date. A second endpoint would be a second
@@ -49,7 +49,9 @@ export default handler({
               s.slug AS stylist_slug, s.name AS stylist_name,
               v.name AS service_name,
               b.name AS booked_by_name,
-              ct.id AS contact_id
+              ct.id AS contact_id,
+              EXISTS (SELECT 1 FROM sync_outbox o
+                       WHERE o.appointment_id = a.id AND o.state = 'failed') AS sync_failed
          FROM appointments a
          JOIN stylists s ON s.id = a.stylist_id
          JOIN services v ON v.id = a.service_id
@@ -87,6 +89,9 @@ export default handler({
         // Lets the console show which bookings have not reached CENTRO yet,
         // rather than the team discovering it from an empty CRM.
         syncedToCentro: Boolean(r.ghl_appointment_id),
+        // Waiting and refused are different: one fixes itself, the other
+        // needs somebody to look at Settings.
+        syncFailed: !r.ghl_appointment_id && r.sync_failed,
       };
     });
 
