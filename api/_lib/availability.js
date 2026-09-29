@@ -13,6 +13,7 @@
  */
 import { DateTime, Interval } from 'luxon';
 
+import { centroWindows, fitsIn } from './centro-hours.js';
 import { MAX_ADVANCE_DAYS, MIN_LEAD_MIN, SLOT_STEP_MIN } from './config.js';
 import { HttpError } from './http.js';
 
@@ -38,7 +39,7 @@ export async function loadService(client, tenantId, slug) {
  */
 async function loadStylists(client, tenantId, serviceId, stylistSlug) {
   const { rows } = await client.query(
-    `SELECT s.id, s.slug, s.name, s.title, s.sort_order
+    `SELECT s.id, s.slug, s.name, s.title, s.sort_order, s.ghl_user_id
        FROM stylists s
        JOIN stylist_services ss ON ss.stylist_id = s.id
       WHERE s.tenant_id = $1 AND s.active AND ss.service_id = $2
@@ -120,10 +121,15 @@ function overlapsAny(startMs, endMs, spans) {
  * `minLeadMin` is overridable because a member of staff on the phone with
  * someone standing in reception may legitimately book them in now, while a
  * guest booking online at midnight may not.
+ *
+ * `centro` makes each stylist's CENTRO availability the hours they work:
+ * only times CENTRO says that person is free are offered. Guests get it;
+ * staff do not, because the person at the desk can see who is in and may
+ * book outside the calendar on purpose.
  */
 export async function availableSlots(client, tenant, {
   serviceSlug, stylistSlug, fromDate, toDate,
-  excludeAppointmentId = null, minLeadMin = MIN_LEAD_MIN,
+  excludeAppointmentId = null, minLeadMin = MIN_LEAD_MIN, centro = false,
 }) {
   const zone = tenant.timezone;
   const service = await loadService(client, tenant.id, serviceSlug);
@@ -152,6 +158,9 @@ export async function availableSlots(client, tenant, {
     client, tenant.id, stylistIds, from, to, excludeAppointmentId,
   );
   const blockMin = service.duration_min + service.buffer_min;
+  const windows = centro
+    ? await centroWindows(client, tenant, stylists, from.toMillis(), to.toMillis())
+    : null;
 
   const days = [];
   for (let day = from; day <= to; day = day.plus({ days: 1 })) {
@@ -160,9 +169,16 @@ export async function availableSlots(client, tenant, {
     const found = new Map();
 
     for (const stylist of stylists) {
-      for (const shift of shifts.get(stylist.id) ?? []) {
-        if (shift.weekday !== weekday) continue;
+      // With CENTRO in charge, its windows are the stylist's hours, so the
+      // whole day is a candidate and CENTRO decides. Without it, the shifts
+      // stored here do.
+      const free = windows ? windows.get(stylist.id) : undefined;
+      if (windows && !free) continue;
+      const dayShifts = windows
+        ? [{ starts_at: '00:00', ends_at: '23:59' }]
+        : (shifts.get(stylist.id) ?? []).filter((sh) => sh.weekday === weekday);
 
+      for (const shift of dayShifts) {
         const [oh, om] = String(shift.starts_at).split(':').map(Number);
         const [ch, cm] = String(shift.ends_at).split(':').map(Number);
         const opens = day.set({ hour: oh, minute: om, second: 0, millisecond: 0 });
@@ -178,11 +194,14 @@ export async function availableSlots(client, tenant, {
 
           const startMs = start.toMillis();
           const blockEndMs = start.plus({ minutes: blockMin }).toMillis();
+          // CENTRO has to have the guest's own time free; the clean-down
+          // after it is ours to schedule.
+          if (free && !fitsIn(free, startMs, start.plus({ minutes: service.duration_min }).toMillis())) continue;
           if (overlapsAny(startMs, blockEndMs, closed)) continue;
           if (overlapsAny(startMs, blockEndMs, busy.get(stylist.id) ?? [])) continue;
 
-          const free = found.get(startMs);
-          if (free) free.push(stylist.id);
+          const who = found.get(startMs);
+          if (who) who.push(stylist.id);
           else found.set(startMs, [stylist.id]);
         }
       }

@@ -188,6 +188,74 @@ export function cancelAppointment(tenant, eventId) {
   return setAppointmentStatus(tenant, eventId, 'cancelled');
 }
 
+/** The calendar itself: its team, and the length of the slots it offers. */
+export async function getCalendar(tenant) {
+  const { calendar } = await call(tenant, 'GET', `/calendars/${tenant.ghl_calendar_id}`);
+  return calendar || {};
+}
+
+/** A CENTRO user's name, or null when the token may not read users. */
+export async function getUserName(tenant, userId) {
+  try {
+    const u = await call(tenant, 'GET', `/users/${userId}`);
+    const name = u?.name || [u?.firstName, u?.lastName].filter(Boolean).join(' ');
+    return name || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * When CENTRO says one team member can be booked, as slot start times.
+ *
+ * This is the stylist's own availability as CENTRO knows it: the hours set on
+ * the calendar for that person, anything already on their CENTRO calendar,
+ * and the busy times of any calendar they connected there (Google, Outlook).
+ * The website used to offer every stylist the salon's opening hours, which is
+ * how a guest booked 9 AM with somebody who starts at 10.
+ *
+ * CENTRO answers with a map of date to { slots: [...] }; the parsing accepts
+ * the shapes it has used (plain ISO strings, or objects carrying the time)
+ * and ignores anything else rather than guessing.
+ */
+export async function freeSlots(tenant, { userId, startMs, endMs, timezone }) {
+  const q = new URLSearchParams({
+    startDate: String(startMs),
+    endDate: String(endMs),
+    timezone,
+    userId,
+  });
+  const data = await call(tenant, 'GET', `/calendars/${tenant.ghl_calendar_id}/free-slots?${q}`);
+  return parseFreeSlots(data);
+}
+
+export function parseFreeSlots(data) {
+  const out = [];
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node.slots)) {
+      for (const s of node.slots) {
+        const iso = typeof s === 'string' ? s : (s?.slot || s?.startTime || s?.start);
+        const ms = iso ? Date.parse(iso) : NaN;
+        if (Number.isFinite(ms)) out.push(ms);
+      }
+      return;
+    }
+    for (const [k, v] of Object.entries(node)) {
+      if (k === 'traceId') continue;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(k) || k === '_dates_') visit(v);
+    }
+  };
+  visit(data);
+  return [...new Set(out)].sort((a, b) => a - b);
+}
+
+/** A calendar's slot length in minutes, from however CENTRO expressed it. */
+export function slotMinutes(calendar) {
+  const n = Number(calendar?.slotDuration) || 30;
+  return /hour/i.test(calendar?.slotDurationUnit || '') ? n * 60 : n;
+}
+
 /**
  * Prove the stored credentials still reach the right sub-account and
  * calendar, and name who that calendar will accept as the assigned member.

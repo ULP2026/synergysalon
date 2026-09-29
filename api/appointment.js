@@ -113,6 +113,7 @@ export default handler({
         fromDate: startsAt.toISODate(),
         toDate: startsAt.toISODate(),
         excludeAppointmentId: current.id,
+        centro: true,
       });
 
       const wanted = startsAt.toMillis();

@@ -8,6 +8,7 @@
 import { drain } from './cron/sync.js';
 import { createBooking } from './_lib/booking.js';
 import { ONLINE_BOOKING } from './_lib/config.js';
+import { previewAllowed } from './_lib/preview.js';
 import { transaction } from './_lib/db.js';
 import { sendConfirmation } from './_lib/email.js';
 import {
@@ -17,13 +18,14 @@ import { tenantForRequest } from './_lib/tenant.js';
 
 export default handler({
   async POST(req, res) {
+    const tenant = await tenantForRequest(req);
     // Paused while stylists set their hours; the site asks guests to call.
-    if (!ONLINE_BOOKING) {
+    // Staff with a test pass from the console may still book.
+    if (!ONLINE_BOOKING && !previewAllowed(req, tenant)) {
       return json(res, 503, {
         error: 'Online appointments are coming soon. Please call the salon to book.',
       });
     }
-    const tenant = await tenantForRequest(req);
     const body = await readJson(req);
 
     const appointment = await transaction((client) => createBooking(client, tenant, {

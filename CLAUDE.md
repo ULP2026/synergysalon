@@ -91,6 +91,23 @@ mirrored as CENTRO's showed/noshow. Settings, CENTRO shows the link's health
 and anything CENTRO refused, with a retry; the cron re-queues refused jobs
 from the last 30 days whenever the link checks out, and logs why each failed.
 
+**Stylists' hours come from CENTRO, for guests.** Online availability offers a
+stylist only the times CENTRO's free-slots answer lists for their CENTRO user:
+the hours set for them on the calendar, what is already booked there, and the
+calendars they connected in CENTRO (`api/_lib/centro-hours.js`). A stylist not
+linked to a CENTRO user (Settings, CENTRO) is offered nothing online, and a
+CENTRO error offers nothing rather than guess. Staff booking in the console
+still uses `stylist_hours`, on purpose. The seeded `stylist_hours` gave every
+stylist the salon's opening times, which is how 9 AM got sold with stylists
+who start later.
+
+**Testing while online booking is paused.** Settings, CENTRO, "Open booking
+test" mints a signed 12-hour pass (`api/_lib/preview.js`) and opens the public
+site with `?booking-preview=`. The notice script keeps it for that tab, shows
+the real popup with a "test mode" badge, and adds `x-booking-preview` to its
+`/api/` calls, which the server accepts in place of `ONLINE_BOOKING`. Bookings
+made that way are real: name them ZZ and remove them.
+
 ## Gotchas worth knowing before you hit them
 
 **Untyped query parameters.** `tstzrange($1, $1 + make_interval(mins => $2))`
@@ -124,7 +141,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 48 tests; the database ones skip without DATABASE_URL
+npm test                    # 61 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and

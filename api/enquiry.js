@@ -18,8 +18,10 @@
  */
 import { DateTime } from 'luxon';
 
+import { availableSlots } from './_lib/availability.js';
 import { createBooking, enqueueSync } from './_lib/booking.js';
 import { ONLINE_BOOKING } from './_lib/config.js';
+import { previewAllowed } from './_lib/preview.js';
 import { transaction } from './_lib/db.js';
 import { sendConfirmation } from './_lib/email.js';
 import {
@@ -153,6 +155,8 @@ export default handler({
   async POST(req, res) {
     const tenant = await tenantForRequest(req);
     const body = await readJson(req);
+    // Staff testing the paused popup with a pass from the console.
+    const preview = previewAllowed(req, tenant);
 
     const name = requireString(body.name, 'Name', { max: 120 });
     const email = settledEmail(body.email);
@@ -243,7 +247,7 @@ export default handler({
       // The cost is booking for someone who fills the last step and walks
       // away. That shows up in the diary where the salon can cancel it, which
       // is the better failure of the two.
-      if (!serviceSlug || !start || !ONLINE_BOOKING) {
+      if (!serviceSlug || !start || !(ONLINE_BOOKING || preview)) {
         return { contactId, booked: null };
       }
 
@@ -253,7 +257,7 @@ export default handler({
       // two bookings for the same slot, one from "test232" and one from
       // "test232@gmail.com", with different stylists.
       const { rows: live } = await client.query(
-        `SELECT id, ref, starts_at FROM appointments
+        `SELECT id, ref, starts_at, stylist_id FROM appointments
           WHERE contact_id = $1 AND status = 'booked' AND starts_at >= now()
           ORDER BY created_at DESC LIMIT 1`,
         [contactId],
@@ -263,16 +267,40 @@ export default handler({
         const same = new Date(live[0].starts_at).getTime() === start.toMillis();
         if (same) return { contactId, booked: null, already: live[0].ref };
         // They have changed their mind mid-flow: move the appointment they
-        // already have rather than leaving the salon holding both.
+        // already have rather than leaving the salon holding both. The new
+        // time is held to the same rules as a new booking, stylists' CENTRO
+        // hours included; this path once moved people to any time at all.
+        // A query error here would abort the transaction and lose the lead
+        // saved above, so it counts as "not available" instead.
+        await client.query('SAVEPOINT check_move');
+        let days = [];
+        try {
+          ({ days } = await availableSlots(client, tenant, {
+            serviceSlug,
+            stylistSlug: clean(body.stylistSlug, 40) || null,
+            fromDate: start.toISODate(),
+            toDate: start.toISODate(),
+            excludeAppointmentId: live[0].id,
+            centro: true,
+          }));
+          await client.query('RELEASE SAVEPOINT check_move');
+        } catch {
+          await client.query('ROLLBACK TO SAVEPOINT check_move');
+        }
+        const slot = days.flatMap((d) => d.slots)
+          .find((sl) => DateTime.fromISO(sl.start).toMillis() === start.toMillis());
+        if (!slot) return { contactId, booked: null, already: live[0].ref, unavailable: true };
+        const stylistId = slot.stylistIds.includes(live[0].stylist_id)
+          ? live[0].stylist_id : slot.stylistIds[0];
         try {
           await client.query(
             `UPDATE appointments
-                SET starts_at = $2::timestamptz,
+                SET starts_at = $2::timestamptz, stylist_id = $3::uuid,
                     during = tstzrange($2::timestamptz,
                              $2::timestamptz + make_interval(mins => duration_min + buffer_min), '[)'),
                     updated_at = now()
               WHERE id = $1`,
-            [live[0].id, start.toISO()],
+            [live[0].id, start.toISO(), stylistId],
           );
           await enqueueSync(client, tenant.id, 'appointment.rescheduled',
                             { appointmentId: live[0].id });
