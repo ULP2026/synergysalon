@@ -253,8 +253,17 @@
     overflow-x: auto; scrollbar-width: none;
   }
   .navpill::-webkit-scrollbar { display: none; }
-  .navpill .brand { display: grid; place-items: center; padding: 0 10px 0 8px; flex: none; }
-  .navpill .brand img { display: block; height: 26px; width: auto; }
+  /* The crescent alone, on a small round tile with a faint ring so it sits in
+     the capsule rather than looking pasted on. The wordmark is the sign-in
+     page's one brand moment; repeating it here was a second. */
+  .navpill .brand {
+    display: grid; place-items: center; width: 40px; height: 40px; margin-right: 6px; flex: none;
+    border-radius: 50%; background: #fff;
+    box-shadow: 0 0 0 1px var(--hair), 0 0 0 4px rgba(126, 138, 210, .10), 0 4px 10px -4px rgba(30, 31, 92, .25);
+    transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease);
+  }
+  .navpill .brand:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px var(--line-2), 0 0 0 4px rgba(126, 138, 210, .16), 0 6px 14px -6px rgba(30, 31, 92, .3); }
+  .navpill .brand img { display: block; width: 26px; height: 26px; }
   .nav { display: flex; align-items: center; gap: 2px; }
   .nav a, .nav .parent {
     display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 15px;
@@ -675,7 +684,7 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: .01ms !important; }
     .btn:hover:not(:disabled), .btn:active:not(:disabled), a.tile:hover, .conn:hover,
-    .mepill:active, .iconbtn:active:not(:disabled) { transform: none; }
+    .mepill:active, .navpill .brand:hover, .iconbtn:active:not(:disabled) { transform: none; }
     dialog[open], dialog.closing, .view:not(.hidden) { animation: fade .01ms; }
     .mkt-menu { animation: none; }
   }
@@ -768,7 +777,7 @@
   <header class="topbar">
     <nav class="navpill" aria-label="Main">
       <a class="brand" href="/staff" data-page="dashboard" aria-label="Synergy Salon, go to Dashboard">
-        <img src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="">
+        <img src="/favicon-512x512.png" alt="">
       </a>
       <div class="nav">
         <a href="/staff" data-page="dashboard" title="Dashboard">
