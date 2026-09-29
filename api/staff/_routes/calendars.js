@@ -15,6 +15,7 @@
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
+import { disconnectGoogle, googleConfigured } from '../../_lib/google.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
 function hostOf(req) {
@@ -62,6 +63,7 @@ async function mine(userId) {
   const { rows } = await query(
     `SELECT u.calendar_token, u.name,
             u.calendar_last_fetch, u.calendar_fetches, u.calendar_last_agent,
+            u.google_email, u.google_connected_at,
             s.id AS stylist_id, s.name AS stylist_name,
             count(a.id) FILTER (
               WHERE a.status = 'booked' AND a.starts_at >= now()
@@ -104,6 +106,15 @@ export default handler({
       lastFetch: row.calendar_last_fetch,
       fetches: row.calendar_fetches,
       provider: providerFrom(row.calendar_last_agent),
+      // Google is a different kind of connection from the others: it is
+      // granted rather than subscribed, so we know for certain whether it is
+      // on, and which account it is on.
+      google: {
+        available: googleConfigured(),
+        connected: Boolean(row.google_email || row.google_connected_at),
+        account: row.google_email || null,
+        since: row.google_connected_at,
+      },
       ...connectLinks(req, row.calendar_token),
     });
   },
@@ -112,7 +123,16 @@ export default handler({
     assertSameOrigin(req);
     const user = await requireStaff(req);
     const body = await readJson(req);
-    if (requireString(body.action, 'Action', { max: 20 }) !== 'regenerate') {
+    const action = requireString(body.action, 'Action', { max: 24 });
+
+    // Revoking Google is its own thing: it does not touch the subscribe link,
+    // and the subscribe link's disconnect does not touch Google.
+    if (action === 'disconnect-google') {
+      await disconnectGoogle(user.id);
+      return json(res, 200, { disconnected: 'google' });
+    }
+
+    if (action !== 'regenerate') {
       throw new HttpError(400, 'That is not something you can do to a calendar link.');
     }
 

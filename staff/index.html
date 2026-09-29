@@ -508,6 +508,12 @@
   .waiting.on .dot { background: var(--ok); animation: none; }
   @keyframes pulse { 0%,100% { opacity:.3 } 50% { opacity:1 } }
   @media (prefers-reduced-motion: reduce) { .waiting .dot { animation: none; } }
+
+  .conn .go[disabled] { color: var(--faint); cursor: default; }
+  .conn .go[disabled]:hover { background: none; }
+  .conn .acct { padding: 0 16px 12px; font-size: var(--fs-xs); color: var(--ok); font-weight: 600;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .conn .setup { padding: 0 16px 14px; font-size: var(--fs-xs); color: var(--faint); }
 </style>
 </head>
 <body>
@@ -2037,6 +2043,86 @@ function agoText(iso) {
 
 const TICK = '<svg viewBox="0 0 24 24"><path d="m5 13 4.5 4.5L19 7"/></svg>';
 
+/**
+ * Google is the odd one out, and deliberately so.
+ *
+ * The other two are subscriptions: we hand over a URL and hope a calendar app
+ * eventually fetches it. Google is *granted* — the person signs in, picks an
+ * account and agrees, and from then on appointments are written into that
+ * calendar as real events. So this card knows for certain whether it is on,
+ * and which account it is on, rather than inferring it from a user agent.
+ */
+function googleCard(d) {
+  const g = d.google || {};
+  const logo = CAL_APPS.find((a) => a.key === 'google').logo;
+
+  if (!g.available) {
+    return `<div class="conn">
+      <div class="conn-h">${logo}<b>Google Calendar</b></div>
+      <p>Write appointments straight into your Google Calendar.</p>
+      <div class="setup">Not set up on this site yet.</div>
+    </div>`;
+  }
+
+  if (g.connected) {
+    return `<div class="conn on">
+      <div class="conn-h">${logo}<b>Google Calendar</b>
+        <span class="state">${TICK}Connected</span></div>
+      <p>Appointments are written into this calendar as they are booked.</p>
+      ${g.account ? `<div class="acct" title="${esc(g.account)}">${esc(g.account)}</div>` : ''}
+      <button class="go" data-google="disconnect">Disconnect</button>
+    </div>`;
+  }
+
+  return `<div class="conn">
+    <div class="conn-h">${logo}<b>Google Calendar</b></div>
+    <p>Connect your Google account and appointments are written into your
+       calendar as they are booked.</p>
+    <button class="go" data-google="connect">
+      <svg class="ic"><use href="#i-link"/></svg>Connect</button>
+  </div>`;
+}
+
+/**
+ * The consent window.
+ *
+ * Opened as a popup rather than navigating away, so nobody loses what they
+ * were doing to a sign-in screen. The window reports back with postMessage;
+ * the poll is the fallback for somebody who closes it by hand, which is
+ * otherwise indistinguishable from it still being open.
+ */
+function connectGoogle(btn) {
+  const w = 500, h = 640;
+  const popup = window.open(
+    '/api/oauth/google?start=1', 'google-connect',
+    `width=${w},height=${h},left=${Math.round(screenX + (outerWidth - w) / 2)},`
+    + `top=${Math.round(screenY + (outerHeight - h) / 3)}`);
+
+  if (!popup) { toast('Your browser blocked the Google window. Allow popups and try again.', 'bad'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
+
+  let settled = false;
+  const finish = (ok, message) => {
+    if (settled) return;
+    settled = true;
+    window.removeEventListener('message', onMessage);
+    clearInterval(watch);
+    if (message) toast(message, ok ? '' : 'bad');
+    loadFeeds();
+  };
+
+  function onMessage(e) {
+    if (e.origin !== window.location.origin) return;
+    if (!e.data || e.data.source !== 'google-oauth') return;
+    finish(e.data.ok, e.data.ok ? 'Google Calendar connected.' : e.data.message);
+  }
+  window.addEventListener('message', onMessage);
+
+  // They may simply close it. Reloading then is how the card stops saying
+  // "Connecting…" forever.
+  const watch = setInterval(() => { if (popup.closed) finish(false, ''); }, 700);
+}
+
 function renderFeeds(d) {
   feedData = d;
 
@@ -2066,7 +2152,8 @@ function renderFeeds(d) {
     ${banner}
 
     <div class="conns">
-      ${CAL_APPS.map((app) => {
+      ${googleCard(d)}
+      ${CAL_APPS.filter((a) => a.key !== 'google').map((app) => {
         // Only the app that actually fetched is marked. Where the user agent
         // does not say which one it was, none of the three is claimed rather
         // than the wrong one being lit up.
@@ -2108,8 +2195,25 @@ async function loadFeeds() {
 }
 
 $('feeds').onclick = async (e) => {
-  // The connection happens on somebody else's server, so there is nothing to
-  // listen for. Asking again is the whole mechanism.
+  const g = e.target.closest('button[data-google]');
+  if (g) {
+    if (g.dataset.google === 'connect') return connectGoogle(g);
+    if (!confirm('Disconnect Google Calendar?\n\n'
+      + 'New appointments stop appearing there. Ones already in your calendar '
+      + 'are left alone, and your salon diary is not affected.')) return;
+    g.disabled = true;
+    try {
+      await api('/api/staff/calendars', {
+        method: 'POST', body: JSON.stringify({ action: 'disconnect-google' }),
+      });
+      toast('Google Calendar disconnected.');
+      await loadFeeds();
+    } catch (err) { fail(err); g.disabled = false; }
+    return;
+  }
+
+  // The subscribe links connect on somebody else's server, so there is
+  // nothing to listen for. Asking again is the whole mechanism.
   if (e.target.closest('button[data-check]')) { loadFeeds(); return; }
   if (e.target.closest('button[data-copy]')) {
     try {
