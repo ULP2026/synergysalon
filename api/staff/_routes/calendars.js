@@ -72,7 +72,11 @@ async function mine(userId) {
               ON a.tenant_id = u.tenant_id
              AND (s.id IS NULL OR a.stylist_id = s.id)
       WHERE u.id = $1
-      GROUP BY u.calendar_token, u.name, s.id, s.name`,
+      -- Grouped by the primary keys, so every other column of either table
+      -- comes along without being listed. Naming them individually is how
+      -- this broke: three columns were added to the SELECT and the GROUP BY
+      -- was left behind.
+      GROUP BY u.id, s.id`,
     [userId],
   );
   return rows[0] ?? null;
