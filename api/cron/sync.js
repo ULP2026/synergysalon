@@ -1,5 +1,5 @@
 /**
- * GET /api/cron/sync — drains sync_outbox into CENTRO.
+ * GET /api/cron/sync drains sync_outbox into CENTRO.
  *
  * Runs on a schedule and can also be called directly after a booking to make
  * the mirror feel instant. Either way the work is the same and running it
@@ -13,8 +13,8 @@ import { DateTime } from 'luxon';
 
 import { pool, query, transaction } from '../_lib/db.js';
 import {
-  GhlError, cancelAppointment, createAppointment, deleteAppointment, deleteContact,
-  updateAppointment, updateContact, upsertContact,
+  GhlError, cancelAppointment, checkConnection, createAppointment, deleteAppointment,
+  deleteContact, ghlStatusFor, updateAppointment, updateContact, upsertContact,
 } from '../_lib/ghl.js';
 import { handler, json } from '../_lib/http.js';
 
@@ -33,7 +33,7 @@ function backoffMinutes(attempts) {
  * post-booking nudge, to drain the queue at once without both sending the
  * same appointment.
  */
-async function claim(client) {
+async function claim(client, tenantId = null) {
   const { rows } = await client.query(
     `SELECT o.*, t.id AS tenant_id, t.timezone,
             t.ghl_location_id, t.ghl_token, t.ghl_calendar_id, t.ghl_user_id
@@ -41,9 +41,11 @@ async function claim(client) {
        JOIN tenants t ON t.id = o.tenant_id
       WHERE o.state = 'pending' AND o.next_try_at <= now()
         AND t.ghl_token IS NOT NULL
+        AND ($1::uuid IS NULL OR o.tenant_id = $1::uuid)
       ORDER BY o.next_try_at
       FOR UPDATE OF o SKIP LOCKED
       LIMIT 1`,
+    [tenantId],
   );
   return rows[0] ?? null;
 }
@@ -75,17 +77,24 @@ async function pushAppointment(client, job, tenant) {
   // sweeping up.
   const endsAt = startsAt.plus({ minutes: appt.duration_min });
 
-  if (job.kind === 'appointment.cancelled') {
-    if (!appt.ghl_appointment_id) return { skipped: 'never reached CENTRO' };
+  // Whatever the job says happened, CENTRO is told how the appointment
+  // stands now. Jobs can run late and out of order (a retry after a failure,
+  // a cancellation queued behind the booking it cancels), and pushing the
+  // event each job describes would let an old "booked" undo a newer
+  // "cancelled".
+  const status = ghlStatusFor(appt);
+
+  if (status === 'cancelled') {
+    if (!appt.ghl_appointment_id) return { skipped: 'cancelled before it reached CENTRO' };
     await cancelAppointment(tenant, appt.ghl_appointment_id);
     return { cancelled: appt.ghl_appointment_id };
   }
 
   if (appt.ghl_appointment_id) {
     await updateAppointment(tenant, appt.ghl_appointment_id, {
-      startsAt: startsAt.toISO(), endsAt: endsAt.toISO(), title,
+      startsAt: startsAt.toISO(), endsAt: endsAt.toISO(), title, appointmentStatus: status,
     });
-    return { updated: appt.ghl_appointment_id };
+    return { updated: appt.ghl_appointment_id, status };
   }
 
   const contactId = appt.contact_ghl_id ?? await upsertContact(tenant, {
@@ -102,6 +111,7 @@ async function pushAppointment(client, job, tenant) {
     startsAt: startsAt.toISO(),
     endsAt: endsAt.toISO(),
     title,
+    appointmentStatus: status,
     notes: [appt.notes, `Ref ${appt.ref}`].filter(Boolean).join('\n'),
   });
 
@@ -184,9 +194,9 @@ async function removeContact(job, tenant) {
 }
 
 /** Process one job. Returns a short description for the response. */
-async function runOne() {
+async function runOne(tenantId) {
   return transaction(async (client) => {
-    const job = await claim(client);
+    const job = await claim(client, tenantId);
     if (!job) return null;
 
     const tenant = {
@@ -213,6 +223,9 @@ async function runOne() {
       return { id: job.id, kind: job.kind, ...result };
     } catch (err) {
       const attempts = job.attempts + 1;
+      // Logged as well as stored: the stored error is only readable from
+      // the database, and five bookings once sat failed with nobody knowing.
+      console.error(`CENTRO sync job ${job.id} (${job.kind}) failed:`, err.message);
       // A 4xx will fail identically forever: a deleted calendar, a revoked
       // token, a malformed record. Retrying it just hides it.
       const giveUp = (err instanceof GhlError && err.permanent) || attempts >= MAX_ATTEMPTS;
@@ -233,14 +246,111 @@ async function runOne() {
 }
 
 /** Exported so a booking can nudge the queue without waiting for the cron. */
-export async function drain(limit = BATCH) {
+export async function drain(limit = BATCH, { tenantId = null } = {}) {
   const done = [];
   for (let i = 0; i < limit; i += 1) {
-    const result = await runOne();
+    const result = await runOne(tenantId);
     if (!result) break;
     done.push(result);
   }
   return done;
+}
+
+/**
+ * Put failed jobs back in the queue.
+ *
+ * A job fails for good on a 4xx, which is right while the cause stands: a
+ * wrong calendar or a revoked token will refuse it every time. Once the
+ * cause is fixed those bookings still need to reach CENTRO, and nobody
+ * should have to find them one by one. Only recent ones: a booking from
+ * months ago is history, not something to put on the calendar now.
+ */
+export async function requeueFailed(tenantId) {
+  const { rowCount } = await query(
+    `UPDATE sync_outbox
+        SET state = 'pending', attempts = 0, next_try_at = now()
+      WHERE state = 'failed' AND tenant_id = $1::uuid
+        AND created_at > now() - interval '30 days'`,
+    [tenantId],
+  );
+  return rowCount;
+}
+
+/** Stylist mappings the connection check should confirm are on the calendar. */
+async function mappedUsers(tenant) {
+  const { rows } = await query(
+    `SELECT ghl_user_id FROM stylists
+      WHERE tenant_id = $1::uuid AND ghl_user_id IS NOT NULL`,
+    [tenant.id],
+  );
+  return [tenant.ghl_user_id, ...rows.map((r) => r.ghl_user_id)];
+}
+
+/** Check a tenant's link to CENTRO; exported for the staff console. */
+export async function connectionFor(tenant) {
+  return checkConnection(tenant, await mappedUsers(tenant));
+}
+
+/**
+ * The state of one salon's link to CENTRO, for the staff console.
+ *
+ * Lives here rather than in the route so the token stays where it always
+ * has: read only by the sync worker, never selected by an endpoint.
+ */
+export async function centroStatus(tenantId, { retry = false } = {}) {
+  const { rows } = await query(
+    `SELECT id, slug, ghl_location_id, ghl_token, ghl_calendar_id, ghl_user_id
+       FROM tenants WHERE id = $1::uuid`,
+    [tenantId],
+  );
+  const t = rows[0];
+  if (!t?.ghl_token) return { linked: false, check: null, queue: {}, failed: [] };
+
+  const check = await connectionFor(t);
+  let retried = null;
+  if (retry) {
+    const requeued = await requeueFailed(t.id);
+    // This salon's queue only: somebody pressing retry should not be the
+    // one who waits on another tenant's backlog.
+    const results = await drain(Math.max(10, requeued), { tenantId: t.id });
+    retried = {
+      requeued,
+      sent: results.filter((r) => !r.error).length,
+      stillFailing: results.filter((r) => r.error).length,
+    };
+  }
+
+  const { rows: counts } = await query(
+    `SELECT state, count(*)::int AS n FROM sync_outbox
+      WHERE tenant_id = $1::uuid AND state <> 'done' GROUP BY state`,
+    [t.id],
+  );
+  const { rows: failed } = await query(
+    `SELECT o.id, o.kind, o.last_error, o.attempts, o.created_at,
+            a.ref, a.guest_name, a.starts_at
+       FROM sync_outbox o
+       LEFT JOIN appointments a ON a.id = o.appointment_id
+      WHERE o.tenant_id = $1::uuid AND o.state = 'failed'
+      ORDER BY o.created_at DESC
+      LIMIT 20`,
+    [t.id],
+  );
+  return {
+    linked: true,
+    check,
+    retried,
+    queue: Object.fromEntries(counts.map((r) => [r.state, r.n])),
+    failed: failed.map((f) => ({
+      id: f.id,
+      kind: f.kind,
+      ref: f.ref,
+      guestName: f.guest_name,
+      startsAt: f.starts_at,
+      error: f.last_error,
+      attempts: f.attempts,
+      at: f.created_at,
+    })),
+  };
 }
 
 export default handler({
@@ -250,14 +360,34 @@ export default handler({
       return json(res, 401, { error: 'Unauthorized' });
     }
 
+    // Before draining: if the link to CENTRO works again, whatever failed
+    // while it did not goes back in the queue. Details go to the logs, not
+    // the response, which is reachable by anyone when CRON_SECRET is unset.
+    const { rows: tenants } = await query(
+      `SELECT id, slug, ghl_location_id, ghl_token, ghl_calendar_id, ghl_user_id
+         FROM tenants WHERE ghl_token IS NOT NULL`,
+    );
+    const linked = {};
+    for (const t of tenants) {
+      const check = await connectionFor(t);
+      linked[t.slug] = check.ok;
+      console.log(`CENTRO link for ${t.slug}:`, JSON.stringify(check));
+      if (check.ok) {
+        const n = await requeueFailed(t.id);
+        if (n) console.log(`Requeued ${n} failed CENTRO job(s) for ${t.slug}.`);
+      }
+    }
+
     const processed = await drain();
     const { rows } = await query(
       `SELECT state, count(*)::int AS n FROM sync_outbox
         WHERE state <> 'done' GROUP BY state`,
     );
     return json(res, 200, {
+      linked,
       processed: processed.length,
-      results: processed,
+      // Counts only: results carry CENTRO ids and error text, and this
+      // response is public when CRON_SECRET is unset.
       queue: Object.fromEntries(rows.map((r) => [r.state, r.n])),
     });
   },

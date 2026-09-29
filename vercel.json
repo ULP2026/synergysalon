@@ -124,6 +124,10 @@
     {
       "source": "/staff/:page(dashboard|appointments|contacts|settings)",
       "destination": "/staff"
+    },
+    {
+      "source": "/staff/marketing/:sub(automation|promotions|sms|email)",
+      "destination": "/staff"
     }
   ]
 }

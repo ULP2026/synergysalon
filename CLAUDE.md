@@ -84,6 +84,13 @@ was then rejected by CENTRO with a permanent 422, which killed the appointment
 push attached to it. A detail is only stored or sent once it is whole: a
 half-typed address is not a worse email, it is not an email yet.
 
+**Every push to CENTRO sends the appointment as it stands now**, not the event
+the job describes: jobs run late and out of order after a failure, and an old
+"booked" must not undo a newer "cancelled". Check-in, done and no-show are
+mirrored as CENTRO's showed/noshow. Settings, CENTRO shows the link's health
+and anything CENTRO refused, with a retry; the cron re-queues refused jobs
+from the last 30 days whenever the link checks out, and logs why each failed.
+
 ## Gotchas worth knowing before you hit them
 
 **Untyped query parameters.** `tstzrange($1, $1 + make_interval(mins => $2))`
@@ -117,7 +124,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 31 tests; the database ones skip without DATABASE_URL
+npm test                    # 48 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and

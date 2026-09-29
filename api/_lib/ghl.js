@@ -49,7 +49,7 @@ async function call(tenant, method, path, body) {
  * An address GoHighLevel will accept, or nothing.
  *
  * It answers a malformed address with a 422, which this client classes as
- * permanent — correctly, since resending it changes nothing. The cost was that
+ * permanent, correctly, since resending it changes nothing. The cost was that
  * one bad email killed the appointment attached to it for good: the push needs
  * a contact, the contact would not upsert, and the booking never reached the
  * calendar. A guest is better mirrored by phone alone than not at all.
@@ -114,6 +114,7 @@ export function updateContact(tenant, contactId, { name, email, phone }) {
 
 export async function createAppointment(tenant, {
   contactId, startsAt, endsAt, title, notes, calendarId, assignedUserId,
+  appointmentStatus = 'confirmed',
 }) {
   const data = await call(tenant, 'POST', '/calendars/events/appointments', {
     calendarId: calendarId || tenant.ghl_calendar_id,
@@ -127,7 +128,7 @@ export async function createAppointment(tenant, {
     endTime: endsAt,
     title,
     meetingLocationType: 'default',
-    appointmentStatus: 'confirmed',
+    appointmentStatus,
     // Our database already decided this slot is free and has stored the
     // appointment. Letting GoHighLevel re-adjudicate it here would mean a
     // calendar whose hours differ from ours silently drops real bookings.
@@ -143,14 +144,38 @@ export async function createAppointment(tenant, {
   return id;
 }
 
-export function updateAppointment(tenant, eventId, { startsAt, endsAt, title }) {
+export function updateAppointment(tenant, eventId, {
+  startsAt, endsAt, title, appointmentStatus,
+}) {
   return call(tenant, 'PUT', `/calendars/events/appointments/${eventId}`, {
     calendarId: tenant.ghl_calendar_id,
     startTime: startsAt,
     endTime: endsAt,
     title,
+    appointmentStatus,
     ignoreDateRange: true,
     ignoreFreeSlotValidation: true,
+    toNotify: false,
+  });
+}
+
+/**
+ * Our status, in CENTRO's words.
+ *
+ * A guest who has walked in is "showed" as soon as they are checked in, not
+ * only once staff remember to mark them done: the front desk reads CENTRO's
+ * calendar too, and "confirmed" for somebody already in the chair is wrong.
+ */
+export function ghlStatusFor(appt) {
+  if (appt.status === 'cancelled') return 'cancelled';
+  if (appt.status === 'no_show') return 'noshow';
+  if (appt.status === 'completed' || appt.checked_in_at) return 'showed';
+  return 'confirmed';
+}
+
+export function setAppointmentStatus(tenant, eventId, appointmentStatus) {
+  return call(tenant, 'PUT', `/calendars/events/appointments/${eventId}`, {
+    appointmentStatus,
     toNotify: false,
   });
 }
@@ -160,10 +185,52 @@ export function updateAppointment(tenant, eventId, { startsAt, endsAt, title }) 
  * any CENTRO automation watching for cancellations still fires.
  */
 export function cancelAppointment(tenant, eventId) {
-  return call(tenant, 'PUT', `/calendars/events/appointments/${eventId}`, {
-    appointmentStatus: 'cancelled',
-    toNotify: false,
-  });
+  return setAppointmentStatus(tenant, eventId, 'cancelled');
+}
+
+/**
+ * Prove the stored credentials still reach the right sub-account and
+ * calendar, and name who that calendar will accept as the assigned member.
+ *
+ * Every push failure so far has been one of these being wrong, and each one
+ * looked the same from the diary: a booking that simply never appeared.
+ */
+export async function checkConnection(tenant, userIds = []) {
+  const out = { ok: false, location: null, calendar: null, problems: [] };
+  try {
+    const { location } = await call(tenant, 'GET', `/locations/${tenant.ghl_location_id}`);
+    out.location = { id: location?.id, name: location?.name, timezone: location?.timezone };
+  } catch (err) {
+    out.problems.push(`The CENTRO sub-account could not be reached: ${err.message}`);
+    return out;
+  }
+  if (!tenant.ghl_calendar_id) {
+    out.problems.push('No CENTRO calendar is linked.');
+    return out;
+  }
+  try {
+    const { calendar } = await call(tenant, 'GET', `/calendars/${tenant.ghl_calendar_id}`);
+    const members = (calendar?.teamMembers || []).map((m) => m.userId);
+    out.calendar = {
+      id: calendar?.id, name: calendar?.name, type: calendar?.calendarType,
+      active: calendar?.isActive !== false, teamMembers: members.length,
+    };
+    if (calendar?.locationId && calendar.locationId !== tenant.ghl_location_id) {
+      out.problems.push('The linked calendar belongs to a different CENTRO sub-account.');
+    }
+    if (!members.length) {
+      out.problems.push('The CENTRO calendar has no team members, so it refuses every appointment.');
+    }
+    const strangers = [...new Set(userIds.filter(Boolean))].filter((u) => !members.includes(u));
+    if (members.length && strangers.length) {
+      out.problems.push(`${strangers.length} stylist mapping(s) point at a CENTRO user who is not on this calendar.`);
+    }
+  } catch (err) {
+    out.problems.push(`The CENTRO calendar could not be read: ${err.message}`);
+    return out;
+  }
+  out.ok = out.problems.length === 0;
+  return out;
 }
 
 /**

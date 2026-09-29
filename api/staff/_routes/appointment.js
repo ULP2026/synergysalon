@@ -1,5 +1,5 @@
 /**
- * POST /api/staff/appointment — what the front desk does to a booking.
+ * POST /api/staff/appointment: what the front desk does to a booking.
  *
  *   check_in | undo_check_in | complete | no_show | cancel | reopen | delete
  *
@@ -61,15 +61,24 @@ export default handler({
         };
       };
 
+      // CENTRO shows a status for every appointment, so each of these has to
+      // reach it too, or its calendar keeps saying "confirmed" about somebody
+      // who never came. The worker pushes the appointment as it now stands.
+      const mirrored = async (sql) => {
+        const updated = await set(sql);
+        await enqueueSync(client, tenant.id, 'appointment.status', { appointmentId: appt.id });
+        return { appt: updated };
+      };
+
       switch (action) {
         case 'check_in':
-          return { appt: await set('checked_in_at = COALESCE(checked_in_at, now())') };
+          return mirrored('checked_in_at = COALESCE(checked_in_at, now())');
         case 'undo_check_in':
-          return { appt: await set('checked_in_at = NULL') };
+          return mirrored('checked_in_at = NULL');
         case 'complete':
-          return { appt: await set("status = 'completed'") };
+          return mirrored("status = 'completed'");
         case 'no_show':
-          return { appt: await set("status = 'no_show'") };
+          return mirrored("status = 'no_show'");
 
         case 'cancel': {
           if (appt.status === 'cancelled') {
@@ -133,14 +142,17 @@ export default handler({
       }
     }
 
+    // Inline, for every action, so CENTRO matches by the time the diary
+    // reloads. Leaving it to the cron meant a cancellation took up to a day
+    // to reach CENTRO's calendar, which kept showing the slot as taken. If
+    // CENTRO is down the job stays queued and the cron retries it.
+    try {
+      await drain(10);
+    } catch (err) {
+      console.error('CENTRO sync deferred for appointment', ref, err);
+    }
+
     if (result.deleted) {
-      // Inline, like an edit, so CENTRO matches by the time the diary
-      // reloads. If CENTRO is down the job stays queued for the cron.
-      try {
-        await drain(10);
-      } catch (err) {
-        console.error('CENTRO delete deferred for appointment', ref, err);
-      }
       return json(res, 200, { ref, action, deleted: true, inCentro: result.inCentro });
     }
 
