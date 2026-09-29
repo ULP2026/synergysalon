@@ -75,7 +75,7 @@ const clean = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) 
  *
  * A half-typed address is not a worse email. It is not an email yet.
  */
-function settledEmail(value) {
+export function settledEmail(value) {
   const s = clean(value, 254).toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(s) ? s : '';
 }
@@ -85,13 +85,13 @@ function settledEmail(value) {
  * typed is not a short number, it is an unfinished one. Rejecting it outright
  * would turn every keystroke into a 400.
  */
-function settledPhone(value) {
+export function settledPhone(value) {
   const s = clean(value, 40);
   return s.replace(/\D/g, '').length >= 7 ? s : '';
 }
 
 /** The id the wizard mints when it opens; the same for every call it makes. */
-function sessionIdFrom(value) {
+export function sessionIdFrom(value) {
   const s = clean(value, 64);
   return /^[A-Za-z0-9_-]{8,64}$/.test(s) ? s : '';
 }
