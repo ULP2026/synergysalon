@@ -23,6 +23,7 @@ import { HttpError } from './http.js';
 async function bySlug(slug) {
   const { rows } = await query(
     `SELECT id, slug, name, timezone, host, app_host,
+            address, phone, email, website, logo,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE slug = $1 AND active`,
     [slug],
@@ -38,6 +39,7 @@ async function bySlug(slug) {
 async function byHost(host) {
   const { rows } = await query(
     `SELECT id, slug, name, timezone, host, app_host,
+            address, phone, email, website, logo,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE (host = $1 OR app_host = $1) AND active`,
     [host],
@@ -78,6 +80,7 @@ export async function tenantForRequest(req) {
 export async function tenantForUser(user) {
   const { rows } = await query(
     `SELECT id, slug, name, timezone, host, app_host,
+            address, phone, email, website, logo,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE id = $1 AND active`,
     [user.tenant_id],

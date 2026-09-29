@@ -304,7 +304,7 @@ export default handler({
 
     if (result.booked?.guest_email) {
       try {
-        await sendConfirmation(result.booked, tenant.timezone);
+        await sendConfirmation(result.booked, tenant);
       } catch (err) {
         console.error('confirmation email failed for', result.booked.ref, err);
       }

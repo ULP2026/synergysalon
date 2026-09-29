@@ -101,7 +101,7 @@ async function pushAppointment(client, job, tenant) {
     name: appt.guest_name,
     email: appt.guest_email,
     phone: appt.guest_phone,
-    source: appt.channel === 'staff' ? 'Staff booking' : 'synergysalon.com',
+    source: appt.channel === 'staff' ? 'Staff booking' : 'Online booking',
     tags: ['booked-online'],
   });
 

@@ -35,7 +35,7 @@ export default handler({
     // The appointment exists. Everything after this point is a courtesy on
     // top of it, never a reason to tell the guest their booking failed.
     try {
-      await sendConfirmation(appointment, tenant.timezone);
+      await sendConfirmation(appointment, tenant);
     } catch (err) {
       console.error('confirmation email failed for', appointment.ref, err);
     }

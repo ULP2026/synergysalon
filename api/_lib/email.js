@@ -9,9 +9,23 @@
 import { DateTime } from 'luxon';
 import { Resend } from 'resend';
 
-import { DEFAULT_TZ, SALON, SITE_URL } from './config.js';
+import { shopFrom } from './config.js';
 
-const FROM = process.env.BOOKING_FROM_EMAIL || 'Synergy Salon <hair@synergysalon.com>';
+/**
+ * Who the message is from.
+ *
+ * One address for every shop, because the sending domain has to be one we
+ * have verified with the provider -- a shop's own address in the From header
+ * is what gets the whole platform marked as spam. The shop's name still leads
+ * it, so a guest sees who is writing, and replies go to the shop itself.
+ */
+const SENDER = process.env.BOOKING_FROM_EMAIL || 'bookings@synergysalon.com';
+
+function fromFor(shop) {
+  const match = String(SENDER).match(/<([^>]+)>/);
+  const address = match ? match[1] : SENDER;
+  return `${shop.name} <${address}>`;
+}
 
 function client() {
   const key = process.env.RESEND_API_KEY;
@@ -20,8 +34,15 @@ function client() {
   return globalThis.__synergyResend;
 }
 
-export function manageUrl(ref, token) {
-  return `${SITE_URL}/appointment?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(token)}`;
+/**
+ * Where a guest reschedules or cancels.
+ *
+ * Built on the shop's own site where it has one, so the link a guest clicks
+ * carries the name they recognise rather than the platform's.
+ */
+export function manageUrl(shop, ref, token) {
+  const base = shop && shop.site ? shop.site : '';
+  return `${base}/appointment?ref=${encodeURIComponent(ref)}&t=${encodeURIComponent(token)}`;
 }
 
 /**
@@ -41,7 +62,7 @@ function escapeHtml(s) {
   ));
 }
 
-function layout({ heading, intro, rows, action, footnote }) {
+function layout({ heading, intro, rows, action, footnote }, shop) {
   const cells = rows
     .map(([label, value]) => `
       <tr>
@@ -69,15 +90,15 @@ function layout({ heading, intro, rows, action, footnote }) {
     ${footnote ? `<p style="margin:28px 0 0;color:#6b6b6b;font-size:13px;line-height:1.55;">${escapeHtml(footnote)}</p>` : ''}
     <hr style="border:none;border-top:1px solid #e8e2dc;margin:28px 0 16px;">
     <p style="margin:0;color:#6b6b6b;font-size:13px;line-height:1.6;">
-      ${escapeHtml(SALON.name)}<br>
-      ${SALON.addressLines.map(escapeHtml).join('<br>')}<br>
-      <a href="${SALON.phoneHref}" style="color:#6b6b6b;">${escapeHtml(SALON.phone)}</a>
+      ${escapeHtml(shop.name)}<br>
+      ${shop.addressLines.map(escapeHtml).join('<br>')}${shop.addressLines.length ? '<br>' : ''}
+      ${shop.phone ? `<a href="${shop.phoneHref}" style="color:#6b6b6b;">${escapeHtml(shop.phone)}</a>` : ''}
     </p>
   </div>
 </body></html>`;
 }
 
-function plain({ heading, intro, rows, action, footnote }) {
+function plain({ heading, intro, rows, action, footnote }, shop) {
   return [
     heading,
     '',
@@ -87,24 +108,25 @@ function plain({ heading, intro, rows, action, footnote }) {
     ...(action ? ['', `${action.label}: ${action.href}`] : []),
     ...(footnote ? ['', footnote] : []),
     '',
-    SALON.name,
-    ...SALON.addressLines,
-    SALON.phone,
+    shop.name,
+    ...shop.addressLines,
+    shop.phone,
   ].join('\n');
 }
 
-async function send(to, subject, content) {
+async function send(shop, to, subject, content) {
   const resend = client();
   if (!resend) {
     console.warn('RESEND_API_KEY is not set; skipping email to', to);
     return { skipped: true };
   }
   const { error } = await resend.emails.send({
-    from: FROM,
+    from: fromFor(shop),
+    replyTo: shop.email || undefined,
     to,
     subject,
-    html: layout(content),
-    text: plain(content),
+    html: layout(content, shop),
+    text: plain(content, shop),
   });
   if (error) throw new Error(`Resend refused the message: ${error.message}`);
   return { sent: true };
@@ -123,43 +145,57 @@ function detailRows(appt, zone) {
   return rows;
 }
 
-export function sendConfirmation(appt, zone = DEFAULT_TZ) {
-  return send(appt.guest_email, `You are booked in — ${prettyWhen(appt.starts_at, zone)}`, {
+/**
+ * Every one of these takes the tenant now rather than just a timezone.
+ *
+ * The line that made this urgent was "Your appointment at Synergy Salon is
+ * confirmed", which every shop's guests would have received.
+ */
+export function sendConfirmation(appt, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const zone = shop.timezone;
+  return send(shop, appt.guest_email, `You are booked in — ${prettyWhen(appt.starts_at, zone)}`, {
     heading: `See you soon, ${appt.guest_name.split(' ')[0]}`,
-    intro: 'Your appointment at Synergy Salon is confirmed. Here are the details.',
+    intro: `Your appointment at ${shop.name} is confirmed. Here are the details.`,
     rows: detailRows(appt, zone),
-    action: { label: 'Reschedule or cancel', href: manageUrl(appt.ref, appt.manage_token) },
+    action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
     footnote: 'If you need to change anything, use the link above or call us. '
       + 'Please let us know at least 24 hours ahead so we can offer the slot to someone else.',
   });
 }
 
-export function sendReschedule(appt, previousStart, zone = DEFAULT_TZ) {
-  return send(appt.guest_email, `Moved — you are now booked for ${prettyWhen(appt.starts_at, zone)}`, {
+export function sendReschedule(appt, previousStart, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const zone = shop.timezone;
+  return send(shop, appt.guest_email, `Moved — you are now booked for ${prettyWhen(appt.starts_at, zone)}`, {
     heading: 'Your appointment has moved',
     intro: `You were booked for ${prettyWhen(previousStart, zone)}. That is now cancelled and `
       + 'you are booked in at the new time below.',
     rows: detailRows(appt, zone),
-    action: { label: 'Reschedule or cancel', href: manageUrl(appt.ref, appt.manage_token) },
+    action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
   });
 }
 
-export function sendCancellation(appt, zone = DEFAULT_TZ) {
-  return send(appt.guest_email, `Cancelled — ${prettyWhen(appt.starts_at, zone)}`, {
+export function sendCancellation(appt, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const zone = shop.timezone;
+  return send(shop, appt.guest_email, `Cancelled — ${prettyWhen(appt.starts_at, zone)}`, {
     heading: 'Your appointment is cancelled',
     intro: 'We have cancelled the appointment below and released the slot. '
       + 'We would love to see you another time.',
     rows: detailRows(appt, zone),
-    action: { label: 'Book again', href: `${SITE_URL}/book` },
+    action: shop.site ? { label: 'Book again', href: shop.site } : undefined,
   });
 }
 
-export function sendReminder(appt, zone = DEFAULT_TZ) {
-  return send(appt.guest_email, `Tomorrow — ${prettyWhen(appt.starts_at, zone)}`, {
+export function sendReminder(appt, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const zone = shop.timezone;
+  return send(shop, appt.guest_email, `Tomorrow — ${prettyWhen(appt.starts_at, zone)}`, {
     heading: 'See you tomorrow',
-    intro: 'A quick reminder about your appointment at Synergy Salon.',
+    intro: `A quick reminder about your appointment at ${shop.name}.`,
     rows: detailRows(appt, zone),
-    action: { label: 'Reschedule or cancel', href: manageUrl(appt.ref, appt.manage_token) },
+    action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
     footnote: 'If you cannot make it, please tell us as soon as you can so we can offer '
       + 'the slot to someone else.',
   });

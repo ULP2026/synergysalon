@@ -136,7 +136,7 @@ export default handler({
 
     if (result.cancelled && result.appt.guest_email) {
       try {
-        await sendCancellation(result.appt, tenant.timezone);
+        await sendCancellation(result.appt, tenant);
       } catch (err) {
         console.error('cancellation email failed for', ref, err);
       }

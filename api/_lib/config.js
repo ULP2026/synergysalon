@@ -34,16 +34,38 @@ export const MAX_ADVANCE_DAYS = 90;
  */
 export const REMINDER_LEAD_HOURS = 36;
 
-/** Public site, used to build links in emails. */
-export const SITE_URL = process.env.SITE_URL || 'https://synergysalon.com';
+/**
+ * Where a guest manages their booking, when the shop has no domain of its own.
+ *
+ * A shop that has pointed a domain here gets links on that domain instead; see
+ * shopFrom() below, which prefers the tenant's own host.
+ */
+export const SITE_URL = process.env.SITE_URL || '';
 
-export const SALON = {
-  name: 'Synergy Salon',
-  phone: '(813) 654-2055',
-  phoneHref: 'tel:+18136542055',
-  email: 'hair@synergysalon.com',
-  addressLines: ['3212 Lithia Pinecrest Rd, Suite 101', 'Valrico, FL 33594'],
-};
+/**
+ * The shop as a guest sees it, taken from the tenant row.
+ *
+ * This used to be a constant holding one salon's name, phone number and
+ * address, which was true while there was one salon. Left that way, the second
+ * shop's guests get a confirmation email for a salon in Valrico they have
+ * never heard of. Nothing about a shop belongs in the code.
+ */
+export function shopFrom(tenant = {}) {
+  const site = tenant.host ? `https://${tenant.host}`
+    : (SITE_URL || (tenant.slug ? `/s/${tenant.slug}` : ''));
+  const digits = String(tenant.phone || '').replace(/[^\d+]/g, '');
+  return {
+    name: tenant.name || 'the salon',
+    phone: tenant.phone || '',
+    phoneHref: digits ? `tel:${digits}` : '',
+    email: tenant.email || '',
+    // One line per line the owner typed, so a shop that writes its address on
+    // one line is not split into invented ones.
+    addressLines: String(tenant.address || '').split(/\s*\n\s*/).filter(Boolean),
+    site,
+    timezone: tenant.timezone || DEFAULT_TZ,
+  };
+}
 
 /**
  * Ref codes a guest reads down the phone. No O/0 or I/1, because they are

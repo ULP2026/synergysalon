@@ -86,7 +86,7 @@ export async function upsertContact(tenant, { name, email, phone, source, tags =
     name: name || undefined,
     email: sendable || undefined,
     phone: phone || undefined,
-    source: source || 'synergysalon.com',
+    source: source || 'Online booking',
     tags,
   });
   const id = data?.contact?.id ?? data?.id;

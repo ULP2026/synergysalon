@@ -83,7 +83,7 @@ export default handler({
     // a front desk and must not be treated as a failure.
     if (appointment.guest_email) {
       try {
-        await sendConfirmation(appointment, tenant.timezone);
+        await sendConfirmation(appointment, tenant);
       } catch (err) {
         console.error('confirmation email failed for', appointment.ref, err);
       }

@@ -192,7 +192,7 @@ export default handler({
     });
 
     try {
-      await sendCancellation(appt, tenant.timezone);
+      await sendCancellation(appt, tenant);
     } catch (err) {
       console.error('cancellation email failed for', appt.ref, err);
     }

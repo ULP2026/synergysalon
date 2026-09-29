@@ -135,7 +135,7 @@ export default handler({
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Synergy Salon//Staff diary//EN',
+      `PRODID:-//${ics(stylist.salon)}//Staff diary//EN`,
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       // A stylist's feed says whose it is; the shop-wide one is just the shop,
@@ -162,7 +162,10 @@ export default handler({
         'BEGIN:VEVENT',
         // Stable across every refresh, so an edit updates the event the
         // stylist already has rather than adding a second one beside it.
-        `UID:${ics(r.ref)}@synergysalon.com`,
+        // Unique to this shop as well as this booking: two shops could
+        // issue the same reference, and a calendar keyed on the ref alone
+        // would treat them as the same event.
+        `UID:${ics(r.ref)}.${ics(owner.tenant_id)}@bookings.invalid`,
         `DTSTAMP:${stamp(r.updated_at || starts)}`,
         `DTSTART:${stamp(starts)}`,
         `DTEND:${stamp(ends.toJSDate())}`,
@@ -182,7 +185,9 @@ export default handler({
 
     res.status(200);
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-    res.setHeader('Content-Disposition', 'inline; filename="synergy-salon.ics"');
+    const file = String(stylist.salon || 'calendar').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'calendar';
+    res.setHeader('Content-Disposition', `inline; filename="${file}.ics"`);
     // Calendar clients poll on their own schedule; a few minutes of edge cache
     // keeps a busy salon from being re-queried for every device.
     res.setHeader('Cache-Control', 'public, max-age=300');
