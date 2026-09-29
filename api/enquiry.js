@@ -22,7 +22,7 @@ import { createBooking, enqueueSync } from './_lib/booking.js';
 import { transaction } from './_lib/db.js';
 import { sendConfirmation } from './_lib/email.js';
 import {
-  handler, json, optionalPhone, readJson, requireString,
+  handler, json, readJson, requireString,
 } from './_lib/http.js';
 import { tenantForRequest } from './_lib/tenant.js';
 import { drain } from './cron/sync.js';
@@ -62,6 +62,39 @@ const SERVICE_BY_LABEL = {
 };
 
 const clean = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+
+/**
+ * An email only counts once it is whole.
+ *
+ * This endpoint is called as the guest types, so it sees every prefix of the
+ * address on the way past. Treating those as real addresses did two kinds of
+ * damage at once: each prefix looked like a different person and got its own
+ * contact and its own appointment, and each was then pushed to CENTRO, which
+ * rejected it with "email must be an email" — permanently, so the appointment
+ * attached to it never reached the calendar either.
+ *
+ * A half-typed address is not a worse email. It is not an email yet.
+ */
+function settledEmail(value) {
+  const s = clean(value, 254).toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(s) ? s : '';
+}
+
+/**
+ * The same rule for the phone box, and for the same reason: a number being
+ * typed is not a short number, it is an unfinished one. Rejecting it outright
+ * would turn every keystroke into a 400.
+ */
+function settledPhone(value) {
+  const s = clean(value, 40);
+  return s.replace(/\D/g, '').length >= 7 ? s : '';
+}
+
+/** The id the wizard mints when it opens; the same for every call it makes. */
+function sessionIdFrom(value) {
+  const s = clean(value, 64);
+  return /^[A-Za-z0-9_-]{8,64}$/.test(s) ? s : '';
+}
 
 function serviceSlugFor(label) {
   return SERVICE_BY_LABEL[clean(label).toLowerCase()] ?? null;
@@ -115,9 +148,14 @@ export default handler({
     const body = await readJson(req);
 
     const name = requireString(body.name, 'Name', { max: 120 });
-    const email = clean(body.email, 254).toLowerCase();
-    const phone = optionalPhone(body.phone);
-    if (!email && !phone) {
+    const email = settledEmail(body.email);
+    const phone = settledPhone(body.phone);
+    const sessionId = sessionIdFrom(body.sessionId);
+
+    // Nothing to attach a person to yet, and nothing this session has already
+    // created. Saying so is cheaper than storing a record nobody can be
+    // reached on.
+    if (!email && !phone && !sessionId) {
       return json(res, 200, { saved: false, reason: 'no contact details yet' });
     }
 
@@ -125,34 +163,57 @@ export default handler({
     const start = startInstant(body.month, body.day, body.time, tenant.timezone);
 
     const result = await transaction(async (client) => {
-      // Upsert on either identifier: the wizard calls this repeatedly as the
-      // guest types, and each call must update the same person.
+      // Who this is, in order of how much the answer can be trusted.
+      //
+      // The session id first, because it is the only identifier that does not
+      // change while they type. Then email or phone, which is what matches a
+      // guest who has booked before to the record they already have.
       const { rows: found } = await client.query(
-        `SELECT id, ghl_contact_id FROM contacts
+        `SELECT id, ghl_contact_id, email, phone FROM contacts
           WHERE tenant_id = $1
-            AND (($2 <> '' AND lower(email) = $2) OR ($3 <> '' AND phone = $3))
-          ORDER BY created_at LIMIT 1`,
-        [tenant.id, email, phone],
+            AND (($2 <> '' AND session_id = $2)
+              OR ($3 <> '' AND lower(email) = $3)
+              OR ($4 <> '' AND phone = $4))
+          ORDER BY ($2 <> '' AND session_id = $2) DESC, created_at
+          LIMIT 1`,
+        [tenant.id, sessionId, email, phone],
       );
 
       let contactId = found[0]?.id;
       if (contactId) {
+        // Only overwrite a detail with one that is complete. Otherwise the
+        // guest correcting a typo in their address would blank it on the way
+        // through.
         await client.query(
           `UPDATE contacts
               SET name = $2,
                   email = CASE WHEN $3 <> '' THEN $3 ELSE email END,
                   phone = CASE WHEN $4 <> '' THEN $4 ELSE phone END,
+                  session_id = COALESCE(NULLIF($6, ''), session_id),
                   notes = $5, updated_at = now()
             WHERE id = $1`,
-          [contactId, name, email, phone, notesFrom(body)],
+          [contactId, name, email, phone, notesFrom(body), sessionId],
         );
+
+        // Their details changed after CENTRO already had them — an address
+        // finished, a number added. Push the correction rather than leaving
+        // the mirror holding the older version.
+        const before = found[0];
+        const changed = (email && email !== (before.email || '').toLowerCase())
+          || (phone && phone !== (before.phone || ''));
+        if (before.ghl_contact_id && changed) {
+          await enqueueSync(client, tenant.id, 'contact.updated', { contactId });
+        }
       } else {
+        // No record yet, and nothing to reach them on. Wait for one.
+        if (!email && !phone) return { contactId: null, booked: null };
+
         const { rows } = await client.query(
-          `INSERT INTO contacts (tenant_id, name, email, phone, source, notes, status)
-           VALUES ($1, $2, $3, $4, $5, $6, 'new')
+          `INSERT INTO contacts (tenant_id, name, email, phone, source, notes, status, session_id)
+           VALUES ($1, $2, $3, $4, $5, $6, 'new', NULLIF($7, ''))
            RETURNING id`,
           [tenant.id, name, email, phone,
-            clean(body.heard, 60) || 'Website booking form', notesFrom(body)],
+            clean(body.heard, 60) || 'Website booking form', notesFrom(body), sessionId],
         );
         contactId = rows[0].id;
         await enqueueSync(client, tenant.id, 'contact.created', { contactId });
@@ -245,7 +306,7 @@ export default handler({
     }
 
     return json(res, 200, {
-      saved: true,
+      saved: Boolean(result.contactId),
       contactId: result.contactId,
       ref: result.booked?.ref ?? result.already ?? null,
       stylist: result.booked?.stylist_name ?? null,

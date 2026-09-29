@@ -73,6 +73,21 @@
   var ENDPOINT = '/api/enquiry';
   var sending = false, lastSent = '', timer = null;
 
+  // One id for this sitting, minted before anything is typed.
+  //
+  // The server used to work out who was booking from whatever was in the email
+  // box at that moment, and this posts as they type. Half an address is a
+  // different string from a whole one, so one guest booking once arrived as
+  // five different people with four appointments between them. The id does not
+  // change while they type; the address does.
+  var SESSION = (function () {
+    try {
+      if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    } catch (e) { /* older browser; the fallback is fine */ }
+    return 'bk-' + Date.now().toString(36) + '-'
+      + Math.random().toString(36).slice(2, 12);
+  })();
+
   // The wizard advances the moment an option is chosen, and each step replaces
   // the last in the DOM. Nothing that was selected earlier is still on screen
   // at the end, so choices are recorded as they are made rather than read back.
@@ -127,6 +142,7 @@
     // burns the one completion send on nonsense.
     if (/\{\{/.test(name + email + phone)) return null;
     return {
+      sessionId: SESSION,
       name: name, email: email, phone: phone,
       serviceLabel: answers.service, who: answers.who, history: answers.history,
       heard: answers.heard, stylistLabel: answers.stylist,

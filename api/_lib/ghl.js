@@ -45,6 +45,20 @@ async function call(tenant, method, path, body) {
   return text ? JSON.parse(text) : {};
 }
 
+/**
+ * An address GoHighLevel will accept, or nothing.
+ *
+ * It answers a malformed address with a 422, which this client classes as
+ * permanent — correctly, since resending it changes nothing. The cost was that
+ * one bad email killed the appointment attached to it for good: the push needs
+ * a contact, the contact would not upsert, and the booking never reached the
+ * calendar. A guest is better mirrored by phone alone than not at all.
+ */
+function usableEmail(value) {
+  const s = String(value || '').trim();
+  return /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(s) ? s : '';
+}
+
 /** GoHighLevel wants the name split; people give us one string. */
 function splitName(full) {
   const parts = String(full || '').trim().split(/\s+/);
@@ -62,11 +76,15 @@ function splitName(full) {
  * of spawning a duplicate that splits their history in two.
  */
 export async function upsertContact(tenant, { name, email, phone, source, tags = [] }) {
+  const sendable = usableEmail(email);
+  if (!sendable && !phone) {
+    throw new GhlError(400, 'contact has neither a usable email nor a phone', '/contacts/upsert');
+  }
   const data = await call(tenant, 'POST', '/contacts/upsert', {
     locationId: tenant.ghl_location_id,
     ...splitName(name),
     name: name || undefined,
-    email: email || undefined,
+    email: sendable || undefined,
     phone: phone || undefined,
     source: source || 'synergysalon.com',
     tags,
@@ -89,7 +107,7 @@ export function updateContact(tenant, contactId, { name, email, phone }) {
     firstName: parts[0] || undefined,
     lastName: parts.slice(1).join(' ') || undefined,
     name: name || undefined,
-    email: email || undefined,
+    email: usableEmail(email) || undefined,
     phone: phone || undefined,
   });
 }
