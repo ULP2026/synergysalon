@@ -22,31 +22,37 @@
   }
 
   :root {
-    color-scheme: dark;
+    color-scheme: light;
 
     /* Synergy brand, taken from the live site. */
     --indigo-deep: #1e1f5c;
     --indigo:      #353676;
     --periwinkle:  #5560a6;
-    --peri-hover:  #6470b8;
+    --peri-hover:  #353676;
     --peri-soft:   #b9c0e8;
     --peri-pale:   #e6e8f7;
+    --greige:      #f0edee;
 
-    /* Surfaces: navy page, a brand-indigo sidebar, cards one step lighter. */
-    --bg:      #14153a;
+    /* Light and calm: the site's greige page, white cards, indigo ink.
+       Only the sidebar is dark (see .side below). */
+    --bg:      var(--greige);
     --side:    var(--indigo-deep);
-    --card:    #1c1d4a;
-    --raise:   #24255a;
-    --field:   #15163d;
-    --line:    #2c2e63;
-    --line-2:  #3a3c7a;
+    --card:    #ffffff;
+    --raise:   #f4f4fb;   /* hover rows, menus */
+    --field:   #ffffff;
+    --line:    #e4e3ec;
+    --line-2:  #cfd3ee;
 
-    --ink:     #f2f3fb;
-    --muted:   #aab2da;   /* 6.5:1 on cards: readable, never faint */
-    --faint:   #8891c2;
-    --link:    var(--peri-soft);
-    --ok:      #7fcf9c;
-    --warn:    #ff9aa2;
+    --ink:     #1a1a1a;
+    --muted:   #5b6390;   /* 5:1 or better on white and on greige */
+    --faint:   #8a91b3;   /* placeholders and icons only, never body text */
+    --link:    var(--periwinkle);
+    --accent-ink: var(--indigo);   /* times, info chips: the brand colour as text */
+    --focus:   var(--periwinkle);
+    --ok:      #2f7d4f;
+    --warn:    #c42b37;
+    --sk-hi:   #ebebf5;
+    --shadow:  0 12px 32px rgba(30, 31, 92, .14);
 
     --radius: 14px;
     --sans: 'Geist Variable', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -66,10 +72,10 @@
     font: 400 var(--fs-md)/1.5 var(--sans); -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -.01em; line-height: 1.2; }
-  h1 { font-size: var(--fs-xl); }
+  h1 { font-size: var(--fs-xl); color: var(--indigo-deep); }
   h2 { font-size: var(--fs-lg); }
   a { color: var(--link); text-underline-offset: 3px; }
-  a:hover { color: #fff; }
+  a:hover { color: var(--indigo); }
   .muted { color: var(--muted); }
   .small { font-size: var(--fs-sm); }
   .hidden { display: none !important; }
@@ -77,7 +83,7 @@
 
   /* Visible, consistent focus everywhere. */
   :focus { outline: none; }
-  :focus-visible { outline: 2px solid var(--peri-soft); outline-offset: 2px; border-radius: 10px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 10px; }
 
   .ic {
     width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
@@ -93,7 +99,7 @@
   textarea { height: auto; min-height: 76px; padding: 10px 12px; resize: vertical; }
   input::placeholder, textarea::placeholder { color: var(--faint); }
   input:focus-visible, select:focus-visible, textarea:focus-visible {
-    outline: 2px solid var(--peri-soft); outline-offset: 1px; border-color: transparent;
+    outline: 2px solid var(--focus); outline-offset: 1px; border-color: transparent;
   }
   label { display: block; margin: 0 0 14px; }
   label > span { display: block; margin-bottom: 6px; font-size: var(--fs-sm); color: var(--muted); font-weight: 500; }
@@ -109,7 +115,7 @@
   .btn:disabled { opacity: .55; cursor: default; }
   .btn .ic { width: 18px; height: 18px; }
   .btn.quiet { background: transparent; color: var(--ink); border-color: var(--line-2); font-weight: 500; }
-  .btn.quiet:hover:not(:disabled) { background: var(--raise); }
+  .btn.quiet:hover:not(:disabled) { background: var(--peri-pale); color: var(--indigo); }
   .btn.sm { height: 34px; padding: 0 14px; font-size: var(--fs-sm); }
   .btn.block { width: 100%; }
   .iconbtn {
@@ -120,7 +126,7 @@
   .iconbtn:hover:not(:disabled) { background: var(--raise); color: var(--ink); }
   .iconbtn.lg { width: 42px; height: 42px; border-color: var(--line-2); border-radius: 999px; }
 
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; box-shadow: 0 1px 2px rgba(30, 31, 92, .04); }
   .card.fill { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 
@@ -128,8 +134,8 @@
   .note {
     display: flex; gap: 10px; align-items: flex-start;
     padding: 11px 14px; border-radius: 10px; margin-bottom: 16px; font-size: var(--fs-sm);
-    background: color-mix(in srgb, var(--periwinkle) 18%, transparent);
-    border: 1px solid color-mix(in srgb, var(--periwinkle) 45%, transparent); color: var(--peri-pale);
+    background: var(--peri-pale);
+    border: 1px solid color-mix(in srgb, var(--periwinkle) 35%, transparent); color: var(--indigo);
   }
   .note.bad { background: color-mix(in srgb, var(--warn) 10%, transparent); border-color: color-mix(in srgb, var(--warn) 40%, transparent); color: var(--warn); }
   .note.good { background: color-mix(in srgb, var(--ok) 10%, transparent); border-color: color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
@@ -139,7 +145,7 @@
     border-radius: 999px; font-size: var(--fs-xs); font-weight: 500; white-space: nowrap;
     border: 1px solid var(--line-2); color: var(--muted); background: transparent;
   }
-  .chip.info { color: var(--peri-soft); border-color: color-mix(in srgb, var(--peri-soft) 35%, transparent); background: color-mix(in srgb, var(--periwinkle) 16%, transparent); }
+  .chip.info { color: var(--accent-ink); border-color: var(--line-2); background: var(--peri-pale); }
   .chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
   .chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
   .chip .ic { width: 13px; height: 13px; }
@@ -148,7 +154,7 @@
   /* Loading placeholders instead of a blank "Loading…" flash. */
   .sk {
     display: block; height: 14px; border-radius: 7px;
-    background: linear-gradient(90deg, var(--raise) 0%, #2d2f69 50%, var(--raise) 100%);
+    background: linear-gradient(90deg, var(--raise) 0%, var(--sk-hi) 50%, var(--raise) 100%);
     background-size: 200% 100%; animation: sk 1.6s ease-in-out infinite;
   }
   @keyframes sk { from { background-position: 100% 0; } to { background-position: -100% 0; } }
@@ -163,7 +169,7 @@
   }
   .empty .bubble {
     display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 8px;
-    border-radius: 50%; background: color-mix(in srgb, var(--periwinkle) 22%, transparent); color: var(--peri-soft);
+    border-radius: 50%; background: var(--peri-pale); color: var(--periwinkle);
   }
   .empty .bubble .ic { width: 26px; height: 26px; }
   .empty h3 { font-size: var(--fs-lg); }
@@ -178,12 +184,12 @@
   }
   tbody td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
   tbody tr:last-child td { border-bottom: 0; }
-  tbody tr:hover td { background: color-mix(in srgb, var(--raise) 45%, transparent); }
+  tbody tr:hover td { background: var(--raise); }
   th:first-child, td:first-child { padding-left: 4px; }
   th:last-child, td:last-child { padding-right: 4px; }
   tbody tr.off td { opacity: .55; }
   tbody tr.off .name { text-decoration: line-through; }
-  .time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--peri-soft); white-space: nowrap; }
+  .time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent-ink); white-space: nowrap; }
   .name { font-weight: 600; color: var(--ink); font-size: .95rem; }
   /* Buttons are taller than a line of text; pull them up so they sit on the row's first line. */
   .acts { display: flex; gap: 6px; justify-content: flex-end; align-items: center; white-space: nowrap; margin: -7px 0; }
@@ -211,6 +217,14 @@
 
   /* ───────────── app shell ───────────── */
   .app { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100dvh; }
+  /* The one dark surface: the sidebar re-declares the tokens it uses, so
+     everything inside it (nav, user chip, Sign out) reads light-on-indigo. */
+  .side {
+    color-scheme: dark;
+    --ink: #f2f3fb; --muted: #c3c9ea; --line: rgba(255, 255, 255, .1);
+    --line-2: rgba(255, 255, 255, .16); --focus: var(--peri-soft);
+    color: var(--ink);
+  }
   .side {
     position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column;
     background: var(--side); border-right: 1px solid var(--line); padding: 22px 14px 16px;
@@ -261,11 +275,11 @@
 
   /* Dashboard */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
-  .tile { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
-  .tile .num { font-size: 2.1rem; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: 0 1px 2px rgba(30, 31, 92, .04); }
+  .tile .num { color: var(--indigo); font-size: 2.1rem; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .tile .lbl { color: var(--muted); font-size: var(--fs-sm); margin-top: 2px; }
   a.tile { display: block; color: inherit; text-decoration: none; }
-  a.tile:hover { border-color: var(--line-2); background: var(--raise); }
+  a.tile:hover { border-color: var(--line-2); box-shadow: 0 2px 10px rgba(30, 31, 92, .06); }
   .upcoming { list-style: none; margin: 0; padding: 0; }
   .upcoming li + li { border-top: 1px solid var(--line); }
   .upcoming button {
@@ -274,7 +288,7 @@
   }
   .upcoming button:hover { background: var(--raise); }
   .upcoming .when { font-size: var(--fs-sm); color: var(--muted); line-height: 1.3; }
-  .upcoming .when b { display: block; color: var(--peri-soft); font-size: .95rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .upcoming .when b { display: block; color: var(--accent-ink); font-size: .95rem; font-weight: 600; font-variant-numeric: tabular-nums; }
   .upcoming .what { font-size: var(--fs-sm); color: var(--muted); }
   .upcoming .go { color: var(--faint); }
 
@@ -286,19 +300,19 @@
   /* Overflow menu, one floating element shared by every row. */
   .pop {
     position: fixed; z-index: 50; min-width: 190px; padding: 6px; border-radius: 12px;
-    background: var(--raise); border: 1px solid var(--line-2); box-shadow: 0 12px 32px rgba(5, 6, 25, .45);
+    background: var(--card); border: 1px solid var(--line-2); box-shadow: var(--shadow);
   }
   .pop button {
     display: flex; width: 100%; align-items: center; height: 40px; padding: 0 12px; border: 0;
     border-radius: 8px; background: transparent; cursor: pointer; text-align: left; font-size: var(--fs-sm);
   }
-  .pop button:hover, .pop button:focus-visible { background: rgba(255, 255, 255, .07); outline-offset: -2px; }
+  .pop button:hover, .pop button:focus-visible { background: var(--peri-pale); outline-offset: -2px; }
   .pop button.danger { color: var(--warn); }
 
   .toast {
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60;
     max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 12px; font-size: var(--fs-sm);
-    background: var(--raise); border: 1px solid var(--line-2); box-shadow: 0 12px 32px rgba(5, 6, 25, .45);
+    background: var(--card); border: 1px solid var(--line-2); box-shadow: var(--shadow);
   }
   .toast.bad { color: var(--warn); }
 
@@ -307,7 +321,7 @@
     background: var(--card); color: var(--ink); max-width: 500px; width: calc(100% - 32px);
   }
   dialog h2 { margin-bottom: 18px; font-size: 1.25rem; }
-  dialog::backdrop { background: rgba(10, 11, 34, .7); }
+  dialog::backdrop { background: rgba(30, 31, 92, .4); }
   .dlg-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   @media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
@@ -334,8 +348,8 @@
       position: fixed; inset: 0 auto 0 0; width: 260px; z-index: 40;
       transform: translateX(-100%); transition: transform .2s ease;
     }
-    .app.drawer .side { transform: none; box-shadow: 0 0 48px rgba(5, 6, 25, .6); }
-    .scrim { position: fixed; inset: 0; z-index: 30; background: rgba(10, 11, 34, .6); }
+    .app.drawer .side { transform: none; box-shadow: 0 0 48px rgba(30, 31, 92, .35); }
+    .scrim { position: fixed; inset: 0; z-index: 30; background: rgba(30, 31, 92, .4); }
     .menu-btn { display: inline-grid; }
     .main { padding: 18px 16px 24px; }
     .pagehead { flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
@@ -390,12 +404,12 @@
   <symbol id="i-users-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5 1.7 0 3.2.6 4.4 1.6M18.5 13v6M15.5 16h6"/></symbol>
 </svg>
 
-<div id="boot"><img src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon"></div>
+<div id="boot"><img src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon"></div>
 
 <!-- ─────────────────────────── sign in ─────────────────────────── -->
 <main id="login" class="auth hidden">
   <div class="card">
-    <img class="logo" src="/assets/f44772ad-1f64-4ee1-8ef2-ca08d762f1b4.png" alt="Synergy Salon">
+    <img class="logo" src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon">
     <div id="loginNote" class="note hidden" role="status"></div>
 
     <form id="loginForm">
