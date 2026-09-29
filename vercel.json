@@ -15,7 +15,13 @@
     {
       "source": "/book",
       "destination": "/?book=1",
-      "permanent": false
+      "permanent": false,
+      "has": [
+        {
+          "type": "host",
+          "value": "synergysalon.com"
+        }
+      ]
     },
     {
       "source": "/:path(.*)",
@@ -109,7 +115,7 @@
   "rewrites": [
     {
       "source": "/s/:slug",
-      "destination": "/book/index.html"
+      "destination": "/shop"
     },
     {
       "source": "/calendar/:token.ics",
