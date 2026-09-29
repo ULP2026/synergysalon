@@ -13,7 +13,7 @@ import { DateTime } from 'luxon';
 
 import { pool, query, transaction } from '../_lib/db.js';
 import {
-  GhlError, cancelAppointment, createAppointment, deleteContact,
+  GhlError, cancelAppointment, createAppointment, deleteAppointment, deleteContact,
   updateAppointment, updateContact, upsertContact,
 } from '../_lib/ghl.js';
 import { handler, json } from '../_lib/http.js';
@@ -156,6 +156,20 @@ async function pushContact(client, job, tenant) {
  * retry repeats both steps, which is harmless: cancelling twice and deleting
  * something already gone both succeed.
  */
+/**
+ * An appointment the salon deleted outright.
+ *
+ * The CENTRO id travels in the payload rather than in appointment_id, because
+ * that column cascades: deleting the appointment would delete the job that
+ * tells us to clean up after it.
+ */
+async function removeAppointment(job, tenant) {
+  const { ghlAppointmentId } = job.payload || {};
+  if (!ghlAppointmentId) return { skipped: 'never reached CENTRO' };
+  await deleteAppointment(tenant, ghlAppointmentId);
+  return { deleted: ghlAppointmentId };
+}
+
 async function removeContact(job, tenant) {
   const { ghlContactId, ghlAppointmentIds = [] } = job.payload || {};
   for (const eventId of ghlAppointmentIds) {
@@ -187,6 +201,7 @@ async function runOne() {
     try {
       let result;
       if (job.kind === 'contact.deleted') result = await removeContact(job, tenant);
+      else if (job.kind === 'appointment.deleted') result = await removeAppointment(job, tenant);
       else if (job.kind.startsWith('appointment.')) result = await pushAppointment(client, job, tenant);
       else result = await pushContact(client, job, tenant);
 

@@ -1,11 +1,17 @@
 /**
  * POST /api/staff/appointment — what the front desk does to a booking.
  *
- *   check_in | undo_check_in | complete | no_show | cancel | reopen
+ *   check_in | undo_check_in | complete | no_show | cancel | reopen | delete
  *
  * Cancelling is the only action that gives the slot back. A completed or
  * no-show appointment still occupied the stylist's time, and letting the
  * diary re-sell it would rewrite history.
+ *
+ * Delete is not a tidier cancel. Cancelling is what happened -- the guest
+ * called off, and the salon should be able to see that they did. Deleting is
+ * for a booking that should never have existed: a test, or a duplicate the
+ * system created. It leaves nothing behind, which is why only an owner or a
+ * manager may do it.
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { enqueueSync } from '../../_lib/booking.js';
@@ -13,6 +19,10 @@ import { EXCLUSION_VIOLATION, transaction } from '../../_lib/db.js';
 import { sendCancellation } from '../../_lib/email.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import { drain } from '../../cron/sync.js';
+
+/** Same bar as deleting a contact: this removes history outright. */
+const CAN_DELETE = ['owner', 'manager'];
 
 export default handler({
   async POST(req, res) {
@@ -88,6 +98,28 @@ export default handler({
           }
         }
 
+        case 'delete': {
+          if (!CAN_DELETE.includes(user.role)) {
+            throw new HttpError(403, 'Only an owner or a manager can delete an appointment.');
+          }
+          // Anything still queued about this booking would either recreate it
+          // in CENTRO or fail forever looking for a row that has gone.
+          await client.query(
+            `DELETE FROM sync_outbox
+              WHERE state <> 'done' AND appointment_id = $1`,
+            [appt.id],
+          );
+          // The id travels in the payload, not in appointment_id: that column
+          // cascades, so the job would be deleted along with its appointment.
+          if (appt.ghl_appointment_id) {
+            await enqueueSync(client, tenant.id, 'appointment.deleted', {
+              payload: { ghlAppointmentId: appt.ghl_appointment_id, ref },
+            });
+          }
+          await client.query('DELETE FROM appointments WHERE id = $1', [appt.id]);
+          return { appt, deleted: true, inCentro: Boolean(appt.ghl_appointment_id) };
+        }
+
         default:
           throw new HttpError(400, `"${action}" is not something you can do to an appointment.`);
       }
@@ -99,6 +131,17 @@ export default handler({
       } catch (err) {
         console.error('cancellation email failed for', ref, err);
       }
+    }
+
+    if (result.deleted) {
+      // Inline, like an edit, so CENTRO matches by the time the diary
+      // reloads. If CENTRO is down the job stays queued for the cron.
+      try {
+        await drain(10);
+      } catch (err) {
+        console.error('CENTRO delete deferred for appointment', ref, err);
+      }
+      return json(res, 200, { ref, action, deleted: true, inCentro: result.inCentro });
     }
 
     return json(res, 200, {

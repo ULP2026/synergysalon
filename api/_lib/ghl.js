@@ -181,4 +181,22 @@ export async function deleteContact(tenant, contactId) {
   }
 }
 
+/**
+ * Remove an event outright, rather than marking it cancelled.
+ *
+ * Cancelling is right when a guest cancels: the salon keeps the history and
+ * CENTRO's automations fire. Deleting is for a booking that should never have
+ * existed -- a test, a duplicate -- where leaving a cancelled ghost on the
+ * calendar is just clutter the front desk has to read past.
+ *
+ * A 404 counts as done, for the same reason it does when deleting a contact.
+ */
+export async function deleteAppointment(tenant, eventId) {
+  try {
+    await call(tenant, 'DELETE', `/calendars/events/${eventId}`);
+  } catch (err) {
+    if (!(err instanceof GhlError && err.status === 404)) throw err;
+  }
+}
+
 export { GhlError };

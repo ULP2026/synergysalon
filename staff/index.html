@@ -379,6 +379,56 @@
     table.stack .acts:empty { display: none; }
   }
   @media (prefers-reduced-motion: reduce) { .side { transition: none; } }
+
+  /* ── month calendar ──────────────────────────────────────────────────
+     The diary zoomed out. The front desk lives in the day view, but the
+     owner wants to see the shape of a week at a glance -- where the gaps
+     are -- and a list of one day cannot show that. */
+  .seg { display:inline-flex; gap:2px; background:var(--raise); border:1px solid var(--line);
+         border-radius:999px; padding:3px; }
+  .seg button { border:0; background:none; padding:6px 15px; border-radius:999px;
+                font:inherit; font-size:var(--fs-sm); color:var(--muted); cursor:pointer; }
+  .seg button:hover { color:var(--ink); }
+  .seg button[aria-pressed="true"] { background:var(--card); color:var(--indigo);
+                font-weight:600; box-shadow:0 1px 3px rgba(30,31,92,.14); }
+  .seg button:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+
+  .cal { display:flex; flex-direction:column; flex:1; min-height:0; }
+  .cal-head { display:grid; grid-template-columns:repeat(7,minmax(0,1fr));
+              border-bottom:1px solid var(--line); background:var(--card); }
+  .cal-head span { padding:10px 8px; text-align:center; font-size:var(--fs-xs);
+                   font-weight:650; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr));
+              grid-auto-rows:minmax(112px,1fr); flex:1; min-height:0; overflow:auto; }
+  .cal-cell { border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+              padding:6px 6px 8px; display:flex; flex-direction:column; gap:3px;
+              min-width:0; background:var(--card); }
+  .cal-cell:nth-child(7n) { border-right:0; }
+  /* Days either side of the month stay visible but recede: a Monday that
+     belongs to next month is still context, not content. */
+  .cal-cell.out { background:#fbfbfd; }
+  .cal-cell.out .cal-n { color:var(--faint); font-weight:400; }
+  .cal-n { align-self:flex-end; font-size:var(--fs-sm); font-weight:600; color:var(--ink);
+           min-width:24px; height:24px; display:grid; place-items:center; }
+  .cal-cell.today .cal-n { background:var(--periwinkle); color:#fff; border-radius:999px; }
+  .cal-ev { display:block; width:100%; text-align:left; border:0; cursor:pointer;
+            font:inherit; font-size:var(--fs-xs); line-height:1.3; padding:3px 6px;
+            border-radius:6px; background:var(--indigo); color:#fff;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cal-ev:hover { background:var(--indigo-deep); }
+  .cal-ev b { font-weight:650; }
+  /* Not yet mirrored to CENTRO: shown, but visibly provisional. */
+  .cal-ev.pending { background:var(--peri-pale); color:var(--indigo-deep); }
+  .cal-ev.pending:hover { background:var(--peri-soft); }
+  .cal-ev.off { background:var(--raise); color:var(--muted); text-decoration:line-through; }
+  .cal-more { border:0; background:none; font:inherit; font-size:var(--fs-xs);
+              color:var(--muted); cursor:pointer; text-align:left; padding:1px 6px; }
+  .cal-more:hover { color:var(--ink); text-decoration:underline; }
+  @media (max-width:760px) {
+    .cal-grid { grid-auto-rows:minmax(84px,1fr); }
+    .cal-ev { font-size:.7rem; padding:2px 4px; }
+    .cal-head span { font-size:.66rem; padding:8px 2px; }
+  }
 </style>
 </head>
 <body>
@@ -511,13 +561,19 @@
     <section class="view hidden" id="view-appointments">
       <div class="card fill">
         <div class="toolbar">
-          <button class="iconbtn lg" id="prevDay" aria-label="Previous day"><svg class="ic"><use href="#i-left"/></svg></button>
-          <input type="date" id="dayPicker" aria-label="Day">
-          <button class="iconbtn lg" id="nextDay" aria-label="Next day"><svg class="ic"><use href="#i-right"/></svg></button>
+          <button class="iconbtn lg" id="prevDay" aria-label="Previous"><svg class="ic"><use href="#i-left"/></svg></button>
+          <input type="date" id="dayPicker" class="hidden" aria-label="Day">
+          <strong id="monthLabel" style="font-size:var(--fs-md);min-width:11ch"></strong>
+          <button class="iconbtn lg" id="nextDay" aria-label="Next"><svg class="ic"><use href="#i-right"/></svg></button>
           <button class="btn quiet" id="todayBtn">Today</button>
+          <div class="seg" id="viewSeg" role="group" aria-label="Calendar view">
+            <button type="button" data-view="month" aria-pressed="true">Month</button>
+            <button type="button" data-view="day" aria-pressed="false">Day</button>
+          </div>
           <span class="summary" id="dayHeading"></span>
         </div>
-        <div id="diary" style="flex:1;display:flex;flex-direction:column"></div>
+        <div id="calendar" style="flex:1;display:flex;flex-direction:column"></div>
+        <div id="diary" class="hidden" style="flex:1;display:flex;flex-direction:column"></div>
       </div>
     </section>
 
@@ -802,7 +858,10 @@ const PAGES = {
   appointments: {
     path: '/staff/appointments', title: 'Appointments', action: 'New appointment',
     sub: 'Check people in and keep the day on track.',
-    run: () => openBooking(null), load: () => loadDay(day || salonToday()),
+    run: () => openBooking(null),
+    load: () => (calView === 'month'
+      ? loadMonth(calMonth || monthOf(day || salonToday()))
+      : loadDay(day || salonToday())),
   },
   contacts: {
     path: '/staff/contacts', title: 'Contacts', action: 'Add contact',
@@ -1057,14 +1116,29 @@ function renderDiary(d) {
 
 async function apptAction(ref, act, btn) {
   if (act === 'cancel' && !confirm('Cancel this appointment? The time goes back on the online booking page.')) return;
+  // Deleting leaves nothing behind, in either system, so it asks plainly
+  // rather than in the language of cancelling.
+  if (act === 'delete' && !confirm(
+    `Delete appointment ${ref} for good?
+
+`
+    + 'It is removed here and from CENTRO, and it will not appear anywhere '
+    + 'afterwards. To keep a record that it was called off, cancel it instead.'
+  )) return;
   if (btn) btn.disabled = true;
   try {
-    await api('/api/staff/appointment', { method: 'POST', body: JSON.stringify({ ref, action: act }) });
-    await loadDay(day);
+    const r = await api('/api/staff/appointment', { method: 'POST', body: JSON.stringify({ ref, action: act }) });
+    if (r && r.deleted) toast(`Appointment ${ref} deleted${r.inCentro ? ' here and in CENTRO' : ''}.`);
+    await refreshDiary();
   } catch (err) {
     fail(err);
     if (btn) btn.disabled = false;
   }
+}
+
+/** Reload whichever of the two views is on screen. */
+function refreshDiary() {
+  return calView === 'month' ? loadMonth(calMonth) : loadDay(day);
 }
 
 $('diary').onclick = (e) => {
@@ -1077,7 +1151,14 @@ $('diary').onclick = (e) => {
     ? [{ label: 'Undo check-in', run: () => apptAction(a.ref, 'undo_check_in') }]
     : [{ label: 'Mark as done', run: () => apptAction(a.ref, 'complete') }];
   items.push({ label: 'Didn’t show up', run: () => apptAction(a.ref, 'no_show') });
-  items.push({ label: 'Cancel appointment', danger: true, run: () => apptAction(a.ref, 'cancel') });
+  if (a.status !== 'cancelled') {
+    items.push({ label: 'Cancel appointment', danger: true, run: () => apptAction(a.ref, 'cancel') });
+  }
+  // Same bar as deleting a contact: it removes history rather than recording
+  // it, so it is not something every member of the front desk should have.
+  if (me?.user?.role === 'owner' || me?.user?.role === 'manager') {
+    items.push({ label: 'Delete for good', danger: true, run: () => apptAction(a.ref, 'delete') });
+  }
   showMenu(more, items);
 };
 
@@ -1098,9 +1179,136 @@ async function loadDay(date) {
   }
 }
 
-$('prevDay').onclick = () => loadDay(addDays(day, -1));
-$('nextDay').onclick = () => loadDay(addDays(day, 1));
-$('todayBtn').onclick = () => loadDay(salonToday());
+// ───────────────────────── month calendar ─────────────────────────
+//
+// The same appointments as the day view, grouped into a grid. The front desk
+// works a day at a time -- checking people in -- but nobody can see the shape
+// of a week from a list, which is what the owner is looking at when they ask
+// where the gaps are.
+
+let calView = 'month';
+let calMonth = '';          // YYYY-MM
+let monthData = null;
+
+/** YYYY-MM-DD for a local Date, without going through UTC. */
+function isoOf(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+       + `-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function monthOf(date) { return String(date).slice(0, 7); }
+
+function shiftMonth(ym, n) {
+  const [y, m] = ym.split('-').map(Number);
+  // Day 1 at midday: a month step must never land on a date that daylight
+  // saving moves into the previous day.
+  const d = new Date(y, (m - 1) + n, 1, 12);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const PER_CELL = 3;        // then "+N more", so one busy day cannot push the grid open
+
+function renderMonth(d) {
+  monthData = d;
+  $('monthLabel').textContent = d.heading;
+  $('dayHeading').textContent = `${d.booked} appointment${d.booked === 1 ? '' : 's'} this month`;
+
+  const byDate = new Map();
+  for (const a of d.appointments) {
+    if (!byDate.has(a.date)) byDate.set(a.date, []);
+    byDate.get(a.date).push(a);
+  }
+
+  const first = new Date(`${d.month}-01T12:00:00`);
+  const start = new Date(first);
+  start.setDate(1 - first.getDay());          // back to the Sunday on or before the 1st
+
+  // Six rows covers every month; the last is dropped when it belongs
+  // entirely to the next month, rather than leaving an empty band.
+  const cells = [];
+  for (let i = 0; i < 42; i += 1) {
+    const cur = new Date(start);
+    cur.setDate(start.getDate() + i);
+    cells.push({ iso: isoOf(cur), n: cur.getDate(), out: isoOf(cur).slice(0, 7) !== d.month });
+  }
+  while (cells.length > 35 && cells.slice(35).every((c) => c.out)) cells.length = 35;
+
+  const chip = (a) => {
+    const cls = a.status === 'cancelled' ? 'off' : (a.syncedToCentro ? '' : 'pending');
+    const title = `${a.time} · ${a.guestName} · ${a.service} with ${a.stylist}`
+      + (a.status === 'cancelled' ? ' (cancelled)' : '')
+      + (a.syncedToCentro ? '' : ' — not in CENTRO yet');
+    return `<button class="cal-ev ${cls}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
+              title="${esc(title)}"><b>${esc(a.time.replace(':00', ''))}</b> ${esc(a.guestName)}</button>`;
+  };
+
+  $('calendar').innerHTML = `<div class="cal">
+    <div class="cal-head">${DOW.map((w) => `<span>${w}</span>`).join('')}</div>
+    <div class="cal-grid">${cells.map((c) => {
+      const list = (byDate.get(c.iso) || []);
+      const shown = list.slice(0, PER_CELL);
+      const rest = list.length - shown.length;
+      return `<div class="cal-cell ${c.out ? 'out' : ''} ${c.iso === d.today ? 'today' : ''}">
+        <span class="cal-n">${c.n}</span>
+        ${shown.map(chip).join('')}
+        ${rest > 0 ? `<button class="cal-more" data-day="${c.iso}">+${rest} more</button>` : ''}
+      </div>`;
+    }).join('')}</div>
+  </div>`;
+}
+
+let monthSeq = 0;
+async function loadMonth(ym) {
+  const seq = ++monthSeq;
+  calMonth = ym;
+  $('dayHeading').textContent = '';
+  $('calendar').innerHTML = skeleton(6);
+  try {
+    const d = await api(`/api/staff/diary?month=${encodeURIComponent(ym)}`);
+    if (seq === monthSeq) renderMonth(d);
+  } catch (err) {
+    if (seq === monthSeq && err.message !== 'signed out') {
+      $('calendar').innerHTML = emptyState({
+        icon: 'info', title: 'Couldn’t load this month', text: err.message,
+      });
+    }
+  }
+}
+
+/** Clicking anything in the grid takes you to that day, where the actions are. */
+$('calendar').onclick = (e) => {
+  const more = e.target.closest('button[data-day]');
+  if (more) { setView('day', more.dataset.day); return; }
+  const ev = e.target.closest('button[data-ref]');
+  if (ev) setView('day', ev.dataset.date);
+};
+
+function setView(next, date) {
+  calView = next;
+  const month = next === 'month';
+  for (const b of $('viewSeg').querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', String(b.dataset.view === next));
+  }
+  $('calendar').classList.toggle('hidden', !month);
+  $('diary').classList.toggle('hidden', month);
+  $('dayPicker').classList.toggle('hidden', month);
+  $('monthLabel').classList.toggle('hidden', !month);
+  if (month) loadMonth(calMonth || monthOf(date || day || salonToday()));
+  else loadDay(date || day || salonToday());
+}
+
+$('viewSeg').onclick = (e) => {
+  const b = e.target.closest('button[data-view]');
+  if (b && b.dataset.view !== calView) setView(b.dataset.view);
+};
+
+$('prevDay').onclick = () => (calView === 'month'
+  ? loadMonth(shiftMonth(calMonth, -1)) : loadDay(addDays(day, -1)));
+$('nextDay').onclick = () => (calView === 'month'
+  ? loadMonth(shiftMonth(calMonth, 1)) : loadDay(addDays(day, 1)));
+$('todayBtn').onclick = () => (calView === 'month'
+  ? loadMonth(monthOf(salonToday())) : loadDay(salonToday()));
 $('dayPicker').onchange = (e) => e.target.value && loadDay(e.target.value);
 
 // ───────────────────────────── contacts ─────────────────────────────
