@@ -99,6 +99,10 @@
   ],
   "rewrites": [
     {
+      "source": "/calendar/:token.ics",
+      "destination": "/api/calendar?k=:token"
+    },
+    {
       "source": "/staff/:page(dashboard|appointments|contacts|settings)",
       "destination": "/staff"
     }

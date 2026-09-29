@@ -15,6 +15,7 @@ import { json } from '../_lib/http.js';
 import appointment from './_routes/appointment.js';
 import availability from './_routes/availability.js';
 import book from './_routes/book.js';
+import calendars from './_routes/calendars.js';
 import contacts from './_routes/contacts.js';
 import diary from './_routes/diary.js';
 import login from './_routes/login.js';
@@ -27,6 +28,7 @@ const ROUTES = {
   appointment,
   availability,
   book,
+  calendars,
   contacts,
   diary,
   login,

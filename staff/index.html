@@ -437,6 +437,16 @@
     .cal-ev { font-size:.7rem; padding:2px 4px; }
     .cal-head span { font-size:.66rem; padding:8px 2px; }
   }
+
+  .feed { display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+          padding:14px 0; border-bottom:1px solid var(--line); }
+  .feed:last-child { border-bottom:0; }
+  .feed .who { min-width:150px; flex:0 0 auto; }
+  .feed .who .name { font-weight:600; }
+  .feed code { flex:1 1 280px; min-width:0; overflow:hidden; text-overflow:ellipsis;
+               white-space:nowrap; background:var(--raise); border:1px solid var(--line);
+               border-radius:8px; padding:8px 10px; font-size:var(--fs-xs); color:var(--muted); }
+  .feed .acts { display:flex; gap:8px; flex:0 0 auto; }
 </style>
 </head>
 <body>
@@ -608,6 +618,18 @@
           declining removes the request so they can ask again.
         </p>
         <div id="team" style="flex:1;display:flex;flex-direction:column"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" style="margin-bottom:4px"><h2>Calendar feeds</h2></div>
+        <p class="small muted" style="margin:0 0 18px">
+          Each stylist can add their own link to Google Calendar, Apple Calendar or
+          Outlook and see their appointments on their phone, kept up to date
+          automatically. The link is a password — anyone who has it can read that
+          diary — so send it to the stylist directly and regenerate it if it goes
+          astray. Changes here are read-only: the salon’s diary stays the diary.
+        </p>
+        <div id="feeds"></div>
       </div>
     </section>
   </main>
@@ -873,7 +895,7 @@ const PAGES = {
   settings: {
     path: '/staff/settings', title: 'Settings', action: 'Add team member',
     sub: 'Choose who can sign in and what they can do.',
-    run: () => openMember(), load: () => loadTeam(),
+    run: () => openMember(), load: () => { loadTeam(); loadFeeds(); },
   },
 };
 
@@ -1642,6 +1664,72 @@ $('team').onchange = async (e) => {
     });
     toast('Role updated.');
   } catch (err) { fail(err); loadTeam(); }
+};
+
+// ─────────────────────── calendar feeds ───────────────────────
+
+function renderFeeds(d) {
+  const canManage = me?.user?.role === 'owner' || me?.user?.role === 'manager';
+  if (!d.stylists.length) {
+    $('feeds').innerHTML = emptyState({
+      icon: 'calendar', title: 'No stylists yet',
+      text: 'Add a stylist and their calendar link appears here.',
+    });
+    return;
+  }
+  $('feeds').innerHTML = d.stylists.map((s) => `
+    <div class="feed">
+      <div class="who">
+        <div class="name">${esc(s.name)}${s.active ? '' : ' <span class="chip">inactive</span>'}</div>
+        <div class="small muted">${s.upcoming} upcoming</div>
+      </div>
+      <code title="${esc(s.url || '')}">${esc(s.url || 'no link yet')}</code>
+      <div class="acts">
+        ${s.url ? `<button class="btn quiet" data-copy="${esc(s.url)}">Copy link</button>` : ''}
+        ${canManage ? `<button class="btn quiet" data-regen="${esc(s.id)}" data-name="${esc(s.name)}">Regenerate</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function loadFeeds() {
+  $('feeds').innerHTML = skeleton(3);
+  try {
+    renderFeeds(await api('/api/staff/calendars'));
+  } catch (err) {
+    if (err.message !== 'signed out') {
+      $('feeds').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load the calendar links', text: err.message });
+    }
+  }
+}
+
+$('feeds').onclick = async (e) => {
+  const copy = e.target.closest('button[data-copy]');
+  if (copy) {
+    try {
+      await navigator.clipboard.writeText(copy.dataset.copy);
+      toast('Calendar link copied. Paste it into “Add calendar from URL”.');
+    } catch {
+      // Clipboard access is refused outside a secure context and in some
+      // embedded browsers; selecting it by hand still works.
+      toast('Couldn’t copy automatically — select the link and copy it.', 'bad');
+    }
+    return;
+  }
+  const regen = e.target.closest('button[data-regen]');
+  if (!regen) return;
+  if (!confirm(`Regenerate ${regen.dataset.name}'s calendar link?
+
+`
+    + 'Every device already subscribed to the old link stops updating, and they '
+    + 'will need the new one. Their appointments are not affected.')) return;
+  regen.disabled = true;
+  try {
+    await api('/api/staff/calendars', {
+      method: 'POST', body: JSON.stringify({ stylistId: regen.dataset.regen, action: 'regenerate' }),
+    });
+    toast(`New link created for ${regen.dataset.name}.`);
+    await loadFeeds();
+  } catch (err) { fail(err); regen.disabled = false; }
 };
 
 async function loadTeam() {
