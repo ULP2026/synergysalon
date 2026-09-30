@@ -241,18 +241,15 @@
   /* ── GoldenRingNav (ported from RocketOS) ────────────────────────────
      Values are RocketOS's Tailwind classes, written out: top-4, gap-3,
      rounded-2xl, px-2 py-2, gap-1, px-4 py-2 rounded-xl text-sm, w-4 h-4,
-     duration-200. Gold is confined to the menu; the pages stay navy and
-     periwinkle. RocketOS is dark, where #c49746 reads as text; on Synergy's
-     white glass it is 2.4:1, so the active label uses a deeper gold from the
-     same ramp (--gold-ink, 5.6:1) and the bright stops stay in the ring. */
+     duration-200. Colours are Synergy's throughout; the pages stay navy and
+     periwinkle. RocketOS's gold is remapped to Synergy's own ramp: the
+     ring runs deep indigo, periwinkle and soft periwinkle, the glow is
+     periwinkle, and the current page reads in brand indigo (9:1 on the
+     white glass). */
   :root {
-    --gold-dark:   #533517;
-    --gold:        #c49746;
-    --gold-light:  #feeaa5;
-    --gold-bright: #e8af48;
-    --gold-ink:    #8a5d1a;
-    --gold-ring: conic-gradient(from 0deg, var(--gold-dark), var(--gold), var(--gold-light), var(--gold), var(--gold-dark));
-    --gold-glow: 0 0 20px rgba(196, 151, 70, .35), 0 0 42px -6px rgba(196, 151, 70, .22);
+    --ring-ink:  var(--indigo);
+    --ring-grad: conic-gradient(from 0deg, var(--indigo-deep), var(--periwinkle), var(--peri-soft), var(--periwinkle), var(--indigo-deep));
+    --ring-glow: 0 0 20px rgba(85, 96, 166, .35), 0 0 42px -6px rgba(85, 96, 166, .22);
   }
   .glass-strong {
     background: rgba(255, 255, 255, .8);
@@ -260,8 +257,8 @@
     box-shadow: 0 8px 32px rgba(30, 31, 92, .14), inset 0 1px 0 rgba(255, 255, 255, .9);
     backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6);
   }
-  .gold-glow { box-shadow: var(--gold-glow); }
-  @keyframes golden-ring-spin { to { transform: rotate(360deg); } }
+  .ring-glow { box-shadow: var(--ring-glow); }
+  @keyframes ring-spin { to { transform: rotate(360deg); } }
 
   .grn {
     position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50;
@@ -270,7 +267,7 @@
   .grn-pill { position: relative; display: flex; align-items: center; gap: 4px; padding: 8px; border-radius: 16px; }
   .grn-logo { display: grid; place-items: center; padding: 0 8px 0 6px; align-self: stretch; border-radius: 12px; }
   .grn-mark {
-    display: block; width: 22px; height: 22px; background: var(--gold);
+    display: block; width: 22px; height: 22px; background: var(--periwinkle);
     -webkit-mask: url(/favicon-512x512.png) center / contain no-repeat;
             mask: url(/favicon-512x512.png) center / contain no-repeat;
   }
@@ -281,7 +278,7 @@
     transition: color .2s ease;
   }
   .grn-item:hover { color: var(--indigo-deep); }
-  .grn-item[aria-current="page"] { color: var(--gold-ink); }
+  .grn-item[aria-current="page"] { color: var(--ring-ink); }
   .grn-item.icon-only { padding: 8px 12px; }
   .grn-ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2;
             stroke-linecap: round; stroke-linejoin: round; }
@@ -291,19 +288,19 @@
     background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 2px #fff;
   }
 
-  /* The ring: a gold conic gradient turning slowly behind a 2px inset of
+  /* The ring: a periwinkle conic gradient turning slowly behind a 2px inset of
      frosted card, so only its edge shows. left and width are driven by the
      spring in moveRing(); top and bottom match the pill's py-2. */
   .grn-ring {
     position: absolute; top: 8px; bottom: 8px; left: 0; width: 0; z-index: 1;
     border-radius: 12px; overflow: hidden; pointer-events: none; opacity: 0;
-    box-shadow: var(--gold-glow); transition: opacity .2s ease;
+    box-shadow: var(--ring-glow); transition: opacity .2s ease;
   }
   .grn-ring.on { opacity: 1; }
   .grn-ring::before {
     content: ""; position: absolute; left: 50%; top: 50%; width: 400px; height: 400px;
-    margin: -200px 0 0 -200px; background: var(--gold-ring);
-    animation: golden-ring-spin 4s linear infinite;
+    margin: -200px 0 0 -200px; background: var(--ring-grad);
+    animation: ring-spin 4s linear infinite;
   }
   .grn-ring-fill {
     position: absolute; inset: 2px; border-radius: 10px; background: rgba(255, 255, 255, .9);
@@ -315,10 +312,10 @@
     font: inherit; font-size: .875rem; font-weight: 500; color: var(--ink); cursor: pointer;
     transition: color .2s ease, box-shadow .2s ease, transform .2s ease;
   }
-  .grn-me:hover { color: var(--gold-ink); box-shadow: 0 8px 32px rgba(30, 31, 92, .14), var(--gold-glow); }
+  .grn-me:hover { color: var(--ring-ink); box-shadow: 0 8px 32px rgba(30, 31, 92, .14), var(--ring-glow); }
   .grn-me:active { transform: scale(.98); }
   .grn-me .me-name { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .grn a:focus-visible, .grn button:focus-visible { outline: 2px solid var(--gold-ink); outline-offset: 2px; border-radius: 12px; }
+  .grn a:focus-visible, .grn button:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; border-radius: 12px; }
 
   /* sm: labels show from 640px up, as RocketOS's "hidden sm:inline". */
   @media (max-width: 639px) {
@@ -1046,7 +1043,7 @@
 <!-- ─────────────────────────── app ─────────────────────────── -->
 <div id="app" class="app hidden">
   <!-- GoldenRingNav, ported from RocketOS: a fixed cluster at the top centre,
-       the nav pill and a separate chip for the person. The gold ring slides
+       the nav pill and a separate chip for the person. The periwinkle ring slides
        under the current page on framer-motion's spring (see moveRing()).
        The chrome is a floating capsule rather than a sidebar: the diary is
        the widest thing here and wants the room. -->
