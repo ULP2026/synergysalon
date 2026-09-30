@@ -238,74 +238,110 @@
   /* ───────────── app shell ───────────── */
   .app { display: flex; flex-direction: column; min-height: 100dvh; }
 
-  /* Nav capsule centred, the signed-in user parked on the right. The 1fr
-     either side is what keeps the nav centred on the page rather than
-     centred on the space the user chip leaves over. */
-  .topbar {
-    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-    gap: 12px; padding: 18px 24px 4px; position: sticky; top: 0; z-index: 20;
-    background: linear-gradient(rgba(245, 244, 250, .92) 70%, transparent);
+  /* ── GoldenRingNav (ported from RocketOS) ────────────────────────────
+     Values are RocketOS's Tailwind classes, written out: top-4, gap-3,
+     rounded-2xl, px-2 py-2, gap-1, px-4 py-2 rounded-xl text-sm, w-4 h-4,
+     duration-200. Gold is confined to the menu; the pages stay navy and
+     periwinkle. RocketOS is dark, where #c49746 reads as text; on Synergy's
+     white glass it is 2.4:1, so the active label uses a deeper gold from the
+     same ramp (--gold-ink, 5.6:1) and the bright stops stay in the ring. */
+  :root {
+    --gold-dark:   #533517;
+    --gold:        #c49746;
+    --gold-light:  #feeaa5;
+    --gold-bright: #e8af48;
+    --gold-ink:    #8a5d1a;
+    --gold-ring: conic-gradient(from 0deg, var(--gold-dark), var(--gold), var(--gold-light), var(--gold), var(--gold-dark));
+    --gold-glow: 0 0 20px rgba(196, 151, 70, .35), 0 0 42px -6px rgba(196, 151, 70, .22);
   }
-  .navpill {
-    grid-column: 2; display: flex; align-items: center; gap: 4px; max-width: 100%;
-    background: var(--card); border: 1px solid var(--hair); border-radius: 999px;
-    padding: 8px 12px 8px 8px; box-shadow: var(--e2);
-    overflow-x: auto; scrollbar-width: none;
+  .glass-strong {
+    background: rgba(255, 255, 255, .8);
+    border: 1px solid rgba(207, 211, 238, .55);
+    box-shadow: 0 8px 32px rgba(30, 31, 92, .14), inset 0 1px 0 rgba(255, 255, 255, .9);
+    backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6);
   }
-  .navpill::-webkit-scrollbar { display: none; }
-  /* The crescent alone, no tile: the wordmark is the sign-in page's one
-     brand moment, and a badge around the mark was one more thing to look at. */
-  .navpill .brand { display: grid; place-items: center; padding: 0 10px 0 8px; flex: none; }
-  .navpill .brand img { display: block; width: 28px; height: 28px; }
-  .nav { display: flex; align-items: center; gap: 2px; }
-  .nav a {
-    display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 15px;
-    border-radius: 999px; color: var(--muted); text-decoration: none; background: transparent;
-    font: inherit; font-weight: 500; font-size: var(--fs-sm); white-space: nowrap; cursor: pointer;
-    border: 1.5px solid transparent;
-    transition: background-color var(--t) var(--ease), color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+  .gold-glow { box-shadow: var(--gold-glow); }
+  @keyframes golden-ring-spin { to { transform: rotate(360deg); } }
+
+  .grn {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50;
+    display: flex; align-items: stretch; gap: 12px; max-width: calc(100vw - 16px);
   }
-  .nav a:hover:not([aria-current]) { color: var(--indigo); background: var(--peri-pale); }
-  /* Where you are is the one filled thing in the bar: the brand gradient
-     with a soft periwinkle glow, so it cannot be mistaken for a hover. */
-  .nav a[aria-current="page"] {
-    color: #fff; font-weight: 650; border-color: transparent;
-    background: linear-gradient(135deg, #6b76c0 0%, var(--periwinkle) 45%, var(--indigo) 100%);
-    box-shadow: 0 6px 16px -6px rgba(85, 96, 166, .65), inset 0 1px 0 rgba(255, 255, 255, .18);
-    animation: pick .22s var(--ease);
+  .grn-pill { position: relative; display: flex; align-items: center; gap: 4px; padding: 8px; border-radius: 16px; }
+  .grn-logo { display: grid; place-items: center; padding: 0 8px 0 6px; align-self: stretch; border-radius: 12px; }
+  .grn-mark {
+    display: block; width: 22px; height: 22px; background: var(--gold);
+    -webkit-mask: url(/favicon-512x512.png) center / contain no-repeat;
+            mask: url(/favicon-512x512.png) center / contain no-repeat;
   }
-  .nav a[aria-current="page"] .ic { color: #fff; }
-  .nav a[aria-current="page"] .count { background: #fff; color: var(--indigo); }
-  @keyframes pick { from { transform: scale(.96); opacity: .7; } to { transform: none; opacity: 1; } }
-  .nav .count {
-    min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
-    display: grid; place-items: center; font-size: var(--fs-xs); font-weight: 650;
-    background: var(--periwinkle); color: #fff;
+  .grn-item {
+    position: relative; z-index: 10; display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 12px; font-size: .875rem; line-height: 1.25rem; font-weight: 500;
+    color: var(--muted); text-decoration: none; white-space: nowrap;
+    transition: color .2s ease;
+  }
+  .grn-item:hover { color: var(--indigo-deep); }
+  .grn-item[aria-current="page"] { color: var(--gold-ink); }
+  .grn-item.icon-only { padding: 8px 12px; }
+  .grn-ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2;
+            stroke-linecap: round; stroke-linejoin: round; }
+  .grn-item .count {
+    position: absolute; top: 1px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: 999px; display: grid; place-items: center; font-size: .66rem; font-weight: 650;
+    background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 2px #fff;
   }
 
+  /* The ring: a gold conic gradient turning slowly behind a 2px inset of
+     frosted card, so only its edge shows. left and width are driven by the
+     spring in moveRing(); top and bottom match the pill's py-2. */
+  .grn-ring {
+    position: absolute; top: 8px; bottom: 8px; left: 0; width: 0; z-index: 1;
+    border-radius: 12px; overflow: hidden; pointer-events: none; opacity: 0;
+    box-shadow: var(--gold-glow); transition: opacity .2s ease;
+  }
+  .grn-ring.on { opacity: 1; }
+  .grn-ring::before {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 400px; height: 400px;
+    margin: -200px 0 0 -200px; background: var(--gold-ring);
+    animation: golden-ring-spin 4s linear infinite;
+  }
+  .grn-ring-fill {
+    position: absolute; inset: 2px; border-radius: 10px; background: rgba(255, 255, 255, .9);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
 
-  .mepill {
-    grid-column: 3; justify-self: end; flex: none;
-    display: flex; align-items: center; gap: 9px; height: 58px; padding: 0 18px 0 10px;
-    background: var(--card); border: 1px solid var(--hair); border-radius: 999px;
-    box-shadow: var(--e2); font: inherit; color: var(--ink); cursor: pointer;
-    transition: background-color var(--t) var(--ease), transform var(--t) var(--ease);
+  .grn-me {
+    display: flex; align-items: center; padding: 0 16px; border-radius: 16px;
+    font: inherit; font-size: .875rem; font-weight: 500; color: var(--ink); cursor: pointer;
+    transition: color .2s ease, box-shadow .2s ease, transform .2s ease;
   }
-  .mepill:hover { background: var(--raise); }
-  .mepill:active { transform: scale(.98); }
-  .mepill .me-name {
-    font-weight: 600; font-size: var(--fs-sm); max-width: 16ch;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .grn-me:hover { color: var(--gold-ink); box-shadow: 0 8px 32px rgba(30, 31, 92, .14), var(--gold-glow); }
+  .grn-me:active { transform: scale(.98); }
+  .grn-me .me-name { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grn a:focus-visible, .grn button:focus-visible { outline: 2px solid var(--gold-ink); outline-offset: 2px; border-radius: 12px; }
+
+  /* sm: labels show from 640px up, as RocketOS's "hidden sm:inline". */
+  @media (max-width: 639px) {
+    .grn-item .lbl { display: none; }
   }
+  @media (max-width: 420px) {
+    .grn { gap: 8px; }
+    .grn-item, .grn-item.icon-only { padding: 8px 11px; }
+    .grn-logo { padding: 0 4px; }
+    .grn-me { padding: 0 12px; }
+    .grn-me .me-name { max-width: 8ch; }
+  }
+
   .avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
   .avatar {
     display: grid; place-items: center; width: 36px; height: 36px; flex: none; overflow: hidden;
     border-radius: 50%; background: var(--periwinkle); color: #fff; font-weight: 650; font-size: .88rem;
   }
 
+  /* pt-20, as in RocketOS's Index: the nav is fixed, so the page starts below it. */
   .main {
     display: flex; flex-direction: column; min-width: 0; flex: 1;
-    width: 100%; max-width: 1340px; margin: 0 auto; padding: 22px 40px 32px;
+    width: 100%; max-width: 1340px; margin: 0 auto; padding: 80px 40px 32px;
   }
   .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
   .pagehead .titles { flex: 1; min-width: 0; }
@@ -377,23 +413,11 @@
   @media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
 
   /* ───────────── responsive ───────────── */
-  /* The capsule keeps its shape and scrolls sideways rather than becoming a
-     drawer: the items fit on a phone once the labels drop away. */
   @media (max-width: 1100px) {
-    .main { padding: 20px 24px 28px; }
-  }
-  @media (max-width: 860px) {
-    .topbar { grid-template-columns: minmax(0, 1fr) auto; padding: 12px 16px 4px; }
-    .navpill { grid-column: 1; justify-self: start; }
-    .navpill .brand { display: none; }
-    .mepill { grid-column: 2; height: 50px; padding: 0 8px; }
-    .mepill .me-name { display: none; }
-    .nav a { padding: 0 12px; }
-    .nav .lbl { display: none; }
-    .nav a[aria-current="page"] .lbl { display: inline; }
+    .main { padding: 80px 24px 28px; }
   }
   @media (max-width: 720px) {
-    .main { padding: 16px 16px 24px; }
+    .main { padding: 80px 16px 24px; }
     .pagehead { flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
     .pagehead .primary { width: 100%; }
     h1 { font-size: 1.4rem; }
@@ -813,11 +837,6 @@
 
   /* Frosted chrome. Browsers without backdrop-filter keep the solid white. */
   @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .navpill, .mepill {
-      background: var(--glass); border-color: var(--glass-edge);
-      backdrop-filter: blur(16px) saturate(1.5); -webkit-backdrop-filter: blur(16px) saturate(1.5);
-    }
-    .mepill:hover { background: rgba(244, 244, 251, .9); }
     .card, .tile {
       background: var(--glass-card);
       backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
@@ -828,8 +847,7 @@
     }
   }
   /* A hairline of light along the top edge: depth from shading, not borders. */
-  .card, .tile, .navpill, .mepill { box-shadow: var(--e1), inset 0 1px 0 rgba(255, 255, 255, .9); }
-  .navpill, .mepill { box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, .9); }
+  .card, .tile { box-shadow: var(--e1), inset 0 1px 0 rgba(255, 255, 255, .9); }
 
   /* Primary buttons: lift on a gentle spring, a periwinkle halo, press to .98. */
   .btn {
@@ -856,17 +874,10 @@
 
   /* Icons ease into their hover colour instead of snapping. */
   .ic { transition: color var(--t) var(--ease), transform var(--t) var(--ease); }
-  .nav a:hover:not([aria-current]) .ic { color: var(--periwinkle); }
-  .nav a[aria-current="page"] {
-    box-shadow: 0 6px 16px -6px rgba(85, 96, 166, .65), 0 0 0 3px rgba(85, 96, 166, .12),
-                inset 0 1px 0 rgba(255, 255, 255, .18);
-  }
-  .navpill .brand img { transition: transform .3s var(--spring); }
-  .navpill .brand:hover img { transform: rotate(-8deg) scale(1.06); }
   .upcoming button:hover .go { color: var(--periwinkle); transform: translateX(3px); }
   .rowlink .ic, .cnext .ic { transition: color var(--t) var(--ease); }
 
-  /* Chosen filters and tags glow a touch, the same as the nav's current page. */
+  /* Chosen filters and tags glow a touch. */
   .cfilter button[aria-pressed="true"], .seg button[aria-pressed="true"], .tl-filters button[aria-pressed="true"] {
     box-shadow: 0 5px 14px -5px rgba(85, 96, 166, .6), 0 0 0 3px rgba(85, 96, 166, .10),
                 inset 0 1px 0 rgba(255, 255, 255, .18);
@@ -930,16 +941,15 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(85, 96, 166, .28); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
   ::-webkit-scrollbar-thumb:hover { background-color: rgba(85, 96, 166, .5); }
-  .navpill { scrollbar-width: none; }
 
   /* Motion is decoration here: with reduced motion it becomes fades or nothing. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: .01ms !important; }
     .btn:hover:not(:disabled), .btn:active:not(:disabled), a.tile:hover, .conn:hover,
-    .mepill:active, .iconbtn:active:not(:disabled), .crow:hover, .crow:active, .cal-ev:hover,
-    .upcoming button:hover .go, .navpill .brand:hover img,
+    .grn-me:active, .iconbtn:active:not(:disabled), .crow:hover, .crow:active, .cal-ev:hover,
+    .upcoming button:hover .go,
     .cfilter button:active, .seg button:active, .tl-filters button:active, button.tag:active { transform: none; }
-    .nav a[aria-current="page"], .seg button[aria-pressed="true"], .cfilter button[aria-pressed="true"],
+    .grn-ring::before, .seg button[aria-pressed="true"], .cfilter button[aria-pressed="true"],
     button.tag[aria-pressed="true"], .soon .chip { animation: none; }
     dialog[open], dialog.closing, .view:not(.hidden) > *, .setpane:not(.hidden), .pagehead .titles,
     .pop:not(.hidden), .toast:not(.hidden) { animation: fade .01ms; }
@@ -981,6 +991,12 @@
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></symbol>
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"/><path d="M14 3.5V8h4"/></symbol>
   <symbol id="i-users-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5 1.7 0 3.2.6 4.4 1.6M18.5 13v6M15.5 16h6"/></symbol>
+  <!-- Lucide (ISC), the set RocketOS's nav draws from. -->
+  <symbol id="l-layout-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+  <symbol id="l-calendar" viewBox="0 0 24 24"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></symbol>
+  <symbol id="l-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol>
+  <symbol id="l-megaphone" viewBox="0 0 24 24"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14"/><path d="M8 6v8"/></symbol>
+  <symbol id="l-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
 </svg>
 
 <div id="boot"><img src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon"></div>
@@ -1029,29 +1045,30 @@
 
 <!-- ─────────────────────────── app ─────────────────────────── -->
 <div id="app" class="app hidden">
-  <!-- The chrome is a floating capsule rather than a sidebar: the diary is
+  <!-- GoldenRingNav, ported from RocketOS: a fixed cluster at the top centre,
+       the nav pill and a separate chip for the person. The gold ring slides
+       under the current page on framer-motion's spring (see moveRing()).
+       The chrome is a floating capsule rather than a sidebar: the diary is
        the widest thing here and wants the room. -->
-  <header class="topbar">
-    <nav class="navpill" aria-label="Main">
-      <a class="brand" href="/staff" data-page="dashboard" aria-label="Synergy Salon, go to Dashboard">
-        <img src="/favicon-512x512.png" alt="">
+  <header class="grn">
+    <nav class="grn-pill glass-strong" id="grnPill" aria-label="Main">
+      <span class="grn-ring" id="grnRing" aria-hidden="true"><span class="grn-ring-fill"></span></span>
+      <a class="grn-logo" href="/staff" data-page="dashboard" aria-label="Synergy Salon, go to Dashboard">
+        <span class="grn-mark" aria-hidden="true"></span>
       </a>
-      <div class="nav">
-        <a href="/staff" data-page="dashboard" title="Dashboard">
-          <svg class="ic"><use href="#i-dashboard"/></svg><span class="lbl">Dashboard</span></a>
-        <a href="/staff/appointments" data-page="appointments" title="Appointments">
-          <svg class="ic"><use href="#i-calendar"/></svg><span class="lbl">Appointments</span></a>
-        <a href="/staff/contacts" data-page="contacts" title="Contacts">
-          <svg class="ic"><use href="#i-contacts"/></svg><span class="lbl">Contacts</span></a>
-        <a href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
-          <svg class="ic"><use href="#i-megaphone"/></svg><span class="lbl">Marketing</span></a>
-        <a href="/staff/settings" data-page="settings" title="Settings" id="navSettings" class="hidden">
-          <svg class="ic"><use href="#i-settings"/></svg><span class="lbl">Settings</span>
-          <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span></a>
-      </div>
+      <a class="grn-item" href="/staff" data-page="dashboard" title="Dashboard">
+        <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Dashboard</span></a>
+      <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Appointments">
+        <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appointments</span></a>
+      <a class="grn-item" href="/staff/contacts" data-page="contacts" title="Contacts">
+        <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Contacts</span></a>
+      <a class="grn-item" href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
+        <svg class="grn-ic"><use href="#l-megaphone"/></svg><span class="lbl">Marketing</span></a>
+      <a class="grn-item icon-only hidden" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
+        <svg class="grn-ic"><use href="#l-settings"/></svg>
+        <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span></a>
     </nav>
-    <button class="mepill" id="meBtn" data-more="me" aria-haspopup="menu" aria-expanded="false">
-      <span class="avatar" id="meInitials" aria-hidden="true"></span>
+    <button class="grn-me glass-strong" id="meBtn" data-more="me" aria-haspopup="menu" aria-expanded="false">
       <span class="me-name" id="meName"></span>
     </button>
   </header>
@@ -1146,7 +1163,8 @@
 
       <!-- My profile -->
       <div class="card setpane" id="set-profile">
-        <div class="card-head" style="margin-bottom:4px"><h2>My profile</h2></div>
+        <div class="card-head" style="margin-bottom:4px"><h2>My profile</h2>
+          <button type="button" class="btn quiet sm" id="signOutBtn">Sign out</button></div>
         <p class="small muted" style="margin:0 0 18px">
           Your picture and details. Only you can change these.
         </p>
@@ -1464,12 +1482,8 @@ let meSubtitle = '';
 
 /** The chip in the corner, painted from whatever `me` currently holds. */
 function paintMe() {
-  const initials = me.user.name.split(/\s+/).filter(Boolean).slice(0, 2)
-    .map((w) => w[0]).join('').toUpperCase();
-  const pic = $('meInitials');
-  if (me.user.avatar) pic.innerHTML = `<img src="${esc(me.user.avatar)}" alt="">`;
-  else pic.textContent = initials || '·';
-  $('meName').textContent = me.user.name;
+  // RocketOS's chip carries the first name only.
+  $('meName').textContent = me.user.name.trim().split(/\s+/)[0] || me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
   $('meBtn').title = meSubtitle;
 }
@@ -1548,10 +1562,11 @@ function go(name, { push = true } = {}) {
   page = name;
   if (push && location.pathname !== p.path) history.pushState({ page: name }, '', p.path);
 
-  document.querySelectorAll('.nav a').forEach((a) => {
+  document.querySelectorAll('.grn-item').forEach((a) => {
     if (a.dataset.page === name || (p.group && a.dataset.group === p.group)) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
+  moveRing();
   const view = p.view || name;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
 
@@ -1579,12 +1594,49 @@ window.addEventListener('popstate', () => { if (me) go(pageFromUrl(), { push: fa
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideMenu(); });
 
-// Who is signed in, and the way out. They live behind the chip, the one
-// thing in the bar that is about the person rather than the page.
-$('meBtn').onclick = () => showMenu($('meBtn'), [
-  { label: meSubtitle || 'Signed in', run: () => {} },
-  { label: 'Sign out', danger: true, run: signOutNow },
-]);
+// ── GoldenRingNav's sliding ring ──────────────────────────────────────
+// As RocketOS does it: measure the active item's left and width, and spring
+// the ring there with framer-motion's spring (stiffness 300, damping 20,
+// mass 0.8). The engine is motion's animate(), framer-motion's own
+// framework-free build, vendored so the app needs no React or build step.
+// It loads on the side: if it ever fails, the ring still moves, instantly.
+const RING_SPRING = { type: 'spring', stiffness: 300, damping: 20, mass: 0.8 };
+let motionAnimate = null;
+import('/staff/vendor/motion-13.4.6.js').then((m) => { motionAnimate = m.animate; }).catch(() => {});
+let ringAnim = null;
+let ringPlaced = false;
+function moveRing(instant = false) {
+  const ring = $('grnRing');
+  const item = $('grnPill').querySelector('.grn-item[aria-current="page"]');
+  ringAnim?.stop(); ringAnim = null;
+  if (!item || !item.offsetWidth) { ring.classList.remove('on'); ringPlaced = false; return; }
+  const left = `${item.offsetLeft}px`, width = `${item.offsetWidth}px`;
+  // The first placement lands in position rather than flying in from the edge.
+  if (instant || !ringPlaced || !motionAnimate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    ring.style.left = left; ring.style.width = width;
+  } else {
+    ringAnim = motionAnimate(ring, { left, width }, RING_SPRING);
+  }
+  ring.classList.add('on');
+  ringPlaced = true;
+}
+// Labels drop away below 640px and the font may arrive late; both change
+// every item's width, so re-measure without animating.
+addEventListener('resize', () => moveRing(true));
+document.fonts?.ready.then(() => { if (me) moveRing(true); });
+
+// The chip is the person: in RocketOS it opens Settings, and here it opens
+// Settings on My profile. Front desk accounts have no Settings, so for them
+// it keeps the small menu with who they are and the way out.
+$('meBtn').onclick = () => {
+  if (me?.user?.canAdmin) { hideMenu(); setTab = 'profile'; go('settings'); return; }
+  showMenu($('meBtn'), [
+    { label: meSubtitle || 'Signed in', run: () => {} },
+    { label: 'Sign out', danger: true, run: signOutNow },
+  ]);
+};
+
+$('signOutBtn').onclick = () => signOutNow();
 
 $('mktSeg').onclick = (e) => {
   const b = e.target.closest('button[data-page]');
