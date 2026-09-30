@@ -783,13 +783,166 @@
     .tl time { grid-column: 2; text-align: left; }
   }
 
+  /* ── interaction polish ───────────────────────────────────────────────
+     Glass, glow and motion on top of the shell, never instead of it: no
+     element moves, no colour outside the brand is introduced, and every
+     glow sits under text rather than behind it, so contrast is unchanged.
+     The glows are periwinkle at low opacity; the app is a work tool that is
+     open all day, and anything louder turns into noise by lunchtime. */
+  :root {
+    --glass:      rgba(255, 255, 255, .78);
+    --glass-card: rgba(255, 255, 255, .9);
+    --glass-edge: rgba(255, 255, 255, .75);
+    --halo:       0 0 0 4px rgba(85, 96, 166, .13);
+    --spring:     cubic-bezier(.34, 1.36, .64, 1);   /* a hint of overshoot, not a bounce */
+    --e3: 0 2px 8px rgba(20, 21, 58, .08), 0 40px 90px -24px rgba(20, 21, 58, .48),
+          0 0 0 1px rgba(85, 96, 166, .10);
+  }
+
+  /* A soft periwinkle light behind the page heading and its one primary
+     action. Painted below every card (negative z-index, no isolation), so
+     it tints the greige between panels and never the panels themselves. */
+  .main { position: relative; }
+  .main::before {
+    content: ""; position: absolute; z-index: -1; pointer-events: none;
+    left: 50%; top: -60px; width: min(1100px, 100%); height: 420px; transform: translateX(-50%);
+    background:
+      radial-gradient(closest-side at 72% 38%, rgba(85, 96, 166, .16), transparent),
+      radial-gradient(closest-side at 22% 60%, rgba(185, 192, 232, .28), transparent);
+  }
+
+  /* Frosted chrome. Browsers without backdrop-filter keep the solid white. */
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .navpill, .mepill {
+      background: var(--glass); border-color: var(--glass-edge);
+      backdrop-filter: blur(16px) saturate(1.5); -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    }
+    .mepill:hover { background: rgba(244, 244, 251, .9); }
+    .card, .tile {
+      background: var(--glass-card);
+      backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    }
+    .pop, .toast {
+      background: rgba(255, 255, 255, .88); border-color: var(--glass-edge);
+      backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    }
+  }
+  /* A hairline of light along the top edge: depth from shading, not borders. */
+  .card, .tile, .navpill, .mepill { box-shadow: var(--e1), inset 0 1px 0 rgba(255, 255, 255, .9); }
+  .navpill, .mepill { box-shadow: var(--e2), inset 0 1px 0 rgba(255, 255, 255, .9); }
+
+  /* Primary buttons: lift on a gentle spring, a periwinkle halo, press to .98. */
+  .btn {
+    transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease),
+                color var(--t) var(--ease), box-shadow .22s var(--ease), transform .24s var(--spring);
+  }
+  .btn:not(.quiet):hover:not(:disabled) {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, 0));
+    box-shadow: var(--halo), 0 2px 4px rgba(30, 31, 92, .14), 0 16px 30px -12px rgba(85, 96, 166, .85);
+  }
+  .btn:not(.quiet):active:not(:disabled) {
+    transform: scale(.98); transition-duration: .08s;
+    box-shadow: 0 0 0 3px rgba(85, 96, 166, .12), 0 1px 2px rgba(30, 31, 92, .16);
+  }
+  .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; box-shadow: 0 0 0 6px rgba(85, 96, 166, .16); }
+  .btn.quiet:hover:not(:disabled) { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); box-shadow: 0 6px 16px -10px rgba(85, 96, 166, .6); }
+  .btn.quiet:active:not(:disabled) { transform: scale(.98); }
+  /* The page's one primary action carries a faint standing glow, so it is
+     found first; hover brings it up to full. */
+  .pagehead .primary { box-shadow: 0 1px 2px rgba(30, 31, 92, .14), 0 10px 26px -10px rgba(85, 96, 166, .75); }
+  .iconbtn.lg { transition: background-color var(--t) var(--ease), color var(--t) var(--ease),
+                            box-shadow var(--t) var(--ease), border-color var(--t) var(--ease), transform var(--t) var(--ease); }
+  .iconbtn.lg:hover:not(:disabled) { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); box-shadow: var(--halo); }
+
+  /* Icons ease into their hover colour instead of snapping. */
+  .ic { transition: color var(--t) var(--ease), transform var(--t) var(--ease); }
+  .nav a:hover:not([aria-current]) .ic { color: var(--periwinkle); }
+  .nav a[aria-current="page"] {
+    box-shadow: 0 6px 16px -6px rgba(85, 96, 166, .65), 0 0 0 3px rgba(85, 96, 166, .12),
+                inset 0 1px 0 rgba(255, 255, 255, .18);
+  }
+  .navpill .brand img { transition: transform .3s var(--spring); }
+  .navpill .brand:hover img { transform: rotate(-8deg) scale(1.06); }
+  .upcoming button:hover .go { color: var(--periwinkle); transform: translateX(3px); }
+  .rowlink .ic, .cnext .ic { transition: color var(--t) var(--ease); }
+
+  /* Chosen filters and tags glow a touch, the same as the nav's current page. */
+  .cfilter button[aria-pressed="true"], .seg button[aria-pressed="true"], .tl-filters button[aria-pressed="true"] {
+    box-shadow: 0 5px 14px -5px rgba(85, 96, 166, .6), 0 0 0 3px rgba(85, 96, 166, .10),
+                inset 0 1px 0 rgba(255, 255, 255, .18);
+  }
+  button.tag[aria-pressed="true"] { box-shadow: 0 4px 12px -4px rgba(106, 79, 176, .55); animation: pick .22s var(--ease); }
+  .cfilter button:active, .seg button:active, .tl-filters button:active, button.tag:active { transform: scale(.97); }
+  .tl-filters button { transition: background-color var(--t) var(--ease), color var(--t) var(--ease),
+                                   border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
+  .cfilter button, button.tag, .seg button { transition-property: background-color, color, box-shadow, border-color, transform; }
+
+  /* Things that open something lift when you point at them. */
+  .crow { transition: box-shadow .22s var(--ease), transform .24s var(--spring), border-color var(--t) var(--ease); }
+  .crow:active { transform: translateY(0) scale(.995); }
+  a.tile { transition: box-shadow .22s var(--ease), transform .24s var(--spring), border-color var(--t) var(--ease); }
+  a.tile:hover { box-shadow: var(--e2), var(--halo); }
+  .conn:hover { border-color: color-mix(in srgb, var(--periwinkle) 35%, var(--line)); }
+  .cal-ev { transition: background-color var(--t) var(--ease), transform var(--t) var(--ease), box-shadow var(--t) var(--ease); }
+  .cal-ev:hover { transform: translateY(-1px); box-shadow: 0 4px 10px -4px rgba(30, 31, 92, .5); }
+  .cal-cell.today .cal-n { box-shadow: 0 0 0 3px rgba(85, 96, 166, .16), 0 4px 10px -3px rgba(85, 96, 166, .6); }
+  .upcoming button { transition: background-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
+  .upcoming button:hover { box-shadow: inset 0 0 0 1px rgba(85, 96, 166, .10); }
+
+  /* Page and section entrances: each block fades up in turn when its page
+     or settings tab is shown. Only a view's own blocks animate, so a search
+     that re-renders the contact list on every keystroke does not flicker. */
+  .view:not(.hidden) { animation: none; }
+  .view:not(.hidden) > *, .setpane:not(.hidden), .pagehead .titles { animation: rise .32s var(--ease) both; }
+  .view:not(.hidden) > * + * { animation-delay: .06s; }
+  .view:not(.hidden) > * + * + * { animation-delay: .12s; }
+  .setpane:not(.hidden) { animation-delay: .04s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+  /* Modals: a deeper navy veil and a panel that zooms in from .96. */
+  dialog { box-shadow: var(--e3); }
+  dialog::backdrop { background: rgba(20, 21, 58, .48); backdrop-filter: blur(6px) saturate(1.1); -webkit-backdrop-filter: blur(6px) saturate(1.1); }
+  dialog[open] { animation: dlg-zoom .22s var(--ease); }
+  dialog.closing { animation: dlg-zoom-out .16s ease-in forwards; }
+  dialog[open]::backdrop { animation: fade .22s var(--ease); }
+  dialog.closing::backdrop { animation: fade-out .16s ease-in forwards; }
+  @keyframes dlg-zoom { from { opacity: 0; transform: translateY(10px) scale(.96); } }
+  @keyframes dlg-zoom-out { to { opacity: 0; transform: translateY(6px) scale(.97); } }
+  dialog h2 { color: var(--indigo-deep); }
+
+  /* Menus and toasts arrive rather than appear. */
+  .pop:not(.hidden) { animation: pop-in .16s var(--ease); transform-origin: top right; }
+  @keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
+  .toast:not(.hidden) { animation: toast-in .26s var(--spring); box-shadow: var(--e2), var(--halo); }
+  @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 10px) scale(.97); } }
+  .pop button { transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
+
+  /* Coming soon stays coming soon; the chip just breathes once on arrival. */
+  .soon .chip { animation: breathe 1.8s var(--ease) .3s 1 both; }
+  @keyframes breathe { 0% { opacity: .55; } 50% { opacity: 1; box-shadow: 0 0 0 5px rgba(85, 96, 166, .10); } 100% { opacity: 1; } }
+
+  /* Status pills settle in when a contact changes state. */
+  .spill { transition: background-color .3s var(--ease), color .3s var(--ease); }
+
+  /* Quiet scrollbars: thin and periwinkle, visible only as a guide. */
+  * { scrollbar-width: thin; scrollbar-color: rgba(85, 96, 166, .30) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(85, 96, 166, .28); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background-color: rgba(85, 96, 166, .5); }
+  .navpill { scrollbar-width: none; }
+
   /* Motion is decoration here: with reduced motion it becomes fades or nothing. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: .01ms !important; }
     .btn:hover:not(:disabled), .btn:active:not(:disabled), a.tile:hover, .conn:hover,
-    .mepill:active, .iconbtn:active:not(:disabled) { transform: none; }
-    .nav a[aria-current="page"], .seg button[aria-pressed="true"] { animation: none; }
-    dialog[open], dialog.closing, .view:not(.hidden) { animation: fade .01ms; }
+    .mepill:active, .iconbtn:active:not(:disabled), .crow:hover, .crow:active, .cal-ev:hover,
+    .upcoming button:hover .go, .navpill .brand:hover img,
+    .cfilter button:active, .seg button:active, .tl-filters button:active, button.tag:active { transform: none; }
+    .nav a[aria-current="page"], .seg button[aria-pressed="true"], .cfilter button[aria-pressed="true"],
+    button.tag[aria-pressed="true"], .soon .chip { animation: none; }
+    dialog[open], dialog.closing, .view:not(.hidden) > *, .setpane:not(.hidden), .pagehead .titles,
+    .pop:not(.hidden), .toast:not(.hidden) { animation: fade .01ms; }
   }
 </style>
 </head>
@@ -2118,17 +2271,43 @@ $('pxRight').onclick = (e) => {
   if (e.target.closest('button[data-empty="person-book"]')) bookFromPerson();
 };
 
-function closePerson() {
-  const dlg = $('personDlg');
-  if (!dlg.open) return;
-  // Let the exit fade finish, unless motion is reduced.
+// Every dialog leaves the way it arrived: a short fade and zoom out, unless
+// motion is reduced. The close waits on the class rather than a bare timer,
+// so a dialog reopened mid-exit (which removes the class) is not shut on it.
+function closeDialog(dlg) {
+  if (!dlg.open || dlg.classList.contains('closing')) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { dlg.close(); return; }
   dlg.classList.add('closing');
-  setTimeout(() => { dlg.classList.remove('closing'); dlg.close(); }, 140);
+  setTimeout(() => { if (dlg.classList.contains('closing')) { dlg.classList.remove('closing'); dlg.close(); } }, 160);
 }
+function openDialog(dlg) {
+  dlg.classList.remove('closing');
+  if (!dlg.open) dlg.showModal();
+}
+function closePerson() { closeDialog($('personDlg')); }
 $('pxClose').onclick = closePerson;
-$('personDlg').addEventListener('cancel', (e) => { e.preventDefault(); closePerson(); });
-$('personDlg').addEventListener('click', (e) => { if (e.target === $('personDlg')) closePerson(); });
+
+// Esc, the Cancel buttons and a click on the dimmed page all close with the
+// same exit. The overlay counts only when the press also started outside the
+// panel, so selecting text in a field and releasing over the veil does not
+// throw away what was typed. The small dialogs have padding, which belongs to
+// the dialog element too, hence the rectangle test rather than e.target alone.
+for (const dlg of document.querySelectorAll('dialog')) {
+  const outside = (e) => {
+    const r = dlg.getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  };
+  let downOutside = false;
+  dlg.addEventListener('mousedown', (e) => { downOutside = e.target === dlg && outside(e); });
+  dlg.addEventListener('click', (e) => {
+    if (e.target === dlg && downOutside && outside(e)) closeDialog(dlg);
+    downOutside = false;
+  });
+  dlg.addEventListener('cancel', (e) => { e.preventDefault(); closeDialog(dlg); });
+  dlg.addEventListener('submit', (e) => {
+    if (e.submitter?.value === 'cancel') { e.preventDefault(); closeDialog(dlg); }
+  });
+}
 
 function currentPerson() {
   const c = person?.contact || null;
@@ -2136,7 +2315,7 @@ function currentPerson() {
 }
 function bookFromPerson() {
   const c = currentPerson(); if (!c) return;
-  closePerson(); setTimeout(() => openBooking(c), 150);
+  closePerson(); setTimeout(() => openBooking(c), 170);
 }
 $('pxBook').onclick = bookFromPerson;
 $('pxEdit').onclick = () => {
@@ -2186,7 +2365,7 @@ function openContact(contact) {
       if (f.elements[k]) f.elements[k].value = contact[k] || '';
     }
   }
-  $('contactDlg').showModal();
+  openDialog($('contactDlg'));
 }
 
 $('contactForm').onsubmit = async (e) => {
@@ -2203,7 +2382,7 @@ $('contactForm').onsubmit = async (e) => {
       method: editingContact ? 'PATCH' : 'POST',
       body: JSON.stringify(body),
     });
-    $('contactDlg').close();
+    closeDialog($('contactDlg'));
     await loadContacts();
   } catch (err) {
     note($('contactNote'), err.message);
@@ -2226,7 +2405,7 @@ function openBooking(contact) {
   $('bookStylist').innerHTML = '<option value="any">First available</option>'
     + me.stylists.map((s) => `<option value="${esc(s.slug)}">${esc(s.name)}</option>`).join('');
   $('bookDate').value = (page === 'appointments' && day) || salonToday();
-  $('bookDlg').showModal();
+  openDialog($('bookDlg'));
   loadTimes();
 }
 
@@ -2274,7 +2453,7 @@ $('bookForm').onsubmit = async (e) => {
         notes: $('bookNotes').value,
       }),
     });
-    $('bookDlg').close();
+    closeDialog($('bookDlg'));
     day = $('bookDate').value;
     toast(`Booked ${$('bookName').value}.`);
     go('appointments');
@@ -2294,7 +2473,7 @@ function openMember() {
   note($('memberNote'), '');
   // Only an owner can make another owner; say so by not offering it.
   $('memberForm').elements.role.querySelector('[value=owner]').disabled = me.user.role !== 'owner';
-  $('memberDlg').showModal();
+  openDialog($('memberDlg'));
 }
 
 $('memberForm').onsubmit = async (e) => {
@@ -2309,7 +2488,7 @@ $('memberForm').onsubmit = async (e) => {
         role: f.get('role'), password: f.get('password'),
       }),
     });
-    $('memberDlg').close();
+    closeDialog($('memberDlg'));
     toast(`${f.get('name')} can sign in now.`);
     await loadTeam();
   } catch (err) {
