@@ -136,14 +136,21 @@ made that way are real: name them ZZ and remove them.
   Styling, each on or off with a price they typed. Never a computed price.
   Reads use `to_jsonb` so the console loads before 011 and 012 run; saving
   those fields needs them.
-- Faces are pictures everywhere: an uploaded avatar, else the stylist's
-  portrait (`stylists.photo`, 012, the public site's team photos), else a
-  drawn character from `charAvatar(name)`, never initials. Anyone can build
-  their own character in the profile window (Create character): the maker
-  saves it as a PNG in `avatar`, like a photo, plus its settings in
-  `staff_users.avatar_style` (013) so it opens again for changes. Characters
-  are drawn young on purpose: no grey hair, no lines. Appointments shows a Calendars bar: the Salon Calendar in use,
-  each stylist's greyed until stylist calendars exist (`calendarList()`).
+- Faces are pictures, real ones first: an uploaded photo, then the stylist's
+  portrait (`api/_lib/stylist-photos.js`, also copied to `stylists.photo` by
+  012), then an avatar the person chose, then a default avatar. Avatars are
+  Microsoft's Fluent 3D emoji people (MIT, `assets/avatars/`), the style the
+  team picked; the stylists are all women, so the default is always a woman,
+  and men are only there to be chosen. A chosen avatar is stored in
+  `staff_users.avatar` as its `/assets/avatars/...` path.
+- `api/_lib/ensure-schema.js` adds the 011 to 013 columns on the first
+  `/api/staff/me` of each warm function, because production ran ahead of
+  `db:migrate`. Idempotent; `db:migrate` remains the record.
+- Appointments shows a Calendars bar with only the calendars in use (the
+  Salon Calendar); stylist calendars join it once they can be connected
+  (`calendarList()`), and live in the Create or connect dialog until then.
+- Team Members lists you, then (owners and managers) everyone else on the
+  team, each card opening the same modal, then an "Add a team member" row.
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
 
