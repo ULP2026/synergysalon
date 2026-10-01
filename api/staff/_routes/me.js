@@ -17,7 +17,7 @@ export default handler({
     const tenant = await tenantForUser(user);
 
     const canAdmin = ['owner', 'manager'].includes(user.role);
-    const [services, stylists, pending] = await Promise.all([
+    const [services, stylists, pending, own] = await Promise.all([
       query(
         `SELECT slug, name, duration_min, price_cents, consult_first
            FROM services WHERE tenant_id = $1 AND active ORDER BY sort_order`,
@@ -26,7 +26,10 @@ export default handler({
       // The photo is the linked login's picture, so a stylist who changes it
       // in the team modal changes it on the day view's column too.
       query(
-        `SELECT s.slug, s.name, s.title, u.avatar AS photo
+        // to_jsonb reads stylists.photo without naming it, so this still runs
+        // on a database that has not had migration 012 yet.
+        `SELECT s.slug, s.name, s.title,
+                COALESCE(u.avatar, to_jsonb(s) ->> 'photo') AS photo
            FROM stylists s
            LEFT JOIN staff_users u ON u.id = s.staff_user_id
           WHERE s.tenant_id = $1 AND s.active ORDER BY s.sort_order`,
@@ -36,12 +39,20 @@ export default handler({
       canAdmin
         ? query("SELECT count(*)::int n FROM staff_users WHERE tenant_id = $1 AND status = 'pending'", [tenant.id])
         : Promise.resolve({ rows: [{ n: 0 }] }),
+      // A stylist who never uploaded a picture still has the portrait the
+      // public site shows; the chip and the team list use it.
+      query(
+        `SELECT to_jsonb(s) ->> 'photo' AS photo FROM stylists s
+          WHERE s.staff_user_id = $1 LIMIT 1`,
+        [user.id],
+      ),
     ]);
 
     return json(res, 200, {
       user: {
         name: user.name, email: user.email, role: user.role, canAdmin,
         avatar: user.avatar ?? null,
+        photo: own.rows[0]?.photo ?? null,
       },
       pendingApprovals: pending.rows[0].n,
       // The logo is the nav's mark, so it arrives with everything else rather
