@@ -111,7 +111,9 @@ made that way are real: name them ZZ and remove them.
 ## Staff console
 
 - Nav: Home (`/staff`), Appointments, Clients (`/staff/clients`), Marketing,
-  Settings. `/staff/dashboard` and `/staff/contacts` still land on Home and
+  Settings (Salon Profile, Calendars, Billing). The person chip opens Team
+  Settings (`/staff/account`): Appearance, Integration (owners and managers),
+  Team, Sign Out. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM" and "Integrations"; the API keeps its `centro`
   names, which nobody sees.
 - Appointments opens on the day: one column per stylist, the clock down the
@@ -120,9 +122,16 @@ made that way are real: name them ZZ and remove them.
   `?demo` on the address shows a sample day that saves nothing.
 - Settings, Salon Profile is the tenant's details. Its logo is the nav's mark,
   painted from `me.salon.logo`, so saving updates the menu at once.
-- Team: each member's username, pricing (free text an owner types, never a
-  computed price) and photo, from migration 011. Reads use `to_jsonb` so the
-  console still loads before that migration runs; saving those fields needs it.
+- Team lists only the signed-in person for now (stylists are added later),
+  plus anyone asking to join. Each person has a username (011) and their own
+  services and prices, `staff_users.services` (012): Cuts, Treatments, Color,
+  Styling, each on or off with a price they typed. Never a computed price.
+  Reads use `to_jsonb` so the console loads before 011 and 012 run; saving
+  those fields needs them.
+- Faces are pictures everywhere: an uploaded avatar, else the stylist's
+  portrait (`stylists.photo`, 012, the public site's team photos), else a
+  silhouette. Appointments shows a Calendars bar: the Salon Calendar in use,
+  each stylist's greyed until stylist calendars exist (`calendarList()`).
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
 

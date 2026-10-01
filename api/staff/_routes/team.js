@@ -15,7 +15,9 @@ import {
 } from '../../_lib/http.js';
 import { MIN_PASSWORD_LENGTH, hashPassword } from '../../_lib/password.js';
 import { tenantForUser } from '../../_lib/tenant.js';
-import { assertUsernameFree, avatarFrom, usernameFrom } from './profile.js';
+import {
+  assertUsernameFree, avatarFrom, servicesFrom, usernameFrom,
+} from './profile.js';
 
 const ADMIN = ['owner', 'manager'];
 const ROLES = ['owner', 'manager', 'front_desk'];
@@ -32,6 +34,8 @@ export default handler({
               u.requested_at, u.approved_at, u.last_seen_at, u.created_at,
               to_jsonb(u) ->> 'username' AS username,
               to_jsonb(u) ->> 'pricing' AS pricing,
+              to_jsonb(u) -> 'services' AS services,
+              to_jsonb(s) ->> 'photo' AS photo,
               a.name AS approved_by_name,
               s.name AS stylist_name, s.slug AS stylist_slug, s.title AS stylist_title
          FROM staff_users u
@@ -55,6 +59,8 @@ export default handler({
         avatar: r.avatar,
         username: r.username || '',
         pricing: r.pricing || '',
+        services: r.services || {},
+        photo: r.photo || null,
         stylist: r.stylist_name,
         stylistSlug: r.stylist_slug,
         title: r.stylist_title || '',
@@ -114,6 +120,11 @@ export default handler({
       if (username || pricing) {
         await query('UPDATE staff_users SET username = $2, pricing = $3 WHERE id = $1',
           [rows[0].id, username, pricing]);
+      }
+      const services = servicesFrom(body.services);
+      if (services) {
+        await query('UPDATE staff_users SET services = $2::jsonb WHERE id = $1',
+          [rows[0].id, JSON.stringify(services)]);
       }
       return json(res, 201, { ok: true, member: rows[0] });
     }
@@ -207,6 +218,8 @@ export default handler({
           add('username', username);
         }
         if (body.pricing !== undefined) add('pricing', String(body.pricing || '').trim().slice(0, 120));
+        const services = servicesFrom(body.services);
+        if (services !== undefined) add('services', JSON.stringify(services));
         const avatar = avatarFrom(body.avatar);
         if (avatar !== undefined) add('avatar', avatar);
         if (body.role !== undefined) {

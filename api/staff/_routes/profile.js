@@ -67,6 +67,32 @@ export async function assertUsernameFree(tenantId, username, exceptId) {
 /** Pricing describes how a stylist charges; owners and managers set it. */
 const CAN_PRICE = ['owner', 'manager'];
 
+/** The four kinds of work, in the order the salon lists them. */
+export const SERVICE_KINDS = ['cuts', 'treatments', 'color', 'styling'];
+
+/**
+ * A stylist's services and prices, cleaned: only the four known kinds, each
+ * on or off, with a price in dollars when one was typed. Anything else is
+ * dropped rather than stored, so the column only ever holds what the form can
+ * show back.
+ */
+export function servicesFrom(value) {
+  if (value === undefined) return undefined;
+  const out = {};
+  const src = value && typeof value === 'object' ? value : {};
+  for (const k of SERVICE_KINDS) {
+    const v = src[k] || {};
+    const on = Boolean(v.on);
+    let price = v.price === '' || v.price == null ? null : Number(v.price);
+    if (price != null && (!Number.isFinite(price) || price < 0 || price > 10000)) {
+      throw new HttpError(400, 'A price is a number of dollars, up to 10,000.');
+    }
+    if (price != null) price = Math.round(price * 100) / 100;
+    out[k] = { on, price };
+  }
+  return out;
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
@@ -75,7 +101,9 @@ export default handler({
     const { rows } = await query(
       `SELECT name, email, phone, role, avatar, created_at, last_seen_at,
               to_jsonb(u) ->> 'username' AS username,
-              to_jsonb(u) ->> 'pricing' AS pricing
+              to_jsonb(u) ->> 'pricing' AS pricing,
+              to_jsonb(u) -> 'services' AS services,
+              (SELECT to_jsonb(s) ->> 'photo' FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS photo
          FROM staff_users u WHERE id = $1`,
       [user.id],
     );
@@ -89,6 +117,8 @@ export default handler({
       avatar: me.avatar,
       username: me.username || '',
       pricing: me.pricing || '',
+      services: me.services || {},
+      photo: me.photo || null,
       since: me.created_at,
       lastSeen: me.last_seen_at,
       minPasswordLength: MIN_PASSWORD_LENGTH,
@@ -130,6 +160,9 @@ export default handler({
       await assertUsernameFree(user.tenant_id, username, user.id);
       add('username', username);
     }
+    // Every stylist sets their own prices: they are the one quoting them.
+    const services = servicesFrom(body.services);
+    if (services !== undefined) add('services', JSON.stringify(services));
     if (body.pricing !== undefined && CAN_PRICE.includes(user.role)) {
       add('pricing', String(body.pricing || '').trim().slice(0, 120));
     }
@@ -155,7 +188,8 @@ export default handler({
       `UPDATE staff_users SET ${sets.join(', ')} WHERE id = $1
         RETURNING name, email, phone, role, avatar,
                   to_jsonb(staff_users) ->> 'username' AS username,
-                  to_jsonb(staff_users) ->> 'pricing' AS pricing`,
+                  to_jsonb(staff_users) ->> 'pricing' AS pricing,
+                  to_jsonb(staff_users) -> 'services' AS services`,
       params,
     );
     return json(res, 200, { ...rows[0], saved: true });

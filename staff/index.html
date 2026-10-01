@@ -156,7 +156,7 @@
   .iconbtn:hover:not(:disabled) { background: var(--raise); color: var(--ink); }
   .iconbtn.lg { width: 42px; height: 42px; border-color: var(--line-2); border-radius: 999px; }
 
-  .card { background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 24px; box-shadow: var(--e1); }
+  .card { background: var(--card); border: 1px solid var(--hair); border-radius: 14px; padding: 20px; box-shadow: var(--e1); }
   .card.fill { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 
@@ -175,9 +175,13 @@
     border-radius: 999px; font-size: var(--fs-xs); font-weight: 500; white-space: nowrap;
     border: 1px solid var(--line-2); color: var(--muted); background: transparent;
   }
-  .chip.info { color: var(--accent-ink); border-color: var(--line-2); background: var(--peri-pale); }
-  .chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
-  .chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  /* Status colours, soft fill and dark text: periwinkle for information,
+     green for done or confirmed, amber for waiting, red for cancelled or
+     refused. Nothing louder, so the colour carries meaning and not noise. */
+  .chip.info { color: var(--accent-ink); border-color: transparent; background: var(--peri-pale); }
+  .chip.ok { color: #22673f; border-color: transparent; background: #e1f2e8; }
+  .chip.warn { color: #a12a35; border-color: transparent; background: #fbe5e7; }
+  .chip.pending { color: #7a5206; border-color: transparent; background: #fdf1d6; }
   .chip .ic { width: 13px; height: 13px; }
   .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 
@@ -348,13 +352,15 @@
   /* pt-20, as in RocketOS's Index: the nav is fixed, so the page starts below it. */
   .main {
     display: flex; flex-direction: column; min-width: 0; flex: 1;
-    width: 100%; max-width: 1340px; margin: 0 auto; padding: 80px 40px 32px;
+    width: 100%; max-width: 1140px; margin: 0 auto; padding: 88px 32px 32px;
   }
-  .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+  /* RocketOS proportions: a 1.5rem title, a small grey line under it, and
+     cards that sit 16px apart. Tighter than before, which read as oversized. */
+  .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
   .pagehead .titles { flex: 1; min-width: 0; }
-  .pagehead h1 { font-size: 1.75rem; letter-spacing: -.02em; }
-  .pagehead .sub { margin: 6px 0 0; color: var(--muted); }
-  .view { flex: 1; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+  .pagehead h1 { font-size: 1.5rem; letter-spacing: -.02em; }
+  .pagehead .sub { margin: 4px 0 0; color: var(--muted); font-size: var(--fs-sm); }
+  .view { flex: 1; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
 
   .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
   .toolbar input[type=date] { width: auto; }
@@ -366,9 +372,9 @@
 
   /* Home */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
-  .tile { background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--e1);
+  .tile { background: var(--card); border: 1px solid var(--hair); border-radius: 14px; padding: 16px 18px; box-shadow: var(--e1);
           transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease), border-color var(--t) var(--ease); }
-  .tile .num { color: var(--indigo); font-size: 2.1rem; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .tile .num { color: var(--indigo); font-size: 1.7rem; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .tile .lbl { color: var(--muted); font-size: var(--fs-sm); margin-top: 2px; }
   a.tile { display: block; color: inherit; text-decoration: none; }
   a.tile:hover { border-color: color-mix(in srgb, var(--periwinkle) 35%, transparent); box-shadow: var(--e2); transform: translateY(-2px); }
@@ -581,19 +587,19 @@
   .conn .setup { padding: 0 16px 14px; font-size: var(--fs-xs); color: var(--faint); }
 
   /* ── interaction: rows and lists that open something ───────────────── */
-  /* ── contacts: a card per person, coloured by where they are ────────
-     Lavender for new, gold for contacted, light purple for booked, the
-     brand gradient for clients, soft red for lost: the page reads at a
-     glance without a key. */
-  .s-new       { --s-bg: #f1ecfc; --s-ink: #5d43a8; --s-a: #b9a6ee; --s-b: #8a70d8; }
-  .s-contacted { --s-bg: #fcf1d9; --s-ink: #855a06; --s-a: #f4cf78; --s-b: #d59c2c; }
-  .s-booked    { --s-bg: #ecebfa; --s-ink: var(--indigo); --s-a: #aab2e6; --s-b: #7a84cc; }
-  .s-won       { --s-bg: linear-gradient(135deg, #6b76c0, var(--indigo)); --s-ink: #fff; --s-a: #6b76c0; --s-b: var(--indigo); }
-  .s-lost      { --s-bg: #fdecee; --s-ink: #ad2f3a; --s-a: #f3a9b0; --s-b: #d55e69; }
+  /* ── clients: one quiet row per person; only the status tag is coloured ─
+     Periwinkle for new, amber for contacted, indigo for booked, green for a
+     client, red for lost. Soft fills with dark text, so each reads at a glance
+     and the page stays calm. */
+  .s-new       { --s-bg: #e8eaf8; --s-ink: #3b4396; --s-a: #aab2e6; --s-b: #7a84cc; }
+  .s-contacted { --s-bg: #fdf1d6; --s-ink: #7a5206; --s-a: #f4cf78; --s-b: #d59c2c; }
+  .s-booked    { --s-bg: #e1e3f6; --s-ink: var(--indigo); --s-a: #aab2e6; --s-b: #7a84cc; }
+  .s-won       { --s-bg: #e1f2e8; --s-ink: #22673f; --s-a: #9fd0b6; --s-b: #2f7d4f; }
+  .s-lost      { --s-bg: #fbe5e7; --s-ink: #a12a35; --s-a: #f3a9b0; --s-b: #d55e69; }
 
   .cfilter { display: flex; flex-wrap: wrap; gap: 6px; }
   .cfilter button {
-    display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px;
+    display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px;
     border: 1px solid var(--line); border-radius: 999px; background: var(--card);
     font: inherit; font-size: var(--fs-sm); font-weight: 500; color: var(--muted); cursor: pointer;
     transition: background-color var(--t) var(--ease), color var(--t) var(--ease), box-shadow var(--t) var(--ease), border-color var(--t) var(--ease);
@@ -620,53 +626,49 @@
   button.tag[aria-pressed="true"] { background: #6a4fb0; color: #fff; }
   .tag .ic { width: 12px; height: 12px; }
 
-  .clist { display: grid; gap: 10px; }
+  /* One list in one card, rows divided by a hairline, as RocketOS lists are:
+     compact, no floating cards, no coloured edge. */
+  .clist { display: grid; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--card); }
   .crow {
-    position: relative; display: grid; align-items: center; gap: 16px;
-    grid-template-columns: 44px minmax(0, 1.5fr) minmax(0, 1fr) 76px 168px auto;
-    padding: 14px 16px 14px 18px; border-radius: 16px; background: var(--card);
-    border: 1px solid var(--hair); box-shadow: 0 1px 2px rgba(30, 31, 92, .04); cursor: pointer;
-    transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease), border-color var(--t) var(--ease);
+    position: relative; display: grid; align-items: center; gap: 14px;
+    grid-template-columns: 36px minmax(0, 1.6fr) minmax(0, .9fr) 56px 156px auto;
+    padding: 10px 14px; background: var(--card); border-bottom: 1px solid var(--line); cursor: pointer;
+    transition: background-color var(--t) var(--ease);
   }
-  /* A thin status stripe on the left edge, the one place colour runs full height. */
-  .crow::before {
-    content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0;
-    background: linear-gradient(var(--s-a), var(--s-b));
-  }
-  .crow:hover { transform: translateY(-2px); box-shadow: var(--e2); border-color: color-mix(in srgb, var(--s-b) 35%, transparent); }
-  .crow:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .crow:last-child { border-bottom: 0; }
+  .crow:hover { background: var(--raise); }
+  .crow:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
   .cav {
-    display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--s-a), var(--s-b)); color: #fff;
-    font-weight: 650; font-size: .9rem; letter-spacing: .02em;
-    box-shadow: 0 0 0 3px #fff, 0 0 0 4px color-mix(in srgb, var(--s-b) 25%, transparent);
+    display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+    background: var(--peri-pale); color: var(--indigo);
+    font-weight: 650; font-size: .78rem; letter-spacing: .02em;
   }
   .cmain { min-width: 0; }
   .cname { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-  .cname .name { font-weight: 600; font-size: .98rem; color: var(--ink); }
+  .cname .name { font-weight: 600; font-size: .9rem; color: var(--ink); }
   .spill {
-    display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px;
+    display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px;
     background: var(--s-bg); color: var(--s-ink); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .01em;
   }
-  .cmeta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: var(--fs-sm); color: var(--muted); }
+  .cmeta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 2px; font-size: .8rem; color: var(--muted); }
   .cmeta span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
   .cmeta .ic { width: 14px; height: 14px; color: var(--faint); flex: none; }
   .cmeta .email { overflow-wrap: break-word; min-width: 0; }
   .ctags { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
   .cvisits { text-align: center; line-height: 1.15; }
-  .cvisits b { display: block; font-size: 1.1rem; color: var(--indigo); font-variant-numeric: tabular-nums; }
+  .cvisits b { display: block; font-size: .95rem; color: var(--indigo); font-variant-numeric: tabular-nums; }
   .cvisits span { font-size: var(--fs-xs); color: var(--muted); }
-  .cnext { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: var(--ink); }
+  .cnext { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--ink); }
   .cnext .ic { width: 16px; height: 16px; color: var(--periwinkle); flex: none; }
   .cnext.none { color: var(--faint); }
   .cnext.none .ic { color: var(--faint); }
   .crow .acts { margin: 0; gap: 4px; }
   @media (max-width: 1100px) {
-    .crow { grid-template-columns: 44px minmax(0, 1fr) 150px auto; }
+    .crow { grid-template-columns: 36px minmax(0, 1fr) 150px auto; }
     .crow .ctags, .crow .cvisits { display: none; }
   }
   @media (max-width: 720px) {
-    .crow { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; padding: 12px 12px 12px 14px; }
+    .crow { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; padding: 10px 12px; }
     .crow .cmain { grid-column: 2 / -1; }
     .crow .cnext { grid-column: 2; }
     .crow .acts { grid-column: 3; }
@@ -720,7 +722,7 @@
   @keyframes view-in { from { opacity: 0; transform: translateY(4px); } }
 
 
-  /* ── Settings, Integrations: stylist links and the booking test ───── */
+  /* ── Team Settings, Integration: stylist links and the booking test ───── */
   .cx-sec { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
   .cx-sec h3 { margin: 0 0 6px; font-size: 1rem; }
   .cx-sec > p { margin: 0 0 14px; max-width: 72ch; line-height: 1.55; }
@@ -896,8 +898,7 @@
   .cfilter button, button.tag, .seg button { transition-property: background-color, color, box-shadow, border-color, transform; }
 
   /* Things that open something lift when you point at them. */
-  .crow { transition: box-shadow .22s var(--ease), transform .24s var(--spring), border-color var(--t) var(--ease); }
-  .crow:active { transform: translateY(0) scale(.995); }
+  .crow { transition: background-color var(--t) var(--ease); }
   a.tile { transition: box-shadow .22s var(--ease), transform .24s var(--spring), border-color var(--t) var(--ease); }
   a.tile:hover { box-shadow: var(--e2), var(--halo); }
   .conn:hover { border-color: color-mix(in srgb, var(--periwinkle) 35%, var(--line)); }
@@ -1213,6 +1214,151 @@
   :root[data-theme="dark"] .note:not(.bad):not(.good) { color: var(--ink); }
   :root[data-theme="dark"] h1, :root[data-theme="dark"] dialog h2, :root[data-theme="dark"] .flow h3,
   :root[data-theme="dark"] .md-sec, :root[data-theme="dark"] .grn-item:hover { color: var(--ink); }
+
+  /* ── the person chip: picture and first name ────────────────────────── */
+  .grn-me { gap: 8px; padding: 0 14px 0 6px; position: relative; text-decoration: none; }
+  .grn-me .me-pic { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; flex: none; background: var(--peri-pale); }
+  .grn-me .me-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .grn-me[aria-current="page"] { color: var(--ring-ink); box-shadow: 0 0 0 2px var(--periwinkle), 0 8px 32px rgba(30, 31, 92, .14); }
+  .grn-me .count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px;
+                   border-radius: 999px; display: grid; place-items: center; font-size: .66rem; font-weight: 650;
+                   background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 2px var(--card); }
+
+  /* ── Team Settings: RocketOS's stacked settings column ───────────────── */
+  .acct { width: 100%; max-width: 820px; display: flex; flex-direction: column; gap: 16px; }
+  .acard { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; box-shadow: var(--e1); }
+  .ahead { display: flex; align-items: center; gap: 8px; margin: 0; font-size: .95rem; font-weight: 650; color: var(--ink); }
+  .ahead .ic { width: 17px; height: 17px; color: var(--periwinkle); }
+  .asub { margin: 4px 0 14px; font-size: .82rem; color: var(--muted); }
+  .arow { display: flex; align-items: center; gap: 16px; justify-content: space-between; margin-top: 12px; padding: 4px 2px; }
+  .arow b { display: block; font-size: .9rem; font-weight: 600; }
+  .arow span { display: block; font-size: .8rem; color: var(--muted); }
+  .switch { position: relative; width: 44px; height: 24px; flex: none; border-radius: 999px; border: 0; padding: 0;
+            background: var(--line-2); cursor: pointer; transition: background-color var(--t) var(--ease); }
+  .switch span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff;
+                 box-shadow: 0 1px 3px rgba(30, 31, 92, .3); transition: transform .2s var(--ease); }
+  .switch[aria-checked="true"] { background: var(--periwinkle); }
+  .switch[aria-checked="true"] span { transform: translateX(20px); }
+  .switch:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.signout { align-self: stretch; justify-content: center; background: var(--card); color: var(--warn);
+                 border: 1px solid var(--line); box-shadow: var(--e1); }
+  .btn.signout:hover:not(:disabled) { background: #fbe5e7; color: var(--warn); box-shadow: var(--e1); }
+
+  /* The team: one member list beside a standing "Add Team Member" panel. */
+  .tm { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 14px; align-items: stretch; }
+  .tm-list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .tm-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+            padding: 11px 14px; border-radius: 12px; border: 1px solid transparent; background: transparent;
+            font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%;
+            transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease); }
+  .tm-row:hover { background: var(--raise); }
+  .tm-row.me { background: #f1f2fb; border-color: #d9dcf1; }
+  .tm-row.me:hover { border-color: var(--line-2); }
+  .tm-pic { position: relative; width: 40px; height: 40px; }
+  .tm-pic img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block; background: var(--peri-pale); }
+  .tm-pic .pen { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%;
+                 display: grid; place-items: center; background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 2px var(--card); }
+  .tm-pic .pen .ic { width: 10px; height: 10px; stroke-width: 2.4; }
+  .tm-who b { display: block; font-size: .9rem; font-weight: 600; }
+  .tm-who span { display: block; font-size: .8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tm-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .chip.role { color: var(--indigo); background: var(--peri-pale); border-color: transparent; font-weight: 600; }
+  .tm-svc { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .tm-svc i { font-style: normal; font-size: .72rem; padding: 1px 7px; border-radius: 999px; background: var(--raise); color: var(--muted); }
+  .tm-svc i.on { background: #e1f2e8; color: #22673f; }
+  .tm-later { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px dashed var(--line-2);
+              color: var(--muted); font-size: .8rem; }
+  .tm-later .ghosts { display: flex; }
+  .tm-later .ghosts img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--card); margin-left: -8px; opacity: .7; }
+  .tm-later .ghosts img:first-child { margin-left: 0; }
+  .tm-add { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px;
+            padding: 18px 16px; border-radius: 12px; background: var(--raise); border: 1px solid var(--line); }
+  .tm-add .bubble { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--peri-pale); color: var(--periwinkle); }
+  .tm-add b { font-size: .9rem; }
+  .tm-add p { margin: 0; font-size: .78rem; color: var(--muted); line-height: 1.45; }
+  .tm-pending { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .tm-pending h3 { margin: 0 0 6px; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  .tm-pend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; font-size: .85rem; }
+  .tm-pend .who { flex: 1; min-width: 160px; }
+  .tm-pend select.role { width: 130px; height: 32px; }
+  @media (max-width: 720px) { .tm { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) {
+    .tm-row { grid-template-columns: 40px minmax(0, 1fr); }
+    .tm-badges { grid-column: 2; justify-content: flex-start; }
+  }
+
+  /* Services and prices in the team modal: a switch, the kind of work, a price. */
+  .svcs { display: grid; gap: 6px; margin-bottom: 14px; }
+  .svc { display: grid; grid-template-columns: 44px minmax(0, 1fr) 120px; align-items: center; gap: 12px;
+         padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); }
+  .svc b { display: block; font-size: .88rem; font-weight: 600; }
+  .svc small { display: block; font-size: .75rem; color: var(--muted); }
+  .svc .price { position: relative; }
+  .svc .price::before { content: "$"; position: absolute; left: 10px; top: 8px; color: var(--muted); font-size: .9rem; }
+  .svc .price input { height: 36px; padding-left: 22px; }
+  .svc.off { background: var(--raise); }
+  .svc.off b { color: var(--muted); }
+  .svc.off .price input { opacity: .5; }
+  .md-pw { margin: 4px 0 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
+  .md-pw summary { cursor: pointer; font-weight: 600; color: var(--link); }
+
+  /* ── calendars on Appointments: the Salon Calendar, then each stylist's ── */
+  .calbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -4px 0 14px; }
+  .calbar .lbl { font-size: var(--fs-xs); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-right: 2px; }
+  .calchip { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 4px; border-radius: 999px;
+             border: 1px solid var(--line); background: var(--card); font: inherit; font-size: .8rem; color: var(--ink); cursor: pointer; }
+  .calchip img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+  .calchip .dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--periwinkle); color: #fff; }
+  .calchip .dot .ic { width: 13px; height: 13px; }
+  .calchip.on { border-color: var(--periwinkle); background: var(--peri-pale); font-weight: 600; color: var(--indigo); }
+  .calchip.off { color: var(--faint); background: var(--raise); border-style: dashed; }
+  .calchip.off img { filter: grayscale(1); opacity: .55; }
+  .calchip.off em { font-style: normal; font-size: .7rem; }
+  .calchip.add { padding: 0 12px; color: var(--link); font-weight: 600; border-style: dashed; }
+  .calchip.add .ic { width: 15px; height: 15px; }
+  .calchip:hover { border-color: var(--line-2); }
+  .cal-ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--peri-pale); color: var(--periwinkle); flex: none; }
+  .calopts { display: grid; gap: 10px; }
+  .calopt { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+            padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
+  .calopt .ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--raise); color: var(--periwinkle); }
+  .calopt b { display: block; font-size: .9rem; }
+  .calopt span.d { display: block; font-size: .8rem; color: var(--muted); }
+  .calopt.soon { background: var(--raise); }
+  .calopt.soon .ico { color: var(--faint); }
+
+  /* Settings, Calendars: what is not connected looks it, grey and quiet. */
+  .conn.idle { background: var(--raise); }
+  .conn.idle .conn-logo { filter: grayscale(1); opacity: .5; }
+  .conn.idle .conn-h b { color: var(--muted); }
+  .conn.idle .go { color: var(--muted); }
+  .conn.idle .go:hover { color: var(--link); background: var(--card); }
+  .cal-empty { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 16px;
+               border: 1px dashed var(--line-2); border-radius: 12px; background: var(--raise); }
+  .cal-empty .what { flex: 1; min-width: 200px; font-size: .85rem; color: var(--muted); }
+  .cal-empty .what b { display: block; color: var(--ink); font-size: .9rem; }
+
+  /* ── month: every day says "add here" when you point at it ──────────── */
+  .cal-cell { position: relative; cursor: pointer; transition: background-color var(--t) var(--ease); }
+  .cal-cell:hover { background: #f7f7fd; }
+  .cal-top { display: flex; align-items: center; justify-content: space-between; }
+  .cal-add { width: 24px; height: 24px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
+             background: var(--periwinkle); color: #fff; opacity: 0; transform: scale(.8);
+             transition: opacity var(--t) var(--ease), transform var(--t) var(--ease); }
+  .cal-add .ic { width: 14px; height: 14px; stroke-width: 2.4; }
+  .cal-cell:hover .cal-add, .cal-add:focus-visible { opacity: 1; transform: none; }
+  .cal-n { border: 0; background: none; font-family: inherit; padding: 0; cursor: pointer; }
+  .cal-n:hover { color: var(--periwinkle); text-decoration: underline; }
+  .cal-hint { font-size: var(--fs-xs); color: var(--faint); margin: 8px 0 0; }
+  @media (hover: none) { .cal-add { opacity: .9; transform: none; width: 20px; height: 20px; } }
+
+  :root[data-theme="dark"] .chip.role { color: var(--ink); }
+  :root[data-theme="dark"] .tm-row.me { background: #24264f; border-color: var(--line-2); }
+  :root[data-theme="dark"] .cal-cell:hover { background: #20224a; }
+  :root[data-theme="dark"] .chip.ok, :root[data-theme="dark"] .tm-svc i.on { background: rgba(47, 125, 79, .25); color: #9fd8b6; }
+  :root[data-theme="dark"] .chip.warn { background: rgba(214, 64, 77, .22); color: #f3a9b0; }
+  :root[data-theme="dark"] .chip.pending { background: rgba(213, 156, 44, .2); color: #f4cf78; }
+  :root[data-theme="dark"] .btn.signout:hover:not(:disabled) { background: rgba(214, 64, 77, .18); }
 </style>
 </head>
 <body>
@@ -1250,6 +1396,7 @@
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></symbol>
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"/><path d="M14 3.5V8h4"/></symbol>
   <symbol id="i-users-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5 1.7 0 3.2.6 4.4 1.6M18.5 13v6M15.5 16h6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 2.9 8 7 9.5 4.1-1.5 7-5.2 7-9.5V6l-7-3Z"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
   <symbol id="i-thumbs" viewBox="0 0 24 24"><path d="M7 10v11M7 10l4-7.5a2.2 2.2 0 0 1 3 2.2L13.3 9H19a2 2 0 0 1 2 2.3l-1.4 7.5A2.6 2.6 0 0 1 17 21H7M7 10H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/></symbol>
   <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8 2.5 8h-17S6 15 6 8.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></symbol>
@@ -1336,12 +1483,15 @@
       <a class="grn-item" href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
         <svg class="grn-ic"><use href="#l-megaphone"/></svg><span class="lbl">Marketing</span></a>
       <a class="grn-item icon-only hidden" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
-        <svg class="grn-ic"><use href="#l-settings"/></svg>
-        <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span></a>
+        <svg class="grn-ic"><use href="#l-settings"/></svg></a>
     </nav>
-    <button class="grn-me glass-strong" id="meBtn" data-more="me" aria-haspopup="menu" aria-expanded="false">
+    <!-- The person: their picture and first name. It opens Team Settings,
+         where their profile, the team and sign out live. -->
+    <a class="grn-me glass-strong" id="meBtn" href="/staff/account" data-page="account" title="Team Settings">
+      <span class="me-pic" id="mePic" aria-hidden="true"></span>
       <span class="me-name" id="meName"></span>
-    </button>
+      <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span>
+    </a>
   </header>
 
   <main class="main">
@@ -1383,6 +1533,9 @@
           </div>
           <span class="summary" id="dayHeading"></span>
         </div>
+        <!-- Which calendar is on screen: the Salon Calendar today, each
+             stylist's own once they connect one (see renderCalBar()). -->
+        <div class="calbar" id="calBar" role="group" aria-label="Calendars"></div>
         <div id="calendar" class="hidden" style="flex:1;display:flex;flex-direction:column"></div>
         <div id="diary" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
       </div>
@@ -1419,10 +1572,7 @@
     <section class="view hidden" id="view-settings">
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
         <button type="button" data-set="profile" aria-pressed="true">Salon Profile</button>
-        <button type="button" data-set="appearance" aria-pressed="false">Appearance</button>
-        <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="calendars" aria-pressed="false">Calendars</button>
-        <button type="button" data-set="integrations" aria-pressed="false">Integrations</button>
         <button type="button" data-set="billing" aria-pressed="false">Billing</button>
       </div>
 
@@ -1436,24 +1586,6 @@
         <div id="business"></div>
       </div>
 
-      <!-- Appearance -->
-      <div class="card setpane hidden" id="set-appearance">
-        <div class="card-head" style="margin-bottom:4px"><h2>Appearance</h2></div>
-        <p class="small muted" style="margin:0 0 18px">
-          Light or dark, for this browser. Everyone at the desk can pick their own.
-        </p>
-        <div class="themes" id="themes"></div>
-      </div>
-
-      <!-- Team -->
-      <div class="card setpane hidden" id="set-team">
-        <div class="card-head" style="margin-bottom:4px"><h2>Team</h2></div>
-        <p class="small muted" style="margin:0 0 18px">
-          Click anyone to open their details. People waiting for approval are listed first.
-        </p>
-        <div id="team" style="flex:1;display:flex;flex-direction:column"></div>
-      </div>
-
       <!-- Calendars -->
       <div class="card setpane hidden" id="set-calendars">
         <div class="card-head" style="margin-bottom:4px"><h2>Calendars</h2></div>
@@ -1463,17 +1595,6 @@
           treat it like a password, and disconnect if it ever goes astray.
         </p>
         <div id="feeds"></div>
-      </div>
-
-      <!-- Integrations: the CRM this app keeps up to date -->
-      <div class="card setpane hidden" id="set-integrations">
-        <div class="card-head" style="margin-bottom:4px"><h2>Integrations</h2></div>
-        <p class="small muted" style="margin:0 0 18px">
-          Every booking, cancellation and check-in made here is copied to the salon&rsquo;s
-          CRM calendar. This app is the diary and the CRM follows it, so make changes here
-          rather than in the CRM.
-        </p>
-        <div id="centro"></div>
       </div>
 
       <!-- Billing -->
@@ -1486,6 +1607,35 @@
             charged today.
           </p>
         </div>
+      </div>
+    </section>
+
+    <!-- Team Settings: opened from the person in the corner. Stacked cards in
+         one narrow column, as RocketOS lays out its settings. -->
+    <section class="view hidden" id="view-account">
+      <div class="acct">
+        <section class="acard">
+          <h2 class="ahead"><svg class="ic"><use href="#i-sun"/></svg>Appearance</h2>
+          <div class="arow">
+            <div><b>Dark Mode</b><span>Toggle between light and dark theme</span></div>
+            <button type="button" class="switch" id="darkSwitch" role="switch" aria-checked="false" aria-label="Dark Mode"><span></span></button>
+          </div>
+        </section>
+
+        <section class="acard hidden" id="acctIntegration">
+          <h2 class="ahead"><svg class="ic"><use href="#i-link"/></svg>Integration</h2>
+          <p class="asub">Every booking, cancellation and check-in made here is copied to the salon&rsquo;s
+            CRM calendar. This app is the diary and the CRM follows it, so make changes here.</p>
+          <div id="centro"></div>
+        </section>
+
+        <section class="acard">
+          <h2 class="ahead"><svg class="ic"><use href="#i-shield"/></svg>Team</h2>
+          <p class="asub">Your profile and the people who work here. Click your picture to edit it and your prices.</p>
+          <div id="team"></div>
+        </section>
+
+        <button type="button" class="btn signout" id="acctSignOut"><svg class="ic"><use href="#i-signout"/></svg>Sign Out</button>
       </div>
     </section>
   </main>
@@ -1535,10 +1685,13 @@
     </header>
     <div class="md-body">
       <div id="memberNote" class="note bad hidden"></div>
-      <label><span>Name</span><input name="name" required autocomplete="off"></label>
       <div class="two">
+        <label><span>Name</span><input name="name" required autocomplete="off"></label>
         <label><span>Username</span><div class="at"><input name="username" placeholder="jessi.k" autocomplete="off"
           pattern="@?[A-Za-z0-9._\-]{3,32}" title="3 to 32 letters, numbers, dots, dashes or underscores"></div></label>
+      </div>
+      <div class="two">
+        <label><span>Email</span><input type="email" name="email" required autocomplete="off"></label>
         <label><span>Role</span>
           <select name="role">
             <option value="front_desk">Front desk</option>
@@ -1546,21 +1699,24 @@
             <option value="owner">Owner</option>
           </select></label>
       </div>
-      <label><span>Email</span><input type="email" name="email" required autocomplete="off"></label>
-      <label><span>Pricing</span><input name="pricing" maxlength="120"
-        placeholder="How this stylist&rsquo;s services are priced, e.g. Senior stylist pricing"></label>
+      <p class="small muted hidden" id="memberRoleNote" style="margin:-8px 0 12px"></p>
+
+      <!-- Services and prices: four switches, a price beside each one that is on. -->
+      <div class="md-sec">Services &amp; pricing</div>
+      <p class="small muted" style="margin:-6px 0 10px">Turn on what you offer and type your starting price. Leave it off if you don&rsquo;t do it.</p>
+      <div class="svcs" id="memberSvcs"></div>
       <div id="memberCreate">
         <label><span>Password</span>
           <input type="text" name="password" minlength="10" placeholder="At least 10 characters" autocomplete="off"></label>
         <p class="small muted" style="margin:-6px 0 16px">Shown as you type so you can pass it on to them.</p>
       </div>
-      <div id="memberPw" class="hidden">
-        <div class="md-sec">Change your password</div>
-        <div class="two">
+      <details id="memberPw" class="hidden md-pw">
+        <summary>Change your password</summary>
+        <div class="two" style="margin-top:12px">
           <label><span>Current password</span><input type="password" name="currentPassword" autocomplete="current-password"></label>
           <label><span>New password</span><input type="password" name="newPassword" minlength="10" autocomplete="new-password" placeholder="At least 10 characters"></label>
         </div>
-      </div>
+      </details>
       <p class="small muted hidden" id="memberMeta" style="margin:0 0 14px"></p>
     </div>
     <footer class="md-foot">
@@ -1570,6 +1726,19 @@
       <button class="btn" value="save" id="memberSave">Add</button>
     </footer>
   </form>
+</dialog>
+
+<!-- Create or connect a calendar. Today everything is the Salon Calendar;
+     the stylist option is here, marked coming soon, so it can be switched
+     on later without a new screen. -->
+<dialog id="calDlg" aria-labelledby="calTitle">
+  <div class="ad-head">
+    <span class="cal-ico"><svg class="ic"><use href="#i-calendar-plus"/></svg></span>
+    <div style="flex:1;min-width:0"><h2 id="calTitle">Create or connect a calendar</h2>
+      <p class="small muted" id="calSub" style="margin:2px 0 0"></p></div>
+    <button type="button" class="iconbtn lg" id="calClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="calopts" id="calOpts"></div>
 </dialog>
 
 <!-- One appointment, in full: what the day card had to cut short. -->
@@ -1814,9 +1983,20 @@ function paintMe() {
   // RocketOS's chip carries the first name only.
   $('meName').textContent = me.user.name.trim().split(/\s+/)[0] || me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
-  $('meBtn').title = meSubtitle;
+  $('meBtn').title = `Team Settings · ${meSubtitle}`;
+  $('mePic').innerHTML = `<img src="${esc(personPhoto(me.user))}" alt="">`;
   paintLogo();
 }
+
+/**
+ * Every face in the app is a picture: an uploaded avatar, else the stylist's
+ * portrait from the public site, else a neutral silhouette. Initials read as
+ * a placeholder nobody finished filling in.
+ */
+const SILHOUETTE = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#e6e8f7"/>'
+  + '<circle cx="32" cy="25" r="11" fill="#a9b0dd"/><path d="M11 60c2-12 10.5-18 21-18s19 6 21 18z" fill="#a9b0dd"/></svg>');
+function personPhoto(p) { return p?.avatar || p?.photo || SILHOUETTE; }
 
 /**
  * The nav's mark: the salon's own logo once Salon Profile has one, the
@@ -1851,9 +2031,12 @@ const PAGES = {
     path: '/staff/appointments', title: 'Appointments', action: 'New appointment',
     sub: 'Check people in and keep the day on track.',
     run: () => openBooking(null),
-    load: () => (calView === 'month'
-      ? loadMonth(calMonth || monthOf(day || salonToday()))
-      : loadDay(day || salonToday())),
+    load: () => {
+      renderCalBar();
+      return calView === 'month'
+        ? loadMonth(calMonth || monthOf(day || salonToday()))
+        : loadDay(day || salonToday());
+    },
   },
   clients: {
     path: '/staff/clients', title: 'Clients', action: 'Add client',
@@ -1861,10 +2044,16 @@ const PAGES = {
     run: () => openContact(null), load: () => { fillStylistFilter(); loadContacts(); },
   },
   settings: {
-    // No header action: Team carries its own "Add Team Member" beside the list.
     path: '/staff/settings', title: 'Settings',
-    sub: 'Your salon, your team and how the app looks.',
+    sub: 'Your salon’s details, calendars and billing.',
     load: () => showSetting(setTab),
+  },
+  // Opened from the person in the corner, for every role: how the app looks,
+  // the CRM link (owners and managers), the team, and the way out.
+  account: {
+    path: '/staff/account', title: 'Team Settings',
+    sub: 'Your profile, your team and how the app looks.',
+    load: () => loadAccount(),
   },
   automation: {
     path: '/staff/marketing/automation', title: 'Marketing', group: 'marketing', view: 'marketing',
@@ -1915,7 +2104,7 @@ function renderConfirmationFlow() {
   const lead = hours % 24 === 0 ? `${hours / 24} day${hours === 24 ? '' : 's'}` : `${hours} hours`;
   const mailChip = emailOn
     ? '<span class="chip ok">On</span>'
-    : '<span class="chip info" title="The booking is still made; the client is just not emailed.">Starts once email is set up</span>';
+    : '<span class="chip pending" title="The booking is still made; the client is just not emailed.">Starts once email is set up</span>';
   const steps = [
     ['calendar-plus', 'A client books', 'Online, or at the front desk in this app.', '<span class="chip ok">On</span>'],
     ['calendar', 'The time is held', 'It goes in the diary for their stylist, so nobody else can take it.', '<span class="chip ok">On</span>'],
@@ -1938,11 +2127,11 @@ function renderConfirmationFlow() {
         The time goes straight back on the books, and you see it on Appointments.</p></div>
     <p class="flow-foot">${ic('eye')}View only. This shows what the app does; there is nothing to set up here.</p>`;
 }
-const VIEWS = ['home', 'appointments', 'clients', 'marketing', 'settings'];
+const VIEWS = ['home', 'appointments', 'clients', 'marketing', 'settings', 'account'];
 
 // The old names still land: bookmarks to /staff/dashboard and
 // /staff/contacts open Home and Clients rather than falling through.
-const PAGE_ALIASES = { dashboard: 'home', contacts: 'clients', marketing: 'automation' };
+const PAGE_ALIASES = { dashboard: 'home', contacts: 'clients', marketing: 'automation', team: 'account' };
 
 function pageFromUrl() {
   const seg = location.pathname.replace(/\/+$/, '').split('/').pop();
@@ -1961,6 +2150,8 @@ function go(name, { push = true } = {}) {
     if (a.dataset.page === name || (p.group && a.dataset.group === p.group)) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
+  if (name === 'account') $('meBtn').setAttribute('aria-current', 'page');
+  else $('meBtn').removeAttribute('aria-current');
   moveRing();
   const view = p.view || name;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
@@ -2024,15 +2215,9 @@ document.fonts?.ready.then(() => { if (me) moveRing(true); });
 // re-measures, so the ring never sits beside its label.
 document.fonts?.addEventListener?.('loadingdone', () => { if (me) moveRing(true); });
 
-// The chip is the person. Their own details open in the same team modal
-// everyone else's do, so a stylist without Settings can still change their
-// username, photo and password.
-$('meBtn').onclick = () => {
-  const items = [{ label: 'Your account', run: () => openMember('me') }];
-  if (me?.user?.canAdmin) items.push({ label: 'Settings', run: () => go('settings') });
-  items.push({ label: 'Sign out', danger: true, run: signOutNow });
-  showMenu($('meBtn'), items);
-};
+// The chip is the person; it is a data-page link to Team Settings, routed
+// like every other one. Sign out lives at the bottom of that page.
+$('acctSignOut').onclick = () => signOutNow();
 
 $('mktSeg').onclick = (e) => {
   const b = e.target.closest('button[data-page]');
@@ -2121,7 +2306,7 @@ async function loadHome() {
     $('tiles').innerHTML = [
       tile(first.booked, `booked today`, 'appointments'),
       tile(first.arriving, 'still to arrive today', 'appointments'),
-      pending ? tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'settings') : '',
+      pending ? tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'account') : '',
     ].join('');
 
     const live = first.appointments.filter((a) => a.status !== 'cancelled');
@@ -2131,7 +2316,7 @@ async function loadHome() {
     // One the CRM refused will not arrive on its own, so say so and say where.
     if (refused) {
       const who = refused === 1 ? '1 of today’s bookings' : `${refused} of today’s bookings`;
-      $('syncNote').innerHTML = `${ic('info')}<span>The CRM refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. ${me.user.canAdmin ? '<a href="/staff/settings" data-centro>See why and retry</a>.' : 'Ask an owner or manager to check Settings, Integrations.'}</span>`;
+      $('syncNote').innerHTML = `${ic('info')}<span>The CRM refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. ${me.user.canAdmin ? '<a href="/staff/account" data-centro>See why and retry</a>.' : 'Ask an owner or manager to check Team Settings, Integration.'}</span>`;
       $('syncNote').className = 'note bad';
     } else if (unsynced) {
       $('syncNote').innerHTML = `${ic('info')}<span>${unsynced === 1 ? '1 of today’s bookings hasn’t' : `${unsynced} of today’s bookings haven’t`} synced yet. They are sent across automatically; nothing to do here.</span>`;
@@ -2180,9 +2365,9 @@ function statusChips(a) {
   // Surfaced, calmly: the team should learn the CRM is behind from here,
   // not from an empty CRM later. It is information, not an alarm.
   if (a.status !== 'cancelled' && a.syncFailed) {
-    out.push('<span class="chip warn" title="The CRM refused this booking. Settings, Integrations shows why and can retry.">Sync failed</span>');
+    out.push('<span class="chip warn" title="The CRM refused this booking. Team Settings, Integration shows why and can retry.">Sync failed</span>');
   } else if (a.status !== 'cancelled' && !a.syncedToCentro) {
-    out.push('<span class="chip info" title="This booking will be synced automatically.">Not synced yet</span>');
+    out.push('<span class="chip pending" title="This booking will be synced automatically.">Not synced yet</span>');
   }
   return out.join(' ') || '<span class="chip">Booked</span>';
 }
@@ -2241,7 +2426,7 @@ function cardMarks(a) {
   else m.push(['', 'check', 'Confirmed']);
   m.push(a.channel === 'staff' ? ['', 'user', `Booked by ${a.bookedBy || 'staff'}`] : ['', 'link', 'Booked online']);
   if (a.notes) m.push(['', 'doc', 'Has notes']);
-  if (a.syncFailed) m.push(['bad', 'sync', 'Sync failed: see Settings, Integrations']);
+  if (a.syncFailed) m.push(['bad', 'sync', 'Sync failed: see Team Settings, Integration']);
   return m.map(([cls, icon, title]) => `<i class="${cls}" title="${esc(title)}">${ic(icon)}</i>`).join('');
 }
 
@@ -2320,7 +2505,7 @@ function renderDiary(d) {
   }).join('');
 
   const heads = cols.map((c, i) => `<div class="dg-head dg-c${i % 6}">
-      <span class="avatar">${c.photo ? `<img src="${esc(c.photo)}" alt="">` : esc(initialsOf(c.name))}</span>
+      <span class="avatar"><img src="${esc(c.photo || SILHOUETTE)}" alt=""></span>
       <div style="min-width:0"><b title="${esc(c.name)}">${esc(shortName(c.name))}</b>
         <span class="sub">${live.filter((a) => a.stylistSlug === c.slug).length} booked</span></div>
     </div>`).join('');
@@ -2388,6 +2573,75 @@ async function apptAction(ref, act, btn) {
     if (btn) btn.disabled = false;
   }
 }
+
+// ── calendars: the Salon Calendar now, each stylist's own later ───────────
+//
+// Today there is one calendar, the salon's: every stylist's appointments in
+// one diary. Stylists will each connect their own later, feeding it, so a
+// client can pick a stylist or a time. The bar is built from a list of
+// calendars with a `connected` flag, so switching that on per stylist (and
+// filtering the grid by `selectedCalendar`) needs no new screen.
+
+let selectedCalendar = 'salon';
+
+function calendarList() {
+  return [
+    { id: 'salon', name: 'Salon Calendar', kind: 'salon', connected: true },
+    ...(me?.stylists || []).map((s) => ({
+      id: `stylist:${s.slug}`, kind: 'stylist', slug: s.slug, name: s.name, photo: s.photo, connected: false,
+    })),
+  ];
+}
+
+function renderCalBar() {
+  $('calBar').innerHTML = `<span class="lbl">Calendars</span>${calendarList().map((c) => (c.kind === 'salon'
+    ? `<button type="button" class="calchip ${selectedCalendar === c.id ? 'on' : ''}" data-cal="${c.id}" title="Every stylist's appointments">
+        <span class="dot">${ic('calendar')}</span>${esc(c.name)}</button>`
+    : `<button type="button" class="calchip ${c.connected ? '' : 'off'}" data-cal="${esc(c.id)}"
+        title="${esc(c.connected ? c.name : `${c.name}'s own calendar is not connected yet`)}">
+        <img src="${esc(c.photo || SILHOUETTE)}" alt="">${esc(c.name.split(/\s+/)[0])}</button>`)).join('')}
+    <button type="button" class="calchip add" data-cal="new">${ic('plus')}Create or connect calendar</button>`;
+}
+
+$('calBar').onclick = (e) => {
+  const b = e.target.closest('[data-cal]');
+  if (!b) return;
+  const c = calendarList().find((x) => x.id === b.dataset.cal);
+  if (c && c.connected) { selectedCalendar = c.id; renderCalBar(); refreshDiary(); return; }
+  openCalDialog(c && c.kind === 'stylist' ? c : null);
+};
+
+function openCalDialog(stylist) {
+  $('calTitle').textContent = stylist ? `Connect ${stylist.name.split(/\s+/)[0]}’s calendar` : 'Create or connect a calendar';
+  $('calSub').textContent = 'Everything is on the Salon Calendar for now, so nothing is missed.';
+  const admin = me?.user?.canAdmin;
+  $('calOpts').innerHTML = `
+    <div class="calopt">
+      <span class="ico">${ic('calendar')}</span>
+      <div><b>Salon Calendar</b><span class="d">Every stylist’s appointments in one place. This is what you see on Appointments.</span></div>
+      <span class="chip ok">In use</span>
+    </div>
+    <div class="calopt">
+      <span class="ico">${ic('link')}</span>
+      <div><b>Connect your phone’s calendar</b><span class="d">See your appointments in Google, Apple or Outlook. It updates on its own.</span></div>
+      ${admin ? '<button type="button" class="btn sm" data-calgo="connect">Connect</button>'
+        : '<span class="chip">Ask an owner</span>'}
+    </div>
+    <div class="calopt soon">
+      <span class="ico">${ic('calendar-plus')}</span>
+      <div><b>${stylist ? `Create ${esc(stylist.name.split(/\s+/)[0])}’s calendar` : 'Create a stylist calendar'}</b>
+        <span class="d">Each stylist gets their own calendar that feeds the Salon Calendar, so clients can choose a stylist or a time.</span></div>
+      <span class="chip pending">Coming soon</span>
+    </div>`;
+  openDialog($('calDlg'));
+}
+$('calClose').onclick = () => closeDialog($('calDlg'));
+$('calOpts').onclick = (e) => {
+  if (!e.target.closest('[data-calgo="connect"]')) return;
+  closeDialog($('calDlg'));
+  setTab = 'calendars';
+  go('settings');
+};
 
 /** Reload whichever of the two views is on screen. */
 function refreshDiary() {
@@ -2646,13 +2900,18 @@ function renderMonth(d) {
       const list = (byDate.get(c.iso) || []);
       const shown = list.slice(0, PER_CELL);
       const rest = list.length - shown.length;
-      return `<div class="cal-cell ${c.out ? 'out' : ''} ${c.iso === d.today ? 'today' : ''}">
-        <span class="cal-n">${c.n}</span>
+      return `<div class="cal-cell ${c.out ? 'out' : ''} ${c.iso === d.today ? 'today' : ''}" data-add="${c.iso}"
+          title="Click to add an appointment on ${esc(dayLabel(c.iso))}">
+        <div class="cal-top">
+          <button type="button" class="cal-add" data-add="${c.iso}" aria-label="New appointment on ${esc(dayLabel(c.iso))}">${ic('plus')}</button>
+          <button type="button" class="cal-n" data-day="${c.iso}" title="Open this day">${c.n}</button>
+        </div>
         ${shown.map(chip).join('')}
         ${rest > 0 ? `<button class="cal-more" data-day="${c.iso}">+${rest} more</button>` : ''}
       </div>`;
     }).join('')}</div>
-  </div>`;
+  </div>
+  <p class="cal-hint">Click any day to add an appointment. Click the date to see that day by stylist.</p>`;
 }
 
 let monthSeq = 0;
@@ -2673,12 +2932,18 @@ async function loadMonth(ym) {
   }
 }
 
-/** Clicking anything in the grid takes you to that day, where the actions are. */
+/**
+ * The month as a salon books it: an appointment opens itself, the date opens
+ * that day by stylist, and anywhere else in a day (or its + button) starts a
+ * new appointment on that date.
+ */
 $('calendar').onclick = (e) => {
-  const more = e.target.closest('button[data-day]');
-  if (more) { setView('day', more.dataset.day); return; }
   const ev = e.target.closest('button[data-ref]');
-  if (ev) setView('day', ev.dataset.date);
+  if (ev) { openAppt(monthData.appointments.find((a) => a.ref === ev.dataset.ref)); return; }
+  const dayBtn = e.target.closest('button[data-day]');
+  if (dayBtn) { setView('day', dayBtn.dataset.day); return; }
+  const cell = e.target.closest('[data-add]');
+  if (cell) openBooking(null, { date: cell.dataset.add });
 };
 
 function setView(next, date) {
@@ -2908,7 +3173,7 @@ function personChips(c) {
     c.source ? `<span class="chip">${esc(c.source)}</span>` : '',
     c.inCentro
       ? '<span class="chip ok">Synced</span>'
-      : '<span class="chip info" title="They will be synced automatically.">Not synced yet</span>',
+      : '<span class="chip pending" title="They will be synced automatically.">Not synced yet</span>',
   ].join(' ');
 }
 
@@ -3222,7 +3487,6 @@ $('bookForm').onsubmit = async (e) => {
 
 // ───────────────────────────── settings ─────────────────────────────
 
-let teamData = null;
 
 /**
  * Shrink a chosen picture in the browser before it is ever sent.
@@ -3258,18 +3522,63 @@ function shrink(file, box, type = 'image/jpeg') {
 // ── the team modal ────────────────────────────────────────────────────────
 //
 // One dialog for three jobs: adding somebody, an owner or manager editing
-// somebody, and anyone editing themselves from the chip in the corner. What
-// differs is which fields are open and which endpoint saves them; the
-// server checks the same rules again either way.
+// somebody, and anyone editing themselves by clicking their own picture. What
+// differs is which fields are open and which endpoint saves them; the server
+// checks the same rules again either way.
 
 let memberEdit = null;      // null: adding. 'me': yourself. Otherwise a team row.
 let memberPic;              // undefined: unchanged. null: remove. string: new picture.
 let memberOrig = {};        // what the modal opened with, so only real changes are sent
 
-function memberPicPaint(src, name) {
-  $('memberPicInner').innerHTML = src ? `<img src="${esc(src)}" alt="">` : esc(initialsOf(name || ''));
+/**
+ * The four kinds of work a stylist prices. Plain words and a hint of what
+ * each covers, so nobody has to guess which box a balayage goes in.
+ */
+const SERVICE_KINDS = [
+  ['cuts', 'Cuts', 'Haircuts, trims and bangs'],
+  ['treatments', 'Treatments', 'Keratin, bond repair, scalp care'],
+  ['color', 'Color', 'Balayage, highlights, single process'],
+  ['styling', 'Styling', 'Blowouts, updos, special events'],
+];
+
+function memberPicPaint(src, fallback) {
+  $('memberPicInner').innerHTML = `<img src="${esc(src || fallback || SILHOUETTE)}" alt="">`;
   $('memberPicDrop').classList.toggle('hidden', !src);
   $('memberPicPick').textContent = src ? 'Change photo' : 'Upload photo';
+}
+
+function paintServices(services = {}) {
+  $('memberSvcs').innerHTML = SERVICE_KINDS.map(([key, label, hint]) => {
+    const v = services[key] || {};
+    return `<div class="svc ${v.on ? '' : 'off'}" data-svc="${key}">
+      <button type="button" class="switch" role="switch" aria-checked="${Boolean(v.on)}" aria-label="${esc(label)} offered"><span></span></button>
+      <div><b>${esc(label)}</b><small>${esc(v.on ? hint : 'Not offered')}</small></div>
+      <div class="price"><input type="number" min="0" max="10000" step="1" inputmode="decimal" placeholder="Price"
+        aria-label="${esc(label)} starting price" value="${v.price ?? ''}" ${v.on ? '' : 'disabled'}></div>
+    </div>`;
+  }).join('');
+}
+$('memberSvcs').onclick = (e) => {
+  const sw = e.target.closest('.switch');
+  if (!sw || sw.disabled) return;
+  const row = sw.closest('.svc');
+  const on = sw.getAttribute('aria-checked') !== 'true';
+  sw.setAttribute('aria-checked', String(on));
+  row.classList.toggle('off', !on);
+  const input = row.querySelector('input');
+  input.disabled = !on;
+  const kind = SERVICE_KINDS.find(([k]) => k === row.dataset.svc);
+  row.querySelector('small').textContent = on ? kind[2] : 'Not offered';
+  if (on) input.focus();
+};
+function readServices() {
+  const out = {};
+  for (const row of $('memberSvcs').querySelectorAll('.svc')) {
+    const on = row.querySelector('.switch').getAttribute('aria-checked') === 'true';
+    const raw = row.querySelector('input').value.trim();
+    out[row.dataset.svc] = { on, price: raw === '' ? null : Number(raw) };
+  }
+  return out;
 }
 
 async function openMember(who) {
@@ -3290,45 +3599,49 @@ async function openMember(who) {
   } else {
     memberEdit = null;
   }
-  const self = memberEdit === 'me' || (m && teamData && m.id === teamData.you.id);
+  const self = memberEdit === 'me';
   const admin = me?.user?.canAdmin;
   const owner = me?.user?.role === 'owner';
   const lockedOwner = m && m.role === 'owner' && !owner && !self;
 
-  $('memberTitle').textContent = !m ? 'Add team member' : self ? 'Your account' : m.name;
-  for (const k of ['name', 'username', 'email', 'pricing', 'role']) f.elements[k].value = m ? (m[k] || '') : '';
-  memberOrig = { username: m?.username || '', pricing: m?.pricing || '' };
+  $('memberTitle').textContent = !m ? 'Add team member' : self ? 'Your profile' : m.name;
+  for (const k of ['name', 'username', 'email', 'role']) f.elements[k].value = m ? (m[k] || '') : '';
   if (!m) f.elements.role.value = 'front_desk';
-  memberPicPaint(m?.avatar, m?.name);
+  memberOrig = { username: m?.username || '', services: JSON.stringify(m?.services || {}) };
+  memberPicPaint(m?.avatar, m?.photo);
+  paintServices(m?.services || {});
 
-  // Who may change what. Your own role is never yours to change; an owner's
-  // details are only an owner's to change; pricing is set by the people who
-  // run the salon.
+  // Who may change what. Nobody changes their own role, which is how a salon
+  // ends up with no owner; an owner's details are an owner's to change.
   f.elements.role.disabled = Boolean(self || lockedOwner || !admin);
   f.elements.role.querySelector('[value=owner]').disabled = !owner;
-  f.elements.pricing.disabled = !admin || lockedOwner;
+  const roleNote = self ? 'Your role is set by an owner.' : lockedOwner ? 'Only an owner can change another owner.' : '';
+  $('memberRoleNote').textContent = roleNote;
+  $('memberRoleNote').classList.toggle('hidden', !roleNote);
   for (const k of ['name', 'username', 'email']) f.elements[k].disabled = Boolean(lockedOwner);
+  for (const sw of $('memberSvcs').querySelectorAll('.switch, input')) {
+    if (lockedOwner) sw.disabled = true;
+  }
   $('memberPic').disabled = Boolean(lockedOwner);
   $('memberPicPick').classList.toggle('hidden', Boolean(lockedOwner));
 
   $('memberCreate').classList.toggle('hidden', Boolean(m));
   f.elements.password.required = !m;
   $('memberPw').classList.toggle('hidden', !self);
+  $('memberPw').open = false;
   $('memberSave').textContent = m ? 'Save' : 'Add';
   $('memberSave').classList.toggle('hidden', Boolean(lockedOwner));
 
-  const meta = m && m.status === 'pending' ? 'Waiting for approval. Approve from the team list.'
-    : lockedOwner ? 'Only an owner can change another owner.'
+  const meta = m && m.status === 'pending' ? 'Waiting for approval.'
     : m && m.stylist ? `On the diary as ${m.stylist}${m.title ? `, ${m.title}` : ''}.` : '';
   $('memberMeta').textContent = meta;
   $('memberMeta').classList.toggle('hidden', !meta);
 
-  // The destructive action fits who is open: yourself signs out, somebody
-  // else is turned off or back on, and a pending request is declined.
+  // Someone else can be turned off or back on; your own way out is the
+  // Sign Out button at the bottom of Team Settings.
   const danger = $('memberDanger');
   danger.dataset.act = '';
-  if (self) { danger.textContent = 'Sign out'; danger.dataset.act = 'signout'; }
-  else if (m && !lockedOwner && admin) {
+  if (m && !self && !lockedOwner && admin) {
     const act = m.status === 'pending' ? 'reject' : m.status === 'disabled' ? 'enable' : 'disable';
     danger.textContent = { reject: 'Decline request', enable: 'Turn back on', disable: 'Turn off account' }[act];
     danger.dataset.act = act;
@@ -3339,23 +3652,19 @@ async function openMember(who) {
 
 $('memberPic').onclick = () => $('memberPicFile').click();
 $('memberPicPick').onclick = () => $('memberPicFile').click();
-$('memberPicDrop').onclick = () => { memberPic = null; memberPicPaint(null, $('memberForm').elements.name.value); };
+$('memberPicDrop').onclick = () => { memberPic = null; memberPicPaint(null); };
 $('memberPicFile').onchange = async (e) => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
   try {
     memberPic = await shrink(file, 256);
-    memberPicPaint(memberPic, $('memberForm').elements.name.value);
+    memberPicPaint(memberPic);
   } catch (err) { note($('memberNote'), err.message); }
-};
-$('memberForm').elements.name.oninput = (e) => {
-  if (!$('memberPicInner').querySelector('img')) memberPicPaint(null, e.target.value);
 };
 
 $('memberDanger').onclick = async () => {
   const act = $('memberDanger').dataset.act;
-  if (act === 'signout') { closeDialog($('memberDlg')); signOutNow(); return; }
   const m = memberEdit;
   if (!m || m === 'me') return;
   if (act === 'disable' && !confirm('Turn off this account? They are signed out straight away.')) return;
@@ -3375,7 +3684,13 @@ $('memberForm').onsubmit = async (e) => {
   const fields = { name: f.get('name'), email: f.get('email') };
   const username = String(f.get('username') || '').trim().replace(/^@/, '');
   if (username !== memberOrig.username) fields.username = username || null;
-  if (!el.pricing.disabled && f.get('pricing') !== memberOrig.pricing) fields.pricing = f.get('pricing');
+  const services = readServices();
+  for (const [key, label] of SERVICE_KINDS) {
+    const v = services[key];
+    if (v.on && v.price != null && !(v.price >= 0)) { note($('memberNote'), `The ${label} price needs to be a number.`); return; }
+  }
+  // Sent only when it changed, so saving a name works before migration 012.
+  if (JSON.stringify(services) !== memberOrig.services) fields.services = services;
   if (memberPic !== undefined) fields.avatar = memberPic;
   $('memberSave').disabled = true;
   try {
@@ -3385,7 +3700,7 @@ $('memberForm').onsubmit = async (e) => {
         body: JSON.stringify({ action: 'create', ...fields, role: f.get('role'), password: f.get('password') }),
       });
       toast(`${f.get('name')} can sign in now.`);
-    } else if (memberEdit === 'me' || memberEdit.id === teamData?.you.id) {
+    } else if (memberEdit === 'me') {
       const patch = { ...fields };
       if (f.get('newPassword')) {
         patch.currentPassword = f.get('currentPassword');
@@ -3401,99 +3716,84 @@ $('memberForm').onsubmit = async (e) => {
       toast('Saved.');
     }
     closeDialog($('memberDlg'));
-    if (page === 'settings' && setTab === 'team') await loadTeam();
     // A stylist's photo is also their column on the day view.
     me = { ...me, ...(await api('/api/staff/me').catch(() => ({}))) };
+    paintMe();
+    if (page === 'account') await loadTeam();
   } catch (err) {
     note($('memberNote'), err.message);
   } finally { $('memberSave').disabled = false; }
 };
 
 // ── Team ──────────────────────────────────────────────────────────────────
+//
+// For now the list shows the signed-in person only: the stylists are added
+// one by one later, from the panel beside it. Requests to join still appear
+// under the list for an owner or manager, since nothing else shows them.
 
-function avatarHtml(m) {
-  return m.avatar ? `<img src="${esc(m.avatar)}" alt="">` : esc(initialsOf(m.name));
+let teamCurrent = null;     // the signed-in person, as the list shows them
+
+function svcSummary(services = {}) {
+  return SERVICE_KINDS.map(([key, label]) => {
+    const v = services[key] || {};
+    const text = v.on ? (v.price != null ? `${label} $${v.price}` : label) : label;
+    return `<i class="${v.on ? 'on' : ''}" title="${esc(v.on ? 'Offered' : 'Not offered')}">${esc(text)}</i>`;
+  }).join('');
 }
 
-function renderTeam(d) {
-  teamData = d;
-  const active = d.members.filter((m) => m.status === 'active');
-  // The portraits sit on an arch: the middle of the row lifted, the ends
-  // lower, the way the salon's own team photo is arranged.
-  const shown = active.slice(0, 7);
-  const mid = (shown.length - 1) / 2;
-  const arch = shown.length ? shown.map((m, i) => {
-    const lift = -Math.round(28 * (1 - ((i - mid) / Math.max(mid, 1)) ** 2));
-    return `<button type="button" class="arch-card" data-member="${esc(m.id)}" style="--lift:${lift}px" title="Open ${esc(m.name)}">
-      <span class="arch-frame">${avatarHtml(m)}</span>
-      <b>${esc(shortName(m.name))}</b><span class="role-line">${esc(m.title || ROLE_LABEL[m.role] || '')}</span>
-    </button>`;
-  }).join('') : '';
-
+function renderTeam(current, pending = []) {
+  teamCurrent = current;
+  const admin = me?.user?.canAdmin;
   $('team').innerHTML = `
-    <div class="team-top">
-      <div class="arch">${arch ? `<div class="arch-row">${arch}</div>` : '<div class="arch-empty">Your team will appear here.</div>'}</div>
-      <div class="add-side">
-        <span class="bubble">${ic('users-plus')}</span>
-        <p>${active.length} on the team${d.pending ? `, ${d.pending} waiting` : ''}</p>
-        <button type="button" class="btn" id="teamAdd">${ic('plus')}Add Team Member</button>
-      </div>
-    </div>
-    <div class="mlist">${d.members.map((m) => {
-      const you = m.id === d.you.id;
-      const pending = m.status === 'pending';
-      const lockedOwner = m.role === 'owner' && d.you.role !== 'owner';
-      return `<div class="mrow ${m.status === 'disabled' ? 'off' : ''}" data-member="${esc(m.id)}" tabindex="0" role="button" aria-label="Open ${esc(m.name)}">
-        <span class="avatar">${avatarHtml(m)}</span>
-        <div class="who">
-          <div class="name"><span class="name">${esc(m.name)}</span>${m.username ? `<span class="handle">@${esc(m.username)}</span>` : ''}${you ? '<span class="chip">You</span>' : ''}</div>
-          <div class="em">${esc(m.email)}${m.pricing ? ` · ${esc(m.pricing)}` : ''}${m.note ? ` · ${esc(m.note)}` : ''}</div>
+    <div class="tm">
+      <div class="tm-list">
+        <button type="button" class="tm-row me" id="teamMe" aria-label="Edit your profile and prices">
+          <span class="tm-pic"><img src="${esc(personPhoto(current))}" alt=""><span class="pen">${ic('edit')}</span></span>
+          <span class="tm-who"><b>${esc(current.name)}${current.username ? ` <span style="display:inline;color:var(--muted);font-weight:500">@${esc(current.username)}</span>` : ''}</b>
+            <span>${esc(current.email)}</span>
+            <span class="tm-svc">${svcSummary(current.services)}</span></span>
+          <span class="tm-badges"><span class="chip role">${esc(ROLE_LABEL[current.role] || current.role)}</span><span class="chip ok">Active</span></span>
+        </button>
+        <div class="tm-later">
+          <span class="ghosts"><img src="${SILHOUETTE}" alt=""><img src="${SILHOUETTE}" alt=""><img src="${SILHOUETTE}" alt=""></span>
+          <span>Stylists you add appear here, each with their own picture and prices.</span>
         </div>
-        <div class="badges">
-          ${pending && !lockedOwner ? `${roleControl(m, d)}
+        ${admin && pending.length ? `<div class="tm-pending"><h3>Asking to join</h3>${pending.map((m) => `
+          <div class="tm-pend" data-member="${esc(m.id)}">
+            <span class="who"><b>${esc(m.name)}</b> <span class="muted">${esc(m.email)}${m.note ? ` · ${esc(m.note)}` : ''}</span></span>
+            ${roleControl(m)}
             <button class="btn sm" data-act="approve" data-id="${esc(m.id)}">Approve</button>
-            <button class="btn quiet sm" data-act="reject" data-id="${esc(m.id)}">Decline</button>`
-            : `<span class="chip role">${esc(ROLE_LABEL[m.role] || m.role)}</span>`}
-          ${pending ? '<span class="chip info">Waiting for approval</span>'
-            : m.status === 'disabled' ? '<span class="chip">Turned off</span>'
-            : '<span class="chip ok">Active</span>'}
-        </div>
-      </div>`;
-    }).join('')}</div>`;
-
-  me.pendingApprovals = d.pending;
-  $('pendingBadge').textContent = d.pending;
-  $('pendingBadge').classList.toggle('hidden', !d.pending);
+            <button class="btn quiet sm" data-act="reject" data-id="${esc(m.id)}">Decline</button>
+          </div>`).join('')}</div>` : ''}
+      </div>
+      <aside class="tm-add">
+        <span class="bubble">${ic('users-plus')}</span>
+        <b>Add Team Member</b>
+        <p>${admin ? 'Give each stylist their own sign in, picture and prices.' : 'An owner or manager adds stylists to the team.'}</p>
+        ${admin ? `<button type="button" class="btn sm" id="teamAdd">${ic('plus')}Add Team Member</button>` : ''}
+      </aside>
+    </div>`;
 }
 
 /** The role picker a pending request is approved with. */
-function roleControl(m, d) {
-  const iAmOwner = d.you.role === 'owner';
-  return `<select class="role" data-role="${esc(m.id)}" data-pending="1" aria-label="Role for ${esc(m.name)}">
+function roleControl(m) {
+  const iAmOwner = me?.user?.role === 'owner';
+  return `<select class="role" data-role="${esc(m.id)}" aria-label="Role for ${esc(m.name)}">
     ${['front_desk', 'manager', 'owner'].map((r) =>
       `<option value="${r}" ${r === 'front_desk' ? 'selected' : ''} ${r === 'owner' && !iAmOwner ? 'disabled' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
   </select>`;
 }
 
-function openMemberById(id) {
-  const m = teamData?.members.find((x) => String(x.id) === String(id));
-  if (m) openMember(m.id === teamData.you.id ? 'me' : m);
-}
-
 $('team').onclick = async (e) => {
   if (e.target.closest('#teamAdd')) { openMember(null); return; }
+  if (e.target.closest('#teamMe')) { openMember('me'); return; }
   const btn = e.target.closest('button[data-act]');
-  if (!btn) {
-    if (e.target.closest('select')) return;
-    const row = e.target.closest('[data-member]');
-    if (row) openMemberById(row.dataset.member);
-    return;
-  }
+  if (!btn) return;
   const act = btn.dataset.act;
   if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
   // Approving uses the role picked in that row's dropdown.
   const role = act === 'approve'
-    ? btn.closest('.mrow').querySelector('select[data-role]')?.value || 'front_desk'
+    ? btn.closest('.tm-pend').querySelector('select[data-role]')?.value || 'front_desk'
     : undefined;
   btn.disabled = true;
   try {
@@ -3506,18 +3806,44 @@ $('team').onclick = async (e) => {
     btn.disabled = false;
   }
 };
-// The rows are buttons in all but name, so the keyboard opens them too.
-$('team').addEventListener('keydown', (e) => {
-  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('mrow')) {
-    e.preventDefault();
-    openMemberById(e.target.dataset.member);
+
+async function loadTeam() {
+  if (!teamCurrent) $('team').innerHTML = skeleton(2);
+  try {
+    // The profile is the person themselves, for every role; the team list,
+    // for owners and managers, adds who is waiting to be let in.
+    const [p, t] = await Promise.all([
+      api('/api/staff/profile'),
+      me?.user?.canAdmin ? api('/api/staff/team') : Promise.resolve(null),
+    ]);
+    const pending = t ? t.members.filter((m) => m.status === 'pending') : [];
+    renderTeam({ ...p, status: 'active' }, pending);
+    if (t) {
+      me.pendingApprovals = t.pending;
+      $('pendingBadge').textContent = t.pending;
+      $('pendingBadge').classList.toggle('hidden', !t.pending);
+    }
+  } catch (err) {
+    if (err.message !== 'signed out') {
+      $('team').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load the team', text: err.message });
+    }
   }
-});
+}
+
+// ── Team Settings ─────────────────────────────────────────────────────────
+
+function loadAccount() {
+  paintDarkSwitch();
+  const admin = me?.user?.canAdmin;
+  $('acctIntegration').classList.toggle('hidden', !admin);
+  if (admin) loadCentro();
+  loadTeam();
+}
 
 // ─────────────────────── settings sections ───────────────────────
 
 let setTab = 'profile';
-const SET_TABS = ['profile', 'appearance', 'team', 'calendars', 'integrations', 'billing'];
+const SET_TABS = ['profile', 'calendars', 'billing'];
 
 function showSetting(name) {
   if (!SET_TABS.includes(name)) name = 'profile';
@@ -3527,10 +3853,7 @@ function showSetting(name) {
   }
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
   if (name === 'profile') loadBusiness();
-  if (name === 'appearance') renderThemes();
-  if (name === 'team') loadTeam();
   if (name === 'calendars') loadFeeds();
-  if (name === 'integrations') loadCentro();
 }
 $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
@@ -3542,11 +3865,6 @@ $('setSeg').onclick = (e) => {
 // Per browser, not per account: the desk computer and a stylist's phone can
 // differ, and it is a preference, not something the salon needs to agree on.
 
-const THEMES = [
-  ['light', 'Light', 'sun', ['#f0edee', '#ffffff', '#5560a6']],
-  ['dark', 'Dark', 'moon', ['#12132e', '#1b1c3f', '#b9c0e8']],
-  ['system', 'Match this device', 'monitor', ['linear-gradient(90deg,#f0edee 50%,#12132e 50%)', 'linear-gradient(90deg,#fff 50%,#1b1c3f 50%)', '#5560a6']],
-];
 function themePick() {
   try { return localStorage.getItem('ss-theme') || 'light'; } catch { return 'light'; }
 }
@@ -3554,24 +3872,17 @@ function applyTheme(pick) {
   const dark = pick === 'dark' || (pick === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
 }
-function renderThemes() {
-  const pick = themePick();
-  $('themes').innerHTML = THEMES.map(([key, label, icon, [bg, card, accent]]) => `
-    <button type="button" class="theme" data-theme-pick="${key}" aria-pressed="${pick === key}">
-      <span class="sw" style="background:${bg}"><i style="background:${accent}"></i>
-        <i style="margin:10px;border-radius:8px;background:${card}"></i></span>
-      <b><span>${ic(icon)} ${esc(label)}</span>${ic('check')}</b>
-    </button>`).join('');
+function paintDarkSwitch() {
+  $('darkSwitch').setAttribute('aria-checked', String(document.documentElement.dataset.theme === 'dark'));
 }
-$('themes').onclick = (e) => {
-  const b = e.target.closest('[data-theme-pick]');
-  if (!b) return;
-  try { localStorage.setItem('ss-theme', b.dataset.themePick); } catch { /* private window: this visit only */ }
-  applyTheme(b.dataset.themePick);
-  renderThemes();
+$('darkSwitch').onclick = () => {
+  const pick = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem('ss-theme', pick); } catch { /* private window: this visit only */ }
+  applyTheme(pick);
+  paintDarkSwitch();
 };
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
-  if (themePick() === 'system') applyTheme('system');
+  if (themePick() === 'system') { applyTheme('system'); paintDarkSwitch(); }
 });
 
 // ── Salon Profile ────────────────────────────────────────────────────────
@@ -3733,7 +4044,7 @@ function googleCard(d) {
   const logo = CAL_APPS.find((a) => a.key === 'google').logo;
 
   if (!g.available) {
-    return `<div class="conn">
+    return `<div class="conn idle">
       <div class="conn-h">${logo}<b>Google Calendar</b></div>
       <p>Write appointments straight into your Google Calendar.</p>
       <div class="setup">Not set up on this site yet.</div>
@@ -3750,8 +4061,8 @@ function googleCard(d) {
     </div>`;
   }
 
-  return `<div class="conn">
-    <div class="conn-h">${logo}<b>Google Calendar</b></div>
+  return `<div class="conn idle">
+    <div class="conn-h">${logo}<b>Google Calendar</b><span class="chip" style="margin-left:auto">Not connected</span></div>
     <p>Connect your Google account and appointments are written into your
        calendar as they are booked.</p>
     <button class="go" data-google="connect">
@@ -3816,7 +4127,14 @@ function renderFeeds(d) {
          comes and fetches your appointments, usually within a few minutes.
        </span></div>`;
 
+  // Until something is connected the whole area reads as not in use yet:
+  // grey cards, and one plain way forward at the top.
+  const anyOn = connected || d.google?.connected;
   $('feeds').innerHTML = `
+    ${anyOn ? '' : `<div class="cal-empty">
+      <div class="what"><b>No calendars connected yet</b>Everything is on the Salon Calendar. Connect your phone&rsquo;s calendar to see your appointments there too.</div>
+      <button type="button" class="btn sm" data-calnew>${ic('calendar-plus')}Create or Connect Calendar</button>
+    </div>`}
     <div class="scope">
       <div class="what">
         <b>${esc(d.describes)}</b>
@@ -3825,7 +4143,7 @@ function renderFeeds(d) {
       <span class="chip">${d.scope === 'mine' ? 'Your diary' : 'Whole shop'}</span>
     </div>
 
-    ${banner}
+    ${anyOn ? banner : ''}
 
     <div class="conns">
       ${googleCard(d)}
@@ -3834,9 +4152,9 @@ function renderFeeds(d) {
         // does not say which one it was, none of the three is claimed rather
         // than the wrong one being lit up.
         const isThis = connected && d.provider === app.key;
-        return `<div class="conn ${isThis ? 'on' : ''}">
+        return `<div class="conn ${isThis ? 'on' : 'idle'}">
           <div class="conn-h">${app.logo}<b>${esc(app.name)}</b>
-            ${isThis ? `<span class="state">${TICK}Connected</span>` : ''}</div>
+            ${isThis ? `<span class="state">${TICK}Connected</span>` : '<span class="chip" style="margin-left:auto">Not connected</span>'}</div>
           <p>${esc(app.blurb)}</p>
           <a class="go" href="${esc(d[app.key])}" target="_blank" rel="noopener">
             <svg class="ic"><use href="#i-link"/></svg>${isThis ? 'Connect another device' : 'Connect'}</a>
@@ -4006,8 +4324,8 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('a[data-centro]');
   if (!a) return;
   e.preventDefault();
-  setTab = 'integrations';
-  go('settings');
+  go('account');
+  setTimeout(() => $('acctIntegration').scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
 });
 
 async function loadFeeds() {
@@ -4039,6 +4357,7 @@ $('feeds').onclick = async (e) => {
     return;
   }
 
+  if (e.target.closest('button[data-calnew]')) { openCalDialog(null); return; }
   // The subscribe links connect on somebody else's server, so there is
   // nothing to listen for. Asking again is the whole mechanism.
   if (e.target.closest('button[data-check]')) { loadFeeds(); return; }
@@ -4066,17 +4385,6 @@ $('feeds').onclick = async (e) => {
   } catch (err) { fail(err); regen.disabled = false; }
 };
 
-async function loadTeam() {
-  if (!teamData) $('team').innerHTML = skeleton(4);
-  try {
-    renderTeam(await api('/api/staff/team'));
-  } catch (err) {
-    if (err.message !== 'signed out') {
-      $('team').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load the team', text: err.message });
-    }
-  }
-}
-
 // ───────────────────────────── boot ─────────────────────────────
 
 async function start(landing) {
@@ -4099,7 +4407,7 @@ async function start(landing) {
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
 
   day = salonToday();
-  teamData = null;
+  teamCurrent = null;
   contactList = [];
   // A fresh sign-in lands on the Dashboard; a reload stays where it was.
   const target = landing || pageFromUrl();

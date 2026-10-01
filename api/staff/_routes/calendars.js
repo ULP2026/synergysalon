@@ -88,7 +88,20 @@ export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
-    const row = await mine(user.id);
+    let row = await mine(user.id);
+    // Migration 008 gave a link to everyone who existed then; anyone added
+    // since (request access, Add Team Member) has none, and this page was an
+    // error for them. Their link is made the first time they look for it.
+    if (row && !row.calendar_token) {
+      await query(
+        `UPDATE staff_users
+            SET calendar_token = replace(gen_random_uuid()::text, '-', '')
+                              || replace(gen_random_uuid()::text, '-', '')
+          WHERE id = $1 AND calendar_token IS NULL`,
+        [user.id],
+      );
+      row = await mine(user.id);
+    }
     if (!row?.calendar_token) throw new HttpError(404, 'No calendar link for this account.');
 
     return json(res, 200, {
