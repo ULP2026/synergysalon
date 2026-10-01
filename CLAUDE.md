@@ -87,22 +87,29 @@ half-typed address is not a worse email, it is not an email yet.
 **Every push to CENTRO sends the appointment as it stands now**, not the event
 the job describes: jobs run late and out of order after a failure, and an old
 "booked" must not undo a newer "cancelled". Check-in, done and no-show are
-mirrored as CENTRO's showed/noshow. Settings, Integrations shows the link's health
-and anything CENTRO refused, with a retry; the cron re-queues refused jobs
-from the last 30 days whenever the link checks out, and logs why each failed.
+mirrored as CENTRO's showed/noshow. Team Settings, Integrations shows only
+whether the CRM is connected; the refused list and its retry button were taken
+out of the UI on request. The cron still re-queues refused jobs from the last
+30 days whenever the link checks out, and logs why each failed, and
+`POST /api/staff/centro {action:"retry"}` still exists.
 
 **Stylists' hours come from CENTRO, for guests.** Online availability offers a
 stylist only the times CENTRO's free-slots answer lists for their CENTRO user:
 the hours set for them on the calendar, what is already booked there, and the
 calendars they connected in CENTRO (`api/_lib/centro-hours.js`). A stylist not
-linked to a CENTRO user (Settings, Integrations) is offered nothing online, and a
+linked to a CENTRO user is offered nothing online, and a
 CENTRO error offers nothing rather than guess. Staff booking in the console
 still uses `stylist_hours`, on purpose. The seeded `stylist_hours` gave every
 stylist the salon's opening times, which is how 9 AM got sold with stylists
 who start later.
 
-**Testing while online booking is paused.** Settings, Integrations, "Open booking
-test" mints a signed 12-hour pass (`api/_lib/preview.js`) and opens the public
+The screen for linking stylists to CENTRO users was removed from the console
+on request. Linking now goes through `POST /api/staff/centro
+{action:"link", stylist, ghlUserId}` (or SQL on `stylists.ghl_user_id`); put a
+screen back before reopening online booking, or nobody is offered online.
+
+**Testing while online booking is paused.** The console button was removed on
+request; `POST /api/staff/centro {action:"preview"}` still mints a signed 12-hour pass (`api/_lib/preview.js`) and opens the public
 site with `?booking-preview=`. The notice script keeps it for that tab, shows
 the real popup with a "test mode" badge, and adds `x-booking-preview` to its
 `/api/` calls, which the server accepts in place of `ONLINE_BOOKING`. Bookings
@@ -112,8 +119,9 @@ made that way are real: name them ZZ and remove them.
 
 - Nav: Home (`/staff`), Appointments, Clients (`/staff/clients`), Marketing,
   Settings (Salon Profile, Calendars, Billing). The person chip opens Team
-  Settings (`/staff/account`): Appearance, Integration (owners and managers),
-  Team, Sign Out. `/staff/dashboard` and `/staff/contacts` still land on Home and
+  Settings (`/staff/account`): Appearance, Integrations (one row per
+  connection: CRM for owners and managers, Email, Google, Apple, Outlook) and
+  Team Members. Sign out is in your own profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM" and "Integrations"; the API keeps its `centro`
   names, which nobody sees.
 - Appointments opens on the day: one column per stylist, the clock down the
@@ -130,7 +138,11 @@ made that way are real: name them ZZ and remove them.
   those fields needs them.
 - Faces are pictures everywhere: an uploaded avatar, else the stylist's
   portrait (`stylists.photo`, 012, the public site's team photos), else a
-  silhouette. Appointments shows a Calendars bar: the Salon Calendar in use,
+  drawn character from `charAvatar(name)`, never initials. Anyone can build
+  their own character in the profile window (Create character): the maker
+  saves it as a PNG in `avatar`, like a photo, plus its settings in
+  `staff_users.avatar_style` (013) so it opens again for changes. Characters
+  are drawn young on purpose: no grey hair, no lines. Appointments shows a Calendars bar: the Salon Calendar in use,
   each stylist's greyed until stylist calendars exist (`calendarList()`).
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
