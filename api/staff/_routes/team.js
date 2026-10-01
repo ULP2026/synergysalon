@@ -1,8 +1,9 @@
 /**
- * /api/staff/team — who has access, and who is asking for it.
+ * /api/staff/team: who has access, and who is asking for it.
  *
  *   GET    the team, pending requests first
- *   POST   approve, reject, disable, re-enable, or change a role
+ *   POST   add someone, edit their details, approve, reject, disable,
+ *          re-enable, or change a role
  *
  * Owners and managers only. A front-desk account can use the console all day
  * but cannot grant anybody else access to the salon's client list.
@@ -14,6 +15,7 @@ import {
 } from '../../_lib/http.js';
 import { MIN_PASSWORD_LENGTH, hashPassword } from '../../_lib/password.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import { assertUsernameFree, avatarFrom, usernameFrom } from './profile.js';
 
 const ADMIN = ['owner', 'manager'];
 const ROLES = ['owner', 'manager', 'front_desk'];
@@ -24,10 +26,14 @@ export default handler({
     const tenant = await tenantForUser(user);
 
     const { rows } = await query(
-      `SELECT u.id, u.name, u.email, u.role, u.status, u.note,
+      // username and pricing through to_jsonb, so the team still lists on a
+      // database that has not had migration 011 yet.
+      `SELECT u.id, u.name, u.email, u.role, u.status, u.note, u.avatar,
               u.requested_at, u.approved_at, u.last_seen_at, u.created_at,
+              to_jsonb(u) ->> 'username' AS username,
+              to_jsonb(u) ->> 'pricing' AS pricing,
               a.name AS approved_by_name,
-              s.name AS stylist_name
+              s.name AS stylist_name, s.slug AS stylist_slug, s.title AS stylist_title
          FROM staff_users u
          LEFT JOIN staff_users a ON a.id = u.approved_by
          LEFT JOIN stylists s ON s.staff_user_id = u.id
@@ -46,7 +52,12 @@ export default handler({
         role: r.role,
         status: r.status,
         note: r.note,
+        avatar: r.avatar,
+        username: r.username || '',
+        pricing: r.pricing || '',
         stylist: r.stylist_name,
+        stylistSlug: r.stylist_slug,
+        title: r.stylist_title || '',
         requestedAt: r.requested_at,
         approvedAt: r.approved_at,
         approvedBy: r.approved_by_name,
@@ -84,6 +95,11 @@ export default handler({
       );
       if (exists[0]) throw new HttpError(409, 'Someone already has that email address.');
 
+      const username = usernameFrom(body.username ?? null);
+      await assertUsernameFree(tenant.id, username, null);
+      const avatar = avatarFrom(body.avatar) ?? null;
+      const pricing = String(body.pricing || '').trim().slice(0, 120);
+
       const { rows } = await query(
         `INSERT INTO staff_users (tenant_id, email, password_hash, name, role,
                                   status, approved_at, approved_by)
@@ -91,6 +107,14 @@ export default handler({
          RETURNING id, name, email, role`,
         [tenant.id, email, await hashPassword(password), name, role, user.id],
       );
+      // The profile extras go in a second statement so adding a person still
+      // works on a database that has not had migration 011; only the extras
+      // need it.
+      if (avatar) await query('UPDATE staff_users SET avatar = $2 WHERE id = $1', [rows[0].id, avatar]);
+      if (username || pricing) {
+        await query('UPDATE staff_users SET username = $2, pricing = $3 WHERE id = $1',
+          [rows[0].id, username, pricing]);
+      }
       return json(res, 201, { ok: true, member: rows[0] });
     }
 
@@ -153,6 +177,47 @@ export default handler({
           throw new HttpError(403, 'Only an owner can make someone else an owner.');
         }
         await query('UPDATE staff_users SET role = $2 WHERE id = $1', [target.id, role]);
+        break;
+      }
+
+      // The team modal: name, email, username, pricing and picture together.
+      // Each is changed only when sent, so a field nobody touched is left as
+      // it was.
+      case 'update': {
+        if (target.role === 'owner' && user.role !== 'owner') {
+          throw new HttpError(403, 'Only an owner can change another owner.');
+        }
+        const sets = [];
+        const params = [target.id];
+        const add = (col, value) => { params.push(value); sets.push(`${col} = $${params.length}`); };
+        if (body.name !== undefined) add('name', requireString(body.name, 'Name', { max: 120 }));
+        if (body.email !== undefined) {
+          const email = requireEmail(body.email);
+          const { rows: clash } = await query(
+            `SELECT 1 FROM staff_users
+              WHERE tenant_id = $1 AND lower(email) = $2 AND id <> $3`,
+            [tenant.id, email, target.id],
+          );
+          if (clash[0]) throw new HttpError(409, 'Somebody here already signs in with that email.');
+          add('email', email);
+        }
+        if (body.username !== undefined) {
+          const username = usernameFrom(body.username);
+          await assertUsernameFree(tenant.id, username, target.id);
+          add('username', username);
+        }
+        if (body.pricing !== undefined) add('pricing', String(body.pricing || '').trim().slice(0, 120));
+        const avatar = avatarFrom(body.avatar);
+        if (avatar !== undefined) add('avatar', avatar);
+        if (body.role !== undefined) {
+          if (!ROLES.includes(body.role)) throw new HttpError(400, 'That is not a role.');
+          if (body.role === 'owner' && user.role !== 'owner') {
+            throw new HttpError(403, 'Only an owner can make someone else an owner.');
+          }
+          add('role', body.role);
+        }
+        if (!sets.length) throw new HttpError(400, 'Nothing to change.');
+        await query(`UPDATE staff_users SET ${sets.join(', ')} WHERE id = $1`, params);
         break;
       }
 

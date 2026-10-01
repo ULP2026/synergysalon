@@ -87,7 +87,7 @@ half-typed address is not a worse email, it is not an email yet.
 **Every push to CENTRO sends the appointment as it stands now**, not the event
 the job describes: jobs run late and out of order after a failure, and an old
 "booked" must not undo a newer "cancelled". Check-in, done and no-show are
-mirrored as CENTRO's showed/noshow. Settings, CENTRO shows the link's health
+mirrored as CENTRO's showed/noshow. Settings, Integrations shows the link's health
 and anything CENTRO refused, with a retry; the cron re-queues refused jobs
 from the last 30 days whenever the link checks out, and logs why each failed.
 
@@ -95,18 +95,36 @@ from the last 30 days whenever the link checks out, and logs why each failed.
 stylist only the times CENTRO's free-slots answer lists for their CENTRO user:
 the hours set for them on the calendar, what is already booked there, and the
 calendars they connected in CENTRO (`api/_lib/centro-hours.js`). A stylist not
-linked to a CENTRO user (Settings, CENTRO) is offered nothing online, and a
+linked to a CENTRO user (Settings, Integrations) is offered nothing online, and a
 CENTRO error offers nothing rather than guess. Staff booking in the console
 still uses `stylist_hours`, on purpose. The seeded `stylist_hours` gave every
 stylist the salon's opening times, which is how 9 AM got sold with stylists
 who start later.
 
-**Testing while online booking is paused.** Settings, CENTRO, "Open booking
+**Testing while online booking is paused.** Settings, Integrations, "Open booking
 test" mints a signed 12-hour pass (`api/_lib/preview.js`) and opens the public
 site with `?booking-preview=`. The notice script keeps it for that tab, shows
 the real popup with a "test mode" badge, and adds `x-booking-preview` to its
 `/api/` calls, which the server accepts in place of `ONLINE_BOOKING`. Bookings
 made that way are real: name them ZZ and remove them.
+
+## Staff console
+
+- Nav: Home (`/staff`), Appointments, Clients (`/staff/clients`), Marketing,
+  Settings. `/staff/dashboard` and `/staff/contacts` still land on Home and
+  Clients. The UI says "CRM" and "Integrations"; the API keeps its `centro`
+  names, which nobody sees.
+- Appointments opens on the day: one column per stylist, the clock down the
+  side. LUNCH and BLOCK are rows in `time_off`, the table availability already
+  subtracts, so a block on the grid really stops the time being sold.
+  `?demo` on the address shows a sample day that saves nothing.
+- Settings, Salon Profile is the tenant's details. Its logo is the nav's mark,
+  painted from `me.salon.logo`, so saving updates the menu at once.
+- Team: each member's username, pricing (free text an owner types, never a
+  computed price) and photo, from migration 011. Reads use `to_jsonb` so the
+  console still loads before that migration runs; saving those fields needs it.
+- Appearance is per browser (`localStorage` `ss-theme`), applied in the head
+  before first paint.
 
 ## Gotchas worth knowing before you hit them
 

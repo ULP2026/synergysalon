@@ -12,6 +12,16 @@
      site. The dark brand indigo is what the phone's address bar and the
      installed-app splash take, so both read as Synergy. -->
 <meta name="theme-color" content="#1e1f5c">
+<!-- Settings, Appearance: applied before the first paint, so a dark-mode
+     desk never sees a white flash on every reload. -->
+<script>
+  (function () {
+    var pick = 'light';
+    try { pick = localStorage.getItem('ss-theme') || 'light'; } catch (e) {}
+    var dark = pick === 'dark' || (pick === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  })();
+</script>
 <style>
   /* The same sans the public site loads, from the same file. The condensed
      display face stays on the marketing site: in a tool it fights the UI. */
@@ -354,7 +364,7 @@
   .search .ic { position: absolute; left: 12px; top: 11px; color: var(--faint); pointer-events: none; }
   .search input { padding-left: 40px; }
 
-  /* Dashboard */
+  /* Home */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
   .tile { background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--e1);
           transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease), border-color var(--t) var(--ease); }
@@ -482,7 +492,7 @@
             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cal-ev:hover { background:var(--indigo-deep); }
   .cal-ev b { font-weight:650; }
-  /* Not yet mirrored to CENTRO: shown, but visibly provisional. */
+  /* Not yet mirrored to the CRM: shown, but visibly provisional. */
   .cal-ev.pending { background:var(--peri-pale); color:var(--indigo-deep); }
   .cal-ev.pending:hover { background:var(--peri-soft); }
   .cal-ev.off { background:var(--raise); color:var(--muted); text-decoration:line-through; }
@@ -710,7 +720,7 @@
   @keyframes view-in { from { opacity: 0; transform: translateY(4px); } }
 
 
-  /* ── Settings, CENTRO: stylist links and the booking test ─────────── */
+  /* ── Settings, Integrations: stylist links and the booking test ───── */
   .cx-sec { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
   .cx-sec h3 { margin: 0 0 6px; font-size: 1rem; }
   .cx-sec > p { margin: 0 0 14px; max-width: 72ch; line-height: 1.55; }
@@ -944,13 +954,265 @@
     *, *::before, *::after { transition-duration: .01ms !important; }
     .btn:hover:not(:disabled), .btn:active:not(:disabled), a.tile:hover, .conn:hover,
     .grn-me:active, .iconbtn:active:not(:disabled), .crow:hover, .crow:active, .cal-ev:hover,
-    .upcoming button:hover .go,
+    .upcoming button:hover .go, .arch-card, .arch-card:hover, .mrow:hover, .dg-ev:hover,
     .cfilter button:active, .seg button:active, .tl-filters button:active, button.tag:active { transform: none; }
     .grn-ring::before, .seg button[aria-pressed="true"], .cfilter button[aria-pressed="true"],
     button.tag[aria-pressed="true"], .soon .chip { animation: none; }
     dialog[open], dialog.closing, .view:not(.hidden) > *, .setpane:not(.hidden), .pagehead .titles,
     .pop:not(.hidden), .toast:not(.hidden) { animation: fade .01ms; }
   }
+
+  /* ── nav logo: the salon's own logo once Salon Profile has one ───────── */
+  .grn-logo img { display: block; height: 24px; width: auto; max-width: 92px; object-fit: contain; }
+
+  /* ── Appointments, day: stylists across the top, the clock down the side ──
+     The view a salon's front desk already knows from paper: one column per
+     chair, so a gap in somebody's afternoon is visible as white space. */
+  :root { --dg-hour: 112px; --dg-axis: 64px; --dg-col: minmax(208px, 1fr); }
+  .dg-wrap { flex: 1; min-height: 0; overflow: auto; border-radius: 14px; border: 1px solid var(--line);
+             background: var(--card); position: relative; }
+  .dg { display: grid; grid-template-columns: var(--dg-axis) repeat(var(--dg-n), var(--dg-col));
+        min-width: calc(var(--dg-axis) + var(--dg-n) * 208px); }
+  .dg-corner, .dg-head { position: sticky; top: 0; z-index: 4; background: var(--card);
+                         border-bottom: 1px solid var(--line); }
+  .dg-corner { left: 0; z-index: 5; }
+  .dg-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-left: 1px solid var(--line); min-width: 0; }
+  .dg-head .avatar { width: 40px; height: 40px; background: var(--dg-ink); box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--dg-edge); }
+  .dg-head b { display: block; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dg-head span.sub { display: block; font-size: var(--fs-xs); color: var(--muted); }
+  .dg-axis { position: sticky; left: 0; z-index: 3; background: var(--card); border-right: 1px solid var(--line); }
+  .dg-axis span { position: absolute; right: 10px; transform: translateY(-50%); font-size: var(--fs-xs);
+                  font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dg-axis span:first-child { transform: none; }
+  .dg-col { position: relative; border-left: 1px solid var(--line); cursor: copy;
+            background-image: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px calc(var(--dg-hour) / 2)),
+                              repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px var(--dg-hour)); }
+  .dg-col:hover { background-color: color-mix(in srgb, var(--peri-pale) 30%, transparent); }
+  .dg-col .ghost { position: absolute; left: 6px; right: 6px; height: calc(var(--dg-hour) / 4); border-radius: 8px;
+                   border: 1.5px dashed var(--periwinkle); background: color-mix(in srgb, var(--peri-pale) 70%, transparent);
+                   pointer-events: none; display: none; font-size: var(--fs-xs); color: var(--indigo); padding: 2px 8px; font-weight: 600; }
+  .dg-col:hover .ghost { display: block; }
+  .dg-now { position: absolute; left: 0; right: 0; height: 2px; background: var(--warn); z-index: 2; pointer-events: none; }
+  .dg-now::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--warn); display: none; }
+  .dg-axis + .dg-col .dg-now::before { display: block; }
+
+  /* Each column has its own soft colour; the cards in it share it. */
+  .dg-c0 { --dg-bg: #e3e6fa; --dg-ink: #3b4396; --dg-edge: #9aa3e0; }
+  .dg-c1 { --dg-bg: #efe4fb; --dg-ink: #6a3fa8; --dg-edge: #c2a5ec; }
+  .dg-c2 { --dg-bg: #dff0f7; --dg-ink: #1f6380; --dg-edge: #94cbe0; }
+  .dg-c3 { --dg-bg: #e2f2ea; --dg-ink: #2b6b4c; --dg-edge: #9fd0b6; }
+  .dg-c4 { --dg-bg: #fbe7ee; --dg-ink: #9b3558; --dg-edge: #eba7bd; }
+  .dg-c5 { --dg-bg: #fbeedd; --dg-ink: #8a5514; --dg-edge: #e8c18d; }
+
+  .dg-ev { position: absolute; left: 6px; right: 6px; z-index: 1; overflow: hidden; cursor: pointer; text-align: left;
+           display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch;
+           padding: 7px 10px 8px; border-radius: 10px; border: 0; border-left: 4px solid var(--dg-edge);
+           background: var(--dg-bg); color: var(--ink); font: inherit; font-size: var(--fs-xs); line-height: 1.35;
+           box-shadow: 0 1px 2px rgba(30, 31, 92, .08);
+           transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
+  .dg-ev:hover { z-index: 2; box-shadow: 0 10px 24px -12px rgba(30, 31, 92, .55); transform: translateY(-1px); }
+  .dg-ev:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .dg-ev .st { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+  .dg-ev > * { flex: none; min-width: 0; }
+  .dg-ev .st i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+                 background: var(--card); color: var(--dg-ink); box-shadow: 0 0 0 1px var(--dg-edge); }
+  .dg-ev .st i.ok { background: var(--ok); color: #fff; box-shadow: none; }
+  .dg-ev .st i.bad { background: var(--warn); color: #fff; box-shadow: none; }
+  .dg-ev .st .ic { width: 11px; height: 11px; stroke-width: 2.4; }
+  .dg-ev b { display: block; font-size: .86rem; color: var(--dg-ink); font-weight: 700; }
+  .dg-ev .ln { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+  .dg-ev .ln.m { color: var(--muted); }
+  .dg-ev .ln.p { font-weight: 650; color: var(--dg-ink); }
+  .dg-ev .tm { margin-left: auto; font-weight: 600; color: var(--dg-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dg-ev.short { flex-direction: row; align-items: center; gap: 6px; padding: 3px 8px; }
+  .dg-ev.short .st i, .dg-ev.short .ln { display: none; }
+  .dg-ev.short .st { order: 2; margin: 0 0 0 auto; }
+  .dg-ev.short b { display: inline; font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dg-ev.here { box-shadow: 0 0 0 2px var(--ok) inset, 0 1px 2px rgba(30, 31, 92, .08); }
+  .dg-ev.done, .dg-ev.noshow { opacity: .62; }
+
+  .dg-blk { position: absolute; left: 6px; right: 6px; z-index: 1; border-radius: 10px; border: 0; cursor: pointer;
+            display: grid; place-items: center; font: inherit; font-size: var(--fs-xs); font-weight: 750;
+            letter-spacing: .18em; text-transform: uppercase; }
+  .dg-blk.lunch { background: repeating-linear-gradient(135deg, #e7e7ec 0 8px, #dedee6 8px 16px); color: #5f6072; }
+  .dg-blk.block { background: #d6404d; color: #fff; box-shadow: 0 6px 16px -10px rgba(214, 64, 77, .9); }
+  .dg-blk small { display: block; font-size: .68rem; letter-spacing: 0; text-transform: none; font-weight: 500; opacity: .85; }
+  .dg-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 12px; font-size: var(--fs-xs); color: var(--muted); }
+  .dg-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dg-legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+  .dg-off { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; font-size: var(--fs-sm); color: var(--muted); }
+  .dg-demo { margin-bottom: 12px; }
+
+  /* Appointment detail: everything the card had to cut short. */
+  .ad-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .ad-head .avatar { width: 44px; height: 44px; }
+  .ad-head h2 { margin: 0 !important; }
+  .ad-dl { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px 12px; margin: 0 0 16px; font-size: var(--fs-sm); }
+  .ad-dl dt { color: var(--muted); }
+  .ad-dl dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .ad-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+  /* ── Team: an arch of portraits over a soft banner, then the list ─────── */
+  .team-top { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 16px; align-items: stretch; margin-bottom: 18px; }
+  .arch { position: relative; overflow: hidden; border-radius: 22px; padding: 44px 18px 18px; min-height: 210px;
+          background: linear-gradient(160deg, #e9ebfa 0%, #dfe2f6 55%, #f3effa 100%);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8); }
+  .arch::before { content: ""; position: absolute; left: -10%; right: -10%; bottom: -62%; height: 120%;
+                  border-radius: 50%; background: radial-gradient(closest-side, rgba(85, 96, 166, .22), transparent 70%); }
+  .arch-row { position: relative; display: flex; justify-content: center; align-items: flex-end; gap: 14px; }
+  .arch-card { flex: 0 1 112px; min-width: 76px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+               border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer;
+               transform: translateY(var(--lift, 0)); transition: transform .24s var(--spring); }
+  .arch-card:hover { transform: translateY(calc(var(--lift, 0px) - 4px)); }
+  .arch-frame { width: 100%; aspect-ratio: 3 / 4; border-radius: 999px 999px 22px 22px; overflow: hidden;
+                background: linear-gradient(160deg, #6b76c0, var(--indigo)); color: #fff; display: grid; place-items: center;
+                font-size: 1.6rem; font-weight: 650; box-shadow: 0 0 0 4px #fff, 0 18px 30px -16px rgba(30, 31, 92, .6); }
+  .arch-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .arch-card b { font-size: var(--fs-sm); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .arch-card .role-line { margin-top: -6px; min-height: 2.6em; font-size: var(--fs-xs); color: var(--muted); text-align: center; line-height: 1.3; }
+  .arch-empty { position: relative; text-align: center; color: var(--muted); padding: 40px 0; }
+  .add-side { display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 20px; border-radius: 22px;
+              border: 1.5px dashed var(--line-2); background: var(--raise); text-align: center; }
+  .add-side .bubble { margin: 0 auto 2px; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+                      background: var(--peri-pale); color: var(--periwinkle); }
+  .add-side p { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+  @media (max-width: 760px) {
+    .team-top { grid-template-columns: 1fr; }
+    .arch-row { gap: 8px; }
+    .arch-card:nth-child(n+6) { display: none; }
+  }
+
+  .mlist { display: grid; gap: 8px; }
+  .mrow { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px;
+          padding: 12px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--hair); cursor: pointer;
+          transition: box-shadow .22s var(--ease), transform .24s var(--spring), border-color var(--t) var(--ease); }
+  .mrow:hover { transform: translateY(-1px); box-shadow: var(--e2); border-color: color-mix(in srgb, var(--periwinkle) 30%, transparent); }
+  .mrow:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .mrow.off { opacity: .6; }
+  .mrow .avatar { width: 44px; height: 44px; }
+  .mrow .who { min-width: 0; }
+  .mrow .who .name { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .mrow .who .handle { font-weight: 500; color: var(--muted); font-size: var(--fs-sm); }
+  .mrow .who .em { font-size: var(--fs-sm); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mrow .badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .chip.role { color: var(--indigo); background: var(--peri-pale); border-color: transparent; font-weight: 600; }
+  @media (max-width: 620px) {
+    .mrow { grid-template-columns: 44px minmax(0, 1fr); }
+    .mrow .badges { grid-column: 2; justify-content: flex-start; }
+  }
+
+  /* The team modal: RocketOS's Dialog, in Synergy's colours. */
+  dialog.member { max-width: 560px; padding: 0; overflow: hidden; }
+  .md-head { display: flex; align-items: center; gap: 16px; padding: 22px 24px 18px;
+             background: linear-gradient(120deg, #dfe2f5 0%, var(--peri-pale) 50%, #f1f0fa 100%);
+             border-bottom: 1px solid rgba(85, 96, 166, .16); }
+  .md-pic { position: relative; flex: none; width: 84px; height: 84px; border-radius: 50%; overflow: hidden; cursor: pointer;
+            border: 0; padding: 0; background: linear-gradient(135deg, #6b76c0, var(--indigo)); color: #fff;
+            font: inherit; font-size: 1.6rem; font-weight: 650; display: grid; place-items: center;
+            box-shadow: 0 0 0 4px #fff, 0 12px 26px -12px rgba(30, 31, 92, .6); }
+  .md-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .md-pic .cam { position: absolute; inset: auto 0 0 0; height: 30px; display: grid; place-items: center;
+                 background: rgba(20, 21, 58, .55); color: #fff; opacity: 0; transition: opacity var(--t) var(--ease); }
+  .md-pic:hover .cam, .md-pic:focus-visible .cam { opacity: 1; }
+  .md-pic .cam .ic { width: 16px; height: 16px; }
+  .md-head h2 { margin: 0 0 4px !important; }
+  .md-head .links { display: flex; gap: 12px; font-size: var(--fs-sm); }
+  .md-head .links button { border: 0; background: none; padding: 0; font: inherit; color: var(--link); cursor: pointer; font-weight: 600; }
+  .md-head .links button.rm { color: var(--muted); font-weight: 500; }
+  .md-body { padding: 20px 24px 6px; max-height: calc(100dvh - 260px); overflow-y: auto; }
+  .md-body .at { position: relative; }
+  .md-body .at::before { content: "@"; position: absolute; left: 12px; top: 10px; color: var(--faint); }
+  .md-body .at input { padding-left: 28px; }
+  .md-foot { display: flex; align-items: center; gap: 10px; padding: 14px 24px 20px; border-top: 1px solid var(--line); }
+  .md-foot .spacer { flex: 1; }
+  .btn.danger { background: transparent; color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); box-shadow: none; }
+  .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--warn) 10%, transparent); color: var(--warn); box-shadow: none; }
+  .md-sec { margin: 6px 0 14px; padding-top: 14px; border-top: 1px solid var(--line); font-size: var(--fs-sm); font-weight: 650; color: var(--indigo-deep); }
+
+  /* ── Automation: the appointment confirmation, told as a story ────────── */
+  .flow-intro { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .flow-intro .bubble { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; flex: none;
+                        background: linear-gradient(135deg, #6b76c0, var(--indigo)); color: #fff; }
+  .flow-intro h2 { margin: 0 0 2px; }
+  .flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; counter-reset: step; }
+  .flow > li { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 10px; }
+  .flow > li::after { content: ""; position: absolute; top: 34px; left: calc(50% + 40px); right: calc(-50% + 40px); height: 2px;
+                      background: repeating-linear-gradient(90deg, var(--peri-soft) 0 8px, transparent 8px 14px); }
+  .flow > li:last-child::after { display: none; }
+  .flow .step-ic { width: 68px; height: 68px; border-radius: 22px; display: grid; place-items: center; margin-bottom: 14px;
+               background: var(--card); color: var(--periwinkle); font-size: 0;
+               box-shadow: 0 0 0 1px var(--hair), 0 14px 28px -16px rgba(30, 31, 92, .55); position: relative; }
+  .flow .step-ic .ic { width: 30px; height: 30px; stroke-width: 1.6; }
+  .flow .step-ic::before { counter-increment: step; content: counter(step); position: absolute; top: -8px; right: -8px;
+                       width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+                       background: var(--indigo); color: #fff; font-size: .75rem; font-weight: 700; box-shadow: 0 0 0 3px var(--card); }
+  .flow h3 { margin: 0 0 6px; font-size: 1rem; color: var(--indigo-deep); }
+  .flow p { margin: 0; font-size: var(--fs-sm); color: var(--muted); line-height: 1.5; max-width: 22ch; }
+  .flow .chip { margin-top: 10px; }
+  .flow-branch { display: flex; align-items: center; gap: 14px; margin-top: 26px; padding: 14px 18px; border-radius: 16px;
+                 background: var(--raise); border: 1px dashed var(--line-2); }
+  .flow-branch .ic { width: 22px; height: 22px; color: var(--periwinkle); flex: none; }
+  .flow-branch p { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+  .flow-branch b { color: var(--ink); }
+  .flow-foot { margin: 18px 0 0; font-size: var(--fs-xs); color: var(--faint); display: flex; align-items: center; gap: 6px; }
+  .flow-foot .ic { width: 14px; height: 14px; }
+  @media (max-width: 900px) {
+    .flow { grid-template-columns: 1fr; gap: 22px; }
+    .flow > li { flex-direction: row; text-align: left; align-items: flex-start; gap: 16px; padding: 0; }
+    .flow > li::after { left: 33px; right: auto; top: 76px; bottom: -18px; width: 2px; height: auto;
+                        background: repeating-linear-gradient(180deg, var(--peri-soft) 0 8px, transparent 8px 14px); }
+    .flow .step-ic { margin: 0; flex: none; }
+    .flow p { max-width: none; }
+  }
+
+  /* ── Settings, Appearance ─────────────────────────────────────────────── */
+  .themes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .theme { border: 1.5px solid var(--line); border-radius: 16px; background: var(--card); padding: 12px; cursor: pointer;
+           text-align: left; font: inherit; color: inherit; display: grid; gap: 10px;
+           transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
+  .theme:hover { border-color: var(--line-2); }
+  .theme[aria-pressed="true"] { border-color: var(--periwinkle); box-shadow: var(--halo); }
+  .theme .sw { height: 84px; border-radius: 10px; overflow: hidden; display: grid; grid-template-rows: 18px 1fr; }
+  .theme .sw i { display: block; }
+  .theme b { display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-sm); }
+  .theme b .ic { width: 16px; height: 16px; color: var(--periwinkle); opacity: 0; }
+  .theme[aria-pressed="true"] b .ic { opacity: 1; }
+
+  /* ── Dark mode ────────────────────────────────────────────────────────
+     The same navy and periwinkle, turned down: deep indigo surfaces, soft
+     periwinkle ink. Only tokens and the few surfaces drawn in plain white
+     change, so nothing moves between the two. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #12132e; --card: #1b1c3f; --raise: #24264f; --field: #161736;
+    --line: #2d2f5c; --line-2: #3b3e73; --hair: rgba(185, 192, 232, .10);
+    --ink: #eceefb; --muted: #a9afd6; --faint: #7a80ad; --link: #b9c0e8;
+    --accent-ink: #c4caf0; --peri-pale: #2b2e63; --peri-soft: #5560a6; --sk-hi: #2e3160;
+    --ring-ink: #c4caf0;
+    --glass: rgba(27, 28, 63, .78); --glass-card: rgba(27, 28, 63, .9); --glass-edge: rgba(85, 96, 166, .3);
+    --shadow: 0 12px 32px rgba(0, 0, 0, .45);
+  }
+  :root[data-theme="dark"] body { background: radial-gradient(900px 520px at 88% -10%, rgba(85, 96, 166, .22), transparent 62%),
+                                  linear-gradient(180deg, #14152f 0%, #0f1027 100%); }
+  :root[data-theme="dark"] .glass-strong { background: rgba(27, 28, 63, .82); border-color: rgba(85, 96, 166, .35); }
+  :root[data-theme="dark"] .grn-ring-fill { background: rgba(27, 28, 63, .92); }
+  :root[data-theme="dark"] .grn-item .count { box-shadow: 0 0 0 2px var(--card); }
+  :root[data-theme="dark"] .card, :root[data-theme="dark"] .tile { box-shadow: var(--e1), inset 0 1px 0 rgba(255, 255, 255, .04); }
+  :root[data-theme="dark"] .pop, :root[data-theme="dark"] .toast { background: rgba(27, 28, 63, .95); }
+  :root[data-theme="dark"] .btn.quiet, :root[data-theme="dark"] .seg { background: rgba(36, 38, 79, .8); }
+  :root[data-theme="dark"] .cal-cell.out { background: #17183a; }
+  :root[data-theme="dark"] .px-head, :root[data-theme="dark"] .md-head { background: linear-gradient(120deg, #23265a 0%, #1f2150 100%); border-color: var(--line); }
+  :root[data-theme="dark"] .px-left { background: #16173a; border-color: var(--line); }
+  :root[data-theme="dark"] .arch { background: linear-gradient(160deg, #23265a 0%, #1c1e4a 100%); }
+  :root[data-theme="dark"] .arch-frame, :root[data-theme="dark"] .md-pic { box-shadow: 0 0 0 4px var(--card), 0 18px 30px -16px rgba(0, 0, 0, .7); }
+  :root[data-theme="dark"] .cav, :root[data-theme="dark"] .px-head .avatar { box-shadow: 0 0 0 3px var(--card); }
+  :root[data-theme="dark"] .dg-ev { --dg-bg: color-mix(in srgb, var(--dg-edge) 26%, #1b1c3f); --dg-ink: color-mix(in srgb, var(--dg-edge) 70%, #fff); }
+  :root[data-theme="dark"] .dg-blk.lunch { background: repeating-linear-gradient(135deg, #2c2e52 0 8px, #272948 8px 16px); color: #b4b6cf; }
+  :root[data-theme="dark"] .s-new, :root[data-theme="dark"] .s-contacted, :root[data-theme="dark"] .s-booked, :root[data-theme="dark"] .s-lost { --s-bg: var(--raise); --s-ink: var(--ink); }
+  :root[data-theme="dark"] .tag { background: #2b2e63; color: #d4cdfa; }
+  :root[data-theme="dark"] .note:not(.bad):not(.good) { color: var(--ink); }
+  :root[data-theme="dark"] h1, :root[data-theme="dark"] dialog h2, :root[data-theme="dark"] .flow h3,
+  :root[data-theme="dark"] .md-sec, :root[data-theme="dark"] .grn-item:hover { color: var(--ink); }
 </style>
 </head>
 <body>
@@ -988,6 +1250,18 @@
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></symbol>
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"/><path d="M14 3.5V8h4"/></symbol>
   <symbol id="i-users-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5 1.7 0 3.2.6 4.4 1.6M18.5 13v6M15.5 16h6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-thumbs" viewBox="0 0 24 24"><path d="M7 10v11M7 10l4-7.5a2.2 2.2 0 0 1 3 2.2L13.3 9H19a2 2 0 0 1 2 2.3l-1.4 7.5A2.6 2.6 0 0 1 17 21H7M7 10H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8 2.5 8h-17S6 15 6 8.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></symbol>
+  <symbol id="i-user-check" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.8"/><path d="M2.5 20.5c.8-3.8 3.4-6 6.5-6s5.7 2.2 6.5 6M15.5 11.5l2 2 4-4"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.6-2.5h6.8L17 8h3a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9.5V20h16V9.5M3 9.5 4.5 4h15L21 9.5a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0Z"/><path d="M9.5 20v-5h5v5"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9ZM17 10.5h1.5a2.5 2.5 0 0 1 0 5H17M8 3.5v2M12 3.5v2"/></symbol>
   <!-- Lucide (ISC), the set RocketOS's nav draws from. -->
   <symbol id="l-layout-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
   <symbol id="l-calendar" viewBox="0 0 24 24"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></symbol>
@@ -1050,15 +1324,15 @@
   <header class="grn">
     <nav class="grn-pill glass-strong" id="grnPill" aria-label="Main">
       <span class="grn-ring" id="grnRing" aria-hidden="true"><span class="grn-ring-fill"></span></span>
-      <a class="grn-logo" href="/staff" data-page="dashboard" aria-label="Synergy Salon, go to Dashboard">
+      <a class="grn-logo" id="navLogo" href="/staff" data-page="home" aria-label="Synergy Salon, go to Home">
         <span class="grn-mark" aria-hidden="true"></span>
       </a>
-      <a class="grn-item" href="/staff" data-page="dashboard" title="Dashboard">
-        <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Dashboard</span></a>
+      <a class="grn-item" href="/staff" data-page="home" title="Home">
+        <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Home</span></a>
       <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Appointments">
         <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appointments</span></a>
-      <a class="grn-item" href="/staff/contacts" data-page="contacts" title="Contacts">
-        <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Contacts</span></a>
+      <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
+        <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Clients</span></a>
       <a class="grn-item" href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
         <svg class="grn-ic"><use href="#l-megaphone"/></svg><span class="lbl">Marketing</span></a>
       <a class="grn-item icon-only hidden" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
@@ -1073,7 +1347,7 @@
   <main class="main">
     <header class="pagehead">
       <div class="titles">
-        <h1 id="pageTitle">Dashboard</h1>
+        <h1 id="pageTitle">Home</h1>
         <p class="sub" id="pageSub"></p>
       </div>
       <button class="btn primary" id="primaryBtn">
@@ -1081,8 +1355,8 @@
       </button>
     </header>
 
-    <!-- Dashboard -->
-    <section class="view" id="view-dashboard">
+    <!-- Home -->
+    <section class="view" id="view-home">
       <div class="tiles" id="tiles"></div>
       <div id="syncNote" class="note hidden" style="margin:0"></div>
       <div class="card fill">
@@ -1099,37 +1373,31 @@
       <div class="card fill">
         <div class="toolbar">
           <button class="iconbtn lg" id="prevDay" aria-label="Previous"><svg class="ic"><use href="#i-left"/></svg></button>
-          <input type="date" id="dayPicker" class="hidden" aria-label="Day">
-          <strong id="monthLabel" style="font-size:var(--fs-md);min-width:11ch"></strong>
+          <input type="date" id="dayPicker" aria-label="Day">
+          <strong id="monthLabel" class="hidden" style="font-size:var(--fs-md);min-width:11ch"></strong>
           <button class="iconbtn lg" id="nextDay" aria-label="Next"><svg class="ic"><use href="#i-right"/></svg></button>
           <button class="btn quiet" id="todayBtn">Today</button>
           <div class="seg" id="viewSeg" role="group" aria-label="Calendar view">
-            <button type="button" data-view="month" aria-pressed="true">Month</button>
-            <button type="button" data-view="day" aria-pressed="false">Day</button>
+            <button type="button" data-view="day" aria-pressed="true">Day</button>
+            <button type="button" data-view="month" aria-pressed="false">Month</button>
           </div>
           <span class="summary" id="dayHeading"></span>
         </div>
-        <div id="calendar" style="flex:1;display:flex;flex-direction:column"></div>
-        <div id="diary" class="hidden" style="flex:1;display:flex;flex-direction:column"></div>
+        <div id="calendar" class="hidden" style="flex:1;display:flex;flex-direction:column"></div>
+        <div id="diary" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
       </div>
     </section>
 
-    <!-- Contacts -->
-    <section class="view hidden" id="view-contacts">
+    <!-- Clients -->
+    <section class="view hidden" id="view-clients">
       <div class="card fill">
         <div class="toolbar">
           <div class="search grow">
             <svg class="ic"><use href="#i-search"/></svg>
-            <input id="contactSearch" type="search" placeholder="Search name, email or phone" aria-label="Search contacts">
+            <input id="contactSearch" type="search" placeholder="Search name, email or phone" aria-label="Search clients">
           </div>
-          <div class="cfilter" id="contactStatus" role="group" aria-label="Show">
-            <button type="button" data-status="" aria-pressed="true">All</button>
-            <button type="button" data-status="new" aria-pressed="false"><i class="dot s-new"></i>New</button>
-            <button type="button" data-status="contacted" aria-pressed="false"><i class="dot s-contacted"></i>Contacted</button>
-            <button type="button" data-status="booked" aria-pressed="false"><i class="dot s-booked"></i>Booked</button>
-            <button type="button" data-status="won" aria-pressed="false"><i class="dot s-won"></i>Client</button>
-            <button type="button" data-status="lost" aria-pressed="false"><i class="dot s-lost"></i>Lost</button>
-          </div>
+          <!-- All, then one per stylist, built from the team in fillStylistFilter(). -->
+          <div class="cfilter" id="contactStylist" role="group" aria-label="Show clients of"></div>
         </div>
         <div class="ctags-bar" id="contactTags"></div>
         <div id="contacts" style="flex:1;display:flex;flex-direction:column"></div>
@@ -1150,40 +1418,38 @@
     <!-- Settings -->
     <section class="view hidden" id="view-settings">
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
-        <button type="button" data-set="profile" aria-pressed="true">My profile</button>
-        <button type="button" data-set="business" aria-pressed="false">Business profile</button>
+        <button type="button" data-set="profile" aria-pressed="true">Salon Profile</button>
+        <button type="button" data-set="appearance" aria-pressed="false">Appearance</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="calendars" aria-pressed="false">Calendars</button>
-        <button type="button" data-set="centro" aria-pressed="false">CENTRO</button>
+        <button type="button" data-set="integrations" aria-pressed="false">Integrations</button>
         <button type="button" data-set="billing" aria-pressed="false">Billing</button>
       </div>
 
-      <!-- My profile -->
+      <!-- Salon Profile -->
       <div class="card setpane" id="set-profile">
-        <div class="card-head" style="margin-bottom:4px"><h2>My profile</h2>
-          <button type="button" class="btn quiet sm" id="signOutBtn">Sign out</button></div>
+        <div class="card-head" style="margin-bottom:4px"><h2>Salon Profile</h2></div>
         <p class="small muted" style="margin:0 0 18px">
-          Your picture and details. Only you can change these.
-        </p>
-        <div id="profile"></div>
-      </div>
-
-      <!-- Business profile -->
-      <div class="card setpane hidden" id="set-business">
-        <div class="card-head" style="margin-bottom:4px"><h2>Business profile</h2></div>
-        <p class="small muted" style="margin:0 0 18px">
-          What customers see: the name on the booking page, the logo and how to reach you.
-          Owners and managers can change this.
+          What clients see: the salon&rsquo;s name, logo and how to reach you. The logo
+          is also the mark in the menu at the top of this app.
         </p>
         <div id="business"></div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="card setpane hidden" id="set-appearance">
+        <div class="card-head" style="margin-bottom:4px"><h2>Appearance</h2></div>
+        <p class="small muted" style="margin:0 0 18px">
+          Light or dark, for this browser. Everyone at the desk can pick their own.
+        </p>
+        <div class="themes" id="themes"></div>
       </div>
 
       <!-- Team -->
       <div class="card setpane hidden" id="set-team">
         <div class="card-head" style="margin-bottom:4px"><h2>Team</h2></div>
         <p class="small muted" style="margin:0 0 18px">
-          People waiting for approval are listed first. Approving lets them sign in;
-          declining removes the request so they can ask again.
+          Click anyone to open their details. People waiting for approval are listed first.
         </p>
         <div id="team" style="flex:1;display:flex;flex-direction:column"></div>
       </div>
@@ -1199,13 +1465,13 @@
         <div id="feeds"></div>
       </div>
 
-      <!-- CENTRO -->
-      <div class="card setpane hidden" id="set-centro">
-        <div class="card-head" style="margin-bottom:4px"><h2>CENTRO</h2></div>
+      <!-- Integrations: the CRM this app keeps up to date -->
+      <div class="card setpane hidden" id="set-integrations">
+        <div class="card-head" style="margin-bottom:4px"><h2>Integrations</h2></div>
         <p class="small muted" style="margin:0 0 18px">
           Every booking, cancellation and check-in made here is copied to the salon&rsquo;s
-          CENTRO calendar. This app is the diary; CENTRO follows it, so make changes here
-          rather than in CENTRO.
+          CRM calendar. This app is the diary and the CRM follows it, so make changes here
+          rather than in the CRM.
         </p>
         <div id="centro"></div>
       </div>
@@ -1251,26 +1517,92 @@
   </form>
 </dialog>
 
-<dialog id="memberDlg">
+<!-- The team modal: add someone, edit someone, or edit yourself. -->
+<dialog id="memberDlg" class="member" aria-labelledby="memberTitle">
   <form method="dialog" id="memberForm">
-    <h2>Add team member</h2>
-    <div id="memberNote" class="note bad hidden"></div>
-    <label><span>Name</span><input name="name" required></label>
-    <label><span>Email</span><input type="email" name="email" required></label>
-    <label><span>Role</span>
-      <select name="role">
-        <option value="front_desk">Front desk</option>
-        <option value="manager">Manager</option>
-        <option value="owner">Owner</option>
-      </select></label>
-    <label><span>Password</span>
-      <input type="text" name="password" minlength="10" required placeholder="At least 10 characters"></label>
-    <p class="small muted" style="margin:-6px 0 16px">
-      Shown as you type so you can pass it on to them.
-    </p>
+    <header class="md-head">
+      <button type="button" class="md-pic" id="memberPic" aria-label="Choose a team photo">
+        <span id="memberPicInner"></span><span class="cam"><svg class="ic"><use href="#i-camera"/></svg></span>
+      </button>
+      <div style="min-width:0">
+        <h2 id="memberTitle">Add team member</h2>
+        <div class="links">
+          <button type="button" id="memberPicPick">Upload photo</button>
+          <button type="button" class="rm hidden" id="memberPicDrop">Remove</button>
+        </div>
+      </div>
+      <input type="file" id="memberPicFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+    </header>
+    <div class="md-body">
+      <div id="memberNote" class="note bad hidden"></div>
+      <label><span>Name</span><input name="name" required autocomplete="off"></label>
+      <div class="two">
+        <label><span>Username</span><div class="at"><input name="username" placeholder="jessi.k" autocomplete="off"
+          pattern="@?[A-Za-z0-9._\-]{3,32}" title="3 to 32 letters, numbers, dots, dashes or underscores"></div></label>
+        <label><span>Role</span>
+          <select name="role">
+            <option value="front_desk">Front desk</option>
+            <option value="manager">Manager</option>
+            <option value="owner">Owner</option>
+          </select></label>
+      </div>
+      <label><span>Email</span><input type="email" name="email" required autocomplete="off"></label>
+      <label><span>Pricing</span><input name="pricing" maxlength="120"
+        placeholder="How this stylist&rsquo;s services are priced, e.g. Senior stylist pricing"></label>
+      <div id="memberCreate">
+        <label><span>Password</span>
+          <input type="text" name="password" minlength="10" placeholder="At least 10 characters" autocomplete="off"></label>
+        <p class="small muted" style="margin:-6px 0 16px">Shown as you type so you can pass it on to them.</p>
+      </div>
+      <div id="memberPw" class="hidden">
+        <div class="md-sec">Change your password</div>
+        <div class="two">
+          <label><span>Current password</span><input type="password" name="currentPassword" autocomplete="current-password"></label>
+          <label><span>New password</span><input type="password" name="newPassword" minlength="10" autocomplete="new-password" placeholder="At least 10 characters"></label>
+        </div>
+      </div>
+      <p class="small muted hidden" id="memberMeta" style="margin:0 0 14px"></p>
+    </div>
+    <footer class="md-foot">
+      <button type="button" class="btn danger hidden" id="memberDanger"></button>
+      <span class="spacer"></span>
+      <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
+      <button class="btn" value="save" id="memberSave">Add</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- One appointment, in full: what the day card had to cut short. -->
+<dialog id="apptDlg" aria-labelledby="adName">
+  <div class="ad-head">
+    <span class="avatar" id="adAvatar" aria-hidden="true"></span>
+    <div style="flex:1;min-width:0"><h2 id="adName"></h2><div class="chips" id="adChips" style="margin-top:4px"></div></div>
+    <button type="button" class="iconbtn lg" id="adClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <dl class="ad-dl" id="adBody"></dl>
+  <div class="ad-acts" id="adActs"></div>
+</dialog>
+
+<!-- Lunch or a block on one stylist's column. -->
+<dialog id="blockDlg">
+  <form method="dialog" id="blockForm">
+    <h2 id="blockTitle">Block time</h2>
+    <div id="blockNote" class="note bad hidden"></div>
+    <p class="small muted" id="blockWhen" style="margin:-8px 0 16px"></p>
+    <div class="two">
+      <label><span>Type</span>
+        <select name="kind"><option value="lunch">Lunch</option><option value="block">Block (not bookable)</option></select></label>
+      <label><span>How long</span>
+        <select name="minutes">
+          <option value="15">15 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option>
+          <option value="60" selected>1 hour</option><option value="90">1&frac12; hours</option><option value="120">2 hours</option>
+          <option value="180">3 hours</option><option value="240">4 hours</option><option value="480">All day (8 hours)</option>
+        </select></label>
+    </div>
+    <label id="blockReasonField"><span>Reason (optional)</span><input name="reason" maxlength="120" placeholder="Training, doctor, school run"></label>
     <div class="dlg-actions">
       <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
-      <button class="btn" value="save">Add</button>
+      <button class="btn" value="save">Save</button>
     </div>
   </form>
 </dialog>
@@ -1296,7 +1628,7 @@
 
 <dialog id="contactDlg">
   <form method="dialog" id="contactForm">
-    <h2 id="contactTitle">Add contact</h2>
+    <h2 id="contactTitle">Add client</h2>
     <div id="contactNote" class="note bad hidden"></div>
     <label><span>Name</span><input name="name" required></label>
     <div class="two">
@@ -1383,7 +1715,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-empty]');
   if (!b) return;
   if (b.dataset.empty === 'appointment') openBooking(null);
-  if (b.dataset.empty === 'contact') openContact(null);
+  if (b.dataset.empty === 'client') openContact(null);
   // 'person-book' is handled by the contact profile itself.
 });
 
@@ -1447,8 +1779,8 @@ $('loginForm').onsubmit = async (e) => {
       body: JSON.stringify({ email: f.get('email'), password: f.get('password') }),
     });
     e.target.reset();
-    // Signing in always starts on the Dashboard.
-    await start('dashboard');
+    // Signing in always starts on Home.
+    await start('home');
   } catch (err) {
     showLogin(err.message === 'signed out'
       ? 'That email and password do not match.' : err.message);
@@ -1483,6 +1815,24 @@ function paintMe() {
   $('meName').textContent = me.user.name.trim().split(/\s+/)[0] || me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
   $('meBtn').title = meSubtitle;
+  paintLogo();
+}
+
+/**
+ * The nav's mark: the salon's own logo once Salon Profile has one, the
+ * crescent until then. Painted from `me`, which saving the profile updates,
+ * so a new logo is in the menu the moment it is saved.
+ */
+function paintLogo() {
+  const a = $('navLogo');
+  const logo = me?.salon?.logo;
+  a.setAttribute('aria-label', `${me?.salon?.name || 'Synergy Salon'}, go to Home`);
+  a.innerHTML = logo
+    ? `<img src="${esc(logo)}" alt="">`
+    : '<span class="grn-mark" aria-hidden="true"></span>';
+  // The logo's width moves every item after it; measure again once it has one.
+  a.querySelector('img')?.addEventListener('load', () => moveRing(true), { once: true });
+  moveRing(true);
 }
 async function signOutNow() {
   await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' });
@@ -1493,9 +1843,9 @@ async function signOutNow() {
 // ─────────────────────────── routing ───────────────────────────
 
 const PAGES = {
-  dashboard: {
-    path: '/staff', title: 'Dashboard', action: 'New appointment',
-    run: () => openBooking(null), load: () => loadDashboard(),
+  home: {
+    path: '/staff', title: 'Home', action: 'New appointment',
+    run: () => openBooking(null), load: () => loadHome(),
   },
   appointments: {
     path: '/staff/appointments', title: 'Appointments', action: 'New appointment',
@@ -1505,19 +1855,23 @@ const PAGES = {
       ? loadMonth(calMonth || monthOf(day || salonToday()))
       : loadDay(day || salonToday())),
   },
-  contacts: {
-    path: '/staff/contacts', title: 'Contacts', action: 'Add contact',
+  clients: {
+    path: '/staff/clients', title: 'Clients', action: 'Add client',
     sub: 'Everyone who has booked or asked about a visit.',
-    run: () => openContact(null), load: () => loadContacts(),
+    run: () => openContact(null), load: () => { fillStylistFilter(); loadContacts(); },
   },
   settings: {
-    path: '/staff/settings', title: 'Settings', action: 'Add team member',
-    sub: 'Choose who can sign in and what they can do.',
-    run: () => openMember(), load: () => showSetting(setTab),
+    // No header action: Team carries its own "Add Team Member" beside the list.
+    path: '/staff/settings', title: 'Settings',
+    sub: 'Your salon, your team and how the app looks.',
+    load: () => showSetting(setTab),
+  },
+  automation: {
+    path: '/staff/marketing/automation', title: 'Marketing', group: 'marketing', view: 'marketing',
+    sub: 'What happens on its own after a client books.',
+    load: () => { markMarketingTab('automation'); renderConfirmationFlow(); },
   },
   // Marketing: placeholders until each is built, in the same shape as Billing.
-  automation: soonPage('automation', 'Automation', 'zap',
-    'Automation recipes will live here: reminders, follow-ups and win-back messages that run on their own. Nothing is running yet.'),
   promotions: soonPage('promotions', 'Promotions', 'tag',
     'Seasonal announcements and client offers will be planned here. Nothing has been sent to anyone.'),
   sms: soonPage('sms', 'SMS', 'message',
@@ -1533,9 +1887,7 @@ function soonPage(key, title, icon, copy) {
     path: `/staff/marketing/${key}`, title: 'Marketing', group: 'marketing', view: 'marketing',
     sub: 'Reminders, offers and messages to your clients. Coming soon.',
     load: () => {
-      for (const b of $('mktSeg').querySelectorAll('button')) {
-        b.setAttribute('aria-pressed', String(b.dataset.page === key));
-      }
+      markMarketingTab(key);
       $('mktCard').innerHTML = `
         <div class="card-head" style="margin-bottom:4px"><h2>${esc(title)}</h2></div>
         <div class="soon">
@@ -1545,16 +1897,62 @@ function soonPage(key, title, icon, copy) {
     },
   };
 }
-const VIEWS = ['dashboard', 'appointments', 'contacts', 'marketing', 'settings'];
+function markMarketingTab(key) {
+  for (const b of $('mktSeg').querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', String(b.dataset.page === key));
+  }
+}
+// ── Marketing, Automation: the appointment confirmation ───────────────────
+//
+// A picture of what already happens after a booking, for an owner to read
+// at a glance. View only: it describes the app's own behaviour and has no
+// settings, so there is nothing here to get wrong. Every step is something
+// the code does today; the email steps say plainly when sending is not set up.
+
+function renderConfirmationFlow() {
+  const emailOn = Boolean(me?.features?.email);
+  const hours = me?.features?.reminderHours || 36;
+  const lead = hours % 24 === 0 ? `${hours / 24} day${hours === 24 ? '' : 's'}` : `${hours} hours`;
+  const mailChip = emailOn
+    ? '<span class="chip ok">On</span>'
+    : '<span class="chip info" title="The booking is still made; the client is just not emailed.">Starts once email is set up</span>';
+  const steps = [
+    ['calendar-plus', 'A client books', 'Online, or at the front desk in this app.', '<span class="chip ok">On</span>'],
+    ['calendar', 'The time is held', 'It goes in the diary for their stylist, so nobody else can take it.', '<span class="chip ok">On</span>'],
+    ['mail', 'Confirmation email', 'Date, time, stylist and the salon’s address, with a link to change or cancel.', mailChip],
+    ['bell', 'A reminder before', `Sent about ${lead} ahead, so fewer chairs sit empty.`, mailChip],
+    ['user-check', 'They arrive', 'The front desk checks them in on Appointments.', '<span class="chip ok">On</span>'],
+  ];
+  $('mktCard').innerHTML = `
+    <div class="flow-intro">
+      <span class="bubble">${ic('zap')}</span>
+      <div><h2>Appointment Confirmation</h2>
+        <p class="small muted" style="margin:0">What happens on its own, from the moment someone books.</p></div>
+    </div>
+    <ol class="flow">${steps.map(([icon, title, text, chip]) => `
+      <li><span class="step-ic">${ic(icon)}</span>
+        <div><h3>${esc(title)}</h3><p>${esc(text)}</p>${chip}</div></li>`).join('')}
+    </ol>
+    <div class="flow-branch">${ic('swap')}
+      <p><b>If plans change.</b> The client can reschedule or cancel from the link in their email.
+        The time goes straight back on the books, and you see it on Appointments.</p></div>
+    <p class="flow-foot">${ic('eye')}View only. This shows what the app does; there is nothing to set up here.</p>`;
+}
+const VIEWS = ['home', 'appointments', 'clients', 'marketing', 'settings'];
+
+// The old names still land: bookmarks to /staff/dashboard and
+// /staff/contacts open Home and Clients rather than falling through.
+const PAGE_ALIASES = { dashboard: 'home', contacts: 'clients', marketing: 'automation' };
 
 function pageFromUrl() {
   const seg = location.pathname.replace(/\/+$/, '').split('/').pop();
-  if (seg === 'marketing') return 'automation';
-  return PAGES[seg] ? seg : 'dashboard';
+  const name = PAGE_ALIASES[seg] || seg;
+  return PAGES[name] ? name : 'home';
 }
 
 function go(name, { push = true } = {}) {
-  if (name === 'settings' && !me?.user?.canAdmin) name = 'dashboard';
+  name = PAGE_ALIASES[name] || name;
+  if (name === 'settings' && !me?.user?.canAdmin) name = 'home';
   const p = PAGES[name];
   page = name;
   if (push && location.pathname !== p.path) history.pushState({ page: name }, '', p.path);
@@ -1568,7 +1966,7 @@ function go(name, { push = true } = {}) {
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
 
   $('pageTitle').textContent = p.title;
-  $('pageSub').textContent = name === 'dashboard' ? greeting() : p.sub;
+  $('pageSub').textContent = name === 'home' ? greeting() : p.sub;
   // One primary action per view, and none where there is nothing to do yet.
   $('primaryBtn').classList.toggle('hidden', !p.action);
   if (p.action) $('primaryLbl').textContent = p.action;
@@ -1621,19 +2019,20 @@ function moveRing(instant = false) {
 // every item's width, so re-measure without animating.
 addEventListener('resize', () => moveRing(true));
 document.fonts?.ready.then(() => { if (me) moveRing(true); });
+// On a cold load the font can land after the first placement and after
+// `ready` resolved with nobody signed in yet; every finished font load
+// re-measures, so the ring never sits beside its label.
+document.fonts?.addEventListener?.('loadingdone', () => { if (me) moveRing(true); });
 
-// The chip is the person: in RocketOS it opens Settings, and here it opens
-// Settings on My profile. Front desk accounts have no Settings, so for them
-// it keeps the small menu with who they are and the way out.
+// The chip is the person. Their own details open in the same team modal
+// everyone else's do, so a stylist without Settings can still change their
+// username, photo and password.
 $('meBtn').onclick = () => {
-  if (me?.user?.canAdmin) { hideMenu(); setTab = 'profile'; go('settings'); return; }
-  showMenu($('meBtn'), [
-    { label: meSubtitle || 'Signed in', run: () => {} },
-    { label: 'Sign out', danger: true, run: signOutNow },
-  ]);
+  const items = [{ label: 'Your account', run: () => openMember('me') }];
+  if (me?.user?.canAdmin) items.push({ label: 'Settings', run: () => go('settings') });
+  items.push({ label: 'Sign out', danger: true, run: signOutNow });
+  showMenu($('meBtn'), items);
 };
-
-$('signOutBtn').onclick = () => signOutNow();
 
 $('mktSeg').onclick = (e) => {
   const b = e.target.closest('button[data-page]');
@@ -1674,7 +2073,7 @@ document.addEventListener('click', (e) => {
 window.addEventListener('scroll', hideMenu, true);
 window.addEventListener('resize', hideMenu);
 
-// ─────────────────────────── dashboard ───────────────────────────
+// ───────────────────────────── home ─────────────────────────────
 
 function greeting() {
   const tz = me?.salon?.timezone;
@@ -1694,10 +2093,10 @@ function tile(num, label, href) {
 }
 
 const UPCOMING = 6;
-let dashSeq = 0;
+let homeSeq = 0;
 
-async function loadDashboard() {
-  const seq = ++dashSeq;
+async function loadHome() {
+  const seq = ++homeSeq;
   const today = salonToday();
   $('tiles').innerHTML = [0, 1].map(() =>
     '<div class="tile"><span class="sk" style="height:32px;width:56px"></span><span class="sk" style="margin-top:10px;width:60%"></span></div>').join('');
@@ -1716,7 +2115,7 @@ async function loadDashboard() {
         [1, 2, 3, 4, 5, 6].map((n) => api(`/api/staff/diary?date=${addDays(today, n)}`)));
       later.forEach((r) => r.status === 'fulfilled' && days.push(r.value));
     }
-    if (seq !== dashSeq) return;
+    if (seq !== homeSeq) return;
 
     const pending = me.user.canAdmin ? (me.pendingApprovals || 0) : 0;
     $('tiles').innerHTML = [
@@ -1729,13 +2128,13 @@ async function loadDashboard() {
     const refused = live.filter((a) => a.syncFailed).length;
     const unsynced = live.filter((a) => !a.syncedToCentro).length;
     // "Nothing to do here" is only true while the bookings are on their way.
-    // One CENTRO refused will not arrive on its own, so say so and say where.
+    // One the CRM refused will not arrive on its own, so say so and say where.
     if (refused) {
       const who = refused === 1 ? '1 of today’s bookings' : `${refused} of today’s bookings`;
-      $('syncNote').innerHTML = `${ic('info')}<span>CENTRO refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. ${me.user.canAdmin ? '<a href="/staff/settings" data-centro>See why and retry</a>.' : 'Ask an owner or manager to check Settings, CENTRO.'}</span>`;
+      $('syncNote').innerHTML = `${ic('info')}<span>The CRM refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. ${me.user.canAdmin ? '<a href="/staff/settings" data-centro>See why and retry</a>.' : 'Ask an owner or manager to check Settings, Integrations.'}</span>`;
       $('syncNote').className = 'note bad';
     } else if (unsynced) {
-      $('syncNote').innerHTML = `${ic('info')}<span>${unsynced === 1 ? '1 of today’s bookings hasn’t' : `${unsynced} of today’s bookings haven’t`} reached CENTRO yet. They are sent across automatically; nothing to do here.</span>`;
+      $('syncNote').innerHTML = `${ic('info')}<span>${unsynced === 1 ? '1 of today’s bookings hasn’t' : `${unsynced} of today’s bookings haven’t`} synced yet. They are sent across automatically; nothing to do here.</span>`;
       $('syncNote').className = 'note';
     }
 
@@ -1756,7 +2155,7 @@ async function loadDashboard() {
         <span class="go">${ic('right')}</span>
       </button></li>`).join('')}</ul>`;
   } catch (err) {
-    if (seq !== dashSeq || err.message === 'signed out') return;
+    if (seq !== homeSeq || err.message === 'signed out') return;
     $('tiles').innerHTML = '';
     $('upcoming').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load today', text: err.message });
   }
@@ -1779,64 +2178,196 @@ function statusChips(a) {
   if (a.checkedInAt && a.status === 'booked') out.push('<span class="chip ok">Here</span>');
   if (a.channel === 'staff') out.push('<span class="chip">Booked by staff</span>');
   // Surfaced, calmly: the team should learn the CRM is behind from here,
-  // not from an empty CENTRO later. It is information, not an alarm.
+  // not from an empty CRM later. It is information, not an alarm.
   if (a.status !== 'cancelled' && a.syncFailed) {
-    out.push(`<span class="chip warn" title="CENTRO refused this booking. Settings, CENTRO shows why and can retry.">CENTRO sync failed</span>`);
+    out.push('<span class="chip warn" title="The CRM refused this booking. Settings, Integrations shows why and can retry.">Sync failed</span>');
   } else if (a.status !== 'cancelled' && !a.syncedToCentro) {
-    out.push(`<span class="chip info" title="This booking will be sent to CENTRO automatically.">Not in CENTRO yet</span>`);
+    out.push('<span class="chip info" title="This booking will be synced automatically.">Not synced yet</span>');
   }
   return out.join(' ') || '<span class="chip">Booked</span>';
 }
 
-function actionsFor(a) {
-  const more = `<button class="iconbtn" data-more="${esc(a.ref)}" aria-label="More for ${esc(a.guestName)}" aria-haspopup="menu" aria-expanded="false">${ic('more')}</button>`;
-  if (a.status === 'cancelled') {
-    return `<button class="btn quiet sm" data-act="reopen" data-ref="${esc(a.ref)}">Reopen</button>`;
-  }
-  if (a.status !== 'booked') return '';
-  return a.checkedInAt
-    ? `<button class="btn quiet sm" data-act="complete" data-ref="${esc(a.ref)}">Done</button>${more}`
-    : `<button class="btn sm" data-act="check_in" data-ref="${esc(a.ref)}">Check in</button>${more}`;
+let diaryData = null;
+
+// ── the day: stylists across the top, the clock down the side ──────────────
+//
+// A salon plans in chairs, not in a list: who is free at two is a glance
+// across one row. Opening hours run 9 to 6 most days; the grid widens itself
+// when something is booked outside them rather than hiding it.
+
+const DG_HOUR = 112;                 // pixels per hour; matches --dg-hour
+const DG_FROM = 9 * 60, DG_TO = 18 * 60;
+const DG_SHORT = 60;                 // below this a card shows its name only
+
+/** ?demo on the address shows a sample day, for walkthroughs. Nothing is saved. */
+const dgDemo = new URLSearchParams(location.search).has('demo');
+
+/** "Jessica Kline" → "Jessica K.", as a salon writes names on a column. */
+function shortName(name) {
+  const w = String(name || '').trim().split(/\s+/);
+  return w.length > 1 ? `${w[0]} ${w[w.length - 1][0]}.` : (w[0] || '');
 }
 
-let diaryData = null;
+/** Minutes past midnight on the salon's clock. */
+function salonMinutes(iso) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric', minute: 'numeric', hourCycle: 'h23',
+    ...(me?.salon?.timezone ? { timeZone: me.salon.timezone } : {}),
+  }).formatToParts(new Date(iso));
+  const get = (t) => Number(parts.find((p) => p.type === t)?.value || 0);
+  return get('hour') * 60 + get('minute');
+}
+function clock(mins) {
+  const h = Math.floor(mins / 60) % 24, m = mins % 60;
+  return `${((h + 11) % 12) + 1}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`;
+}
+const money = (n) => (n == null ? '' : `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: n % 1 ? 2 : 0 })}`);
+
+/** The columns: every active stylist, plus anyone inactive who still has a booking today. */
+function dayColumns(d) {
+  const cols = (me?.stylists || []).map((s) => ({ slug: s.slug, name: s.name, title: s.title, photo: s.photo }));
+  for (const a of d.appointments) {
+    if (a.stylistSlug && !cols.some((c) => c.slug === a.stylistSlug)) cols.push({ slug: a.stylistSlug, name: a.stylist, title: '' });
+  }
+  return cols;
+}
+
+/** Small round status marks for the top of a card, from what the row actually says. */
+function cardMarks(a) {
+  const m = [];
+  if (a.status === 'no_show') m.push(['bad', 'x', 'Didn’t show up']);
+  else if (a.status === 'completed') m.push(['ok', 'thumbs', 'Done']);
+  else if (a.checkedInAt) m.push(['ok', 'user-check', 'Checked in']);
+  else m.push(['', 'check', 'Confirmed']);
+  m.push(a.channel === 'staff' ? ['', 'user', `Booked by ${a.bookedBy || 'staff'}`] : ['', 'link', 'Booked online']);
+  if (a.notes) m.push(['', 'doc', 'Has notes']);
+  if (a.syncFailed) m.push(['bad', 'sync', 'Sync failed: see Settings, Integrations']);
+  return m.map(([cls, icon, title]) => `<i class="${cls}" title="${esc(title)}">${ic(icon)}</i>`).join('');
+}
+
+function shortDate(iso) { return iso ? fmtWhen(iso, { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
+
+function dayCard(a, top, height) {
+  const lines = [
+    `<span class="ln">${esc(a.service)}</span>`,
+    a.room ? `<span class="ln m">${esc(a.room)}</span>` : '',
+    a.guestPhone ? `<span class="ln m">${esc(a.guestPhone)}</span>` : '',
+    a.guestEmail ? `<span class="ln m">${esc(a.guestEmail)}</span>` : '',
+    a.price != null ? `<span class="ln p">${esc(money(a.price))}</span>` : '',
+    a.createdAt ? `<span class="ln m">Created ${esc(shortDate(a.createdAt))}</span>` : '',
+    a.nextStartsAt ? `<span class="ln m">Next appt ${esc(shortDate(a.nextStartsAt))}</span>` : '',
+    a.notes ? `<span class="ln m">${ic('doc').replace('class="ic"', 'class="ic" style="width:11px;height:11px;vertical-align:-1px"')} ${esc(a.notes)}</span>` : '',
+  ].join('');
+  const cls = [height < DG_SHORT ? 'short' : '', a.checkedInAt && a.status === 'booked' ? 'here' : '',
+    a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : ''].join(' ');
+  return `<button type="button" class="dg-ev ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
+      title="${esc(`${a.time} to ${a.endTime} · ${a.guestName} · ${a.service}`)}">
+    <div class="st">${cardMarks(a)}<span class="tm">${esc(a.time)}</span></div>
+    <b>${esc(a.guestName)}</b>${lines}
+  </button>`;
+}
 
 function renderDiary(d) {
   diaryData = d;
   $('dayHeading').textContent = `${d.heading} · ${d.booked} appointment${d.booked === 1 ? '' : 's'}`
     + (d.arriving ? ` · ${d.arriving} still to arrive` : '');
 
-  if (!d.appointments.length) {
-    $('diary').innerHTML = emptyState({
-      icon: 'calendar', title: 'A free day so far',
-      text: 'Nothing is booked for this day yet.',
-      action: 'appointment', actionLabel: 'New appointment',
-    });
+  const cols = dayColumns(d);
+  if (!cols.length) {
+    $('diary').innerHTML = emptyState({ icon: 'calendar', title: 'No stylists yet', text: 'Add stylists to see the day by chair.' });
     return;
   }
+  const live = d.appointments.filter((a) => a.status !== 'cancelled');
+  const cancelled = d.appointments.filter((a) => a.status === 'cancelled');
+  const blocks = d.blocks || [];
 
-  $('diary').innerHTML = `<div class="scroll">
-    <table class="stack">
-      <thead><tr><th>Time</th><th>Client</th><th>Stylist</th><th>Service</th><th>Status</th><th><span class="sr">Actions</span></th></tr></thead>
-      <tbody>${d.appointments.map((a) => `
-        <tr class="${a.status === 'cancelled' ? 'off' : ''}">
-          <td class="time">${esc(a.time)}<div class="small muted" style="font-weight:400">${esc(a.endTime)}</div></td>
-          <td style="min-width:200px">
-            <div class="name">${esc(a.guestName)}</div>
-            <div class="small muted email">${[a.guestPhone, a.guestEmail].filter(Boolean).map(mail).join(' · ')}</div>
-            ${a.notes ? `<div class="small" style="margin-top:4px">${esc(a.notes)}</div>` : ''}
-            <div class="small muted" style="margin-top:4px">Ref ${esc(a.ref)}</div>
-          </td>
-          <td data-label="Stylist">${esc(a.stylist)}</td>
-          <td data-label="Service">${esc(a.service)}</td>
-          <td><div class="chips" style="margin:0">${statusChips(a)}</div></td>
-          <td><div class="acts">${actionsFor(a)}</div></td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>`;
+  // Widen the grid to whatever is booked, a whole hour at a time.
+  const spans = [
+    ...live.map((a) => [salonMinutes(a.startsAt), salonMinutes(a.startsAt) + a.durationMin]),
+    ...blocks.map((b) => [salonMinutes(b.startsAt), salonMinutes(b.endsAt) || 24 * 60]),
+  ];
+  const from = Math.min(DG_FROM, ...spans.map(([x]) => Math.floor(x / 60) * 60));
+  const to = Math.max(DG_TO, ...spans.map(([, y]) => Math.ceil(y / 60) * 60));
+  const px = (mins) => ((mins - from) / 60) * DG_HOUR;
+  const height = px(to);
+
+  const hours = [];
+  for (let m = from; m < to; m += 60) hours.push(`<span style="top:${px(m)}px">${clock(m)}</span>`);
+
+  const nowLine = d.date === d.today ? (() => {
+    const n = salonMinutes(new Date().toISOString());
+    return n >= from && n <= to ? `<div class="dg-now" style="top:${px(n)}px" aria-hidden="true"></div>` : '';
+  })() : '';
+
+  const colHtml = cols.map((c, i) => {
+    const mine = live.filter((a) => a.stylistSlug === c.slug);
+    const off = blocks.filter((b) => !b.stylistSlug || b.stylistSlug === c.slug);
+    const cards = mine.map((a) => {
+      const s = salonMinutes(a.startsAt);
+      return dayCard(a, px(s) + 1, Math.max(22, (a.durationMin / 60) * DG_HOUR - 3));
+    }).join('');
+    const offs = off.map((b) => {
+      const s = Math.max(from, salonMinutes(b.startsAt));
+      const e = Math.min(to, salonMinutes(b.endsAt) || 24 * 60);
+      const label = b.kind === 'lunch' ? 'Lunch' : 'Block';
+      const sub = b.kind === 'block' && b.reason && !/^blocked$/i.test(b.reason) ? `<small>${esc(b.reason)}</small>` : '';
+      return `<button type="button" class="dg-blk ${b.kind}" data-more="blk-${esc(b.id)}" data-blk="${esc(b.id)}"
+        style="top:${px(s) + 1}px;height:${Math.max(20, px(e) - px(s) - 3)}px"
+        title="${esc(`${label} · ${clock(s)} to ${clock(e)}${b.reason ? ` · ${b.reason}` : ''}`)}"><span>${label}${sub}</span></button>`;
+    }).join('');
+    return `<div class="dg-col dg-c${i % 6}" data-col="${esc(c.slug)}" style="height:${height}px">
+      <span class="ghost" aria-hidden="true"></span>${offs}${cards}${nowLine}</div>`;
+  }).join('');
+
+  const heads = cols.map((c, i) => `<div class="dg-head dg-c${i % 6}">
+      <span class="avatar">${c.photo ? `<img src="${esc(c.photo)}" alt="">` : esc(initialsOf(c.name))}</span>
+      <div style="min-width:0"><b title="${esc(c.name)}">${esc(shortName(c.name))}</b>
+        <span class="sub">${live.filter((a) => a.stylistSlug === c.slug).length} booked</span></div>
+    </div>`).join('');
+
+  $('diary').innerHTML = `
+    ${dgDemo ? `<div class="note dg-demo">${ic('info')}<span>Sample day for a walkthrough. Nothing here is real, and nothing you do here is saved.</span></div>` : ''}
+    <div class="dg-wrap" id="dgWrap">
+      <div class="dg" style="--dg-n:${cols.length};--dg-hour:${DG_HOUR}px">
+        <div class="dg-corner"></div>${heads}
+        <div class="dg-axis" style="height:${height}px;position:sticky">${hours.join('')}</div>${colHtml}
+      </div>
+    </div>
+    <div class="dg-legend">
+      <span><i style="background:repeating-linear-gradient(135deg,#e7e7ec 0 4px,#dedee6 4px 8px)"></i>Lunch</span>
+      <span><i style="background:#d6404d"></i>Block, not bookable</span>
+      <span>${ic('check')}Confirmed</span><span>${ic('user-check')}Checked in</span>
+      <span>${ic('thumbs')}Done</span><span>${ic('doc')}Notes</span>
+      <span style="margin-left:auto">Click an empty time to book it, or to add lunch or a block.</span>
+    </div>
+    ${cancelled.length ? `<div class="dg-off">Cancelled today:
+      ${cancelled.map((a) => `<button type="button" class="chip warn" data-ref="${esc(a.ref)}" style="cursor:pointer">${esc(a.time)} ${esc(a.guestName)}</button>`).join('')}</div>` : ''}`;
+
+  // Land on the working day, not on midnight, when the grid starts early.
+  const wrap = $('dgWrap');
+  if (wrap && from < DG_FROM) wrap.scrollTop = px(DG_FROM) - 8;
+  dgRange = { from, to };
+}
+let dgRange = { from: DG_FROM, to: DG_TO };
+
+/** The quarter hour under the pointer, in minutes past midnight. */
+function slotAt(col, clientY) {
+  const y = clientY - col.getBoundingClientRect().top;
+  const mins = dgRange.from + Math.floor((y / DG_HOUR) * 4) * 15;
+  return Math.max(dgRange.from, Math.min(dgRange.to - 15, mins));
 }
 
+$('diary').addEventListener('mousemove', (e) => {
+  const col = e.target.closest('.dg-col');
+  if (!col || e.target !== col) return;
+  const g = col.querySelector('.ghost');
+  const m = slotAt(col, e.clientY);
+  g.style.top = `${((m - dgRange.from) / 60) * DG_HOUR}px`;
+  g.textContent = clock(m);
+});
+
 async function apptAction(ref, act, btn) {
+  if (dgDemo) { toast('This is the sample day, so nothing changes.'); return; }
   if (act === 'cancel' && !confirm('Cancel this appointment? The time goes back on the online booking page.')) return;
   // Deleting leaves nothing behind, in either system, so it asks plainly
   // rather than in the language of cancelling.
@@ -1844,13 +2375,13 @@ async function apptAction(ref, act, btn) {
     `Delete appointment ${ref} for good?
 
 `
-    + 'It is removed here and from CENTRO, and it will not appear anywhere '
+    + 'It is removed here and from the CRM, and it will not appear anywhere '
     + 'afterwards. To keep a record that it was called off, cancel it instead.'
   )) return;
   if (btn) btn.disabled = true;
   try {
     const r = await api('/api/staff/appointment', { method: 'POST', body: JSON.stringify({ ref, action: act }) });
-    if (r && r.deleted) toast(`Appointment ${ref} deleted${r.inCentro ? ' here and in CENTRO' : ''}.`);
+    if (r && r.deleted) toast(`Appointment ${ref} deleted${r.inCentro ? ' here and in the CRM' : ''}.`);
     await refreshDiary();
   } catch (err) {
     fail(err);
@@ -1864,25 +2395,167 @@ function refreshDiary() {
 }
 
 $('diary').onclick = (e) => {
-  const btn = e.target.closest('button[data-act]');
-  if (btn) { apptAction(btn.dataset.ref, btn.dataset.act, btn); return; }
-  const more = e.target.closest('button[data-more]');
-  if (!more) return;
-  const a = diaryData.appointments.find((x) => x.ref === more.dataset.more);
-  const items = a.checkedInAt
-    ? [{ label: 'Undo check-in', run: () => apptAction(a.ref, 'undo_check_in') }]
-    : [{ label: 'Mark as done', run: () => apptAction(a.ref, 'complete') }];
-  items.push({ label: 'Didn’t show up', run: () => apptAction(a.ref, 'no_show') });
-  if (a.status !== 'cancelled') {
-    items.push({ label: 'Cancel appointment', danger: true, run: () => apptAction(a.ref, 'cancel') });
+  const card = e.target.closest('button[data-ref]');
+  if (card) { openAppt(diaryData.appointments.find((x) => x.ref === card.dataset.ref)); return; }
+
+  const blk = e.target.closest('button[data-blk]');
+  if (blk) {
+    const b = diaryData.blocks.find((x) => String(x.id) === blk.dataset.blk);
+    showMenu(blk, [{ label: `Remove this ${b.kind === 'lunch' ? 'lunch' : 'block'}`, danger: true, run: () => removeBlock(b) }]);
+    return;
   }
-  // Same bar as deleting a contact: it removes history rather than recording
-  // it, so it is not something every member of the front desk should have.
-  if (me?.user?.role === 'owner' || me?.user?.role === 'manager') {
-    items.push({ label: 'Delete for good', danger: true, run: () => apptAction(a.ref, 'delete') });
-  }
-  showMenu(more, items);
+
+  const col = e.target.closest('.dg-col');
+  if (!col || e.target !== col) return;
+  const slug = col.dataset.col;
+  const mins = slotAt(col, e.clientY);
+  const who = (me.stylists.find((s) => s.slug === slug) || {}).name || '';
+  const anchor = col.querySelector('.ghost');
+  // After this click has finished bubbling, or the page's "click elsewhere
+  // closes the menu" handler would shut it straight away.
+  setTimeout(() => showMenu(anchor, [
+    { label: `New appointment at ${clock(mins)} with ${shortName(who)}`, run: () => openBooking(null, { stylist: slug, date: day, minutes: mins }) },
+    { label: 'Add lunch here', run: () => openBlock(slug, mins, 'lunch') },
+    { label: 'Block this time', run: () => openBlock(slug, mins, 'block') },
+  ]), 0);
 };
+
+// ── one appointment in full ───────────────────────────────────────────────
+let apptOpen = null;
+function openAppt(a) {
+  if (!a) return;
+  apptOpen = a;
+  $('adAvatar').textContent = initialsOf(a.guestName);
+  $('adName').textContent = a.guestName;
+  $('adChips').innerHTML = statusChips(a);
+  const dash = '<span class="muted">–</span>';
+  const row = (k, v) => `<dt>${esc(k)}</dt><dd>${v || dash}</dd>`;
+  $('adBody').innerHTML = [
+    row('When', esc(`${dayLabel(a.date || day)}, ${a.time} to ${a.endTime}`)),
+    row('Service', esc(a.service)),
+    row('Stylist', esc(a.stylist)),
+    a.room ? row('Room', esc(a.room)) : '',
+    row('Phone', a.guestPhone ? `<a href="tel:${esc(a.guestPhone)}">${esc(a.guestPhone)}</a>` : ''),
+    row('Email', a.guestEmail ? `<a href="mailto:${esc(a.guestEmail)}">${mail(a.guestEmail)}</a>` : ''),
+    row('Price', esc(money(a.price))),
+    row('Created on', esc(shortDate(a.createdAt))),
+    row('Next appt', esc(a.nextStartsAt ? fmtWhen(a.nextStartsAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')),
+    row('Booked', esc(a.channel === 'staff' ? `By ${a.bookedBy || 'staff'}` : 'Online')),
+    row('Notes', a.notes ? `<span style="white-space:pre-line">${esc(a.notes)}</span>` : ''),
+    row('Ref', esc(a.ref)),
+  ].join('');
+  const b = (act, label, cls = 'quiet') => `<button type="button" class="btn ${cls} sm" data-ad="${act}">${esc(label)}</button>`;
+  const acts = [];
+  if (a.contactId) acts.push(b('client', 'Open client'));
+  if (a.status === 'cancelled') acts.push(b('reopen', 'Reopen', ''));
+  if (a.status === 'booked') {
+    acts.push(b('no_show', 'Didn’t show up'));
+    acts.push(b('cancel', 'Cancel', 'danger'));
+    acts.push(a.checkedInAt ? b('undo_check_in', 'Undo check-in') : '');
+    acts.push(a.checkedInAt ? b('complete', 'Done', '') : b('check_in', 'Check in', ''));
+  }
+  if (me?.user?.role === 'owner' || me?.user?.role === 'manager') acts.unshift(b('delete', 'Delete for good', 'danger'));
+  $('adActs').innerHTML = acts.join('');
+  openDialog($('apptDlg'));
+}
+$('adClose').onclick = () => closeDialog($('apptDlg'));
+$('adActs').onclick = (e) => {
+  const btn = e.target.closest('button[data-ad]');
+  if (!btn || !apptOpen) return;
+  const a = apptOpen;
+  closeDialog($('apptDlg'));
+  if (btn.dataset.ad === 'client') { setTimeout(() => openPerson(a.contactId), 170); return; }
+  setTimeout(() => apptAction(a.ref, btn.dataset.ad), 170);
+};
+
+// ── lunch and blocks ──────────────────────────────────────────────────────
+let blockFor = null;
+function openBlock(slug, mins, kind) {
+  blockFor = { slug, mins };
+  const f = $('blockForm');
+  f.reset();
+  note($('blockNote'), '');
+  f.elements.kind.value = kind;
+  f.elements.minutes.value = kind === 'lunch' ? '60' : '60';
+  $('blockTitle').textContent = kind === 'lunch' ? 'Add lunch' : 'Block time';
+  const who = (me.stylists.find((s) => s.slug === slug) || {}).name || '';
+  $('blockWhen').textContent = `${who}, ${dayLabel(day)} from ${clock(mins)}. Nothing can be booked over it.`;
+  $('blockReasonField').classList.toggle('hidden', kind === 'lunch');
+  openDialog($('blockDlg'));
+}
+$('blockForm').elements.kind.onchange = (e) => {
+  $('blockReasonField').classList.toggle('hidden', e.target.value === 'lunch');
+  $('blockTitle').textContent = e.target.value === 'lunch' ? 'Add lunch' : 'Block time';
+};
+$('blockForm').onsubmit = async (e) => {
+  if (e.submitter?.value !== 'save') return;
+  e.preventDefault();
+  if (dgDemo) { closeDialog($('blockDlg')); toast('This is the sample day, so nothing changes.'); return; }
+  const f = new FormData(e.target);
+  const hh = String(Math.floor(blockFor.mins / 60)).padStart(2, '0');
+  const mm = String(blockFor.mins % 60).padStart(2, '0');
+  try {
+    await api('/api/staff/diary', {
+      method: 'POST',
+      body: JSON.stringify({
+        stylist: blockFor.slug, start: `${day}T${hh}:${mm}`, minutes: Number(f.get('minutes')),
+        kind: f.get('kind'), reason: f.get('reason'),
+      }),
+    });
+    closeDialog($('blockDlg'));
+    await loadDay(day);
+  } catch (err) { note($('blockNote'), err.message); }
+};
+async function removeBlock(b) {
+  if (dgDemo) { toast('This is the sample day, so nothing changes.'); return; }
+  try {
+    await api('/api/staff/diary', { method: 'DELETE', body: JSON.stringify({ id: b.id }) });
+    await loadDay(day);
+  } catch (err) { fail(err); }
+}
+
+/** The sample day: four chairs, real-looking bookings, one lunch and one block. */
+function demoDay(date) {
+  const stylists = me.stylists.length ? me.stylists : [
+    { slug: 'a', name: 'Jessi Kane' }, { slug: 'b', name: 'Derrik Hall' },
+    { slug: 'c', name: 'Skyler Lane' }, { slug: 'd', name: 'Ella James' }];
+  // A salon-clock time on this date, as an instant.
+  const at = (h, m = 0) => {
+    const guess = new Date(`${date}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00Z`);
+    const off = salonMinutes(guess.toISOString()) - (h * 60 + m);
+    return new Date(guess.getTime() - ((off + 720) % 1440 - 720) * 60000).toISOString();
+  };
+  const mk = (i, h, m, dur, guestName, service, extra = {}) => {
+    const s = stylists[i % stylists.length];
+    return {
+      ref: `DEMO${i}${h}${m}`, startsAt: at(h, m), date, durationMin: dur,
+      time: clock(h * 60 + m), endTime: clock(h * 60 + m + dur), status: 'booked', channel: 'staff',
+      service, stylist: s.name, stylistSlug: s.slug, guestName, bookedBy: me.user.name,
+      createdAt: new Date(Date.now() - 20 * 86400000).toISOString(), syncedToCentro: true, ...extra,
+    };
+  };
+  const appointments = [
+    mk(0, 9, 0, 180, 'Stacey Morgan', 'Balayage', { room: 'Room 2', guestPhone: '(813) 555-0142', guestEmail: 'stacey.m@example.com', notes: 'Stacey has very thick hair', checkedInAt: new Date().toISOString(), nextStartsAt: new Date(Date.now() + 42 * 86400000).toISOString() }),
+    mk(0, 13, 0, 60, 'Priya Shah', 'Haircut', { room: 'Room 1', guestPhone: '(813) 555-0188', guestEmail: 'priya@example.com' }),
+    mk(1, 9, 30, 30, 'Marcus Lee', 'AI Scalp Analysis', { room: 'Room 3', guestPhone: '(813) 555-0110', price: 40, channel: 'online', guestEmail: 'marcus.lee@example.com' }),
+    mk(1, 10, 15, 150, 'Hannah Ortiz', 'Highlights & Foils', { room: 'Room 1', guestPhone: '(813) 555-0177', guestEmail: 'hannah.o@example.com', status: 'completed' }),
+    mk(2, 10, 0, 120, 'Grace Kim', 'Keratin & Brazilian Blowout', { room: 'Room 4', guestPhone: '(813) 555-0163', guestEmail: 'grace.kim@example.com', notes: 'Prefers a quiet chair' }),
+    mk(2, 13, 0, 75, 'Olivia Brooks', 'Special Event & Updo', { room: 'Room 2', guestPhone: '(813) 555-0135', guestEmail: 'olivia.b@example.com', channel: 'online' }),
+    mk(3, 11, 0, 45, 'Daniel Cruz', 'Blowout & Styling', { room: 'Room 3', guestPhone: '(813) 555-0199', guestEmail: 'dan.cruz@example.com' }),
+    mk(3, 14, 0, 240, 'Ava Thompson', 'Corrective Color', { room: 'Room 4', guestPhone: '(813) 555-0121', guestEmail: 'ava.t@example.com', notes: 'Box dye at home, patch test done' }),
+  ];
+  const blocks = [
+    { id: 'demo-lunch', stylistSlug: stylists[1 % stylists.length].slug, startsAt: at(12, 45), endsAt: at(13, 45), kind: 'lunch', reason: 'Lunch' },
+    { id: 'demo-block', stylistSlug: stylists[2 % stylists.length].slug, startsAt: at(15, 0), endsAt: at(16, 30), kind: 'block', reason: 'Training' },
+    { id: 'demo-lunch-2', stylistSlug: stylists[0].slug, startsAt: at(12, 0), endsAt: at(13, 0), kind: 'lunch', reason: 'Lunch' },
+  ];
+  const today = salonToday();
+  return {
+    date, today, heading: new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
+    booked: appointments.length, arriving: appointments.filter((a) => !a.checkedInAt && a.status === 'booked').length,
+    appointments, blocks,
+  };
+}
 
 let daySeq = 0;
 async function loadDay(date) {
@@ -1892,7 +2565,7 @@ async function loadDay(date) {
   $('dayHeading').textContent = '';
   $('diary').innerHTML = skeleton(5);
   try {
-    const d = await api(`/api/staff/diary?date=${encodeURIComponent(date)}`);
+    const d = dgDemo ? demoDay(date) : await api(`/api/staff/diary?date=${encodeURIComponent(date)}`);
     if (seq === daySeq) renderDiary(d);
   } catch (err) {
     if (seq === daySeq && err.message !== 'signed out') {
@@ -1908,7 +2581,9 @@ async function loadDay(date) {
 // of a week from a list, which is what the owner is looking at when they ask
 // where the gaps are.
 
-let calView = 'month';
+// The day, by chair, is where the front desk works; the month is for seeing
+// the shape of the weeks ahead.
+let calView = 'day';
 let calMonth = '';          // YYYY-MM
 let monthData = null;
 
@@ -1960,7 +2635,7 @@ function renderMonth(d) {
     const cls = a.status === 'cancelled' ? 'off' : (a.syncedToCentro ? '' : 'pending');
     const title = `${a.time} · ${a.guestName} · ${a.service} with ${a.stylist}`
       + (a.status === 'cancelled' ? ' (cancelled)' : '')
-      + (a.syncedToCentro ? '' : ' · not in CENTRO yet');
+      + (a.syncedToCentro ? '' : ' · not synced yet');
     return `<button class="cal-ev ${cls}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
               title="${esc(title)}"><b>${esc(a.time.replace(':00', ''))}</b> ${esc(a.guestName)}</button>`;
   };
@@ -2033,11 +2708,25 @@ $('todayBtn').onclick = () => (calView === 'month'
   ? loadMonth(monthOf(salonToday())) : loadDay(salonToday()));
 $('dayPicker').onchange = (e) => e.target.value && loadDay(e.target.value);
 
-// ───────────────────────────── contacts ─────────────────────────────
+// ───────────────────────────── clients ─────────────────────────────
 
 let contactList = [];
-let contactStatus = '';
+let contactStylist = '';    // a stylist's slug, or '' for everyone
 let contactSource = '';
+
+/**
+ * All, then one button per stylist, from the team rather than a fixed list:
+ * a new stylist gets a filter the day they are added. The owner sorts first
+ * because the stylists arrive in the salon's own order.
+ */
+function fillStylistFilter() {
+  const box = $('contactStylist');
+  const list = me?.stylists || [];
+  if (contactStylist && !list.some((s) => s.slug === contactStylist)) contactStylist = '';
+  box.innerHTML = [`<button type="button" data-stylist="" aria-pressed="${!contactStylist}">All</button>`,
+    ...list.map((s) => `<button type="button" data-stylist="${esc(s.slug)}" aria-pressed="${s.slug === contactStylist}"
+      title="Clients who have seen ${esc(s.name)}">${esc(s.name.split(/\s+/)[0])}</button>`)].join('');
+}
 
 /** Where somebody got to, as the class that colours them. */
 const statusClass = (st) => `s-${STATUS_LABEL[st] ? st : 'new'}`;
@@ -2053,15 +2742,20 @@ function renderContacts(d, filtered) {
   const shown = contactSource ? d.contacts.filter((c) => (c.source || '').trim() === contactSource) : d.contacts;
   $('contactTags').innerHTML = (sources.length ? `${ic('tag')}${sources.map((src) =>
     `<button type="button" class="tag" data-source="${esc(src)}" aria-pressed="${src === contactSource}">${esc(src)}</button>`).join('')}` : '')
-    + (d.contacts.length ? `<span class="count">${shown.length} ${shown.length === 1 ? 'contact' : 'contacts'}</span>` : '');
+    + (d.contacts.length ? `<span class="count">${shown.length} ${shown.length === 1 ? 'client' : 'clients'}</span>` : '');
 
   if (!shown.length) {
     $('contacts').innerHTML = filtered
-      ? emptyState({ icon: 'search', title: 'No one matches', text: 'Try a different name, email or phone number.' })
+      ? emptyState({
+        icon: 'search', title: 'No one matches',
+        text: contactStylist && !$('contactSearch').value.trim()
+          ? 'Nobody has booked with this stylist yet.'
+          : 'Try a different name, email or phone number.',
+      })
       : emptyState({
-        icon: 'contacts', title: 'No contacts yet',
+        icon: 'contacts', title: 'No clients yet',
         text: 'People appear here when they book or when you add them.',
-        action: 'contact', actionLabel: 'Add contact',
+        action: 'client', actionLabel: 'Add client',
       });
     return;
   }
@@ -2088,7 +2782,6 @@ function renderContacts(d, filtered) {
         </div>
         <div class="ctags">
           ${c.source ? `<span class="tag">${ic('tag')}${esc(c.source)}</span>` : ''}
-          ${c.inCentro ? '' : '<span class="chip info" title="They will be sent to CENTRO automatically.">Not in CENTRO yet</span>'}
         </div>
         <div class="cvisits"><b>${c.visits}</b><span>${c.visits === 1 ? 'visit' : 'visits'}</span></div>
         ${next}
@@ -2100,11 +2793,11 @@ function renderContacts(d, filtered) {
   }).join('')}</div>`;
 }
 
-$('contactStatus').onclick = (e) => {
-  const b = e.target.closest('button[data-status]');
-  if (!b || b.dataset.status === contactStatus) return;
-  contactStatus = b.dataset.status;
-  for (const x of $('contactStatus').querySelectorAll('button')) {
+$('contactStylist').onclick = (e) => {
+  const b = e.target.closest('button[data-stylist]');
+  if (!b || b.dataset.stylist === contactStylist) return;
+  contactStylist = b.dataset.stylist;
+  for (const x of $('contactStylist').querySelectorAll('button')) {
     x.setAttribute('aria-pressed', String(x === b));
   }
   loadContacts();
@@ -2138,14 +2831,14 @@ $('contacts').onclick = (e) => {
   if (book) { openBooking(c); return; }
   const items = [{ label: 'Edit details', run: () => openContact(c) }];
   // The server refuses anyone else; hiding the option saves them the error.
-  if (me?.user?.canAdmin) items.push({ label: 'Delete contact', danger: true, run: () => deleteContact(c) });
+  if (me?.user?.canAdmin) items.push({ label: 'Delete client', danger: true, run: () => deleteContact(c) });
   showMenu(more, items);
 };
 
 async function deleteContact(c) {
   const warning = [
     `Delete ${c.name}?`,
-    'They are removed from this app and from CENTRO. This cannot be undone.',
+    'They are removed from this app and from the CRM. This cannot be undone.',
     c.nextVisit ? 'Their upcoming appointments are cancelled and the times go back on the booking page.' : '',
   ].filter(Boolean).join('\n\n');
   if (!confirm(warning)) return;
@@ -2205,7 +2898,7 @@ async function openPerson(id) {
   } catch (err) {
     if (err.message === 'signed out') return;
     $('pxLeft').innerHTML = '';
-    $('pxRight').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this contact', text: err.message });
+    $('pxRight').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this client', text: err.message });
   }
 }
 
@@ -2214,8 +2907,8 @@ function personChips(c) {
     `<span class="chip">${esc(STATUS_LABEL[c.status] || c.status)}</span>`,
     c.source ? `<span class="chip">${esc(c.source)}</span>` : '',
     c.inCentro
-      ? '<span class="chip ok">In CENTRO</span>'
-      : '<span class="chip info" title="They will be sent to CENTRO automatically.">Not in CENTRO yet</span>',
+      ? '<span class="chip ok">Synced</span>'
+      : '<span class="chip info" title="They will be synced automatically.">Not synced yet</span>',
   ].join(' ');
 }
 
@@ -2242,7 +2935,7 @@ function renderPerson() {
 
   $('pxLeft').innerHTML = `
     <section class="px-sec">
-      <h3>Contact</h3>
+      <h3>Contact details</h3>
       <dl class="px-dl">
         <dt>Phone</dt><dd>${c.phone ? `<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : dash}</dd>
         <dt>Email</dt><dd>${c.email ? `<a class="email" href="mailto:${esc(c.email)}">${esc(c.email).replace('@', '<wbr>@')}</a>` : dash}</dd>
@@ -2273,7 +2966,7 @@ function renderPerson() {
       <h3>Documents</h3>
       <p class="px-none">${ic('doc')}No documents yet.</p>
     </section>
-    ${me?.user?.canAdmin ? '<div class="px-danger"><button type="button" id="pxDelete">Delete contact</button></div>' : ''}`;
+    ${me?.user?.canAdmin ? '<div class="px-danger"><button type="button" id="pxDelete">Delete client</button></div>' : ''}`;
 
   renderTimeline();
 }
@@ -2382,14 +3075,14 @@ let contactSeq = 0;
 async function loadContacts() {
   const seq = ++contactSeq;
   const qv = $('contactSearch').value.trim();
-  const sv = contactStatus;
+  const sv = contactStylist;
   if (!contactList.length) $('contacts').innerHTML = skeleton(6);
   try {
-    const d = await api(`/api/staff/contacts?q=${encodeURIComponent(qv)}&status=${encodeURIComponent(sv)}`);
+    const d = await api(`/api/staff/contacts?q=${encodeURIComponent(qv)}&stylist=${encodeURIComponent(sv)}`);
     if (seq === contactSeq) renderContacts(d, Boolean(qv || sv || contactSource));
   } catch (err) {
     if (seq === contactSeq && err.message !== 'signed out') {
-      $('contacts').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load contacts', text: err.message });
+      $('contacts').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load clients', text: err.message });
     }
   }
 }
@@ -2405,9 +3098,9 @@ function openContact(contact) {
   f.reset();
   note($('contactNote'), '');
   editingContact = contact ? contact.id : null;
-  $('contactTitle').textContent = contact ? `Edit ${contact.name}` : 'Add contact';
+  $('contactTitle').textContent = contact ? `Edit ${contact.name}` : 'Add client';
   $('contactSave').textContent = contact ? 'Save' : 'Add';
-  // Status is only meaningful once somebody exists; a new contact starts new.
+  // Status is only meaningful once somebody exists; a new client starts new.
   $('contactStatusField').classList.toggle('hidden', !contact);
   if (contact) {
     for (const k of ['name', 'email', 'phone', 'source', 'notes', 'status']) {
@@ -2440,8 +3133,15 @@ $('contactForm').onsubmit = async (e) => {
 
 // ───────────────────────────── booking ─────────────────────────────
 
-function openBooking(contact) {
+/**
+ * preset, from a click on the day grid: { stylist, date, minutes }. The time
+ * is chosen for them when it is free, so booking from the grid is one click
+ * plus the client's name.
+ */
+let bookPreset = null;
+function openBooking(contact, preset = null) {
   bookingFor = contact?.id || null;
+  bookPreset = preset;
   note($('bookNote'), '');
   $('bookTitle').textContent = contact?.name ? `Book ${contact.name}` : 'New appointment';
   $('bookName').value = contact?.name || '';
@@ -2453,7 +3153,8 @@ function openBooking(contact) {
     `<option value="${esc(s.slug)}">${esc(s.name)} · ${s.durationMin} min${s.price != null ? ` · $${s.price}` : ''}</option>`).join('');
   $('bookStylist').innerHTML = '<option value="any">First available</option>'
     + me.stylists.map((s) => `<option value="${esc(s.slug)}">${esc(s.name)}</option>`).join('');
-  $('bookDate').value = (page === 'appointments' && day) || salonToday();
+  $('bookDate').value = preset?.date || (page === 'appointments' && day) || salonToday();
+  if (preset?.stylist) $('bookStylist').value = preset.stylist;
   openDialog($('bookDlg'));
   loadTimes();
 }
@@ -2468,12 +3169,18 @@ async function loadTimes() {
       date: $('bookDate').value,
     }));
     const slots = d.days[0]?.slots ?? [];
+    const want = bookPreset?.minutes;
     sel.innerHTML = slots.length
       ? slots.map((s) => `<option value="${s.start}">${new Date(s.start)
           .toLocaleTimeString('en-US', {
             hour: 'numeric', minute: '2-digit', timeZone: me.salon.timezone,
           })}</option>`).join('')
       : '<option value="">Nothing free that day</option>';
+    if (want != null && slots.length) {
+      const hit = slots.find((x) => salonMinutes(x.start) === want);
+      if (hit) sel.value = hit.start;
+      else note($('bookNote'), `${clock(want)} is not free for this service. Pick another time.`, 'bad');
+    }
   } catch (err) {
     sel.innerHTML = '<option value="">Could not load times</option>';
     if (err.message !== 'signed out') note($('bookNote'), err.message);
@@ -2517,150 +3224,6 @@ $('bookForm').onsubmit = async (e) => {
 
 let teamData = null;
 
-function openMember() {
-  $('memberForm').reset();
-  note($('memberNote'), '');
-  // Only an owner can make another owner; say so by not offering it.
-  $('memberForm').elements.role.querySelector('[value=owner]').disabled = me.user.role !== 'owner';
-  openDialog($('memberDlg'));
-}
-
-$('memberForm').onsubmit = async (e) => {
-  if (e.submitter?.value !== 'save') return;
-  e.preventDefault();
-  const f = new FormData(e.target);
-  try {
-    await api('/api/staff/team', {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'create', name: f.get('name'), email: f.get('email'),
-        role: f.get('role'), password: f.get('password'),
-      }),
-    });
-    closeDialog($('memberDlg'));
-    toast(`${f.get('name')} can sign in now.`);
-    await loadTeam();
-  } catch (err) {
-    note($('memberNote'), err.message);
-  }
-};
-
-function roleControl(m, d) {
-  const you = m.id === d.you.id;
-  const iAmOwner = d.you.role === 'owner';
-  // Every row someone may edit gets the same dropdown. The rest say why not.
-  if (you) {
-    return `<span class="locked" title="You can't change your own role">${ic('lock')}${esc(ROLE_LABEL[m.role] || m.role)}</span>`;
-  }
-  if (m.role === 'owner' && !iAmOwner) {
-    return `<span class="locked" title="Only an owner can change another owner">${ic('lock')}Owner</span>`;
-  }
-  const pick = m.status === 'pending' ? 'front_desk' : m.role;
-  return `<select class="role" data-role="${esc(m.id)}" ${m.status === 'pending' ? 'data-pending="1"' : ''} aria-label="Role for ${esc(m.name)}">
-    ${['front_desk', 'manager', 'owner'].map((r) =>
-      `<option value="${r}" ${pick === r ? 'selected' : ''} ${r === 'owner' && !iAmOwner ? 'disabled' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
-  </select>`;
-}
-
-function renderTeam(d) {
-  teamData = d;
-  $('team').innerHTML = `<div class="scroll">
-    <table class="mid stack">
-      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th><span class="sr">Actions</span></th></tr></thead>
-      <tbody>${d.members.map((m) => {
-        const you = m.id === d.you.id;
-        const pending = m.status === 'pending';
-        const lockedOwner = m.role === 'owner' && d.you.role !== 'owner';
-        const actions = you || lockedOwner ? ''
-          : pending
-            ? `<button class="btn sm" data-act="approve" data-id="${esc(m.id)}">Approve</button>
-               <button class="btn quiet sm" data-act="reject" data-id="${esc(m.id)}">Decline</button>`
-            : m.status === 'disabled'
-              ? `<button class="btn quiet sm" data-act="enable" data-id="${esc(m.id)}">Turn back on</button>`
-              : `<button class="btn quiet sm" data-act="disable" data-id="${esc(m.id)}">Turn off</button>`;
-        return `
-        <tr class="${m.status === 'disabled' ? 'off' : ''}">
-          <td style="min-width:160px">
-            <div class="name">${esc(m.name)}${you ? ' <span class="chip" style="margin-left:4px">You</span>' : ''}</div>
-            ${m.note ? `<div class="small muted">${esc(m.note)}</div>` : ''}
-          </td>
-          <td class="muted email" style="min-width:180px">${mail(m.email)}</td>
-          <td>${roleControl(m, d)}</td>
-          <td>${pending ? '<span class="chip info">Waiting for approval</span>'
-                        : m.status === 'disabled' ? '<span class="chip">Turned off</span>'
-                        : '<span class="chip ok">Active</span>'}</td>
-          <td><div class="acts">${actions}</div></td>
-        </tr>`;
-      }).join('')}
-      </tbody>
-    </table></div>`;
-
-  me.pendingApprovals = d.pending;
-  $('pendingBadge').textContent = d.pending;
-  $('pendingBadge').classList.toggle('hidden', !d.pending);
-}
-
-$('team').onclick = async (e) => {
-  const btn = e.target.closest('button[data-act]');
-  if (!btn) return;
-  const act = btn.dataset.act;
-  if (act === 'disable' && !confirm('Turn off this account? They are signed out straight away.')) return;
-  if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
-
-  // Approving uses the role picked in that row's dropdown.
-  const role = act === 'approve'
-    ? btn.closest('tr').querySelector('select[data-role]')?.value || 'front_desk'
-    : undefined;
-
-  btn.disabled = true;
-  try {
-    await api('/api/staff/team', {
-      method: 'POST', body: JSON.stringify({ id: btn.dataset.id, action: act, role }),
-    });
-    await loadTeam();
-  } catch (err) {
-    fail(err);
-    btn.disabled = false;
-  }
-};
-
-$('team').onchange = async (e) => {
-  const sel = e.target.closest('select[data-role]');
-  if (!sel || sel.dataset.pending) return;   // pending rows apply the role on Approve
-  try {
-    await api('/api/staff/team', {
-      method: 'POST',
-      body: JSON.stringify({ id: sel.dataset.role, action: 'role', role: sel.value }),
-    });
-    toast('Role updated.');
-  } catch (err) { fail(err); loadTeam(); }
-};
-
-// ─────────────────────── settings sections ───────────────────────
-
-let setTab = 'profile';
-
-function showSetting(name) {
-  // Everyone can see the business profile even though only the owner may edit
-  // it: a stylist should be able to check the address a customer was given.
-  setTab = name;
-  for (const b of $('setSeg').querySelectorAll('button')) {
-    b.setAttribute('aria-pressed', String(b.dataset.set === name));
-  }
-  for (const k of ['profile', 'business', 'team', 'calendars', 'centro', 'billing']) {
-    $('set-' + k).classList.toggle('hidden', k !== name);
-  }
-  if (name === 'profile') loadProfile();
-  if (name === 'business') loadBusiness();
-  if (name === 'team') loadTeam();
-  if (name === 'calendars') loadFeeds();
-  if (name === 'centro') loadCentro();
-}
-$('setSeg').onclick = (e) => {
-  const b = e.target.closest('button[data-set]');
-  if (b && b.dataset.set !== setTab) showSetting(b.dataset.set);
-};
-
 /**
  * Shrink a chosen picture in the browser before it is ever sent.
  *
@@ -2692,126 +3255,382 @@ function shrink(file, box, type = 'image/jpeg') {
   });
 }
 
-// ── my profile ──────────────────────────────────────────────────────────
-let profileData = null;
+// ── the team modal ────────────────────────────────────────────────────────
+//
+// One dialog for three jobs: adding somebody, an owner or manager editing
+// somebody, and anyone editing themselves from the chip in the corner. What
+// differs is which fields are open and which endpoint saves them; the
+// server checks the same rules again either way.
 
-function renderProfile(d) {
-  profileData = d;
-  const initials = (d.name || '').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
-  $('profile').innerHTML = `
-    <div class="prow">
-      <div class="pic">${d.avatar ? `<img src="${esc(d.avatar)}" alt="">` : esc(initials || '·')}</div>
-      <div>
-        <div class="acts" style="margin:0 0 6px">
-          <button class="btn quiet" id="pickPic" type="button">Upload picture</button>
-          ${d.avatar ? '<button class="btn quiet" id="dropPic" type="button">Remove</button>' : ''}
-        </div>
-        <div class="small muted">A square photo works best. It is resized before it is saved.</div>
-        <input type="file" id="picFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+let memberEdit = null;      // null: adding. 'me': yourself. Otherwise a team row.
+let memberPic;              // undefined: unchanged. null: remove. string: new picture.
+let memberOrig = {};        // what the modal opened with, so only real changes are sent
+
+function memberPicPaint(src, name) {
+  $('memberPicInner').innerHTML = src ? `<img src="${esc(src)}" alt="">` : esc(initialsOf(name || ''));
+  $('memberPicDrop').classList.toggle('hidden', !src);
+  $('memberPicPick').textContent = src ? 'Change photo' : 'Upload photo';
+}
+
+async function openMember(who) {
+  const f = $('memberForm');
+  f.reset();
+  note($('memberNote'), '');
+  memberPic = undefined;
+  let m = null;
+  if (who === 'me') {
+    memberEdit = 'me';
+    try {
+      const p = await api('/api/staff/profile');
+      m = { ...p, id: 'me', status: 'active' };
+    } catch (err) { fail(err); return; }
+  } else if (who) {
+    memberEdit = who;
+    m = who;
+  } else {
+    memberEdit = null;
+  }
+  const self = memberEdit === 'me' || (m && teamData && m.id === teamData.you.id);
+  const admin = me?.user?.canAdmin;
+  const owner = me?.user?.role === 'owner';
+  const lockedOwner = m && m.role === 'owner' && !owner && !self;
+
+  $('memberTitle').textContent = !m ? 'Add team member' : self ? 'Your account' : m.name;
+  for (const k of ['name', 'username', 'email', 'pricing', 'role']) f.elements[k].value = m ? (m[k] || '') : '';
+  memberOrig = { username: m?.username || '', pricing: m?.pricing || '' };
+  if (!m) f.elements.role.value = 'front_desk';
+  memberPicPaint(m?.avatar, m?.name);
+
+  // Who may change what. Your own role is never yours to change; an owner's
+  // details are only an owner's to change; pricing is set by the people who
+  // run the salon.
+  f.elements.role.disabled = Boolean(self || lockedOwner || !admin);
+  f.elements.role.querySelector('[value=owner]').disabled = !owner;
+  f.elements.pricing.disabled = !admin || lockedOwner;
+  for (const k of ['name', 'username', 'email']) f.elements[k].disabled = Boolean(lockedOwner);
+  $('memberPic').disabled = Boolean(lockedOwner);
+  $('memberPicPick').classList.toggle('hidden', Boolean(lockedOwner));
+
+  $('memberCreate').classList.toggle('hidden', Boolean(m));
+  f.elements.password.required = !m;
+  $('memberPw').classList.toggle('hidden', !self);
+  $('memberSave').textContent = m ? 'Save' : 'Add';
+  $('memberSave').classList.toggle('hidden', Boolean(lockedOwner));
+
+  const meta = m && m.status === 'pending' ? 'Waiting for approval. Approve from the team list.'
+    : lockedOwner ? 'Only an owner can change another owner.'
+    : m && m.stylist ? `On the diary as ${m.stylist}${m.title ? `, ${m.title}` : ''}.` : '';
+  $('memberMeta').textContent = meta;
+  $('memberMeta').classList.toggle('hidden', !meta);
+
+  // The destructive action fits who is open: yourself signs out, somebody
+  // else is turned off or back on, and a pending request is declined.
+  const danger = $('memberDanger');
+  danger.dataset.act = '';
+  if (self) { danger.textContent = 'Sign out'; danger.dataset.act = 'signout'; }
+  else if (m && !lockedOwner && admin) {
+    const act = m.status === 'pending' ? 'reject' : m.status === 'disabled' ? 'enable' : 'disable';
+    danger.textContent = { reject: 'Decline request', enable: 'Turn back on', disable: 'Turn off account' }[act];
+    danger.dataset.act = act;
+  }
+  danger.classList.toggle('hidden', !danger.dataset.act);
+  openDialog($('memberDlg'));
+}
+
+$('memberPic').onclick = () => $('memberPicFile').click();
+$('memberPicPick').onclick = () => $('memberPicFile').click();
+$('memberPicDrop').onclick = () => { memberPic = null; memberPicPaint(null, $('memberForm').elements.name.value); };
+$('memberPicFile').onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    memberPic = await shrink(file, 256);
+    memberPicPaint(memberPic, $('memberForm').elements.name.value);
+  } catch (err) { note($('memberNote'), err.message); }
+};
+$('memberForm').elements.name.oninput = (e) => {
+  if (!$('memberPicInner').querySelector('img')) memberPicPaint(null, e.target.value);
+};
+
+$('memberDanger').onclick = async () => {
+  const act = $('memberDanger').dataset.act;
+  if (act === 'signout') { closeDialog($('memberDlg')); signOutNow(); return; }
+  const m = memberEdit;
+  if (!m || m === 'me') return;
+  if (act === 'disable' && !confirm('Turn off this account? They are signed out straight away.')) return;
+  if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
+  try {
+    await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: m.id, action: act }) });
+    closeDialog($('memberDlg'));
+    await loadTeam();
+  } catch (err) { note($('memberNote'), err.message); }
+};
+
+$('memberForm').onsubmit = async (e) => {
+  if (e.submitter?.value !== 'save') return;
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const el = e.target.elements;
+  const fields = { name: f.get('name'), email: f.get('email') };
+  const username = String(f.get('username') || '').trim().replace(/^@/, '');
+  if (username !== memberOrig.username) fields.username = username || null;
+  if (!el.pricing.disabled && f.get('pricing') !== memberOrig.pricing) fields.pricing = f.get('pricing');
+  if (memberPic !== undefined) fields.avatar = memberPic;
+  $('memberSave').disabled = true;
+  try {
+    if (!memberEdit) {
+      await api('/api/staff/team', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'create', ...fields, role: f.get('role'), password: f.get('password') }),
+      });
+      toast(`${f.get('name')} can sign in now.`);
+    } else if (memberEdit === 'me' || memberEdit.id === teamData?.you.id) {
+      const patch = { ...fields };
+      if (f.get('newPassword')) {
+        patch.currentPassword = f.get('currentPassword');
+        patch.newPassword = f.get('newPassword');
+      }
+      const d = await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify(patch) });
+      // The chip in the corner is the same person; keep it honest without a reload.
+      me.user.name = d.name; me.user.avatar = d.avatar; paintMe();
+      toast(patch.newPassword ? 'Saved, and your password is changed.' : 'Saved.');
+    } else {
+      if (!el.role.disabled) fields.role = f.get('role');
+      await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: memberEdit.id, action: 'update', ...fields }) });
+      toast('Saved.');
+    }
+    closeDialog($('memberDlg'));
+    if (page === 'settings' && setTab === 'team') await loadTeam();
+    // A stylist's photo is also their column on the day view.
+    me = { ...me, ...(await api('/api/staff/me').catch(() => ({}))) };
+  } catch (err) {
+    note($('memberNote'), err.message);
+  } finally { $('memberSave').disabled = false; }
+};
+
+// ── Team ──────────────────────────────────────────────────────────────────
+
+function avatarHtml(m) {
+  return m.avatar ? `<img src="${esc(m.avatar)}" alt="">` : esc(initialsOf(m.name));
+}
+
+function renderTeam(d) {
+  teamData = d;
+  const active = d.members.filter((m) => m.status === 'active');
+  // The portraits sit on an arch: the middle of the row lifted, the ends
+  // lower, the way the salon's own team photo is arranged.
+  const shown = active.slice(0, 7);
+  const mid = (shown.length - 1) / 2;
+  const arch = shown.length ? shown.map((m, i) => {
+    const lift = -Math.round(28 * (1 - ((i - mid) / Math.max(mid, 1)) ** 2));
+    return `<button type="button" class="arch-card" data-member="${esc(m.id)}" style="--lift:${lift}px" title="Open ${esc(m.name)}">
+      <span class="arch-frame">${avatarHtml(m)}</span>
+      <b>${esc(shortName(m.name))}</b><span class="role-line">${esc(m.title || ROLE_LABEL[m.role] || '')}</span>
+    </button>`;
+  }).join('') : '';
+
+  $('team').innerHTML = `
+    <div class="team-top">
+      <div class="arch">${arch ? `<div class="arch-row">${arch}</div>` : '<div class="arch-empty">Your team will appear here.</div>'}</div>
+      <div class="add-side">
+        <span class="bubble">${ic('users-plus')}</span>
+        <p>${active.length} on the team${d.pending ? `, ${d.pending} waiting` : ''}</p>
+        <button type="button" class="btn" id="teamAdd">${ic('plus')}Add Team Member</button>
       </div>
     </div>
+    <div class="mlist">${d.members.map((m) => {
+      const you = m.id === d.you.id;
+      const pending = m.status === 'pending';
+      const lockedOwner = m.role === 'owner' && d.you.role !== 'owner';
+      return `<div class="mrow ${m.status === 'disabled' ? 'off' : ''}" data-member="${esc(m.id)}" tabindex="0" role="button" aria-label="Open ${esc(m.name)}">
+        <span class="avatar">${avatarHtml(m)}</span>
+        <div class="who">
+          <div class="name"><span class="name">${esc(m.name)}</span>${m.username ? `<span class="handle">@${esc(m.username)}</span>` : ''}${you ? '<span class="chip">You</span>' : ''}</div>
+          <div class="em">${esc(m.email)}${m.pricing ? ` · ${esc(m.pricing)}` : ''}${m.note ? ` · ${esc(m.note)}` : ''}</div>
+        </div>
+        <div class="badges">
+          ${pending && !lockedOwner ? `${roleControl(m, d)}
+            <button class="btn sm" data-act="approve" data-id="${esc(m.id)}">Approve</button>
+            <button class="btn quiet sm" data-act="reject" data-id="${esc(m.id)}">Decline</button>`
+            : `<span class="chip role">${esc(ROLE_LABEL[m.role] || m.role)}</span>`}
+          ${pending ? '<span class="chip info">Waiting for approval</span>'
+            : m.status === 'disabled' ? '<span class="chip">Turned off</span>'
+            : '<span class="chip ok">Active</span>'}
+        </div>
+      </div>`;
+    }).join('')}</div>`;
 
-    <form id="profileForm">
-      <div class="fields">
-        <label><span>Name</span><input name="name" value="${esc(d.name)}" autocomplete="name" required></label>
-        <label><span>Email</span><input name="email" type="email" value="${esc(d.email)}" autocomplete="email" required></label>
-        <label><span>Phone</span><input name="phone" type="tel" value="${esc(d.phone || '')}" autocomplete="tel"></label>
-      </div>
-      <button class="btn" type="submit">Save details</button>
-    </form>
-
-    <div class="subhead">Change password</div>
-    <form id="pwForm">
-      <div class="fields">
-        <label><span>Current password</span><input name="currentPassword" type="password" autocomplete="current-password" required></label>
-        <label><span>New password</span><input name="newPassword" type="password" autocomplete="new-password"
-          minlength="${d.minPasswordLength}" required placeholder="At least ${d.minPasswordLength} characters"></label>
-      </div>
-      <button class="btn quiet" type="submit">Change password</button>
-    </form>
-
-    <div class="readonly">
-      <div><span>Role</span>${esc(ROLE_LABEL[d.role] || d.role)}</div>
-      <div><span>Member since</span>${esc(new Date(d.since).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))}</div>
-    </div>`;
-
-  $('pickPic').onclick = () => $('picFile').click();
-  $('picFile').onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try { await saveProfile({ avatar: await shrink(file, 256) }); } catch (err) { fail(err); }
-  };
-  if ($('dropPic')) $('dropPic').onclick = () => saveProfile({ avatar: null }).catch(fail);
-
-  $('profileForm').onsubmit = (e) => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    saveProfile({ name: f.get('name'), email: f.get('email'), phone: f.get('phone') }).catch(fail);
-  };
-
-  $('pwForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    const btn = e.target.querySelector('button');
-    btn.disabled = true;
-    try {
-      await api('/api/staff/profile', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          currentPassword: f.get('currentPassword'), newPassword: f.get('newPassword'),
-        }),
-      });
-      e.target.reset();
-      toast('Password changed.');
-    } catch (err) { fail(err); }
-    btn.disabled = false;
-  };
+  me.pendingApprovals = d.pending;
+  $('pendingBadge').textContent = d.pending;
+  $('pendingBadge').classList.toggle('hidden', !d.pending);
 }
 
-async function saveProfile(patch) {
-  const d = await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify(patch) });
-  toast('Saved.');
-  // The chip in the corner is the same person; keep it honest without a reload.
-  if (me) { me.user.name = d.name; me.user.avatar = d.avatar; paintMe(); }
-  renderProfile(Object.assign({}, profileData, d));
+/** The role picker a pending request is approved with. */
+function roleControl(m, d) {
+  const iAmOwner = d.you.role === 'owner';
+  return `<select class="role" data-role="${esc(m.id)}" data-pending="1" aria-label="Role for ${esc(m.name)}">
+    ${['front_desk', 'manager', 'owner'].map((r) =>
+      `<option value="${r}" ${r === 'front_desk' ? 'selected' : ''} ${r === 'owner' && !iAmOwner ? 'disabled' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
+  </select>`;
 }
 
-async function loadProfile() {
-  $('profile').innerHTML = skeleton(4);
-  try { renderProfile(await api('/api/staff/profile')); } catch (err) {
-    if (err.message !== 'signed out') {
-      $('profile').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load your profile', text: err.message });
-    }
+function openMemberById(id) {
+  const m = teamData?.members.find((x) => String(x.id) === String(id));
+  if (m) openMember(m.id === teamData.you.id ? 'me' : m);
+}
+
+$('team').onclick = async (e) => {
+  if (e.target.closest('#teamAdd')) { openMember(null); return; }
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) {
+    if (e.target.closest('select')) return;
+    const row = e.target.closest('[data-member]');
+    if (row) openMemberById(row.dataset.member);
+    return;
   }
+  const act = btn.dataset.act;
+  if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
+  // Approving uses the role picked in that row's dropdown.
+  const role = act === 'approve'
+    ? btn.closest('.mrow').querySelector('select[data-role]')?.value || 'front_desk'
+    : undefined;
+  btn.disabled = true;
+  try {
+    await api('/api/staff/team', {
+      method: 'POST', body: JSON.stringify({ id: btn.dataset.id, action: act, role }),
+    });
+    await loadTeam();
+  } catch (err) {
+    fail(err);
+    btn.disabled = false;
+  }
+};
+// The rows are buttons in all but name, so the keyboard opens them too.
+$('team').addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('mrow')) {
+    e.preventDefault();
+    openMemberById(e.target.dataset.member);
+  }
+});
+
+// ─────────────────────── settings sections ───────────────────────
+
+let setTab = 'profile';
+const SET_TABS = ['profile', 'appearance', 'team', 'calendars', 'integrations', 'billing'];
+
+function showSetting(name) {
+  if (!SET_TABS.includes(name)) name = 'profile';
+  setTab = name;
+  for (const b of $('setSeg').querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', String(b.dataset.set === name));
+  }
+  for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
+  if (name === 'profile') loadBusiness();
+  if (name === 'appearance') renderThemes();
+  if (name === 'team') loadTeam();
+  if (name === 'calendars') loadFeeds();
+  if (name === 'integrations') loadCentro();
+}
+$('setSeg').onclick = (e) => {
+  const b = e.target.closest('button[data-set]');
+  if (b && b.dataset.set !== setTab) showSetting(b.dataset.set);
+};
+
+// ── Appearance ───────────────────────────────────────────────────────────
+//
+// Per browser, not per account: the desk computer and a stylist's phone can
+// differ, and it is a preference, not something the salon needs to agree on.
+
+const THEMES = [
+  ['light', 'Light', 'sun', ['#f0edee', '#ffffff', '#5560a6']],
+  ['dark', 'Dark', 'moon', ['#12132e', '#1b1c3f', '#b9c0e8']],
+  ['system', 'Match this device', 'monitor', ['linear-gradient(90deg,#f0edee 50%,#12132e 50%)', 'linear-gradient(90deg,#fff 50%,#1b1c3f 50%)', '#5560a6']],
+];
+function themePick() {
+  try { return localStorage.getItem('ss-theme') || 'light'; } catch { return 'light'; }
+}
+function applyTheme(pick) {
+  const dark = pick === 'dark' || (pick === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+}
+function renderThemes() {
+  const pick = themePick();
+  $('themes').innerHTML = THEMES.map(([key, label, icon, [bg, card, accent]]) => `
+    <button type="button" class="theme" data-theme-pick="${key}" aria-pressed="${pick === key}">
+      <span class="sw" style="background:${bg}"><i style="background:${accent}"></i>
+        <i style="margin:10px;border-radius:8px;background:${card}"></i></span>
+      <b><span>${ic(icon)} ${esc(label)}</span>${ic('check')}</b>
+    </button>`).join('');
+}
+$('themes').onclick = (e) => {
+  const b = e.target.closest('[data-theme-pick]');
+  if (!b) return;
+  try { localStorage.setItem('ss-theme', b.dataset.themePick); } catch { /* private window: this visit only */ }
+  applyTheme(b.dataset.themePick);
+  renderThemes();
+};
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
+  if (themePick() === 'system') applyTheme('system');
+});
+
+// ── Salon Profile ────────────────────────────────────────────────────────
+//
+// The address is one column on the server, a line per row, because that is
+// what the emails print. The form splits it into street, city, state and zip
+// so it is typed the way an address is, and joins it again on the way back.
+
+function splitAddress(text) {
+  const lines = String(text || '').split(/\s*\n\s*/).filter(Boolean);
+  const out = { street: '', city: '', state: '', zip: '' };
+  if (!lines.length) return out;
+  const last = lines[lines.length - 1];
+  const m = last.match(/^(.*?),\s*([A-Za-z .]+?)\s+(\d{5}(?:-\d{4})?)$/);
+  if (m && lines.length > 1) {
+    out.street = lines.slice(0, -1).join(', ');
+    [out.city, out.state, out.zip] = [m[1], m[2], m[3]];
+  } else {
+    out.street = lines.join(', ');
+  }
+  return out;
+}
+function joinAddress({ street, city, state, zip }) {
+  const tail = [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  return [street, tail].map((x) => String(x || '').trim()).filter(Boolean).join('\n');
 }
 
-// ── business profile ────────────────────────────────────────────────────
 function renderBusiness(d) {
   const ro = d.canEdit ? '' : 'disabled';
+  const a = splitAddress(d.address);
   $('business').innerHTML = `
     <div class="prow">
       <div class="logo-box">${d.logo ? `<img src="${esc(d.logo)}" alt="">` : '<span class="small muted">No logo</span>'}</div>
       <div>
         ${d.canEdit ? `<div class="acts" style="margin:0 0 6px;justify-content:flex-start">
-          <button class="btn quiet" id="pickLogo" type="button">Upload logo</button>
+          <button class="btn quiet" id="pickLogo" type="button">${d.logo ? 'Change logo' : 'Upload logo'}</button>
           ${d.logo ? '<button class="btn quiet" id="dropLogo" type="button">Remove</button>' : ''}
         </div>` : ''}
-        <div class="small muted">Shown on your booking page. A PNG with a transparent background works best.</div>
+        <div class="small muted">Shown on your booking page and in the menu at the top. A PNG with a transparent background works best.</div>
         <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" class="hidden">
       </div>
     </div>
 
     <form id="bizForm">
       <div class="fields">
-        <label class="wide"><span>Business name</span><input name="name" value="${esc(d.name)}" ${ro} required></label>
-        <label class="wide"><span>Address</span><input name="address" value="${esc(d.address || '')}" ${ro} placeholder="Street, town, state, zip"></label>
+        <label class="wide"><span>Salon name</span><input name="name" value="${esc(d.name)}" ${ro} required></label>
+        <label><span>Salon email</span><input name="email" type="email" value="${esc(d.email || '')}" ${ro}></label>
         <label><span>Phone</span><input name="phone" type="tel" value="${esc(d.phone || '')}" ${ro}></label>
-        <label><span>Email</span><input name="email" type="email" value="${esc(d.email || '')}" ${ro}></label>
-        <label class="wide"><span>Website</span><input name="website" value="${esc(d.website || '')}" ${ro} placeholder="yourshop.com"></label>
+        <label class="wide"><span>Website</span><input name="website" value="${esc(d.website || '')}" ${ro} placeholder="synergysalon.com"></label>
+        <label class="wide"><span>Street address</span><input name="street" value="${esc(a.street)}" ${ro} autocomplete="street-address"></label>
+        <label><span>City</span><input name="city" value="${esc(a.city)}" ${ro} autocomplete="address-level2"></label>
+        <div class="two" style="gap:0 12px">
+          <label><span>State</span><input name="state" value="${esc(a.state)}" ${ro} maxlength="20" autocomplete="address-level1"></label>
+          <label><span>Zip</span><input name="zip" value="${esc(a.zip)}" ${ro} maxlength="10" inputmode="numeric" autocomplete="postal-code"></label>
+        </div>
         <label class="wide"><span>About</span><textarea name="about" rows="3" ${ro}
-          placeholder="A sentence customers see when they book">${esc(d.about || '')}</textarea></label>
+          placeholder="A sentence clients see when they book">${esc(d.about || '')}</textarea></label>
       </div>
-      ${d.canEdit ? '<button class="btn" type="submit">Save business profile</button>'
+      ${d.canEdit ? '<button class="btn" type="submit">Save Salon Profile</button>'
         : '<p class="small muted">Only an owner or a manager can change these details.</p>'}
     </form>
 
@@ -2833,15 +3652,20 @@ function renderBusiness(d) {
     e.preventDefault();
     const f = new FormData(e.target);
     saveBusiness({
-      name: f.get('name'), address: f.get('address'), phone: f.get('phone'),
-      email: f.get('email'), website: f.get('website'), about: f.get('about'),
+      name: f.get('name'), phone: f.get('phone'), email: f.get('email'),
+      website: f.get('website'), about: f.get('about'),
+      address: joinAddress({ street: f.get('street'), city: f.get('city'), state: f.get('state'), zip: f.get('zip') }),
     }).catch(fail);
   };
 }
 
 async function saveBusiness(patch) {
-  await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify(patch) });
+  const d = await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify(patch) });
   toast('Saved.');
+  // The menu's logo and the chip's salon name come from `me`; update it from
+  // what the server stored, so the nav changes now rather than on reload.
+  me.salon = { ...me.salon, name: d.name, logo: d.logo ?? null };
+  paintMe();
   await loadBusiness();
 }
 
@@ -2849,7 +3673,7 @@ async function loadBusiness() {
   $('business').innerHTML = skeleton(4);
   try { renderBusiness(await api('/api/staff/business')); } catch (err) {
     if (err.message !== 'signed out') {
-      $('business').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load the business profile', text: err.message });
+      $('business').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load the Salon Profile', text: err.message });
     }
   }
 }
@@ -3035,7 +3859,7 @@ function renderFeeds(d) {
     </div>`;
 }
 
-/* ── CENTRO: is the diary reaching it? ─────────────────────────────── */
+/* ── Integrations: is the diary reaching the CRM? ─────────────────── */
 const SYNC_KIND = {
   'appointment.booked': 'New booking', 'appointment.created': 'New booking',
   'appointment.cancelled': 'Cancellation', 'appointment.status': 'Status change',
@@ -3053,31 +3877,31 @@ async function loadCentro(retry = false) {
     if (r.retried) {
       const { sent, stillFailing } = r.retried;
       toast(stillFailing
-        ? `${sent} sent to CENTRO; ${stillFailing} still refused.`
-        : sent ? `${sent} sent to CENTRO.` : 'Nothing was waiting to be sent.', stillFailing ? 'bad' : '');
+        ? `${sent} synced; ${stillFailing} still refused.`
+        : sent ? `${sent} synced.` : 'Nothing was waiting to be sent.', stillFailing ? 'bad' : '');
     }
   } catch (err) {
     if (err.message !== 'signed out') {
-      $('centro').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t check CENTRO', text: err.message });
+      $('centro').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t check the CRM', text: err.message });
     }
   }
 }
 
 function renderCentro(r) {
   if (!r.linked) {
-    $('centro').innerHTML = `<div class="note bad">${ic('info')}<span>This salon is not linked to CENTRO, so nothing is being copied there. Linking needs the sub-account&rsquo;s private integration token; see the setup notes.</span></div>`;
+    $('centro').innerHTML = `<div class="note bad">${ic('info')}<span>This salon is not linked to a CRM, so nothing is being copied there. Linking needs the sub-account&rsquo;s private integration token; see the setup notes.</span></div>`;
     return;
   }
   const c = r.check || {};
   const pending = r.queue?.pending || 0;
   const failed = r.queue?.failed || 0;
   const head = c.ok
-    ? `<div class="note good">${ic('sync')}<span>Connected to <strong>${esc(c.location?.name || 'CENTRO')}</strong>, calendar <strong>${esc(c.calendar?.name || '')}</strong>.</span></div>`
-    : `<div class="note bad">${ic('info')}<span>${(c.problems || ['CENTRO could not be checked.']).map(esc).join('<br>')}</span></div>`;
+    ? `<div class="note good">${ic('sync')}<span>Connected to <strong>${esc(c.location?.name || 'the CRM')}</strong>, calendar <strong>${esc(c.calendar?.name || '')}</strong>.</span></div>`
+    : `<div class="note bad">${ic('info')}<span>${(c.problems || ['The CRM could not be checked.']).map(esc).join('<br>')}</span></div>`;
   const stats = `
     <div class="px-stats" style="margin:4px 0 18px">
       <div><b>${pending}</b><span>Waiting to send</span></div>
-      <div><b>${failed}</b><span>Refused by CENTRO</span></div>
+      <div><b>${failed}</b><span>Refused by the CRM</span></div>
       <div><b>${c.calendar?.teamMembers ?? '–'}</b><span>Calendar team members</span></div>
     </div>`;
   const list = r.failed.length ? `
@@ -3097,17 +3921,17 @@ function renderCentro(r) {
   $('centroCheck').onclick = () => loadCentro();
   $('centro').insertAdjacentHTML('beforeend', `
     <div class="cx-sec">
-      <h3>Stylists&rsquo; hours from CENTRO</h3>
-      <p class="small muted">Online, each stylist is offered only the times CENTRO says they are free: the hours set for
-        them on the calendar, anything already booked there, and the calendars they connected in CENTRO. Link each
-        stylist to their CENTRO user. A stylist who is not linked is not offered online.</p>
+      <h3>Stylists&rsquo; hours from the CRM</h3>
+      <p class="small muted">Online, each stylist is offered only the times the CRM says they are free: the hours set for
+        them on the calendar, anything already booked there, and the calendars they connected in the CRM. Link each
+        stylist to their CRM user. A stylist who is not linked is not offered online.</p>
       <div id="cxStylists">${skeleton(3)}</div>
     </div>
     <div class="cx-sec">
       <h3>Test online booking</h3>
       <p class="small muted">Online booking is paused and the website shows &ldquo;coming soon&rdquo;. This opens the real
         booking popup in a new tab for you only, for 12 hours. Bookings made there are real: name test guests
-        &ldquo;ZZ&rdquo; and delete them afterwards, here and in CENTRO.</p>
+        &ldquo;ZZ&rdquo; and delete them afterwards, here and in the CRM.</p>
       <button type="button" class="btn" id="cxPreview">${ic('calendar-plus')}<span>Open booking test</span></button>
     </div>`);
   $('cxPreview').onclick = async (e) => {
@@ -3137,8 +3961,8 @@ async function loadStylistLinks() {
 function renderStylistLinks(d) {
   const box = $('cxStylists');
   if (!box) return;
-  if (!d.linked) { box.innerHTML = '<p class="small muted">Link the salon to CENTRO first.</p>'; return; }
-  const label = (m) => m.name || `CENTRO user ${m.id.slice(-6)}`;
+  if (!d.linked) { box.innerHTML = '<p class="small muted">Link the salon to the CRM first.</p>'; return; }
+  const label = (m) => m.name || `CRM user ${m.id.slice(-6)}`;
   const tz = me?.salon?.timezone ? { timeZone: me.salon.timezone } : {};
   box.innerHTML = `<div class="cx-list">${d.stylists.map((s) => {
     const pick = s.ghlUserId || s.suggest || '';
@@ -3150,11 +3974,11 @@ function renderStylistLinks(d) {
       : '<span class="chip info">Not linked, not offered online</span>';
     return `<div class="cx-row" data-stylist="${esc(s.slug)}">
       <div class="cx-name"><strong>${esc(s.name)}</strong>${status}
-        ${s.ghlUserId && !s.onCalendar ? '<div class="small" style="color:var(--warn);margin-top:4px">This user is not on the CENTRO calendar, so bookings for them are refused.</div>' : ''}</div>
-      <select aria-label="CENTRO user for ${esc(s.name)}">
+        ${s.ghlUserId && !s.onCalendar ? '<div class="small" style="color:var(--warn);margin-top:4px">This user is not on the CRM calendar, so bookings for them are refused.</div>' : ''}</div>
+      <select aria-label="CRM user for ${esc(s.name)}">
         <option value="">Not linked</option>
         ${d.team.map((m) => `<option value="${esc(m.id)}" ${m.id === pick ? 'selected' : ''}>${esc(label(m))}</option>`).join('')}
-        ${s.ghlUserId && !known ? `<option value="${esc(s.ghlUserId)}" selected>${esc(`CENTRO user ${s.ghlUserId.slice(-6)}`)}</option>` : ''}
+        ${s.ghlUserId && !known ? `<option value="${esc(s.ghlUserId)}" selected>${esc(`CRM user ${s.ghlUserId.slice(-6)}`)}</option>` : ''}
       </select>
       <button type="button" class="btn quiet" data-save ${pick === (s.ghlUserId || '') ? 'disabled' : ''}>${s.suggest && !s.ghlUserId ? 'Link' : 'Save'}</button>
     </div>`;
@@ -3172,7 +3996,7 @@ function renderStylistLinks(d) {
       await api('/api/staff/centro', { method: 'POST', body: JSON.stringify({
         action: 'link', stylist: row.dataset.stylist, ghlUserId: row.querySelector('select').value || null,
       }) });
-      toast('Saved. Checking CENTRO for their free times…');
+      toast('Saved. Checking the CRM for their free times…');
       await loadStylistLinks();
     } catch (err) { fail(err); btn.disabled = false; }
   };
@@ -3182,7 +4006,7 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('a[data-centro]');
   if (!a) return;
   e.preventDefault();
-  setTab = 'centro';
+  setTab = 'integrations';
   go('settings');
 });
 
@@ -3280,6 +4104,7 @@ async function start(landing) {
   // A fresh sign-in lands on the Dashboard; a reload stays where it was.
   const target = landing || pageFromUrl();
   go(target, { push: false });
+  document.fonts?.ready.then(() => moveRing(true));
   const want = PAGES[page].path;
   if (location.pathname !== want) history.replaceState({ page }, '', want);
 }
