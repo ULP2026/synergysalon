@@ -64,6 +64,24 @@ export async function assertUsernameFree(tenantId, username, exceptId) {
   if (rows[0]) throw new HttpError(409, 'Somebody here already uses that username.');
 }
 
+/**
+ * A character's settings from the maker: short strings and on/off flags,
+ * nothing else, and small. The browser draws from them; the server only
+ * keeps them so the same character can be opened again.
+ */
+export function avatarStyleFrom(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'object' || Array.isArray(value)) throw new HttpError(400, 'That character could not be saved.');
+  const out = {};
+  for (const [k, v] of Object.entries(value).slice(0, 30)) {
+    if (!/^[a-zA-Z]{1,20}$/.test(k)) continue;
+    if (typeof v === 'boolean') out[k] = v;
+    else if (typeof v === 'string' && /^[#a-z0-9]{1,20}$/i.test(v)) out[k] = v;
+  }
+  return JSON.stringify(out);
+}
+
 /** Pricing describes how a stylist charges; owners and managers set it. */
 const CAN_PRICE = ['owner', 'manager'];
 
@@ -103,6 +121,7 @@ export default handler({
               to_jsonb(u) ->> 'username' AS username,
               to_jsonb(u) ->> 'pricing' AS pricing,
               to_jsonb(u) -> 'services' AS services,
+              to_jsonb(u) -> 'avatar_style' AS avatar_style,
               (SELECT to_jsonb(s) ->> 'photo' FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS photo
          FROM staff_users u WHERE id = $1`,
       [user.id],
@@ -118,6 +137,7 @@ export default handler({
       username: me.username || '',
       pricing: me.pricing || '',
       services: me.services || {},
+      avatarStyle: me.avatar_style || null,
       photo: me.photo || null,
       since: me.created_at,
       lastSeen: me.last_seen_at,
@@ -154,6 +174,8 @@ export default handler({
 
     const avatar = avatarFrom(body.avatar);
     if (avatar !== undefined) add('avatar', avatar);
+    const style = avatarStyleFrom(body.avatarStyle);
+    if (style !== undefined) add('avatar_style', style);
 
     if (body.username !== undefined) {
       const username = usernameFrom(body.username);

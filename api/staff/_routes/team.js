@@ -16,7 +16,7 @@ import {
 import { MIN_PASSWORD_LENGTH, hashPassword } from '../../_lib/password.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import {
-  assertUsernameFree, avatarFrom, servicesFrom, usernameFrom,
+  assertUsernameFree, avatarFrom, avatarStyleFrom, servicesFrom, usernameFrom,
 } from './profile.js';
 
 const ADMIN = ['owner', 'manager'];
@@ -35,6 +35,7 @@ export default handler({
               to_jsonb(u) ->> 'username' AS username,
               to_jsonb(u) ->> 'pricing' AS pricing,
               to_jsonb(u) -> 'services' AS services,
+              to_jsonb(u) -> 'avatar_style' AS avatar_style,
               to_jsonb(s) ->> 'photo' AS photo,
               a.name AS approved_by_name,
               s.name AS stylist_name, s.slug AS stylist_slug, s.title AS stylist_title
@@ -60,6 +61,7 @@ export default handler({
         username: r.username || '',
         pricing: r.pricing || '',
         services: r.services || {},
+        avatarStyle: r.avatar_style || null,
         photo: r.photo || null,
         stylist: r.stylist_name,
         stylistSlug: r.stylist_slug,
@@ -117,6 +119,8 @@ export default handler({
       // works on a database that has not had migration 011; only the extras
       // need it.
       if (avatar) await query('UPDATE staff_users SET avatar = $2 WHERE id = $1', [rows[0].id, avatar]);
+      const style = avatarStyleFrom(body.avatarStyle);
+      if (style) await query('UPDATE staff_users SET avatar_style = $2::jsonb WHERE id = $1', [rows[0].id, style]);
       if (username || pricing) {
         await query('UPDATE staff_users SET username = $2, pricing = $3 WHERE id = $1',
           [rows[0].id, username, pricing]);
@@ -222,6 +226,8 @@ export default handler({
         if (services !== undefined) add('services', JSON.stringify(services));
         const avatar = avatarFrom(body.avatar);
         if (avatar !== undefined) add('avatar', avatar);
+        const style = avatarStyleFrom(body.avatarStyle);
+        if (style !== undefined) add('avatar_style', style);
         if (body.role !== undefined) {
           if (!ROLES.includes(body.role)) throw new HttpError(400, 'That is not a role.');
           if (body.role === 'owner' && user.role !== 'owner') {

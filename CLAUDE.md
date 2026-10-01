@@ -138,7 +138,11 @@ made that way are real: name them ZZ and remove them.
   those fields needs them.
 - Faces are pictures everywhere: an uploaded avatar, else the stylist's
   portrait (`stylists.photo`, 012, the public site's team photos), else a
-  drawn character from `charAvatar(name)`, never initials. Appointments shows a Calendars bar: the Salon Calendar in use,
+  drawn character from `charAvatar(name)`, never initials. Anyone can build
+  their own character in the profile window (Create character): the maker
+  saves it as a PNG in `avatar`, like a photo, plus its settings in
+  `staff_users.avatar_style` (013) so it opens again for changes. Characters
+  are drawn young on purpose: no grey hair, no lines. Appointments shows a Calendars bar: the Salon Calendar in use,
   each stylist's greyed until stylist calendars exist (`calendarList()`).
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
