@@ -1232,7 +1232,6 @@
   .btn.signout:hover:not(:disabled) { background: #fbe5e7; color: var(--warn); box-shadow: var(--e1); }
 
   /* The team: one member list beside a standing "Add Team Member" panel. */
-  .tm { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 14px; align-items: stretch; }
   .tm-list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .tm-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px;
             padding: 11px 14px; border-radius: 12px; border: 1px solid transparent; background: transparent;
@@ -1253,22 +1252,11 @@
   .tm-svc { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
   .tm-svc i { font-style: normal; font-size: .72rem; padding: 1px 7px; border-radius: 999px; background: var(--raise); color: var(--muted); }
   .tm-svc i.on { background: #e1f2e8; color: #22673f; }
-  .tm-later { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px dashed var(--line-2);
-              color: var(--muted); font-size: .8rem; }
-  .tm-later .ghosts { display: flex; }
-  .tm-later .ghosts img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--card); margin-left: -8px; opacity: .7; }
-  .tm-later .ghosts img:first-child { margin-left: 0; }
-  .tm-add { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px;
-            padding: 18px 16px; border-radius: 12px; background: var(--raise); border: 1px solid var(--line); }
-  .tm-add .bubble { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--peri-pale); color: var(--periwinkle); }
-  .tm-add b { font-size: .9rem; }
-  .tm-add p { margin: 0; font-size: .78rem; color: var(--muted); line-height: 1.45; }
   .tm-pending { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
   .tm-pending h3 { margin: 0 0 6px; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
   .tm-pend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; font-size: .85rem; }
   .tm-pend .who { flex: 1; min-width: 160px; }
   .tm-pend select.role { width: 130px; height: 32px; }
-  @media (max-width: 720px) { .tm { grid-template-columns: 1fr; } }
   @media (max-width: 560px) {
     .tm-row { grid-template-columns: 40px minmax(0, 1fr); }
     .tm-badges { grid-column: 2; justify-content: flex-start; }
@@ -1347,22 +1335,6 @@
   :root[data-theme="dark"] .chip.pending { background: rgba(213, 156, 44, .2); color: #f4cf78; }
   :root[data-theme="dark"] .btn.signout:hover:not(:disabled) { background: rgba(214, 64, 77, .18); }
 
-  /* ── Team Members banner: a fan of portrait cards over a soft panel ─── */
-  .fan-wrap { position: relative; margin: 4px 0 18px; padding-top: 10px; }
-  .fan { position: relative; z-index: 2; display: flex; justify-content: center; align-items: flex-start; padding: 0 12px; }
-  .fan-card { flex: none; width: 78px; height: 96px; margin: 0 -7px; border-radius: 12px; overflow: hidden; background: var(--card);
-              border: 3px solid var(--card); box-shadow: 0 10px 22px -12px rgba(30, 31, 92, .55);
-              transform: translateY(var(--y)) rotate(var(--r)); transform-origin: 50% 120%; }
-  .fan-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .fan-card.me { box-shadow: 0 0 0 2px var(--periwinkle), 0 10px 22px -12px rgba(30, 31, 92, .55); }
-  .fan-banner { position: relative; z-index: 1; margin-top: -44px; padding: 96px 24px 24px; border-radius: 22px; text-align: center;
-                background: linear-gradient(180deg, #e3e6fa 0%, #eceefb 100%); }
-  .fan-banner h3 { margin: 0 auto; max-width: 30ch; font-size: 1.2rem; font-weight: 650; color: var(--indigo-deep); letter-spacing: -.01em; line-height: 1.3; }
-  .fan-banner p { margin: 8px auto 0; max-width: 46ch; font-size: .82rem; color: var(--muted); }
-  @media (max-width: 560px) { .fan-card { width: 58px; height: 72px; margin: 0 -9px; } .fan-banner { margin-top: -32px; padding-top: 74px; } }
-  :root[data-theme="dark"] .fan-banner { background: linear-gradient(180deg, #262966 0%, #1f2150 100%); }
-  :root[data-theme="dark"] .fan-banner h3 { color: var(--ink); }
-
   /* ── Integration: one row per connection, RocketOS's integrations list ── */
   .ints { display: grid; gap: 10px; }
   .int-r { display: flex; align-items: center; gap: 10px; }
@@ -1383,44 +1355,51 @@
   }
   :root[data-theme="dark"] .int .st.on { background: rgba(47, 125, 79, .25); color: #9fd8b6; }
 
-  /* ── the character maker ─────────────────────────────────────────────── */
-  dialog.avdlg { max-width: 860px; width: calc(100% - 32px); padding: 0; overflow: hidden; }
-  .av-wrap { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 460px; }
-  .av-left { padding: 22px; background: linear-gradient(160deg, #e9ebfa, #f3effa); display: flex; flex-direction: column; align-items: center; gap: 14px; }
-  .av-left h2 { margin: 0 !important; align-self: flex-start; font-size: 1.1rem; }
-  .av-stage { width: 220px; height: 220px; border-radius: 28px; overflow: hidden; background: #fff;
-              box-shadow: 0 0 0 4px #fff, 0 22px 40px -22px rgba(30, 31, 92, .6); }
-  .av-stage img { width: 100%; height: 100%; display: block; }
-  .av-tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-  .av-right { padding: 18px 20px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-  .av-tabs { flex-wrap: wrap; align-self: flex-start; }
-  .av-tabs button { padding: 6px 12px; }
-  .av-opts { overflow-y: auto; max-height: 380px; padding-right: 4px; }
-  .av-sec { margin-bottom: 16px; }
-  .av-sec h3 { margin: 0 0 8px; font-size: var(--fs-xs); font-weight: 650; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
-  .av-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
-  .av-pick { border: 2px solid transparent; border-radius: 14px; padding: 0; background: var(--raise); cursor: pointer; overflow: hidden;
-             display: flex; flex-direction: column; align-items: center; font: inherit; font-size: .7rem; color: var(--muted);
-             transition: border-color var(--t) var(--ease), transform var(--t) var(--ease); }
-  .av-pick img { width: 100%; aspect-ratio: 1; display: block; }
-  .av-pick span { padding: 3px 0 5px; }
-  .av-pick:hover { transform: translateY(-1px); border-color: var(--line-2); }
-  .av-pick[aria-pressed="true"] { border-color: var(--periwinkle); color: var(--indigo); font-weight: 600; box-shadow: var(--halo); }
-  .av-pick.zoom img { transform: scale(1.9); transform-origin: 50% 46%; }
-  .av-pick.zoom-m img { transform: scale(2.2); transform-origin: 50% 62%; }
-  .av-sw { display: flex; flex-wrap: wrap; gap: 8px; }
-  .av-sw button { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; padding: 0;
-                  box-shadow: 0 0 0 1px var(--line-2); transition: transform var(--t) var(--ease); }
-  .av-sw button:hover { transform: scale(1.08); }
-  .av-sw button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--periwinkle), 0 0 0 5px rgba(85, 96, 166, .18); }
-  .av-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
-  .av-row b { font-size: .88rem; font-weight: 600; }
-  @media (max-width: 760px) {
-    .av-wrap { grid-template-columns: 1fr; }
-    .av-stage { width: 150px; height: 150px; }
-    .av-opts { max-height: 300px; }
+
+  /* ── avatar choices in the team modal ───────────────────────────────── */
+  .avgrid { display: grid; gap: 8px; margin-bottom: 14px; }
+  .avset { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; align-items: start; }
+  .avset-l { font-size: var(--fs-xs); color: var(--muted); padding-top: 10px; }
+  .avset-g { display: flex; flex-wrap: wrap; gap: 6px; }
+  .avopt { width: 40px; height: 40px; padding: 3px; border-radius: 10px; border: 2px solid transparent; background: var(--raise);
+           cursor: pointer; transition: transform var(--t) var(--ease), border-color var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .avopt img { width: 100%; height: 100%; display: block; }
+  .avopt:hover { transform: translateY(-1px); background: var(--peri-pale); }
+  .avopt[aria-pressed="true"] { border-color: var(--periwinkle); background: var(--peri-pale); box-shadow: var(--halo); }
+
+  /* ── Team Members, RocketOS's list: left aligned, compact ───────────── */
+  .tm-list { display: flex; flex-direction: column; gap: 6px; }
+  .tm-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+            padding: 10px 12px; border-radius: 12px; border: 1px solid transparent; background: transparent; width: 100%;
+            font: inherit; color: inherit; text-align: left; cursor: pointer;
+            transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
+  .tm-row:hover { background: var(--raise); border-color: var(--line); box-shadow: 0 6px 16px -12px rgba(30, 31, 92, .45); transform: translateY(-1px); }
+  .tm-row.me { background: #f1f2fb; border-color: #d9dcf1; }
+  .tm-row.me:hover { border-color: var(--line-2); }
+  .tm-row.off { opacity: .6; }
+  .tm-pic, .tm-pic img { width: 44px; height: 44px; }
+  .tm-pic img { border-radius: 50%; object-fit: cover; background: var(--peri-pale); }
+  .tm-pic .pen { opacity: 0; transition: opacity var(--t) var(--ease); }
+  .tm-row:hover .pen, .tm-row.me .pen { opacity: 1; }
+  .tm-who b { font-size: .92rem; }
+  .tm-who i { font-style: normal; font-weight: 500; font-size: .78rem; color: var(--muted); }
+  .tm-who i.tm-you { margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
+  .tm-svc { margin-top: 3px; }
+  .tm-addrow { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 12px; border-radius: 12px;
+               border: 1px dashed var(--line-2); background: var(--raise); }
+  .tm-faces { display: flex; flex: none; padding-left: 8px; }
+  .tm-faces img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: -8px; border: 2px solid var(--card); background: var(--peri-pale); }
+  .tm-addic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--peri-pale); color: var(--periwinkle); flex: none; }
+  .tm-addtx { flex: 1; min-width: 0; }
+  .tm-addtx b { display: block; font-size: .9rem; font-weight: 600; }
+  .tm-addtx span { display: block; font-size: .8rem; color: var(--muted); }
+  .md-pic { background: var(--peri-pale); }
+  .avatar img { background: var(--peri-pale); }
+  @media (max-width: 560px) {
+    .tm-addrow { flex-wrap: wrap; }
+    .tm-addrow .btn { width: 100%; }
   }
-  :root[data-theme="dark"] .av-left { background: linear-gradient(160deg, #23265a, #1c1e4a); }
+  :root[data-theme="dark"] .tm-row.me { background: #24264f; border-color: var(--line-2); }
 </style>
 </head>
 <body>
@@ -1737,7 +1716,6 @@
       <div style="min-width:0">
         <h2 id="memberTitle">Add team member</h2>
         <div class="links">
-          <button type="button" id="memberPicMake">Create character</button>
           <button type="button" id="memberPicPick">Upload photo</button>
           <button type="button" class="rm hidden" id="memberPicDrop">Remove</button>
         </div>
@@ -1761,6 +1739,11 @@
           </select></label>
       </div>
       <p class="small muted hidden" id="memberRoleNote" style="margin:-8px 0 12px"></p>
+
+      <!-- Avatars: pick one, as in RocketOS's team dialog; a photo upload still wins. -->
+      <div class="md-sec">Avatar</div>
+      <p class="small muted hidden" id="memberAvatarNote" style="margin:-6px 0 10px">Your salon photo is shown in the app. An avatar is used only where there is no photo.</p>
+      <div class="avgrid" id="memberAvatars"></div>
 
       <!-- Services and prices: four switches, a price beside each one that is on. -->
       <div class="md-sec">Services &amp; pricing</div>
@@ -1800,37 +1783,6 @@
     <button type="button" class="iconbtn lg" id="calClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
   <div class="calopts" id="calOpts"></div>
-</dialog>
-
-<!-- The character maker: a big preview, and every choice as a picture. -->
-<dialog id="avDlg" class="avdlg" aria-labelledby="avTitle">
-  <div class="av-wrap">
-    <div class="av-left">
-      <h2 id="avTitle">Create your character</h2>
-      <div class="av-stage"><img id="avPreview" alt="Your character"></div>
-      <div class="av-tools">
-        <button type="button" class="btn quiet sm" id="avRandom"><svg class="ic"><use href="#i-sync"/></svg>Surprise me</button>
-        <button type="button" class="btn quiet sm" id="avReset">Start over</button>
-      </div>
-    </div>
-    <div class="av-right">
-      <div class="seg av-tabs" id="avTabs" role="group" aria-label="Character parts">
-        <button type="button" data-avtab="face" aria-pressed="true">Face</button>
-        <button type="button" data-avtab="hair" aria-pressed="false">Hair</button>
-        <button type="button" data-avtab="eyes" aria-pressed="false">Eyes</button>
-        <button type="button" data-avtab="mouth" aria-pressed="false">Mouth</button>
-        <button type="button" data-avtab="outfit" aria-pressed="false">Outfit</button>
-        <button type="button" data-avtab="extras" aria-pressed="false">Extras</button>
-        <button type="button" data-avtab="bg" aria-pressed="false">Background</button>
-      </div>
-      <div class="av-opts" id="avOpts"></div>
-    </div>
-  </div>
-  <footer class="md-foot">
-    <span class="spacer"></span>
-    <button type="button" class="btn quiet" id="avCancel">Cancel</button>
-    <button type="button" class="btn" id="avUse">Use this character</button>
-  </footer>
 </dialog>
 
 <!-- One appointment, in full: what the day card had to cut short. -->
@@ -2088,242 +2040,35 @@ function paintMe() {
 const SILHOUETTE = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#e6e8f7"/>'
   + '<circle cx="32" cy="25" r="11" fill="#a9b0dd"/><path d="M11 60c2-12 10.5-18 21-18s19 6 21 18z" fill="#a9b0dd"/></svg>');
-function personPhoto(p) { return p?.avatar || p?.photo || charAvatar(p?.name || p?.email || ''); }
+/**
+ * A real picture first: an uploaded photo, then the salon's portrait of the
+ * stylist, then a chosen avatar, then a default one.
+ */
+function personPhoto(p) {
+  const uploaded = p?.avatar && p.avatar.startsWith('data:') ? p.avatar : null;
+  return uploaded || p?.photo || p?.avatar || charAvatar(p?.name || p?.email || '');
+}
 
-// ── characters ────────────────────────────────────────────────────────────
+// ── avatars ───────────────────────────────────────────────────────────────
 //
-// Soft, rounded cartoon people, shaded so they read as 3D at 40 pixels. Every
-// face in the app without a photo is one of these, and anyone can build their
-// own in the character maker (openAvatarMaker). One renderer draws both, from
-// a small settings object, so a saved character can be opened and changed.
-// Drawn here as SVG: nothing is fetched, and no real person's picture stands
-// in for someone it is not. Everyone is drawn young: no grey hair, no lines.
+// Microsoft's Fluent 3D emoji people (MIT, see assets/avatars), the style the
+// team chose. A photo always wins; these are for anyone without one. The
+// stylists are all women, so the default for a name is always a woman; the
+// men are there to choose in the profile window, never assigned.
 
-const AV = {
-  skin: ['#ffe0c7', '#f7cfae', '#efbf98', '#e0a77d', '#c98b62', '#a86c47', '#8a5434', '#6b3f26'],
-  hairColor: ['#2a1c15', '#4a2c1d', '#6e4126', '#9a5b2c', '#c2803f', '#e0b46a', '#f0d48e', '#c8462a', '#e3743a', '#3b3f8f', '#7d4bb3', '#d9658f'],
-  eyeColor: ['#5a3a22', '#8a5a2b', '#3d7bd1', '#3a8f6a', '#6f7f8e', '#2b2b2b'],
-  outfitColor: ['#5560a6', '#353676', '#e05a6b', '#f08a5d', '#3fa36b', '#2f9fb3', '#8a63c9', '#f2c14e', '#ffffff', '#3a3a46'],
-  accent: ['#d93a5a', '#5560a6', '#2f9fb3', '#f2c14e', '#3fa36b', '#ffffff'],
-  bg: ['#e6e8f7', '#efe4fb', '#dff0f7', '#e2f2ea', '#fbe7ee', '#fbeedd', '#fff4cf', '#f1f1f4'],
-  lips: ['#c96a5a', '#d9506b', '#a33a5c', '#b5765f'],
-  glassesColor: ['#2a2233', '#8a5a2b', '#5560a6', '#d93a5a'],
-  hair: ['crop', 'side', 'quiff', 'pixie', 'buzz', 'bob', 'long', 'wavy', 'curly', 'bun', 'ponytail', 'afro', 'shaved'],
-  eyes: ['round', 'lashes', 'happy', 'almond'],
-  brows: ['soft', 'arched', 'straight', 'bold'],
-  mouth: ['smile', 'grin', 'open', 'small', 'lips'],
-  glasses: ['none', 'round', 'square', 'cateye'],
-  outfit: ['tee', 'collar', 'blazer', 'vneck', 'hoodie', 'sweater'],
-};
-const AV_LABEL = {
-  crop: 'Crop', side: 'Side part', quiff: 'Quiff', pixie: 'Pixie', buzz: 'Buzz', bob: 'Bob', long: 'Long',
-  wavy: 'Wavy', curly: 'Curls', bun: 'Top bun', ponytail: 'Ponytail', afro: 'Afro', shaved: 'Shaved',
-  round: 'Round', lashes: 'Lashes', happy: 'Happy', almond: 'Almond',
-  soft: 'Soft', arched: 'Arched', straight: 'Straight', bold: 'Bold',
-  smile: 'Smile', grin: 'Grin', open: 'Laugh', small: 'Small', lips: 'Lips',
-  none: 'None', square: 'Square', cateye: 'Cat eye',
-  tee: 'T-shirt', collar: 'Collar', blazer: 'Blazer', vneck: 'V-neck', hoodie: 'Hoodie', sweater: 'Sweater',
-};
+const AVATAR_TONES = ['light', 'medium_light', 'medium', 'medium_dark', 'dark'];
+const AVATAR_SETS = [
+  ['Women', ['woman', 'woman_curly_hair', 'woman_red_hair', 'girl', 'woman_with_headscarf']],
+  ['Men', ['man', 'man_curly_hair', 'man_beard']],
+];
+const avatarPath = (kind, tone) => `/assets/avatars/${kind}_${tone}.png`;
+const WOMEN = AVATAR_SETS[0][1].flatMap((k) => AVATAR_TONES.map((t) => avatarPath(k, t)));
 
-/** A colour a little lighter (amt > 0) or darker (amt < 0). */
-function avShade(hex, amt) {
-  const n = parseInt(hex.slice(1), 16);
-  const f = (c) => Math.max(0, Math.min(255, Math.round(amt > 0 ? c + (255 - c) * amt : c * (1 + amt))));
-  return `#${[n >> 16, (n >> 8) & 255, n & 255].map(f).map((c) => c.toString(16).padStart(2, '0')).join('')}`;
-}
-
-/** Fills in anything missing or unknown, so an old or hand-edited setting still draws. */
-function avNormalize(c = {}) {
-  const pick = (k, list) => (list.includes(c[k]) ? c[k] : list[0]);
-  return {
-    skin: pick('skin', AV.skin), hair: pick('hair', AV.hair), hairColor: pick('hairColor', AV.hairColor),
-    eyes: pick('eyes', AV.eyes), eyeColor: pick('eyeColor', AV.eyeColor), brows: pick('brows', AV.brows),
-    mouth: pick('mouth', AV.mouth), lips: pick('lips', AV.lips), glasses: pick('glasses', AV.glasses),
-    glassesColor: pick('glassesColor', AV.glassesColor), outfit: pick('outfit', AV.outfit),
-    outfitColor: pick('outfitColor', AV.outfitColor), bg: pick('bg', AV.bg),
-    earrings: Boolean(c.earrings), headband: Boolean(c.headband), headbandColor: pick('headbandColor', AV.accent),
-    freckles: Boolean(c.freckles), blush: c.blush !== false,
-  };
-}
-
-/** A character picked from a seed: the same name always gives the same person. */
-function avFromSeed(seed) {
+/** The default avatar for someone without a photo: a woman, picked from their name. */
+function charAvatar(seed) {
   let h = 2166136261;
   for (const ch of String(seed || 'synergy').toLowerCase()) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
-  const r = () => { h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0; h = Math.imul(h ^ (h >>> 13), 3266489909) >>> 0; return (h >>> 0) / 4294967296; };
-  const pick = (list) => list[Math.floor(r() * list.length)];
-  return avNormalize({
-    skin: pick(AV.skin), hair: pick(AV.hair.filter((x) => x !== 'shaved')), hairColor: pick(AV.hairColor.slice(0, 9)),
-    eyes: pick(AV.eyes), eyeColor: pick(AV.eyeColor), brows: pick(AV.brows), mouth: pick(['smile', 'grin', 'small', 'lips']),
-    lips: pick(AV.lips), glasses: r() < 0.25 ? pick(AV.glasses.slice(1)) : 'none', glassesColor: pick(AV.glassesColor),
-    outfit: pick(AV.outfit), outfitColor: pick(AV.outfitColor), bg: pick(AV.bg),
-    earrings: r() < 0.3, headband: false, freckles: r() < 0.15,
-  });
-}
-
-function avHair(c, hc, layer) {
-  const g = 'url(#hair)';
-  const circles = (list) => list.map(([x, y, rr]) => `<circle cx="${x}" cy="${y}" r="${rr}"/>`).join('');
-  const P = {
-    crop: { front: 'M56,84 C56,52 78,36 102,36 C126,36 146,52 144,82 C136,68 124,60 110,62 C114,56 106,52 98,58 C88,54 76,60 72,68 C64,70 59,76 56,84Z' },
-    side: { front: 'M55,88 C52,54 76,34 102,34 C128,34 149,54 146,86 C140,70 130,60 114,56 C102,66 82,72 62,74 C59,78 57,83 55,88Z' },
-    quiff: { front: 'M56,84 C54,54 76,38 98,38 C106,26 128,22 140,32 C132,34 128,38 130,44 C142,52 148,64 145,82 C136,66 120,60 104,62 C88,60 70,66 56,84Z' },
-    pixie: { front: 'M55,92 C50,58 74,36 100,36 C126,36 150,54 146,84 C138,68 124,58 110,60 C116,66 112,74 104,78 C98,66 86,62 72,66 C63,72 58,82 55,92Z' },
-    buzz: { front: 'M57,84 C56,56 76,40 100,40 C124,40 144,56 143,84 C136,68 120,61 100,61 C80,61 64,68 57,84Z', op: 0.92 },
-    bob: { back: 'M42,124 C38,62 64,30 100,30 C136,30 162,62 158,124 C158,136 150,142 140,142 L140,98 L60,98 L60,142 C50,142 42,136 42,124Z',
-      front: 'M53,98 C50,58 74,36 100,36 C126,36 150,58 147,98 C141,80 132,67 120,61 C108,70 84,73 69,68 C61,76 56,86 53,98Z' },
-    long: { back: 'M40,176 C30,112 42,38 100,30 C158,38 170,112 160,176 C152,184 140,182 138,172 L138,102 L62,102 L62,172 C60,182 48,184 40,176Z',
-      front: 'M55,104 C50,58 74,36 100,36 C126,36 150,58 145,104 C141,82 128,62 104,56 C101,52 99,52 96,56 C76,62 61,80 55,104Z' },
-    wavy: { back: 'M40,170 C30,112 42,38 100,30 C158,38 170,112 160,170 C152,180 140,178 138,168 L138,102 L62,102 L62,168 C60,178 48,180 40,170Z',
-      backExtra: [[44, 132, 15], [42, 154, 14], [50, 172, 12], [156, 132, 15], [158, 154, 14], [150, 172, 12]],
-      front: 'M54,100 C50,56 76,34 104,36 C130,38 150,60 146,98 C140,76 124,60 100,60 C96,68 84,76 70,78 C62,84 57,92 54,100Z' },
-    curly: { backExtra: [[52, 70, 18], [62, 48, 18], [82, 34, 18], [104, 30, 18], [126, 36, 18], [142, 52, 18], [150, 74, 17], [148, 98, 16],
-      [150, 120, 15], [52, 96, 16], [50, 120, 15], [58, 140, 13], [142, 140, 13]],
-      frontExtra: [[68, 62, 14], [84, 52, 15], [102, 49, 15], [119, 53, 14], [133, 64, 12], [60, 76, 10], [141, 78, 9]] },
-    bun: { backExtra: [[100, 26, 19]], front: 'M55,90 C53,54 76,38 100,38 C124,38 147,54 145,90 C138,70 124,60 100,58 C78,60 62,70 55,90Z' },
-    ponytail: { back: 'M134,64 C170,72 176,126 154,166 C150,134 148,104 128,84Z', front: 'M55,90 C53,54 76,38 100,38 C124,38 147,54 145,90 C138,70 124,60 100,58 C78,60 62,70 55,90Z' },
-    afro: { backExtra: [[100, 76, 62], [52, 104, 22], [148, 104, 22]], front: 'M58,86 C58,60 78,46 100,46 C122,46 142,60 142,86 C132,72 118,67 100,67 C82,67 68,72 58,86Z' },
-    shaved: {},
-  }[c.hair] || {};
-  if (layer === 'back') {
-    return `<g fill="${g}">${P.back ? `<path d="${P.back}"/>` : ''}${P.backExtra ? circles(P.backExtra) : ''}</g>`;
-  }
-  const front = `${P.front ? `<path d="${P.front}"/>` : ''}${P.frontExtra ? circles(P.frontExtra) : ''}`;
-  if (!front) return '';
-  return `<g fill="${g}" ${P.op ? `opacity="${P.op}"` : ''}>${front}</g>`
-    + `<path d="M74,52 C84,44 98,41 112,43" stroke="#fff" stroke-opacity=".28" stroke-width="4" fill="none" stroke-linecap="round"/>`;
-}
-
-function avEyes(c) {
-  const iris = (x) => `<circle cx="${x}" cy="99" r="6.4" fill="url(#iris)"/><circle cx="${x}" cy="99" r="3.2" fill="#1b1420"/>`
-    + `<circle cx="${x + 2.3}" cy="96.2" r="2" fill="#fff"/><circle cx="${x - 2}" cy="101.6" r=".9" fill="#fff" opacity=".8"/>`;
-  const lid = (x) => `<path d="M${x - 9.5},97 C${x - 6},88 ${x + 6},88 ${x + 9.5},97" stroke="#2a1d1a" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
-  const lashes = (x, dir) => `<path d="M${x + dir * 8.5},92 l${dir * 4},-3 M${x + dir * 9.6},95.5 l${dir * 4.4},-1.4" stroke="#2a1d1a" stroke-width="1.8" stroke-linecap="round"/>`;
-  if (c.eyes === 'happy') {
-    return [82, 118].map((x) => `<path d="M${x - 8},101 C${x - 5},92 ${x + 5},92 ${x + 8},101" stroke="#2a1d1a" stroke-width="2.8" fill="none" stroke-linecap="round"/>`).join('');
-  }
-  if (c.eyes === 'almond') {
-    return [82, 118].map((x) => `<clipPath id="e${x}"><path d="M${x - 10},99 C${x - 5},90 ${x + 5},90 ${x + 10},99 C${x + 5},106 ${x - 5},106 ${x - 10},99Z"/></clipPath>`
-      + `<path d="M${x - 10},99 C${x - 5},90 ${x + 5},90 ${x + 10},99 C${x + 5},106 ${x - 5},106 ${x - 10},99Z" fill="#fff"/>`
-      + `<g clip-path="url(#e${x})">${iris(x)}</g>`
-      + `<path d="M${x - 10.5},99 C${x - 5},89.5 ${x + 5},89.5 ${x + 10.5},99" stroke="#2a1d1a" stroke-width="2.2" fill="none" stroke-linecap="round"/>`).join('');
-  }
-  return [82, 118].map((x, i) => `<ellipse cx="${x}" cy="99" rx="9" ry="10" fill="#fff"/>${iris(x)}${lid(x)}`
-    + (c.eyes === 'lashes' ? lashes(x, i ? 1 : -1) : '')).join('');
-}
-
-function avBrows(c, hc) {
-  const col = avShade(hc, -0.25);
-  const d = {
-    soft: ['M72,84 C77,80 85,80 90,82', 'M110,82 C115,80 123,80 128,84'],
-    arched: ['M71,85 C75,77 85,77 91,81', 'M109,81 C115,77 125,77 129,85'],
-    straight: ['M72,83 L90,82', 'M110,82 L128,83'],
-    bold: ['M71,85 C76,79 85,78 91,81', 'M109,81 C115,78 124,79 129,85'],
-  }[c.brows];
-  const w = c.brows === 'bold' ? 4.4 : 3;
-  return d.map((p) => `<path d="${p}" stroke="${col}" stroke-width="${w}" fill="none" stroke-linecap="round"/>`).join('');
-}
-
-function avMouth(c) {
-  const lip = c.lips;
-  switch (c.mouth) {
-    case 'grin': return `<path d="M87,121 Q100,136 113,121 Q100,125 87,121Z" fill="#7a2a33"/><path d="M89,121.6 Q100,124.4 111,121.6 L110,124.5 Q100,127 90,124.5Z" fill="#fff"/>`;
-    case 'open': return `<path d="M88,120 Q100,140 112,120 Q100,123 88,120Z" fill="#7a2a33"/><path d="M93,131 Q100,136 107,131 Q100,128 93,131Z" fill="#e8798a"/>`;
-    case 'small': return '<path d="M93,123 Q100,128 107,123" stroke="#8a3a3a" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
-    case 'lips': return `<path d="M89,122 Q94,118 100,120.5 Q106,118 111,122 Q100,131 89,122Z" fill="${lip}"/><path d="M90,122.2 Q100,124.5 110,122.2" stroke="${avShade(lip, -0.35)}" stroke-width="1" fill="none"/>`;
-    default: return `<path d="M88,121 Q100,133 112,121 Q100,126 88,121Z" fill="${avShade(lip, -0.35)}"/>`;
-  }
-}
-
-function avOutfit(c, skin) {
-  const col = c.outfitColor;
-  const dark = avShade(col, -0.22);
-  const base = `<path d="M38,200 C40,168 62,151 86,147 L114,147 C138,151 160,168 162,200Z" fill="url(#cloth)"/>`;
-  switch (c.outfit) {
-    case 'collar': return `${base}<path d="M86,147 L100,162 L91,170 L79,151Z M114,147 L100,162 L109,170 L121,151Z" fill="#fff"/>`
-      + '<path d="M86,147 L100,162 L114,147" stroke="#d9dbe8" stroke-width="1.2" fill="none"/>';
-    case 'blazer': return `${base}<path d="M88,148 L100,184 L112,148Z" fill="#fff"/>`
-      + `<path d="M86,148 L100,184 L80,170 L74,156Z M114,148 L100,184 L120,170 L126,156Z" fill="${dark}"/>`;
-    case 'vneck': return `${base}<path d="M88,147 L100,170 L112,147Z" fill="${skin}"/><path d="M87,147 L100,171 L113,147" stroke="${dark}" stroke-width="3" fill="none"/>`;
-    case 'hoodie': return `${base}<path d="M70,156 C78,146 90,144 100,150 C110,144 122,146 130,156 C120,164 110,166 100,160 C90,166 80,164 70,156Z" fill="${dark}"/>`
-      + '<path d="M94,160 L93,182 M106,160 L107,182" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>';
-    case 'sweater': return `${base}<path d="M84,147 Q100,160 116,147" stroke="${dark}" stroke-width="7" fill="none" stroke-linecap="round"/>`
-      + `<path d="M60,186 L70,200 M140,186 L130,200" stroke="${dark}" stroke-width="3" opacity=".5"/>`;
-    default: return `${base}<path d="M86,147 Q100,158 114,147" stroke="${dark}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
-  }
-}
-
-function avGlasses(c) {
-  if (c.glasses === 'none') return '';
-  const col = c.glassesColor;
-  const lens = {
-    round: (x) => `<circle cx="${x}" cy="99" r="12"/>`,
-    square: (x) => `<rect x="${x - 13}" y="88" width="26" height="21" rx="5"/>`,
-    cateye: (x) => `<path d="M${x - 13},94 C${x - 12},86 ${x + 10},84 ${x + 14},90 C${x + 13},104 ${x + 6},110 ${x},110 C${x - 8},110 ${x - 13},104 ${x - 13},94Z"/>`,
-  }[c.glasses];
-  return `<g fill="#fff" fill-opacity=".14" stroke="${col}" stroke-width="3">${lens(82)}${lens(118)}</g>`
-    + `<path d="M94,97 Q100,93 106,97" stroke="${col}" stroke-width="3" fill="none"/>`
-    + `<path d="M69,96 L58,93 M131,96 L142,93" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`;
-}
-
-function avatarSvg(input) {
-  const c = avNormalize(input);
-  const skin = c.skin;
-  const hc = c.hairColor;
-  const ears = [58, 142].map((x) => `<ellipse cx="${x}" cy="100" rx="8.5" ry="11.5" fill="${avShade(skin, -0.06)}"/>`
-    + `<ellipse cx="${x}" cy="100" rx="4" ry="6.5" fill="${avShade(skin, -0.18)}" opacity=".6"/>`).join('');
-  const earrings = c.earrings ? [58, 142].map((x) => `<circle cx="${x}" cy="114" r="3.4" fill="#f2c14e" stroke="#c9952a" stroke-width="1"/>`).join('') : '';
-  const freckles = c.freckles ? [[74, 112], [79, 115], [70, 116], [126, 112], [121, 115], [130, 116]]
-    .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.2" fill="${avShade(skin, -0.38)}" opacity=".7"/>`).join('') : '';
-  const blush = c.blush ? '<ellipse cx="72" cy="114" rx="7.5" ry="4.5" fill="#ff8a8a" opacity=".28"/><ellipse cx="128" cy="114" rx="7.5" ry="4.5" fill="#ff8a8a" opacity=".28"/>' : '';
-  const headband = c.headband ? `<path d="M57,74 C66,44 134,44 143,74" stroke="${c.headbandColor}" stroke-width="7" fill="none" stroke-linecap="round"/>` : '';
-  // Cropped to head and shoulders, as a profile picture is framed.
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 22 164 164">`
-    + '<defs>'
-    + `<radialGradient id="face" cx="42%" cy="36%" r="70%"><stop offset="0" stop-color="${avShade(skin, 0.28)}"/><stop offset=".55" stop-color="${skin}"/><stop offset="1" stop-color="${avShade(skin, -0.16)}"/></radialGradient>`
-    + `<linearGradient id="hair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${avShade(hc, 0.22)}"/><stop offset="1" stop-color="${avShade(hc, -0.2)}"/></linearGradient>`
-    + `<linearGradient id="cloth" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${avShade(c.outfitColor, 0.18)}"/><stop offset="1" stop-color="${avShade(c.outfitColor, -0.18)}"/></linearGradient>`
-    + `<radialGradient id="iris" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="${avShade(c.eyeColor, 0.35)}"/><stop offset="1" stop-color="${avShade(c.eyeColor, -0.25)}"/></radialGradient>`
-    + `<radialGradient id="bg" cx="50%" cy="35%" r="75%"><stop offset="0" stop-color="${avShade(c.bg, 0.5)}"/><stop offset="1" stop-color="${c.bg}"/></radialGradient>`
-    + '</defs>'
-    + '<rect x="0" y="0" width="200" height="200" fill="url(#bg)"/>'
-    + avHair(c, hc, 'back')
-    + avOutfit(c, skin)
-    + `<path d="M86,124 L86,150 Q100,160 114,150 L114,124Z" fill="${avShade(skin, -0.1)}"/>`
-    + `<ellipse cx="100" cy="146" rx="16" ry="5" fill="${avShade(skin, -0.28)}" opacity=".35"/>`
-    + ears + earrings
-    + '<path d="M56,92 C56,60 76,42 100,42 C124,42 144,60 144,92 C144,124 126,147 100,147 C74,147 56,124 56,92Z" fill="url(#face)"/>'
-    + '<ellipse cx="88" cy="70" rx="16" ry="9" fill="#fff" opacity=".16"/>'
-    + '<path d="M70,128 C80,142 120,142 130,128 C122,146 78,146 70,128Z" fill="#000" opacity=".05"/>'
-    + blush + freckles
-    + avHair(c, hc, 'front') + headband
-    + avBrows(c, hc) + avEyes(c)
-    + `<path d="M97,107 Q100,115 104,112" stroke="${avShade(skin, -0.3)}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".7"/>`
-    + avMouth(c) + avGlasses(c)
-    + '</svg>';
-}
-
-const avUri = (cfg) => `data:image/svg+xml,${encodeURIComponent(avatarSvg(cfg))}`;
-const charCache = new Map();
-/** The default character for someone without a photo, from their name. */
-function charAvatar(seed) {
-  const key = String(seed || 'synergy').toLowerCase();
-  if (!charCache.has(key)) charCache.set(key, avUri(avFromSeed(key)));
-  return charCache.get(key);
-}
-
-/** A character as a 256px PNG, the same kind of picture an upload becomes. */
-function avatarPng(cfg) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const cv = Object.assign(document.createElement('canvas'), { width: 256, height: 256 });
-      cv.getContext('2d').drawImage(img, 0, 0, 256, 256);
-      resolve(cv.toDataURL('image/png'));
-    };
-    img.onerror = () => reject(new Error('That character could not be drawn.'));
-    img.src = avUri(cfg);
-  });
+  return WOMEN[h % WOMEN.length];
 }
 
 /**
@@ -2921,7 +2666,9 @@ function calendarList() {
 }
 
 function renderCalBar() {
-  $('calBar').innerHTML = `<span class="lbl">Calendars</span>${calendarList().map((c) => (c.kind === 'salon'
+  // Only calendars that are in use are shown; stylist calendars join the bar
+  // when they can be connected, and until then live in the create dialog.
+  $('calBar').innerHTML = `<span class="lbl">Calendars</span>${calendarList().filter((c) => c.connected).map((c) => (c.kind === 'salon'
     ? `<button type="button" class="calchip ${selectedCalendar === c.id ? 'on' : ''}" data-cal="${c.id}" title="Every stylist's appointments">
         <span class="dot">${ic('calendar')}</span>${esc(c.name)}</button>`
     : `<button type="button" class="calchip ${c.connected ? '' : 'off'}" data-cal="${esc(c.id)}"
@@ -3855,7 +3602,6 @@ function shrink(file, box, type = 'image/jpeg') {
 
 let memberEdit = null;      // null: adding. 'me': yourself. Otherwise a team row.
 let memberPic;              // undefined: unchanged. null: remove. string: new picture.
-let memberStyle;            // the character behind memberPic, or null for a photo
 let memberOrig = {};        // what the modal opened with, so only real changes are sent
 
 /**
@@ -3936,9 +3682,10 @@ async function openMember(who) {
   for (const k of ['name', 'username', 'email', 'role']) f.elements[k].value = m ? (m[k] || '') : '';
   if (!m) f.elements.role.value = 'front_desk';
   memberOrig = { username: m?.username || '', services: JSON.stringify(m?.services || {}) };
-  memberPicPaint(m?.avatar, m?.photo);
-  memberStyle = undefined;
-  memberOrig.avatarStyle = m?.avatarStyle || null;
+  memberPicPaint(m?.avatar ? personPhoto(m) : null, m ? personPhoto(m) : null);
+  memberOrig.avatar = m?.avatar || null;
+  $('memberAvatarNote').classList.toggle('hidden', !m?.photo);
+  paintAvatarGrid();
   paintServices(m?.services || {});
 
   // Who may change what. Nobody changes their own role, which is how a salon
@@ -3983,16 +3730,24 @@ async function openMember(who) {
 
 $('memberPic').onclick = () => $('memberPicFile').click();
 $('memberPicPick').onclick = () => $('memberPicFile').click();
-$('memberPicDrop').onclick = () => { memberPic = null; memberStyle = null; memberPicPaint(null); };
-// A saved character opens as it was; otherwise the maker starts from the
-// character the app already drew for this name.
-$('memberPicMake').onclick = () => {
-  const name = $('memberForm').elements.name.value || 'new';
-  openAvatarMaker(memberStyle || memberOrig.avatarStyle || avFromSeed(name), ({ png, style }) => {
-    memberPic = png;
-    memberStyle = style;
-    memberPicPaint(png);
-  });
+$('memberPicDrop').onclick = () => { memberPic = null; memberPicPaint(null); paintAvatarGrid(); };
+
+/** The avatar choices, women first; the one in use is ringed. */
+function paintAvatarGrid() {
+  const current = memberPic !== undefined ? memberPic : memberOrig.avatar;
+  $('memberAvatars').innerHTML = AVATAR_SETS.map(([label, kinds]) => `
+    <div class="avset"><span class="avset-l">${esc(label)}</span><div class="avset-g">${kinds.flatMap((k) => AVATAR_TONES.map((t) => {
+      const src = avatarPath(k, t);
+      return `<button type="button" class="avopt" data-avatar="${src}" aria-pressed="${current === src}"
+        aria-label="${esc(`${k.replace(/_/g, ' ')}, ${t.replace(/_/g, ' ')} skin`)}"><img src="${src}" alt="" loading="lazy"></button>`;
+    })).join('')}</div></div>`).join('');
+}
+$('memberAvatars').onclick = (e) => {
+  const b = e.target.closest('[data-avatar]');
+  if (!b || $('memberPic').disabled) return;
+  memberPic = b.dataset.avatar;
+  memberPicPaint(memberPic);
+  paintAvatarGrid();
 };
 $('memberPicFile').onchange = async (e) => {
   const file = e.target.files[0];
@@ -4000,8 +3755,8 @@ $('memberPicFile').onchange = async (e) => {
   if (!file) return;
   try {
     memberPic = await shrink(file, 256);
-    memberStyle = null;
     memberPicPaint(memberPic);
+    paintAvatarGrid();
   } catch (err) { note($('memberNote'), err.message); }
 };
 
@@ -4035,9 +3790,6 @@ $('memberForm').onsubmit = async (e) => {
   // Sent only when it changed, so saving a name works before migration 012.
   if (JSON.stringify(services) !== memberOrig.services) fields.services = services;
   if (memberPic !== undefined) fields.avatar = memberPic;
-  // Sent only with a new picture: a photo clears the character, a character
-  // keeps its settings so it can be opened again.
-  if (memberStyle !== undefined) fields.avatarStyle = memberStyle;
   $('memberSave').disabled = true;
   try {
     if (!memberEdit) {
@@ -4071,84 +3823,11 @@ $('memberForm').onsubmit = async (e) => {
   } finally { $('memberSave').disabled = false; }
 };
 
-// ── the character maker ───────────────────────────────────────────────────
-//
-// Every choice is shown as the person it would make, not as a word, so
-// nobody has to imagine what "Almond" or "Quiff" looks like.
-
-let avCfg = null;          // the character being made
-let avStart = null;        // what the maker opened with, for "Start over"
-let avTab = 'face';
-let avDone = null;         // called with { png, style } on "Use this character"
-
-function openAvatarMaker(start, onDone) {
-  avStart = avNormalize(start);
-  avCfg = { ...avStart };
-  avDone = onDone;
-  avTab = 'face';
-  paintAvatarMaker();
-  openDialog($('avDlg'));
-}
-
-function paintAvatarMaker() {
-  $('avPreview').src = avUri(avCfg);
-  for (const b of $('avTabs').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.avtab === avTab));
-  const thumbs = (key, list, cls = '') => `<div class="av-grid">${list.map((v) => `
-    <button type="button" class="av-pick ${cls}" data-k="${key}" data-v="${esc(v)}" aria-pressed="${avCfg[key] === v}">
-      <img src="${avUri({ ...avCfg, [key]: v })}" alt=""><span>${esc(AV_LABEL[v] || v)}</span></button>`).join('')}</div>`;
-  const swatches = (key, list) => `<div class="av-sw">${list.map((v) => `
-    <button type="button" data-k="${key}" data-v="${v}" aria-pressed="${avCfg[key] === v}" style="background:${v}" aria-label="${v}"></button>`).join('')}</div>`;
-  const toggle = (key, label) => `<div class="av-row"><b>${esc(label)}</b>
-    <button type="button" class="switch" role="switch" data-toggle="${key}" aria-checked="${Boolean(avCfg[key])}" aria-label="${esc(label)}"><span></span></button></div>`;
-  const sec = (title, body) => `<div class="av-sec"><h3>${esc(title)}</h3>${body}</div>`;
-  const tabs = {
-    face: () => sec('Skin tone', swatches('skin', AV.skin)) + sec('Cheeks', toggle('blush', 'Rosy cheeks') + toggle('freckles', 'Freckles')),
-    hair: () => sec('Hairstyle', thumbs('hair', AV.hair)) + sec('Hair colour', swatches('hairColor', AV.hairColor)),
-    eyes: () => sec('Eyes', thumbs('eyes', AV.eyes, 'zoom')) + sec('Eye colour', swatches('eyeColor', AV.eyeColor))
-      + sec('Eyebrows', thumbs('brows', AV.brows, 'zoom')) + sec('Glasses', thumbs('glasses', AV.glasses, 'zoom'))
-      + (avCfg.glasses !== 'none' ? sec('Frame colour', swatches('glassesColor', AV.glassesColor)) : ''),
-    mouth: () => sec('Mouth', thumbs('mouth', AV.mouth, 'zoom-m')) + sec('Lip colour', swatches('lips', AV.lips)),
-    outfit: () => sec('Outfit', thumbs('outfit', AV.outfit)) + sec('Outfit colour', swatches('outfitColor', AV.outfitColor)),
-    extras: () => sec('Accessories', toggle('earrings', 'Earrings') + toggle('headband', 'Headband'))
-      + (avCfg.headband ? sec('Headband colour', swatches('headbandColor', AV.accent)) : ''),
-    bg: () => sec('Background', swatches('bg', AV.bg)),
-  };
-  const scroll = $('avOpts').scrollTop;
-  $('avOpts').innerHTML = tabs[avTab]();
-  $('avOpts').scrollTop = scroll;
-}
-
-$('avTabs').onclick = (e) => {
-  const b = e.target.closest('[data-avtab]');
-  if (!b) return;
-  avTab = b.dataset.avtab;
-  $('avOpts').scrollTop = 0;
-  paintAvatarMaker();
-};
-$('avOpts').onclick = (e) => {
-  const t = e.target.closest('[data-toggle]');
-  if (t) { avCfg[t.dataset.toggle] = !avCfg[t.dataset.toggle]; paintAvatarMaker(); return; }
-  const b = e.target.closest('[data-k]');
-  if (!b) return;
-  avCfg[b.dataset.k] = b.dataset.v;
-  paintAvatarMaker();
-};
-$('avRandom').onclick = () => { avCfg = avFromSeed(Math.random().toString(36)); paintAvatarMaker(); };
-$('avReset').onclick = () => { avCfg = { ...avStart }; paintAvatarMaker(); };
-$('avCancel').onclick = () => closeDialog($('avDlg'));
-$('avUse').onclick = async () => {
-  try {
-    const png = await avatarPng(avCfg);
-    closeDialog($('avDlg'));
-    avDone?.({ png, style: { ...avCfg } });
-  } catch (err) { toast(err.message, 'bad'); }
-};
-
 // ── Team ──────────────────────────────────────────────────────────────────
 //
-// For now the list shows the signed-in person only: the stylists are added
-// one by one later, from the panel beside it. Requests to join still appear
-// under the list for an owner or manager, since nothing else shows them.
+// You first, then (for owners and managers) everyone else on the team; each
+// card opens the same modal. Requests to join appear under the list, since
+// nothing else shows them.
 
 let teamCurrent = null;     // the signed-in person, as the list shows them
 
@@ -4160,55 +3839,45 @@ function svcSummary(services = {}) {
   }).join('');
 }
 
-function renderTeam(current, pending = []) {
+let teamOthers = [];        // everyone else on the team, for owners and managers
+
+function memberRow(m, self) {
+  const status = m.status === 'disabled' ? '<span class="chip">Turned off</span>' : '<span class="chip ok">Active</span>';
+  return `<button type="button" class="tm-row${self ? ' me' : ''}${m.status === 'disabled' ? ' off' : ''}" data-member="${self ? 'me' : esc(m.id)}"
+      aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
+    <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""><span class="pen">${ic('edit')}</span></span>
+    <span class="tm-who"><b>${esc(m.name)}${m.username ? ` <i class="tm-handle">@${esc(m.username)}</i>` : ''}${self ? ' <i class="tm-you">You</i>' : ''}</b>
+      <span>${esc(m.email)}</span>
+      <span class="tm-svc">${svcSummary(m.services)}</span></span>
+    <span class="tm-badges"><span class="chip role">${esc(ROLE_LABEL[m.role] || m.role)}</span>${status}</span>
+  </button>`;
+}
+
+function renderTeam(current, others = [], pending = []) {
   teamCurrent = current;
+  teamOthers = others;
   const admin = me?.user?.canAdmin;
-  // The banner's fan of portraits: the salon's stylists as the public site
-  // shows them, with you at the front if you are not one of them yet.
-  const faces = (me?.stylists || []).map((st) => ({ name: st.name, photo: st.photo || charAvatar(st.name) }));
-  if (!current.photo) faces.unshift({ name: current.name, photo: personPhoto(current), me: true });
-  const mid = (faces.length - 1) / 2;
-  const fan = faces.map((f, i) => {
-    const off = mid ? (i - mid) / mid : 0;          // -1 at the left edge, 1 at the right
-    return `<span class="fan-card${f.me ? ' me' : ''}" style="--r:${(off * 14).toFixed(1)}deg;--y:${Math.round(off * off * 22)}px;z-index:${10 - Math.round(Math.abs(off) * 5)}"
-      title="${esc(f.name)}"><img src="${esc(f.photo)}" alt="${esc(f.name)}"></span>`;
-  }).join('');
+  // The stylists' own faces beside the call to add them: who is still to come.
+  const faces = (me?.stylists || []).slice(0, 4)
+    .map((st) => `<img src="${esc(st.photo || charAvatar(st.name))}" alt="" title="${esc(st.name)}">`).join('');
   $('team').innerHTML = `
-    <div class="fan-wrap">
-      <div class="fan">${fan}</div>
-      <div class="fan-banner">
-        <h3>The stylists your clients ask for, all in one place.</h3>
-        <p>Every team member&rsquo;s picture, details and prices. Add each stylist as they join the salon.</p>
-      </div>
+    <div class="tm-list">
+      ${memberRow(current, true)}
+      ${others.map((m) => memberRow(m, false)).join('')}
     </div>
-    <div class="tm">
-      <div class="tm-list">
-        <button type="button" class="tm-row me" id="teamMe" aria-label="Edit your profile and prices">
-          <span class="tm-pic"><img src="${esc(personPhoto(current))}" alt=""><span class="pen">${ic('edit')}</span></span>
-          <span class="tm-who"><b>${esc(current.name)}${current.username ? ` <span style="display:inline;color:var(--muted);font-weight:500">@${esc(current.username)}</span>` : ''}</b>
-            <span>${esc(current.email)}</span>
-            <span class="tm-svc">${svcSummary(current.services)}</span></span>
-          <span class="tm-badges"><span class="chip role">${esc(ROLE_LABEL[current.role] || current.role)}</span><span class="chip ok">Active</span></span>
-        </button>
-        <div class="tm-later">
-          <span class="ghosts"><img src="${charAvatar('stylist one')}" alt=""><img src="${charAvatar('stylist two')}" alt=""><img src="${charAvatar('stylist three')}" alt=""></span>
-          <span>Stylists you add appear here, each with their own picture and prices.</span>
-        </div>
-        ${admin && pending.length ? `<div class="tm-pending"><h3>Asking to join</h3>${pending.map((m) => `
-          <div class="tm-pend" data-member="${esc(m.id)}">
-            <span class="who"><b>${esc(m.name)}</b> <span class="muted">${esc(m.email)}${m.note ? ` · ${esc(m.note)}` : ''}</span></span>
-            ${roleControl(m)}
-            <button class="btn sm" data-act="approve" data-id="${esc(m.id)}">Approve</button>
-            <button class="btn quiet sm" data-act="reject" data-id="${esc(m.id)}">Decline</button>
-          </div>`).join('')}</div>` : ''}
-      </div>
-      <aside class="tm-add">
-        <span class="bubble">${ic('users-plus')}</span>
-        <b>Add Team Member</b>
-        <p>${admin ? 'Give each stylist their own sign in, picture and prices.' : 'An owner or manager adds stylists to the team.'}</p>
-        ${admin ? `<button type="button" class="btn sm" id="teamAdd">${ic('plus')}Add Team Member</button>` : ''}
-      </aside>
-    </div>`;
+    <div class="tm-addrow">
+      ${faces ? `<span class="tm-faces">${faces}</span>` : `<span class="tm-addic">${ic('users-plus')}</span>`}
+      <span class="tm-addtx"><b>Add a team member</b>
+        <span>${admin ? 'Give each stylist their own sign in, picture and prices.' : 'An owner or manager adds stylists to the team.'}</span></span>
+      ${admin ? `<button type="button" class="btn sm" id="teamAdd">${ic('plus')}Add Team Member</button>` : ''}
+    </div>
+    ${admin && pending.length ? `<div class="tm-pending"><h3>Asking to join</h3>${pending.map((m) => `
+      <div class="tm-pend" data-member="${esc(m.id)}">
+        <span class="who"><b>${esc(m.name)}</b> <span class="muted">${esc(m.email)}${m.note ? ` · ${esc(m.note)}` : ''}</span></span>
+        ${roleControl(m)}
+        <button class="btn sm" data-act="approve" data-id="${esc(m.id)}">Approve</button>
+        <button class="btn quiet sm" data-act="reject" data-id="${esc(m.id)}">Decline</button>
+      </div>`).join('')}</div>` : ''}`;
 }
 
 /** The role picker a pending request is approved with. */
@@ -4222,7 +3891,11 @@ function roleControl(m) {
 
 $('team').onclick = async (e) => {
   if (e.target.closest('#teamAdd')) { openMember(null); return; }
-  if (e.target.closest('#teamMe')) { openMember('me'); return; }
+  const row = e.target.closest('.tm-row[data-member]');
+  if (row) {
+    openMember(row.dataset.member === 'me' ? 'me' : teamOthers.find((m) => String(m.id) === row.dataset.member));
+    return;
+  }
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
   const act = btn.dataset.act;
@@ -4253,7 +3926,8 @@ async function loadTeam() {
       me?.user?.canAdmin ? api('/api/staff/team') : Promise.resolve(null),
     ]);
     const pending = t ? t.members.filter((m) => m.status === 'pending') : [];
-    renderTeam({ ...p, status: 'active' }, pending);
+    const others = t ? t.members.filter((m) => m.id !== t.you.id && m.status !== 'pending') : [];
+    renderTeam({ ...p, status: 'active' }, others, pending);
     if (t) {
       me.pendingApprovals = t.pending;
       $('pendingBadge').textContent = t.pending;

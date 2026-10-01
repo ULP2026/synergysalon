@@ -14,6 +14,7 @@ import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
 import { MIN_PASSWORD_LENGTH, hashPassword, verifyPassword } from '../../_lib/password.js';
+import { stylistPhoto } from '../../_lib/stylist-photos.js';
 
 /**
  * An avatar, or nothing.
@@ -28,6 +29,8 @@ export function avatarFrom(value) {
   if (value === null) return null;                 // an explicit "remove it"
   const s = String(value || '').trim();
   if (!s) return undefined;                        // absent: leave it alone
+  // One of the built-in avatars (assets/avatars), stored as its path.
+  if (/^\/assets\/avatars\/[a-z_]{3,40}\.png$/.test(s)) return s;
   if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(s)) {
     throw new HttpError(400, 'That does not look like an image.');
   }
@@ -122,7 +125,9 @@ export default handler({
               to_jsonb(u) ->> 'pricing' AS pricing,
               to_jsonb(u) -> 'services' AS services,
               to_jsonb(u) -> 'avatar_style' AS avatar_style,
-              (SELECT to_jsonb(s) ->> 'photo' FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS photo
+              (SELECT to_jsonb(s) ->> 'photo' FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS photo,
+              (SELECT s.slug FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS stylist_slug,
+              (SELECT t.slug FROM tenants t WHERE t.id = u.tenant_id) AS tenant_slug
          FROM staff_users u WHERE id = $1`,
       [user.id],
     );
@@ -138,7 +143,7 @@ export default handler({
       pricing: me.pricing || '',
       services: me.services || {},
       avatarStyle: me.avatar_style || null,
-      photo: me.photo || null,
+      photo: me.photo || (me.stylist_slug ? stylistPhoto(me.tenant_slug, me.stylist_slug) : null),
       since: me.created_at,
       lastSeen: me.last_seen_at,
       minPasswordLength: MIN_PASSWORD_LENGTH,

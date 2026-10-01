@@ -14,6 +14,7 @@ import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
 import { MIN_PASSWORD_LENGTH, hashPassword } from '../../_lib/password.js';
+import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import {
   assertUsernameFree, avatarFrom, avatarStyleFrom, servicesFrom, usernameFrom,
@@ -62,7 +63,7 @@ export default handler({
         pricing: r.pricing || '',
         services: r.services || {},
         avatarStyle: r.avatar_style || null,
-        photo: r.photo || null,
+        photo: r.photo || (r.stylist_slug ? stylistPhoto(tenant.slug, r.stylist_slug) : null),
         stylist: r.stylist_name,
         stylistSlug: r.stylist_slug,
         title: r.stylist_title || '',

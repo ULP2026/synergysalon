@@ -9,12 +9,17 @@ import { requireStaff } from '../../_lib/auth.js';
 import { REMINDER_LEAD_HOURS } from '../../_lib/config.js';
 import { query } from '../../_lib/db.js';
 import { handler, json } from '../../_lib/http.js';
+import { ensureSchema } from '../../_lib/ensure-schema.js';
+import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
+    // Every console session starts here, so this is where the profile
+    // columns get made if db:migrate has not been run (see ensure-schema.js).
+    await ensureSchema();
 
     const canAdmin = ['owner', 'manager'].includes(user.role);
     const [services, stylists, pending, own] = await Promise.all([
@@ -42,7 +47,7 @@ export default handler({
       // A stylist who never uploaded a picture still has the portrait the
       // public site shows; the chip and the team list use it.
       query(
-        `SELECT to_jsonb(s) ->> 'photo' AS photo FROM stylists s
+        `SELECT to_jsonb(s) ->> 'photo' AS photo, s.slug FROM stylists s
           WHERE s.staff_user_id = $1 LIMIT 1`,
         [user.id],
       ),
@@ -52,7 +57,7 @@ export default handler({
       user: {
         name: user.name, email: user.email, role: user.role, canAdmin,
         avatar: user.avatar ?? null,
-        photo: own.rows[0]?.photo ?? null,
+        photo: own.rows[0]?.photo ?? (own.rows[0] ? stylistPhoto(tenant.slug, own.rows[0].slug) : null),
       },
       pendingApprovals: pending.rows[0].n,
       // The logo is the nav's mark, so it arrives with everything else rather
@@ -65,7 +70,13 @@ export default handler({
         price: s.price_cents == null ? null : s.price_cents / 100,
         consultFirst: s.consult_first,
       })),
-      stylists: stylists.rows,
+      // A real picture first: an uploaded photo, then the salon's portrait of
+      // the stylist, and a chosen avatar only when there is neither.
+      stylists: stylists.rows.map((s) => {
+        const uploaded = s.photo && s.photo.startsWith('data:') ? s.photo : null;
+        const portrait = stylistPhoto(tenant.slug, s.slug);
+        return { ...s, photo: uploaded || portrait || s.photo };
+      }),
       // What Marketing, Automation shows as on or waiting. Whether email can
       // be sent is a fact about this deployment, not a setting anyone edits.
       features: {
