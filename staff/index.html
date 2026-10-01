@@ -722,19 +722,6 @@
   @keyframes view-in { from { opacity: 0; transform: translateY(4px); } }
 
 
-  /* ── Team Settings, Integration: stylist links and the booking test ───── */
-  .cx-sec { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
-  .cx-sec h3 { margin: 0 0 6px; font-size: 1rem; }
-  .cx-sec > p { margin: 0 0 14px; max-width: 72ch; line-height: 1.55; }
-  .cx-list { display: grid; gap: 8px; }
-  .cx-row { display: grid; grid-template-columns: minmax(0, 1fr) 240px auto; align-items: center; gap: 12px;
-            padding: 12px 14px; border-radius: 14px; background: var(--raise); }
-  .cx-name { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
-  .cx-row select { height: 38px; }
-  @media (max-width: 720px) {
-    .cx-row { grid-template-columns: 1fr; }
-  }
-
   /* ── contact detail: a large two-column profile ─────────────────────── */
   dialog.xl { max-width: 1140px; width: calc(100% - 48px); height: min(840px, calc(100dvh - 48px));
               padding: 0; overflow: hidden; }
@@ -1359,6 +1346,42 @@
   :root[data-theme="dark"] .chip.warn { background: rgba(214, 64, 77, .22); color: #f3a9b0; }
   :root[data-theme="dark"] .chip.pending { background: rgba(213, 156, 44, .2); color: #f4cf78; }
   :root[data-theme="dark"] .btn.signout:hover:not(:disabled) { background: rgba(214, 64, 77, .18); }
+
+  /* ── Team Members banner: a fan of portrait cards over a soft panel ─── */
+  .fan-wrap { position: relative; margin: 4px 0 18px; padding-top: 10px; }
+  .fan { position: relative; z-index: 2; display: flex; justify-content: center; align-items: flex-start; padding: 0 12px; }
+  .fan-card { flex: none; width: 78px; height: 96px; margin: 0 -7px; border-radius: 12px; overflow: hidden; background: var(--card);
+              border: 3px solid var(--card); box-shadow: 0 10px 22px -12px rgba(30, 31, 92, .55);
+              transform: translateY(var(--y)) rotate(var(--r)); transform-origin: 50% 120%; }
+  .fan-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .fan-card.me { box-shadow: 0 0 0 2px var(--periwinkle), 0 10px 22px -12px rgba(30, 31, 92, .55); }
+  .fan-banner { position: relative; z-index: 1; margin-top: -44px; padding: 96px 24px 24px; border-radius: 22px; text-align: center;
+                background: linear-gradient(180deg, #e3e6fa 0%, #eceefb 100%); }
+  .fan-banner h3 { margin: 0 auto; max-width: 30ch; font-size: 1.2rem; font-weight: 650; color: var(--indigo-deep); letter-spacing: -.01em; line-height: 1.3; }
+  .fan-banner p { margin: 8px auto 0; max-width: 46ch; font-size: .82rem; color: var(--muted); }
+  @media (max-width: 560px) { .fan-card { width: 58px; height: 72px; margin: 0 -9px; } .fan-banner { margin-top: -32px; padding-top: 74px; } }
+  :root[data-theme="dark"] .fan-banner { background: linear-gradient(180deg, #262966 0%, #1f2150 100%); }
+  :root[data-theme="dark"] .fan-banner h3 { color: var(--ink); }
+
+  /* ── Integration: one row per connection, RocketOS's integrations list ── */
+  .ints { display: grid; gap: 10px; }
+  .int-r { display: flex; align-items: center; gap: 10px; }
+  .int { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 14px;
+         padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .int-ico { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; background: var(--raise); }
+  .int-ico svg { width: 24px; height: 24px; }
+  .int b { display: block; font-size: .95rem; font-weight: 600; }
+  .int span.d { display: block; font-size: .82rem; color: var(--muted); }
+  .int .st { display: inline-flex; align-items: center; height: 26px; padding: 0 12px; border-radius: 999px; font-size: .78rem; font-weight: 600;
+             background: var(--raise); color: var(--muted); white-space: nowrap; }
+  .int .st.on { background: #e1f2e8; color: #22673f; }
+  .int .btn { height: 38px; }
+  .int-note { margin: 10px 2px 0; font-size: .78rem; color: var(--muted); }
+  @media (max-width: 600px) {
+    .int { grid-template-columns: 44px minmax(0, 1fr); }
+    .int-r { grid-column: 2; }
+  }
+  :root[data-theme="dark"] .int .st.on { background: rgba(47, 125, 79, .25); color: #9fd8b6; }
 </style>
 </head>
 <body>
@@ -1623,19 +1646,17 @@
         </section>
 
         <section class="acard hidden" id="acctIntegration">
-          <h2 class="ahead"><svg class="ic"><use href="#i-link"/></svg>Integration</h2>
-          <p class="asub">Every booking, cancellation and check-in made here is copied to the salon&rsquo;s
-            CRM calendar. This app is the diary and the CRM follows it, so make changes here.</p>
+          <h2 class="ahead"><svg class="ic"><use href="#i-link"/></svg>Integrations</h2>
+          <p class="asub">The apps the salon connects to. Your calendars are yours; the CRM and email are the salon&rsquo;s.</p>
           <div id="centro"></div>
         </section>
 
         <section class="acard">
-          <h2 class="ahead"><svg class="ic"><use href="#i-shield"/></svg>Team</h2>
+          <h2 class="ahead"><svg class="ic"><use href="#i-shield"/></svg>Team Members</h2>
           <p class="asub">Your profile and the people who work here. Click your picture to edit it and your prices.</p>
           <div id="team"></div>
         </section>
 
-        <button type="button" class="btn signout" id="acctSignOut"><svg class="ic"><use href="#i-signout"/></svg>Sign Out</button>
       </div>
     </section>
   </main>
@@ -1996,7 +2017,52 @@ function paintMe() {
 const SILHOUETTE = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#e6e8f7"/>'
   + '<circle cx="32" cy="25" r="11" fill="#a9b0dd"/><path d="M11 60c2-12 10.5-18 21-18s19 6 21 18z" fill="#a9b0dd"/></svg>');
-function personPhoto(p) { return p?.avatar || p?.photo || SILHOUETTE; }
+function personPhoto(p) { return p?.avatar || p?.photo || charAvatar(p?.name || p?.email || ''); }
+
+/**
+ * A drawn character for anyone without a photo: face, hair and colours
+ * picked from their name, so the same person always looks the same and two
+ * people rarely match. Drawn here as SVG, so nothing is fetched and no
+ * picture of a real person stands in for someone it is not.
+ */
+const charCache = new Map();
+function charAvatar(seed) {
+  const key = String(seed || 'synergy').toLowerCase();
+  if (charCache.has(key)) return charCache.get(key);
+  let h = 2166136261;
+  for (const c of key) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  const pick = (arr, shift) => arr[(h >>> shift) % arr.length];
+  const bg = pick(['#e6e8f7', '#efe4fb', '#dff0f7', '#e2f2ea', '#fbe7ee', '#fbeedd'], 0);
+  const skin = pick(['#f6d3b8', '#eec29f', '#d9a27c', '#b97a55', '#8d5a3b', '#f3c9a6'], 3);
+  const hair = pick(['#2b1d16', '#4a2f1f', '#7a4a26', '#b8864b', '#d9b26f', '#1e1f5c', '#5b3a2e'], 6);
+  const shirt = pick(['#353676', '#5560a6', '#1e1f5c', '#6b76c0', '#2f7d4f', '#8a5514'], 9);
+  const style = (h >>> 12) % 4;
+  const hairBack = [
+    '',
+    '<path d="M17 30c0-12 7-19 15-19s15 7 15 19v14h-5V30H22v14h-5z"/>',
+    '<circle cx="32" cy="11" r="6"/>',
+    '<path d="M16 32c-2-11 5-21 16-21s18 10 16 21c3 6 1 12-3 14-1-8-3-13-4-15H23c-1 2-3 7-4 15-4-2-6-8-3-14z"/>',
+  ][style];
+  const hairFront = [
+    '<path d="M20 27c0-8 5-13 12-13s12 5 12 13c-3-4-8-6-12-6s-9 2-12 6z"/>',
+    '<path d="M20 28c1-9 6-14 12-14s11 5 12 14c-5-1-9-4-11-8-2 4-7 7-13 8z"/>',
+    '<path d="M20 27c0-8 5-12 12-12s12 4 12 12c-4-3-8-4-12-4s-8 1-12 4z"/>',
+    '<path d="M19 28c0-9 6-15 13-15s13 6 13 15c-2-3-5-5-7-5-1 2-4 3-6 3s-5-1-6-3c-2 0-5 2-7 5z"/>',
+  ][style];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${bg}"/>`
+    + `<g fill="${hair}">${hairBack}</g>`
+    + `<path d="M12 64c1-11 9-17 20-17s19 6 20 17z" fill="${shirt}"/>`
+    + `<rect x="28" y="38" width="8" height="10" rx="3" fill="${skin}"/>`
+    + `<ellipse cx="32" cy="29" rx="12" ry="13" fill="${skin}"/>`
+    + `<g fill="${hair}">${hairFront}</g>`
+    + '<circle cx="27.5" cy="30" r="1.6" fill="#2a2233"/><circle cx="36.5" cy="30" r="1.6" fill="#2a2233"/>'
+    + '<path d="M28 35.5c2.4 2.2 5.6 2.2 8 0" stroke="#7a3b3b" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
+    + '<circle cx="25" cy="34" r="2" fill="#f09a9a" opacity=".35"/><circle cx="39" cy="34" r="2" fill="#f09a9a" opacity=".35"/>'
+    + '</svg>';
+  const uri = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  charCache.set(key, uri);
+  return uri;
+}
 
 /**
  * The nav's mark: the salon's own logo once Salon Profile has one, the
@@ -2217,7 +2283,6 @@ document.fonts?.addEventListener?.('loadingdone', () => { if (me) moveRing(true)
 
 // The chip is the person; it is a data-page link to Team Settings, routed
 // like every other one. Sign out lives at the bottom of that page.
-$('acctSignOut').onclick = () => signOutNow();
 
 $('mktSeg').onclick = (e) => {
   const b = e.target.closest('button[data-page]');
@@ -2316,7 +2381,7 @@ async function loadHome() {
     // One the CRM refused will not arrive on its own, so say so and say where.
     if (refused) {
       const who = refused === 1 ? '1 of today’s bookings' : `${refused} of today’s bookings`;
-      $('syncNote').innerHTML = `${ic('info')}<span>The CRM refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. ${me.user.canAdmin ? '<a href="/staff/account" data-centro>See why and retry</a>.' : 'Ask an owner or manager to check Team Settings, Integration.'}</span>`;
+      $('syncNote').innerHTML = `${ic('info')}<span>The CRM refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. ${me.user.canAdmin ? '<a href="/staff/account" data-centro>Check the CRM connection</a>. It retries on its own every day.' : 'Ask an owner or manager to check Team Settings, Integration.'}</span>`;
       $('syncNote').className = 'note bad';
     } else if (unsynced) {
       $('syncNote').innerHTML = `${ic('info')}<span>${unsynced === 1 ? '1 of today’s bookings hasn’t' : `${unsynced} of today’s bookings haven’t`} synced yet. They are sent across automatically; nothing to do here.</span>`;
@@ -2505,7 +2570,7 @@ function renderDiary(d) {
   }).join('');
 
   const heads = cols.map((c, i) => `<div class="dg-head dg-c${i % 6}">
-      <span class="avatar"><img src="${esc(c.photo || SILHOUETTE)}" alt=""></span>
+      <span class="avatar"><img src="${esc(c.photo || charAvatar(c.name))}" alt=""></span>
       <div style="min-width:0"><b title="${esc(c.name)}">${esc(shortName(c.name))}</b>
         <span class="sub">${live.filter((a) => a.stylistSlug === c.slug).length} booked</span></div>
     </div>`).join('');
@@ -2599,7 +2664,7 @@ function renderCalBar() {
         <span class="dot">${ic('calendar')}</span>${esc(c.name)}</button>`
     : `<button type="button" class="calchip ${c.connected ? '' : 'off'}" data-cal="${esc(c.id)}"
         title="${esc(c.connected ? c.name : `${c.name}'s own calendar is not connected yet`)}">
-        <img src="${esc(c.photo || SILHOUETTE)}" alt="">${esc(c.name.split(/\s+/)[0])}</button>`)).join('')}
+        <img src="${esc(c.photo || charAvatar(c.name))}" alt="">${esc(c.name.split(/\s+/)[0])}</button>`)).join('')}
     <button type="button" class="calchip add" data-cal="new">${ic('plus')}Create or connect calendar</button>`;
 }
 
@@ -3542,7 +3607,7 @@ const SERVICE_KINDS = [
 ];
 
 function memberPicPaint(src, fallback) {
-  $('memberPicInner').innerHTML = `<img src="${esc(src || fallback || SILHOUETTE)}" alt="">`;
+  $('memberPicInner').innerHTML = `<img src="${esc(src || fallback || charAvatar($('memberForm').elements.name.value || 'new'))}" alt="">`;
   $('memberPicDrop').classList.toggle('hidden', !src);
   $('memberPicPick').textContent = src ? 'Change photo' : 'Upload photo';
 }
@@ -3637,11 +3702,12 @@ async function openMember(who) {
   $('memberMeta').textContent = meta;
   $('memberMeta').classList.toggle('hidden', !meta);
 
-  // Someone else can be turned off or back on; your own way out is the
-  // Sign Out button at the bottom of Team Settings.
+  // Your own profile is where you sign out; someone else can be turned off
+  // or back on.
   const danger = $('memberDanger');
   danger.dataset.act = '';
-  if (m && !self && !lockedOwner && admin) {
+  if (self) { danger.textContent = 'Sign out'; danger.dataset.act = 'signout'; }
+  else if (m && !lockedOwner && admin) {
     const act = m.status === 'pending' ? 'reject' : m.status === 'disabled' ? 'enable' : 'disable';
     danger.textContent = { reject: 'Decline request', enable: 'Turn back on', disable: 'Turn off account' }[act];
     danger.dataset.act = act;
@@ -3665,6 +3731,7 @@ $('memberPicFile').onchange = async (e) => {
 
 $('memberDanger').onclick = async () => {
   const act = $('memberDanger').dataset.act;
+  if (act === 'signout') { closeDialog($('memberDlg')); signOutNow(); return; }
   const m = memberEdit;
   if (!m || m === 'me') return;
   if (act === 'disable' && !confirm('Turn off this account? They are signed out straight away.')) return;
@@ -3744,7 +3811,24 @@ function svcSummary(services = {}) {
 function renderTeam(current, pending = []) {
   teamCurrent = current;
   const admin = me?.user?.canAdmin;
+  // The banner's fan of portraits: the salon's stylists as the public site
+  // shows them, with you at the front if you are not one of them yet.
+  const faces = (me?.stylists || []).map((st) => ({ name: st.name, photo: st.photo || charAvatar(st.name) }));
+  if (!current.photo) faces.unshift({ name: current.name, photo: personPhoto(current), me: true });
+  const mid = (faces.length - 1) / 2;
+  const fan = faces.map((f, i) => {
+    const off = mid ? (i - mid) / mid : 0;          // -1 at the left edge, 1 at the right
+    return `<span class="fan-card${f.me ? ' me' : ''}" style="--r:${(off * 14).toFixed(1)}deg;--y:${Math.round(off * off * 22)}px;z-index:${10 - Math.round(Math.abs(off) * 5)}"
+      title="${esc(f.name)}"><img src="${esc(f.photo)}" alt="${esc(f.name)}"></span>`;
+  }).join('');
   $('team').innerHTML = `
+    <div class="fan-wrap">
+      <div class="fan">${fan}</div>
+      <div class="fan-banner">
+        <h3>The stylists your clients ask for, all in one place.</h3>
+        <p>Every team member&rsquo;s picture, details and prices. Add each stylist as they join the salon.</p>
+      </div>
+    </div>
     <div class="tm">
       <div class="tm-list">
         <button type="button" class="tm-row me" id="teamMe" aria-label="Edit your profile and prices">
@@ -3755,7 +3839,7 @@ function renderTeam(current, pending = []) {
           <span class="tm-badges"><span class="chip role">${esc(ROLE_LABEL[current.role] || current.role)}</span><span class="chip ok">Active</span></span>
         </button>
         <div class="tm-later">
-          <span class="ghosts"><img src="${SILHOUETTE}" alt=""><img src="${SILHOUETTE}" alt=""><img src="${SILHOUETTE}" alt=""></span>
+          <span class="ghosts"><img src="${charAvatar('stylist one')}" alt=""><img src="${charAvatar('stylist two')}" alt=""><img src="${charAvatar('stylist three')}" alt=""></span>
           <span>Stylists you add appear here, each with their own picture and prices.</span>
         </div>
         ${admin && pending.length ? `<div class="tm-pending"><h3>Asking to join</h3>${pending.map((m) => `
@@ -3834,9 +3918,9 @@ async function loadTeam() {
 
 function loadAccount() {
   paintDarkSwitch();
-  const admin = me?.user?.canAdmin;
-  $('acctIntegration').classList.toggle('hidden', !admin);
-  if (admin) loadCentro();
+  // Calendars and email are everyone's; the CRM row is for owners and managers.
+  $('acctIntegration').classList.remove('hidden');
+  loadCentro();
   loadTeam();
 }
 
@@ -4095,7 +4179,7 @@ function connectGoogle(btn) {
     window.removeEventListener('message', onMessage);
     clearInterval(watch);
     if (message) toast(message, ok ? '' : 'bad');
-    loadFeeds();
+    if (page === 'account') loadCentro(); else loadFeeds();
   };
 
   function onMessage(e) {
@@ -4177,148 +4261,97 @@ function renderFeeds(d) {
     </div>`;
 }
 
-/* ── Integrations: is the diary reaching the CRM? ─────────────────── */
-const SYNC_KIND = {
-  'appointment.booked': 'New booking', 'appointment.created': 'New booking',
-  'appointment.cancelled': 'Cancellation', 'appointment.status': 'Status change',
-  'appointment.deleted': 'Deleted booking', 'contact.created': 'New contact',
-  'contact.updated': 'Contact change', 'contact.deleted': 'Deleted contact',
+/* ── Integration: what the salon is connected to ───────────────────────
+   One row per connection, as RocketOS lists them: an icon, what it does,
+   whether it is connected, and one button. Only states the app can see are
+   shown as Connected; the rest say plainly what is needed. The CRM sync
+   keeps retrying refused jobs on its own (the daily cron), so there is no
+   queue to manage here. */
+
+let intData = { crm: null, cal: null };
+
+async function loadCentro() {
+  $('centro').innerHTML = skeleton(4);
+  const admin = me?.user?.canAdmin;
+  const [crm, cal] = await Promise.allSettled([
+    admin ? api('/api/staff/centro') : Promise.resolve(null),
+    api('/api/staff/calendars'),
+  ]);
+  intData = {
+    crm: crm.status === 'fulfilled' ? crm.value : { error: crm.reason?.message },
+    cal: cal.status === 'fulfilled' ? cal.value : null,
+  };
+  renderIntegrations();
+}
+
+const INT_ICONS = {
+  crm: `<svg viewBox="0 0 24 24" fill="none" stroke="#5560a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 11A7.5 7.5 0 0 0 6 6.8L4.5 8.5M4.5 4v4.5H9M4.5 13A7.5 7.5 0 0 0 18 17.2l1.5-1.7M19.5 20v-4.5H15"/></svg>`,
+  email: `<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="#fff" stroke="#d5d7e8"/><path d="M3.8 6.5 12 13l8.2-6.5" fill="none" stroke="#d93025" stroke-width="2" stroke-linejoin="round"/></svg>`,
 };
 
-async function loadCentro(retry = false) {
-  if (!retry) $('centro').innerHTML = skeleton(3);
-  try {
-    const r = retry
-      ? await api('/api/staff/centro', { method: 'POST', body: JSON.stringify({ action: 'retry' }) })
-      : await api('/api/staff/centro');
-    renderCentro(r);
-    if (r.retried) {
-      const { sent, stillFailing } = r.retried;
-      toast(stillFailing
-        ? `${sent} synced; ${stillFailing} still refused.`
-        : sent ? `${sent} synced.` : 'Nothing was waiting to be sent.', stillFailing ? 'bad' : '');
-    }
-  } catch (err) {
-    if (err.message !== 'signed out') {
-      $('centro').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t check the CRM', text: err.message });
-    }
+function renderIntegrations() {
+  const { crm, cal } = intData;
+  const rows = [];
+  const status = (state) => (state === 'on' ? '<span class="st on">Connected</span>'
+    : state === 'warn' ? '<span class="st" style="background:#fdf1d6;color:#7a5206">Needs attention</span>'
+    : '<span class="st">Not Connected</span>');
+  const row = (key, icon, name, desc, state, button) => `<div class="int" data-int="${key}">
+      <span class="int-ico">${icon}</span>
+      <div style="min-width:0"><b>${esc(name)}</b><span class="d">${esc(desc)}</span></div>
+      <span class="int-r">${status(state)}${button}</span></div>`;
+  const btn = (act, label) => `<button type="button" class="btn quiet sm" data-intact="${act}">${esc(label)}</button>`;
+
+  if (me?.user?.canAdmin && crm) {
+    const state = crm.linked ? (crm.check?.ok ? 'on' : 'warn') : 'off';
+    rows.push(row('crm', INT_ICONS.crm, 'Salon CRM', 'Keep clients and appointments in sync with the CRM',
+      state, crm.linked ? btn('crm-check', 'Check') : btn('crm-connect', 'Connect')));
   }
+  rows.push(row('email', INT_ICONS.email, 'Email', 'Send booking confirmations and reminders to clients',
+    me?.features?.email ? 'on' : 'off', me?.features?.email ? '' : btn('email-connect', 'Connect')));
+
+  const logo = (k) => CAL_APPS.find((a) => a.key === k).logo.replace('class="conn-logo"', '');
+  const g = cal?.google || {};
+  rows.push(row('google', logo('google'), 'Google Calendar', 'Put your appointments in your Google Calendar',
+    g.connected ? 'on' : 'off', g.connected ? btn('google-off', 'Disconnect') : btn('google-on', 'Connect')));
+  for (const k of ['apple', 'outlook']) {
+    const app = CAL_APPS.find((a) => a.key === k);
+    const on = Boolean(cal?.connected && cal.provider === k);
+    rows.push(row(k, logo(k), app.name, k === 'apple' ? 'See your appointments on iPhone, iPad and Mac' : 'See your appointments in Outlook and Microsoft 365',
+      on ? 'on' : 'off', cal?.[k] ? `<a class="btn quiet sm" href="${esc(cal[k])}" target="_blank" rel="noopener">${on ? 'Add device' : 'Connect'}</a>` : ''));
+  }
+  const problem = crm?.linked && !crm.check?.ok ? (crm.check?.problems || [])[0] : '';
+  $('centro').innerHTML = `<div class="ints">${rows.join('')}</div>
+    ${problem ? `<p class="int-note">CRM: ${esc(problem)}</p>` : ''}`;
 }
 
-function renderCentro(r) {
-  if (!r.linked) {
-    $('centro').innerHTML = `<div class="note bad">${ic('info')}<span>This salon is not linked to a CRM, so nothing is being copied there. Linking needs the sub-account&rsquo;s private integration token; see the setup notes.</span></div>`;
+$('centro').onclick = async (e) => {
+  const b = e.target.closest('[data-intact]');
+  if (!b) return;
+  const act = b.dataset.intact;
+  if (act === 'crm-check') { loadCentro(); return; }
+  if (act === 'crm-connect') {
+    toast('Linking the CRM needs its private key, which your web team adds. Ask them to connect it.');
     return;
   }
-  const c = r.check || {};
-  const pending = r.queue?.pending || 0;
-  const failed = r.queue?.failed || 0;
-  const head = c.ok
-    ? `<div class="note good">${ic('sync')}<span>Connected to <strong>${esc(c.location?.name || 'the CRM')}</strong>, calendar <strong>${esc(c.calendar?.name || '')}</strong>.</span></div>`
-    : `<div class="note bad">${ic('info')}<span>${(c.problems || ['The CRM could not be checked.']).map(esc).join('<br>')}</span></div>`;
-  const stats = `
-    <div class="px-stats" style="margin:4px 0 18px">
-      <div><b>${pending}</b><span>Waiting to send</span></div>
-      <div><b>${failed}</b><span>Refused by the CRM</span></div>
-      <div><b>${c.calendar?.teamMembers ?? '–'}</b><span>Calendar team members</span></div>
-    </div>`;
-  const list = r.failed.length ? `
-    <h3 class="small muted" style="margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em;font-size:var(--fs-xs)">Refused</h3>
-    <ul class="px-appts" style="margin:0 0 18px">
-      ${r.failed.map((f) => `<li style="display:block">
-        <div><strong>${esc(SYNC_KIND[f.kind] || f.kind)}</strong>${f.ref ? ` · ${esc(f.guestName || '')} · ${esc(f.ref)}` : ''}${f.startsAt ? ` · ${esc(fmtWhen(f.startsAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}` : ''}</div>
-        <div class="small muted" style="margin-top:4px;overflow-wrap:anywhere">${esc(f.error || 'No reason given.')}</div>
-      </li>`).join('')}
-    </ul>` : '';
-  $('centro').innerHTML = head + stats + list + `
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button type="button" class="btn" id="centroRetry" ${failed || pending ? '' : 'disabled'}>${ic('sync')}<span>Send again</span></button>
-      <button type="button" class="btn quiet" id="centroCheck">Check connection</button>
-    </div>`;
-  $('centroRetry').onclick = async (e) => { e.currentTarget.disabled = true; await loadCentro(true); };
-  $('centroCheck').onclick = () => loadCentro();
-  $('centro').insertAdjacentHTML('beforeend', `
-    <div class="cx-sec">
-      <h3>Stylists&rsquo; hours from the CRM</h3>
-      <p class="small muted">Online, each stylist is offered only the times the CRM says they are free: the hours set for
-        them on the calendar, anything already booked there, and the calendars they connected in the CRM. Link each
-        stylist to their CRM user. A stylist who is not linked is not offered online.</p>
-      <div id="cxStylists">${skeleton(3)}</div>
-    </div>
-    <div class="cx-sec">
-      <h3>Test online booking</h3>
-      <p class="small muted">Online booking is paused and the website shows &ldquo;coming soon&rdquo;. This opens the real
-        booking popup in a new tab for you only, for 12 hours. Bookings made there are real: name test guests
-        &ldquo;ZZ&rdquo; and delete them afterwards, here and in the CRM.</p>
-      <button type="button" class="btn" id="cxPreview">${ic('calendar-plus')}<span>Open booking test</span></button>
-    </div>`);
-  $('cxPreview').onclick = async (e) => {
-    const b = e.currentTarget;
-    // Opened before the request so the browser does not treat it as a popup.
-    const tab = window.open('about:blank', '_blank');
+  if (act === 'email-connect') {
+    toast('Email sending is switched on by your web team. Ask them to connect it.');
+    return;
+  }
+  if (act === 'google-on') {
+    if (!intData.cal?.google?.available) { toast('Google sign in is not set up on this site yet. Ask your web team.'); return; }
+    connectGoogle(b);
+    return;
+  }
+  if (act === 'google-off') {
+    if (!confirm('Disconnect Google Calendar?\n\nNew appointments stop appearing there. Ones already in your calendar are left alone.')) return;
     b.disabled = true;
     try {
-      const r = await api('/api/staff/centro', { method: 'POST', body: JSON.stringify({ action: 'preview' }) });
-      if (tab) tab.location = r.url; else location.href = r.url;
-    } catch (err) { if (tab) tab.close(); fail(err); }
-    b.disabled = false;
-  };
-  loadStylistLinks();
-}
-
-async function loadStylistLinks() {
-  try {
-    renderStylistLinks(await api('/api/staff/centro?stylists=1'));
-  } catch (err) {
-    if (err.message !== 'signed out' && $('cxStylists')) {
-      $('cxStylists').innerHTML = `<div class="note bad">${ic('info')}<span>${esc(err.message)}</span></div>`;
-    }
+      await api('/api/staff/calendars', { method: 'POST', body: JSON.stringify({ action: 'disconnect-google' }) });
+      toast('Google Calendar disconnected.');
+      loadCentro();
+    } catch (err) { fail(err); b.disabled = false; }
   }
-}
-
-function renderStylistLinks(d) {
-  const box = $('cxStylists');
-  if (!box) return;
-  if (!d.linked) { box.innerHTML = '<p class="small muted">Link the salon to the CRM first.</p>'; return; }
-  const label = (m) => m.name || `CRM user ${m.id.slice(-6)}`;
-  const tz = me?.salon?.timezone ? { timeZone: me.salon.timezone } : {};
-  box.innerHTML = `<div class="cx-list">${d.stylists.map((s) => {
-    const pick = s.ghlUserId || s.suggest || '';
-    const known = d.team.some((m) => m.id === s.ghlUserId);
-    const status = s.ghlUserId
-      ? (s.next
-        ? `<span class="chip ok">Next free ${esc(new Date(s.next).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', ...tz }))}</span>`
-        : `<span class="chip warn">${esc(s.note || 'No free times')}</span>`)
-      : '<span class="chip info">Not linked, not offered online</span>';
-    return `<div class="cx-row" data-stylist="${esc(s.slug)}">
-      <div class="cx-name"><strong>${esc(s.name)}</strong>${status}
-        ${s.ghlUserId && !s.onCalendar ? '<div class="small" style="color:var(--warn);margin-top:4px">This user is not on the CRM calendar, so bookings for them are refused.</div>' : ''}</div>
-      <select aria-label="CRM user for ${esc(s.name)}">
-        <option value="">Not linked</option>
-        ${d.team.map((m) => `<option value="${esc(m.id)}" ${m.id === pick ? 'selected' : ''}>${esc(label(m))}</option>`).join('')}
-        ${s.ghlUserId && !known ? `<option value="${esc(s.ghlUserId)}" selected>${esc(`CRM user ${s.ghlUserId.slice(-6)}`)}</option>` : ''}
-      </select>
-      <button type="button" class="btn quiet" data-save ${pick === (s.ghlUserId || '') ? 'disabled' : ''}>${s.suggest && !s.ghlUserId ? 'Link' : 'Save'}</button>
-    </div>`;
-  }).join('')}</div>`;
-  box.onchange = (e) => {
-    const row = e.target.closest('.cx-row');
-    if (row) row.querySelector('[data-save]').disabled = false;
-  };
-  box.onclick = async (e) => {
-    const btn = e.target.closest('[data-save]');
-    if (!btn) return;
-    const row = btn.closest('.cx-row');
-    btn.disabled = true;
-    try {
-      await api('/api/staff/centro', { method: 'POST', body: JSON.stringify({
-        action: 'link', stylist: row.dataset.stylist, ghlUserId: row.querySelector('select').value || null,
-      }) });
-      toast('Saved. Checking the CRM for their free times…');
-      await loadStylistLinks();
-    } catch (err) { fail(err); btn.disabled = false; }
-  };
-}
+};
 
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a[data-centro]');
