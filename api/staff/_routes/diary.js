@@ -1,6 +1,13 @@
 /**
  * GET /api/staff/diary?date=YYYY-MM-DD: one day's book, by stylist.
  * GET /api/staff/diary?month=YYYY-MM   : the same rows for a whole month.
+ * POST   /api/staff/diary                : put a LUNCH or BLOCK on a stylist.
+ * DELETE /api/staff/diary                : take one off again.
+ *
+ * Lunch and blocks are rows in time_off, the table availability already
+ * subtracts, so a block on the day view is the same thing that stops the
+ * time being sold. A separate "display only" block would be a picture of a
+ * break that the booking form ignores.
  *
  * One query serves both because the month view is the day view zoomed out:
  * the same appointments, grouped by date. A second endpoint would be a second
@@ -13,9 +20,11 @@
  */
 import { DateTime } from 'luxon';
 
-import { requireStaff } from '../../_lib/auth.js';
+import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
-import { HttpError, handler, json, requireDate } from '../../_lib/http.js';
+import {
+  HttpError, handler, json, readJson, requireDate, requireString,
+} from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
 export default handler({
@@ -45,7 +54,11 @@ export default handler({
     const { rows } = await query(
       `SELECT a.ref, a.starts_at, a.duration_min, a.status, a.channel, a.checked_in_at,
               a.guest_name, a.guest_email, a.guest_phone, a.notes,
-              a.price_cents, a.ghl_appointment_id,
+              a.price_cents, a.ghl_appointment_id, a.created_at,
+              -- The guest's next visit after this one, for the day card.
+              (SELECT min(n.starts_at) FROM appointments n
+                WHERE n.contact_id = a.contact_id AND n.status = 'booked'
+                  AND n.starts_at > a.starts_at) AS next_starts_at,
               s.slug AS stylist_slug, s.name AS stylist_name,
               v.name AS service_name,
               b.name AS booked_by_name,
@@ -86,6 +99,8 @@ export default handler({
         price: r.price_cents == null ? null : r.price_cents / 100,
         bookedBy: r.booked_by_name,
         contactId: r.contact_id,
+        createdAt: r.created_at,
+        nextStartsAt: r.next_starts_at,
         // Lets the console show which bookings have not reached CENTRO yet,
         // rather than the team discovering it from an empty CRM.
         syncedToCentro: Boolean(r.ghl_appointment_id),
@@ -95,8 +110,32 @@ export default handler({
       };
     });
 
+    // Lunch and blocks, for the day view only: the month grid shows bookings.
+    let blocks = [];
+    if (!month) {
+      const { rows: off } = await query(
+        `SELECT t.id, lower(t.during) AS from_ts, upper(t.during) AS to_ts, t.reason,
+                s.slug AS stylist_slug
+           FROM time_off t
+           LEFT JOIN stylists s ON s.id = t.stylist_id
+          WHERE t.tenant_id = $1::uuid
+            AND t.during && tstzrange($2::timestamptz, $3::timestamptz, '[]')
+          ORDER BY lower(t.during)`,
+        [tenant.id, from.toISO(), to.toISO()],
+      );
+      blocks = off.map((b) => ({
+        id: b.id,
+        stylistSlug: b.stylist_slug,      // null: the whole salon is closed
+        startsAt: b.from_ts,
+        endsAt: b.to_ts,
+        kind: /lunch|break/i.test(b.reason) ? 'lunch' : 'block',
+        reason: b.reason,
+      }));
+    }
+
     return json(res, 200, {
       date,
+      blocks,
       month: month ? month.toFormat('yyyy-MM') : null,
       timezone: tenant.timezone,
       today: DateTime.now().setZone(tenant.timezone).toISODate(),
@@ -107,5 +146,51 @@ export default handler({
       arriving: appointments.filter((a) => a.status === 'booked' && !a.checkedInAt).length,
       appointments,
     });
+  },
+
+  async POST(req, res) {
+    assertSameOrigin(req);
+    const user = await requireStaff(req);
+    const tenant = await tenantForUser(user);
+    const body = await readJson(req);
+
+    const kind = body.kind === 'lunch' ? 'lunch' : 'block';
+    const slug = requireString(body.stylist, 'Stylist', { max: 60 });
+    const start = DateTime.fromISO(requireString(body.start, 'Start', { max: 40 }), { zone: tenant.timezone });
+    if (!start.isValid) throw new HttpError(400, 'Start must be a date and time.');
+    const minutes = Math.round(Number(body.minutes));
+    if (!Number.isFinite(minutes) || minutes < 15 || minutes > 12 * 60) {
+      throw new HttpError(400, 'A block is between 15 minutes and 12 hours.');
+    }
+    const reason = kind === 'lunch'
+      ? 'Lunch'
+      : (String(body.reason || '').trim().slice(0, 120) || 'Blocked');
+
+    const { rows } = await query(
+      `INSERT INTO time_off (tenant_id, stylist_id, during, reason)
+       SELECT $1::uuid, s.id,
+              tstzrange($3::timestamptz, $3::timestamptz + make_interval(mins => $4::int), '[)'),
+              $5::text
+         FROM stylists s WHERE s.tenant_id = $1::uuid AND s.slug = $2::text
+       RETURNING id`,
+      [tenant.id, slug, start.toISO(), minutes, reason],
+    );
+    if (!rows[0]) throw new HttpError(404, 'No such stylist.');
+    return json(res, 201, { ok: true, id: rows[0].id, kind });
+  },
+
+  async DELETE(req, res) {
+    assertSameOrigin(req);
+    const user = await requireStaff(req);
+    const tenant = await tenantForUser(user);
+    const body = await readJson(req);
+    const id = Number(body.id);
+    if (!Number.isInteger(id) || id < 1) throw new HttpError(400, 'Block is not valid.');
+    const { rowCount } = await query(
+      'DELETE FROM time_off WHERE id = $1::int AND tenant_id = $2::uuid',
+      [id, tenant.id],
+    );
+    if (!rowCount) throw new HttpError(404, 'That block is already gone.');
+    return json(res, 200, { ok: true, id });
   },
 });

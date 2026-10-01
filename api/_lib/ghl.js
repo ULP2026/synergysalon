@@ -269,11 +269,11 @@ export async function checkConnection(tenant, userIds = []) {
     const { location } = await call(tenant, 'GET', `/locations/${tenant.ghl_location_id}`);
     out.location = { id: location?.id, name: location?.name, timezone: location?.timezone };
   } catch (err) {
-    out.problems.push(`The CENTRO sub-account could not be reached: ${err.message}`);
+    out.problems.push(`The CRM sub-account could not be reached: ${err.message}`);
     return out;
   }
   if (!tenant.ghl_calendar_id) {
-    out.problems.push('No CENTRO calendar is linked.');
+    out.problems.push('No CRM calendar is linked.');
     return out;
   }
   try {
@@ -284,17 +284,17 @@ export async function checkConnection(tenant, userIds = []) {
       active: calendar?.isActive !== false, teamMembers: members.length,
     };
     if (calendar?.locationId && calendar.locationId !== tenant.ghl_location_id) {
-      out.problems.push('The linked calendar belongs to a different CENTRO sub-account.');
+      out.problems.push('The linked calendar belongs to a different CRM sub-account.');
     }
     if (!members.length) {
-      out.problems.push('The CENTRO calendar has no team members, so it refuses every appointment.');
+      out.problems.push('The CRM calendar has no team members, so it refuses every appointment.');
     }
     const strangers = [...new Set(userIds.filter(Boolean))].filter((u) => !members.includes(u));
     if (members.length && strangers.length) {
-      out.problems.push(`${strangers.length} stylist mapping(s) point at a CENTRO user who is not on this calendar.`);
+      out.problems.push(`${strangers.length} stylist mapping(s) point at a CRM user who is not on this calendar.`);
     }
   } catch (err) {
-    out.problems.push(`The CENTRO calendar could not be read: ${err.message}`);
+    out.problems.push(`The CRM calendar could not be read: ${err.message}`);
     return out;
   }
   out.ok = out.problems.length === 0;

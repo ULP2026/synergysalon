@@ -44,7 +44,7 @@ export default handler({
     if (body.action === 'link') {
       const slug = String(body.stylist || '');
       const id = body.ghlUserId ? String(body.ghlUserId).trim() : null;
-      if (id && !/^[A-Za-z0-9_-]{6,64}$/.test(id)) throw new HttpError(400, 'That is not a CENTRO user.');
+      if (id && !/^[A-Za-z0-9_-]{6,64}$/.test(id)) throw new HttpError(400, 'That is not a CRM user.');
       const { rowCount } = await query(
         'UPDATE stylists SET ghl_user_id = $3 WHERE tenant_id = $1::uuid AND slug = $2',
         [tenant.id, slug, id],

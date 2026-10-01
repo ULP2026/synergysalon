@@ -1,7 +1,7 @@
 /**
  * /api/staff/contacts: everyone the salon knows.
  *
- *   GET     ?q=&status=&limit=   search and list
+ *   GET     ?q=&status=&stylist=&limit=   search and list
  *   GET     ?id=                 one person, their appointments and activity
  *   POST                         add somebody
  *   PATCH                        edit somebody
@@ -156,7 +156,7 @@ export async function contactDetail(tenantId, id) {
     add('email', a.reminder_sent_at, 'Reminder email sent', what, a.ref);
   }
   for (const s of synced) {
-    add('sync', s.done_at, 'Sent to CENTRO', s.kind.replace('.', ' ').replace(/_/g, ' '));
+    add('sync', s.done_at, 'Synced to the CRM', s.kind.replace('.', ' ').replace(/_/g, ' '));
   }
   activity.sort((x, y) => new Date(y.at) - new Date(x.at));
 
@@ -201,13 +201,16 @@ export default handler({
       // cast error from Postgres.
       const detail = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
         ? await contactDetail(tenant.id, id) : null;
-      if (!detail) throw new HttpError(404, 'No such contact.');
+      if (!detail) throw new HttpError(404, 'No such client.');
       return json(res, 200, detail);
     }
 
     const q = (url.searchParams.get('q') || '').trim().slice(0, 80);
     const status = url.searchParams.get('status');
     const limit = Math.min(Number(url.searchParams.get('limit')) || 100, 300);
+    // A stylist's clients: anyone with an appointment in their chair that was
+    // not cancelled. Booked-and-cancelled is not a relationship.
+    const stylist = (url.searchParams.get('stylist') || '').trim().slice(0, 60) || null;
 
     const { rows } = await query(
       `SELECT c.id, c.name, c.email, c.phone, c.source, c.status, c.notes,
@@ -222,10 +225,15 @@ export default handler({
           AND ($3 = '' OR c.name ILIKE '%' || $3 || '%'
                        OR c.email ILIKE '%' || $3 || '%'
                        OR c.phone ILIKE '%' || $3 || '%')
+          AND ($5::text IS NULL OR EXISTS (
+                SELECT 1 FROM appointments sa
+                  JOIN stylists ss ON ss.id = sa.stylist_id
+                 WHERE sa.contact_id = c.id AND sa.status <> 'cancelled'
+                   AND ss.slug = $5::text))
         GROUP BY c.id
         ORDER BY (c.status = 'new') DESC, c.created_at DESC
         LIMIT $4`,
-      [tenant.id, STATUSES.includes(status) ? status : null, q, limit],
+      [tenant.id, STATUSES.includes(status) ? status : null, q, limit, stylist],
     );
 
     return json(res, 200, {
@@ -258,7 +266,7 @@ export default handler({
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
     const phone = optionalPhone(body.phone);
     if (!email && !phone) {
-      throw new HttpError(400, 'A contact needs an email address or a phone number.');
+      throw new HttpError(400, 'A client needs an email address or a phone number.');
     }
 
     const contact = await transaction(async (client) => {
@@ -272,7 +280,7 @@ export default handler({
         [tenant.id, email, phone],
       );
       if (dup[0]) {
-        throw new HttpError(409, `${dup[0].name} is already in your contacts.`, 'DUPLICATE');
+        throw new HttpError(409, `${dup[0].name} is already in your clients.`, 'DUPLICATE');
       }
 
       const { rows } = await client.query(
@@ -317,7 +325,7 @@ export default handler({
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
     const phone = optionalPhone(body.phone);
     if (!email && !phone) {
-      throw new HttpError(400, 'A contact needs an email address or a phone number.');
+      throw new HttpError(400, 'A client needs an email address or a phone number.');
     }
     const status = STATUSES.includes(body.status) ? body.status : null;
 
@@ -349,7 +357,7 @@ export default handler({
           status,
         ],
       );
-      if (!rows[0]) throw new HttpError(404, 'That contact no longer exists.');
+      if (!rows[0]) throw new HttpError(404, 'That client no longer exists.');
 
       await enqueueSync(client, tenant.id, 'contact.updated', { contactId: id });
       return rows[0];
@@ -376,10 +384,10 @@ export default handler({
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
     const id = requireString(body.id, 'Contact', { max: 64 });
-    if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, 'Contact is not valid.');
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, 'Client is not valid.');
 
     const removed = await transaction((client) => removeContact(client, tenant.id, id));
-    if (!removed) throw new HttpError(404, 'That contact no longer exists.');
+    if (!removed) throw new HttpError(404, 'That client no longer exists.');
 
     // Inline, like an edit, so CENTRO matches by the time the list reloads.
     // If CENTRO is down the job stays queued and the cron finishes it.

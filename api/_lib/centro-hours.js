@@ -138,9 +138,9 @@ export async function stylistLinks(client, tenant) {
     try {
       const starts = await freeSlots(link, { userId: s.ghl_user_id, startMs: now, endMs: now + 14 * 86400000, timezone: tenant.timezone });
       return { ...row, next: starts[0] ? new Date(starts[0]).toISOString() : null, count: starts.length,
-        note: starts.length ? null : 'CENTRO shows no free times in the next 14 days.' };
+        note: starts.length ? null : 'The CRM shows no free times in the next 14 days.' };
     } catch (err) {
-      return { ...row, next: null, note: `CENTRO would not say: ${err.message}` };
+      return { ...row, next: null, note: `The CRM would not say: ${err.message}` };
     }
   }));
   return { linked: true, team, stylists: out };

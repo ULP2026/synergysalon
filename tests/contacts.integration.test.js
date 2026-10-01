@@ -198,7 +198,7 @@ test('a contact\'s detail shows what really happened, newest first, and nothing 
     assert.ok(titles.includes('Filled in the website booking form'));
     assert.ok(titles.includes('Reminder email sent'));
     assert.ok(titles.includes('Marked as done'));
-    assert.ok(titles.includes('Sent to CENTRO'));
+    assert.ok(titles.includes('Synced to the CRM'));
     assert.equal(titles.filter((t) => t === 'Booked by staff' || t === 'Booked online').length, 2);
     // No messaging history exists yet, so none is shown.
     assert.ok(!d.activity.some((e) => e.type === 'sms' || e.type === 'automation'));
