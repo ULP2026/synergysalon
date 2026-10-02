@@ -137,7 +137,21 @@
   // The shop is named by the path -- /s/<slug> -- so one deployment serves
   // every shop on the platform. A shop that later points its own domain here
   // is matched by hostname instead and this is ignored.
-  var SLUG = (location.pathname.match(/^\/s\/([a-z0-9][a-z0-9-]{1,48})/i) || [])[1] || '';
+  // Two shapes of link, and which one a shop gets depends on whether it has a
+  // domain of its own:
+  //
+  //   /s/<shop>/<calendar>   no domain yet -- the shop's slug scopes it
+  //   /book/<calendar>       own domain -- the domain scopes it
+  //
+  // Both are unique platform-wide, which is the point: slugs are only unique
+  // within a shop, so the first salon to claim "haircut" must not stop every
+  // other salon having one.
+  var PATH = location.pathname.split('/').filter(Boolean);
+  var SLUG = '', CALENDAR = '';
+  if (PATH[0] === 's') { SLUG = PATH[1] || ''; CALENDAR = PATH[2] || ''; }
+  else if (PATH[0] === 'book') { CALENDAR = PATH[1] || ''; }
+  if (!/^[a-z0-9][a-z0-9-]{0,48}$/i.test(SLUG)) SLUG = '';
+  if (!/^[a-z0-9][a-z0-9-]{0,48}$/i.test(CALENDAR)) CALENDAR = '';
   var qs = function (extra) {
     return (SLUG ? '?salon=' + encodeURIComponent(SLUG) : '?') + (extra ? '&' + extra : '');
   };

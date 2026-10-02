@@ -53,25 +53,54 @@ function slugify(value, fallback = 'calendar') {
   return s || fallback;
 }
 
-/** The first free variant of a slug, so a duplicate name is not an error. */
-async function freeSlug(tenantId, wanted, exceptId = null) {
+/**
+ * A slug nothing else in this shop is using.
+ *
+ * `chosen` separates the two cases that look alike. A slug derived from the
+ * name was never typed by anyone, so quietly taking the next free variant is
+ * helpful. A slug somebody typed into the Custom URL box is a decision, and
+ * silently saving them something else -- they ask for "haircut" and get
+ * "haircut-2" with no word said -- is how a link gets printed on a card wrong.
+ */
+async function freeSlug(tenantId, wanted, { exceptId = null, chosen = false } = {}) {
   for (let n = 0; n < 50; n += 1) {
     const candidate = n ? `${wanted}-${n + 1}` : wanted;
     const { rows } = await query(
-      `SELECT 1 FROM booking_calendars
+      `SELECT name FROM booking_calendars
         WHERE tenant_id = $1 AND slug = $2 AND ($3::uuid IS NULL OR id <> $3::uuid)`,
       [tenantId, candidate, exceptId],
     );
     if (!rows.length) return candidate;
+    if (chosen) {
+      throw new HttpError(409,
+        `“${wanted}” is already the link for “${rows[0].name}”. Please choose another.`);
+    }
   }
   throw new HttpError(409, 'Too many calendars with that name.');
 }
 
-function shape(row, members = []) {
+/**
+ * Where this calendar is booked, in full.
+ *
+ * Slugs are unique within a shop, not across the platform -- the first salon
+ * to claim "haircut" must not stop every other salon having one. What has to
+ * be unique is the *link*, and it is, by construction: a shop with its own
+ * domain is scoped by that domain, and a shop without one carries its own slug
+ * in the path. Neither can collide with another shop's.
+ */
+function bookingUrl(req, tenant, slug) {
+  if (tenant.host) return `https://${tenant.host}/book/${slug}`;
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0];
+  const proto = host.startsWith('localhost') ? 'http' : 'https';
+  return `${proto}://${host}/s/${tenant.slug}/${slug}`;
+}
+
+function shape(row, members = [], url = null) {
   return {
     id: row.id,
     name: row.name,
     slug: row.slug,
+    url,
     kind: row.kind,
     kindLabel: KINDS[row.kind]?.label ?? row.kind,
     description: row.description,
@@ -153,7 +182,7 @@ export default handler({
     );
 
     const by = await membersOf(rows.map((r) => r.id));
-    const calendars = rows.map((r) => shape(r, by.get(r.id) ?? []));
+    const calendars = rows.map((r) => shape(r, by.get(r.id) ?? [], bookingUrl(req, tenant, r.slug)));
 
     if (slug) {
       if (!calendars[0]) throw new HttpError(404, 'No calendar with that link.');
@@ -186,7 +215,10 @@ export default handler({
     const kind = requireString(body.kind, 'Calendar type', { max: 20 });
     if (!KINDS[kind]) throw new HttpError(400, 'That is not a calendar type.');
 
-    const slug = await freeSlug(tenant.id, slugify(body.slug || name));
+    // Typed into Custom URL, or taken from the name: only the first is a
+    // choice somebody made and should be told about.
+    const asked = String(body.slug || '').trim();
+    const slug = await freeSlug(tenant.id, slugify(asked || name), { chosen: Boolean(asked) });
     const members = readIds(body.members);
 
     const created = await transaction(async (client) => {
@@ -212,7 +244,7 @@ export default handler({
     });
 
     const by = await membersOf([created.id]);
-    return json(res, 201, { calendar: shape(created, by.get(created.id) ?? []) });
+    return json(res, 201, { calendar: shape(created, by.get(created.id) ?? [], bookingUrl(req, tenant, created.slug)) });
   },
 
   async PATCH(req, res) {
@@ -245,7 +277,9 @@ export default handler({
     if (body.active !== undefined) add('active', Boolean(body.active));
 
     if (body.slug !== undefined) {
-      add('slug', await freeSlug(tenant.id, slugify(body.slug, current.slug), id));
+      // Always a choice here: the box only exists on the settings page.
+      add('slug', await freeSlug(tenant.id, slugify(body.slug, current.slug),
+                                 { exceptId: id, chosen: true }));
     }
 
     // Settings are merged, not replaced: the Advanced page saves one section
@@ -273,7 +307,7 @@ export default handler({
     });
 
     const by = await membersOf([id]);
-    return json(res, 200, { calendar: shape(updated, by.get(id) ?? []), saved: true });
+    return json(res, 200, { calendar: shape(updated, by.get(id) ?? [], bookingUrl(req, tenant, updated.slug)), saved: true });
   },
 
   async DELETE(req, res) {

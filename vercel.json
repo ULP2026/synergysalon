@@ -114,6 +114,14 @@
   ],
   "rewrites": [
     {
+      "source": "/s/:tenant/:calendar",
+      "destination": "/shop"
+    },
+    {
+      "source": "/book/:calendar",
+      "destination": "/shop"
+    },
+    {
       "source": "/staff/calendars/:slug",
       "destination": "/staff"
     },

@@ -1906,7 +1906,7 @@
       <div id="cnewTeam" class="pickers"></div></label>
 
     <label><span>Custom URL</span>
-      <div class="urlrow"><span class="prefix" id="cnewPrefix">/book/</span>
+      <div class="urlrow"><span class="prefix" id="cnewPrefix">link</span>
         <input name="slug" id="cnewSlug" placeholder="my-calendar" maxlength="48"></div>
       <span class="small muted" id="cnewSlugNote">Left blank, this follows the name.</span></label>
 
@@ -2430,7 +2430,7 @@ function renderCalendars(d) {
           c.members.length ? ` · ${c.members.map((m) => esc(m.name)).join(', ')}` : ''}</span>
         ${c.description ? `<div class="small muted" style="margin-top:4px">${esc(c.description)}</div>` : ''}
       </div>
-      <span class="link" title="/book/${esc(c.slug)}">/book/${esc(c.slug)}</span>
+      <span class="link" title="${esc(c.url || c.slug)}">${esc((c.url || '').replace(/^https?:\/\//, '') || c.slug)}</span>
       <span class="chip">${c.upcoming} upcoming</span>
       ${canManage ? `<div class="acts">
         <button class="btn quiet" data-cal-settings="${esc(c.slug)}">Settings</button>
@@ -2625,7 +2625,10 @@ function goCalendarSettings(slug) {
 }
 
 function renderCalendarSettings(c) {
-  const base = `${location.origin}/book/${c.slug}`;
+  // Built by the server, which knows whether this shop has a domain of its
+  // own. Guessing from location.origin produced a link that was the same for
+  // two different shops.
+  const base = c.url || `${location.origin}/s/${c.slug}`;
   const st = c.settings || {};
   $('pageSub').textContent = `${c.kindLabel} · ${c.durationMin} min`;
   $('pageTitle').textContent = c.name;
