@@ -139,11 +139,15 @@ made that way are real: name them ZZ and remove them.
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM" and "Integrations"; the API keeps its `centro`
   names, which nobody sees.
-- Appointments opens on the day as one Salon Calendar column, the clock
-  down the side; appointments at the same time sit side by side in lanes,
-  each naming its stylist. Stylist columns (`dayColumns()`) come back once
-  stylists are on the team. LUNCH and BLOCK are rows in `time_off`, the table availability already
-  subtracts, so a block on the grid really stops the time being sold.
+- Appointments opens on the day as at least four blank-headed columns, the
+  clock down the side. Nobody is assigned to a column yet: an appointment takes
+  the first column free at its time, and cards do not name a stylist. Stylist
+  columns (`dayColumns()`) come back once stylists are on the team. While the
+  shop has no booking calendar the day and month are drawn empty (the diary is
+  still fetched for its heading, then emptied) under a note pointing at
+  Settings, Calendars. LUNCH and BLOCK are rows in `time_off`, the table
+  availability already subtracts, so a block on the grid really stops the time
+  being sold.
   `?demo` on the address shows a sample day that saves nothing.
 - Settings, Salon Profile is the tenant's details. Its logo is the nav's mark,
   painted from `me.salon.logo`, so saving updates the menu at once.

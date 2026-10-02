@@ -958,15 +958,15 @@
   /* ── Appointments, day: stylists across the top, the clock down the side ──
      The view a salon's front desk already knows from paper: one column per
      chair, so a gap in somebody's afternoon is visible as white space. */
-  :root { --dg-hour: 112px; --dg-axis: 64px; --dg-col: minmax(208px, 1fr); }
+  :root { --dg-hour: 112px; --dg-axis: 64px; --dg-col: minmax(180px, 1fr); }
   .dg-wrap { flex: 1; min-height: 0; overflow: auto; border-radius: 14px; border: 1px solid var(--line);
              background: var(--card); position: relative; }
   .dg { display: grid; grid-template-columns: var(--dg-axis) repeat(var(--dg-n), var(--dg-col));
-        min-width: calc(var(--dg-axis) + var(--dg-n) * 208px); }
+        min-width: calc(var(--dg-axis) + var(--dg-n) * 180px); }
   .dg-corner, .dg-head { position: sticky; top: 0; z-index: 4; background: var(--card);
                          border-bottom: 1px solid var(--line); }
   .dg-corner { left: 0; z-index: 5; }
-  .dg-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-left: 1px solid var(--line); min-width: 0; }
+  .dg-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); min-width: 0; }
   .dg-head .avatar { width: 40px; height: 40px; background: var(--dg-ink); box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--dg-edge); }
   .dg-head b { display: block; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dg-head span.sub { display: block; font-size: var(--fs-xs); color: var(--muted); }
@@ -974,7 +974,7 @@
   .dg-axis span { position: absolute; right: 10px; transform: translateY(-50%); font-size: var(--fs-xs);
                   font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .dg-axis span:first-child { transform: none; }
-  .dg-col { position: relative; border-left: 1px solid var(--line); cursor: copy;
+  .dg-col { position: relative; border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); cursor: copy;
             background-image: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px calc(var(--dg-hour) / 2)),
                               repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px var(--dg-hour)); }
   .dg-col:hover { background-color: color-mix(in srgb, var(--peri-pale) 30%, transparent); }
@@ -1389,8 +1389,6 @@
   .tm-svc { margin-top: 3px; }
   .tm-addrow { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 12px; border-radius: 12px;
                border: 1px dashed var(--line-2); background: var(--raise); }
-  .tm-faces { display: flex; flex: none; padding-left: 8px; }
-  .tm-faces img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-left: -8px; border: 2px solid var(--card); background: var(--peri-pale); }
   .tm-addic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--peri-pale); color: var(--periwinkle); flex: none; }
   .tm-addtx { flex: 1; min-width: 0; }
   .tm-addtx b { display: block; font-size: .9rem; font-weight: 600; }
@@ -1457,6 +1455,8 @@
 
   /* A chair belonging to somebody who has left the team, kept only because
      clients are still booked into it. */
+  /* Blank until stylists are assigned; the line between columns carries on up. */
+  .dg-head.dg-blank { min-height: 44px; padding: 0; }
   .dg-head .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* One provider rather than a row of them: left-aligned and its own width,
@@ -1482,7 +1482,6 @@
   @media (max-width:520px) { .hrs .hr input[type=time] { width:92px; } }
 
   /* ── Salon Calendar: one column, the time down the side ─────────────── */
-  .dg-calic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--peri-pale); color: var(--periwinkle); flex: none; }
   .dg-ev .ln .m { color: var(--muted); }
 </style>
 </head>
@@ -2419,25 +2418,17 @@ async function loadAppointments() {
   if (!calData) {
     try { calData = await api('/api/staff/booking-calendars'); } catch { calData = null; }
   }
-  const none = calData && !calData.calendars.length;
+  const none = Boolean(calData && !calData.calendars.length);
+  noCals = none;
 
-  // The whole card, not its pieces: hiding the toolbar and the grid separately
-  // leaves an empty white box sitting above the message.
-  $('diaryCard')?.classList.toggle('hidden', Boolean(none));
+  // With no calendar connected the day still shows, empty: appointments live
+  // in a calendar, so until there is one nothing is listed as booked here.
   $('needCal').classList.toggle('hidden', !none);
   // "New appointment" would book into a calendar that does not exist.
-  $('primaryBtn')?.classList.toggle('hidden', Boolean(none));
-
+  $('primaryBtn')?.classList.toggle('hidden', none);
   if (none) {
-    $('needCal').innerHTML = emptyState({
-      icon: 'calendar-plus',
-      title: 'Create a calendar first',
-      text: 'Appointments live in a calendar — one stylist, any stylist, a class '
-          + 'or a service. Make the first one and the diary opens up here.',
-      action: calData.canManage ? 'calendars' : null,
-      actionLabel: 'Create a calendar',
-    });
-    return null;
+    $('needCal').innerHTML = `<div class="note">${ic('info')}<span>No calendars are connected yet, so nothing is booked here.
+      ${calData.canManage ? '<a href="/staff/calendars" data-page="calendars">Create a calendar</a> in Settings to start taking appointments.' : 'An owner or manager connects the first calendar.'}</span></div>`;
   }
 
   renderCalBar();
@@ -2518,7 +2509,7 @@ function renderCalendars(d) {
     $('calendars').innerHTML = emptyState({
       icon: 'calendar-plus',
       title: 'No calendars yet',
-      text: 'A calendar is a way people can book you — one stylist, any stylist, '
+      text: 'A calendar is a way people can book you: one stylist, any stylist, '
           + 'a class, or a service. Make the first one and it gets its own link.',
       action: canManage ? 'calendars' : null,
       actionLabel: 'New calendar',
@@ -2633,7 +2624,7 @@ function openCalNew(kind) {
   const f = $('cnewForm');
   f.reset();
 
-  $('cnewKind').textContent = `${kindLabel(kind)} — ${meta.blurb}`;
+  $('cnewKind').textContent = `${kindLabel(kind)}: ${meta.blurb}`;
   $('cnewDescWrap').classList.add('hidden');
   $('cnewSlug').value = '';
 
@@ -2647,7 +2638,7 @@ function openCalNew(kind) {
 
   $('cnewTeam').innerHTML = (calData.team || []).map((t) => `
     <button type="button" class="picker" data-member="${esc(t.id)}" aria-pressed="false">${esc(t.name)}</button>`).join('')
-    || '<span class="small muted">No stylists yet — add them in Team Settings.</span>';
+    || '<span class="small muted">No stylists yet. Add them in Team Settings.</span>';
 
   $('cnewDlg').showModal();
   setTimeout(() => $('cnewName').focus(), 30);
@@ -3355,7 +3346,7 @@ function shortDate(iso) { return iso ? fmtWhen(iso, { month: 'short', day: 'nume
 
 function dayCard(a, top, height) {
   const lines = [
-    `<span class="ln">${esc(a.service)}${a.stylist ? ` <span class="m">· ${esc(shortName(a.stylist))}</span>` : ''}</span>`,
+    `<span class="ln">${esc(a.service)}</span>`,
     a.room ? `<span class="ln m">${esc(a.room)}</span>` : '',
     a.guestPhone ? `<span class="ln m">${esc(a.guestPhone)}</span>` : '',
     a.guestEmail ? `<span class="ln m">${esc(a.guestEmail)}</span>` : '',
@@ -3378,10 +3369,6 @@ function renderDiary(d) {
   $('dayHeading').textContent = `${d.heading} · ${d.booked} appointment${d.booked === 1 ? '' : 's'}`
     + (d.arriving ? ` · ${d.arriving} still to arrive` : '');
 
-  // One column, the Salon Calendar: the time down the side and every
-  // appointment in it. Stylist columns (dayColumns) come back once stylists
-  // are on the team; until then a column per name would be columns of nobody.
-  const cols = [{ slug: '', name: 'Salon Calendar' }];
   const live = d.appointments.filter((a) => a.status !== 'cancelled');
   const cancelled = d.appointments.filter((a) => a.status === 'cancelled');
   const blocks = d.blocks || [];
@@ -3404,49 +3391,42 @@ function renderDiary(d) {
     return n >= from && n <= to ? `<div class="dg-now" style="top:${px(n)}px" aria-hidden="true"></div>` : '';
   })() : '';
 
-  // Things at the same time sit side by side, each in its own lane, so two
-  // stylists' 10 o'clocks are both readable rather than stacked.
+  // Nobody is assigned to a column yet, so each column is a lane: an
+  // appointment takes the first one free at its time, and two at 10 o'clock
+  // sit side by side. Four at least, the shape of the floor once stylists are
+  // on the team (dayColumns), with their names in the blank headers.
   const items = [
     ...live.map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin })),
     ...blocks.map((b) => ({ b, s: Math.max(from, salonMinutes(b.startsAt)), e: Math.min(to, salonMinutes(b.endsAt) || 24 * 60) })),
   ].sort((x, y) => x.s - y.s || y.e - x.e);
-  let cluster = [];
-  let clusterEnd = -1;
   const lanesEnd = [];
-  const flush = () => { const n = Math.max(...cluster.map((it) => it.lane)) + 1; for (const it of cluster) it.n = n; cluster = []; lanesEnd.length = 0; };
   for (const it of items) {
-    if (it.s >= clusterEnd && cluster.length) flush();
     let lane = lanesEnd.findIndex((end) => end <= it.s);
     if (lane < 0) { lane = lanesEnd.length; lanesEnd.push(it.e); } else lanesEnd[lane] = it.e;
     it.lane = lane;
-    cluster.push(it);
-    clusterEnd = Math.max(clusterEnd, it.e);
   }
-  if (cluster.length) flush();
-  const place = (it) => `left:calc(${(it.lane / it.n) * 100}% + 6px);width:calc(${100 / it.n}% - 12px);right:auto;`;
+  const cols = Array.from({ length: Math.max(4, lanesEnd.length) }, (_, i) => i);
 
-  const colHtml = cols.map((c, i) => {
-    const cards = items.filter((it) => it.a).map((it) => dayCard(it.a, px(it.s) + 1,
-      Math.max(22, (it.a.durationMin / 60) * DG_HOUR - 3)).replace('style="top:', `style="${place(it)}top:`)).join('');
-    const offs = items.filter((it) => it.b).map((it) => {
+  const colHtml = cols.map((i) => {
+    const mine = items.filter((it) => it.lane === i);
+    const cards = mine.filter((it) => it.a).map((it) => dayCard(it.a, px(it.s) + 1,
+      Math.max(22, (it.a.durationMin / 60) * DG_HOUR - 3))).join('');
+    const offs = mine.filter((it) => it.b).map((it) => {
       const b = it.b;
       const s = it.s;
       const e = it.e;
       const label = b.kind === 'lunch' ? 'Lunch' : 'Block';
       const sub = b.kind === 'block' && b.reason && !/^blocked$/i.test(b.reason) ? `<small>${esc(b.reason)}</small>` : '';
       return `<button type="button" class="dg-blk ${b.kind}" data-more="blk-${esc(b.id)}" data-blk="${esc(b.id)}"
-        style="${place(it)}top:${px(s) + 1}px;height:${Math.max(20, px(e) - px(s) - 3)}px"
+        style="top:${px(s) + 1}px;height:${Math.max(20, px(e) - px(s) - 3)}px"
         title="${esc(`${label}${b.stylist ? ` · ${b.stylist}` : ''} · ${clock(s)} to ${clock(e)}${b.reason ? ` · ${b.reason}` : ''}`)}"><span>${label}${sub}</span></button>`;
     }).join('');
-    return `<div class="dg-col dg-c${i % 6}" data-col="${esc(c.slug)}" style="height:${height}px">
+    return `<div class="dg-col dg-c0" style="height:${height}px">
       <span class="ghost" aria-hidden="true"></span>${offs}${cards}${nowLine}</div>`;
   }).join('');
 
-  const heads = cols.map((c, i) => `<div class="dg-head dg-c${i % 6}">
-      <span class="dg-calic">${ic('calendar')}</span>
-      <div style="min-width:0"><b>${esc(c.name)}</b>
-        <span class="sub">${live.length} booked</span></div>
-    </div>`).join('');
+  // Left blank until there are people to put in them.
+  const heads = cols.map(() => '<div class="dg-head dg-blank" aria-hidden="true"></div>').join('');
 
   $('diary').innerHTML = `
     ${dgDemo ? `<div class="note dg-demo">${ic('info')}<span>Sample day for a walkthrough. Nothing here is real, and nothing you do here is saved.</span></div>` : ''}
@@ -3596,6 +3576,7 @@ $('diary').onclick = (e) => {
 
   const col = e.target.closest('.dg-col');
   if (!col || e.target !== col) return;
+  if (noCals && !dgDemo) { toast('Create a calendar in Settings first.'); return; }
   const mins = slotAt(col, e.clientY);
   const anchor = col.querySelector('.ghost');
   // After this click has finished bubbling, or the page's "click elsewhere
@@ -3755,6 +3736,7 @@ async function loadDay(date) {
   $('diary').innerHTML = skeleton(5);
   try {
     const d = dgDemo ? demoDay(date) : await api(`/api/staff/diary?date=${encodeURIComponent(date)}`);
+    if (noCals && !dgDemo) Object.assign(d, { appointments: [], blocks: [], booked: 0, arriving: 0 });
     if (seq === daySeq) renderDiary(d);
   } catch (err) {
     if (seq === daySeq && err.message !== 'signed out') {
@@ -3773,6 +3755,8 @@ async function loadDay(date) {
 // The day, by chair, is where the front desk works; the month is for seeing
 // the shape of the weeks ahead.
 let calView = 'day';
+// True while the shop has no calendar: the diary is drawn, empty.
+let noCals = false;
 let calMonth = '';          // YYYY-MM
 let monthData = null;
 
@@ -3857,6 +3841,7 @@ async function loadMonth(ym) {
   $('calendar').innerHTML = skeleton(6);
   try {
     const d = await api(`/api/staff/diary?month=${encodeURIComponent(ym)}`);
+    if (noCals) Object.assign(d, { appointments: [], booked: 0 });
     if (seq === monthSeq) renderMonth(d);
   } catch (err) {
     if (seq === monthSeq && err.message !== 'signed out') {
@@ -3878,6 +3863,7 @@ $('calendar').onclick = (e) => {
   const dayBtn = e.target.closest('button[data-day]');
   if (dayBtn) { setView('day', dayBtn.dataset.day); return; }
   const cell = e.target.closest('[data-add]');
+  if (cell && noCals) { toast('Create a calendar in Settings first.'); return; }
   if (cell) openBooking(null, { date: cell.dataset.add });
 };
 
@@ -4706,7 +4692,7 @@ function showInviteLink(name, invite) {
   $('inviteWho').textContent = name;
   $('inviteSent').textContent = invite.emailed
     ? 'We have emailed them a link to choose a password.'
-    : 'No email was sent — this site has no email provider connected yet. '
+    : 'No email was sent: this site has no email provider connected yet. '
       + 'Send them this link yourself.';
   $('inviteLink').value = invite.link;
   $('inviteNote').textContent = `The link works once and expires in ${invite.expiresDays} days.`;
@@ -4819,16 +4805,13 @@ function renderTeam(current, others = [], pending = []) {
   teamCurrent = current;
   teamOthers = others;
   const admin = me?.user?.canAdmin;
-  // The stylists' own faces beside the call to add them: who is still to come.
-  const faces = (me?.stylists || []).slice(0, 4)
-    .map((st) => `<img src="${esc(st.photo || charAvatar(st.name))}" alt="" title="${esc(st.name)}">`).join('');
   $('team').innerHTML = `
     <div class="tm-list">
       ${memberRow(current, true)}
       ${others.map((m) => memberRow(m, false)).join('')}
     </div>
     <div class="tm-addrow">
-      ${faces ? `<span class="tm-faces">${faces}</span>` : `<span class="tm-addic">${ic('users-plus')}</span>`}
+      <span class="tm-addic">${ic('users-plus')}</span>
       <span class="tm-addtx"><b>Add a team member</b>
         <span>${admin ? 'Give each stylist their own sign in, picture and prices.' : 'An owner or manager adds stylists to the team.'}</span></span>
       ${admin ? `<button type="button" class="btn sm" id="teamAdd">${ic('plus')}Add Team Member</button>` : ''}
