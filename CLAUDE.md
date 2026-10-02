@@ -154,6 +154,13 @@ made that way are real: name them ZZ and remove them.
   availability already subtracts, so a block on the grid really stops the time
   being sold.
   `?demo` on the address shows a sample day that saves nothing.
+- Marketing, Automation is a list of automation names (confirmation,
+  reminder, reschedule, cancellation). Each opens a modal with its flow, and
+  each email step opens the email itself, rendered by the sending code in
+  `api/_lib/email.js` (`MESSAGES`, `previewMessage`) through
+  `GET /api/staff/business?preview=<kind>` with a sample appointment. Add a
+  message to `MESSAGES` and it can be previewed; there is no SMS yet, so none
+  is shown. Marketing takes the nav's width, like Settings.
 - Settings, Salon Profile is the tenant's details. Its logo is the nav's mark,
   painted from `me.salon.logo`, so saving updates the menu at once.
 - Team lists only the signed-in person for now (stylists are added later),
@@ -210,7 +217,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 61 tests; the database ones skip without DATABASE_URL
+npm test                    # 77 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and

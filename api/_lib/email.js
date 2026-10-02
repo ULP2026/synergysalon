@@ -163,7 +163,7 @@ export function sendInvite({ name, email, link, expiresDays }, tenant = {}) {
   return send(shop, email, `Set up your ${shop.name} account`, {
     heading: `Welcome, ${String(name || '').split(' ')[0] || 'there'}`,
     intro: `You have been added to the team at ${shop.name}. Choose a password and `
-      + 'you are in — nobody else sees it, including whoever added you.',
+      + 'you are in. Nobody else sees it, including whoever added you.',
     rows: [['Your sign-in email', email]],
     action: { label: 'Choose your password', href: link },
     footnote: `This link works once and expires in ${expiresDays} days. It is just `
@@ -171,52 +171,85 @@ export function sendInvite({ name, email, link, expiresDays }, tenant = {}) {
   });
 }
 
-export function sendConfirmation(appt, tenant = {}) {
+/**
+ * Each guest message as data: its subject and what goes in it.
+ *
+ * Kept apart from sending so the staff app can show the very message a guest
+ * receives (Marketing, Automation) rather than a description of it that
+ * drifts the first time the wording here changes.
+ */
+const MESSAGES = {
+  confirmation: (appt, shop, zone) => ({
+    subject: `You are booked in: ${prettyWhen(appt.starts_at, zone)}`,
+    content: {
+      heading: `See you soon, ${appt.guest_name.split(' ')[0]}`,
+      intro: `Your appointment at ${shop.name} is confirmed. Here are the details.`,
+      rows: detailRows(appt, zone),
+      action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
+      footnote: 'If you need to change anything, use the link above or call us. '
+        + 'Please let us know at least 24 hours ahead so we can offer the slot to someone else.',
+    },
+  }),
+  reschedule: (appt, shop, zone, previousStart) => ({
+    subject: `Moved: you are now booked for ${prettyWhen(appt.starts_at, zone)}`,
+    content: {
+      heading: 'Your appointment has moved',
+      intro: `You were booked for ${prettyWhen(previousStart, zone)}. That is now cancelled and `
+        + 'you are booked in at the new time below.',
+      rows: detailRows(appt, zone),
+      action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
+    },
+  }),
+  cancellation: (appt, shop, zone) => ({
+    subject: `Cancelled: ${prettyWhen(appt.starts_at, zone)}`,
+    content: {
+      heading: 'Your appointment is cancelled',
+      intro: 'We have cancelled the appointment below and released the slot. '
+        + 'We would love to see you another time.',
+      rows: detailRows(appt, zone),
+      action: shop.site ? { label: 'Book again', href: shop.site } : undefined,
+    },
+  }),
+  reminder: (appt, shop, zone) => ({
+    subject: `Tomorrow: ${prettyWhen(appt.starts_at, zone)}`,
+    content: {
+      heading: 'See you tomorrow',
+      intro: `A quick reminder about your appointment at ${shop.name}.`,
+      rows: detailRows(appt, zone),
+      action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
+      footnote: 'If you cannot make it, please tell us as soon as you can so we can offer '
+        + 'the slot to someone else.',
+    },
+  }),
+};
+
+export const MESSAGE_KINDS = Object.keys(MESSAGES);
+
+function sendMessage(kind, appt, tenant, extra) {
   const shop = shopFrom(tenant);
-  const zone = shop.timezone;
-  return send(shop, appt.guest_email, `You are booked in — ${prettyWhen(appt.starts_at, zone)}`, {
-    heading: `See you soon, ${appt.guest_name.split(' ')[0]}`,
-    intro: `Your appointment at ${shop.name} is confirmed. Here are the details.`,
-    rows: detailRows(appt, zone),
-    action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
-    footnote: 'If you need to change anything, use the link above or call us. '
-      + 'Please let us know at least 24 hours ahead so we can offer the slot to someone else.',
-  });
+  const { subject, content } = MESSAGES[kind](appt, shop, shop.timezone, extra);
+  return send(shop, appt.guest_email, subject, content);
 }
 
-export function sendReschedule(appt, previousStart, tenant = {}) {
-  const shop = shopFrom(tenant);
-  const zone = shop.timezone;
-  return send(shop, appt.guest_email, `Moved — you are now booked for ${prettyWhen(appt.starts_at, zone)}`, {
-    heading: 'Your appointment has moved',
-    intro: `You were booked for ${prettyWhen(previousStart, zone)}. That is now cancelled and `
-      + 'you are booked in at the new time below.',
-    rows: detailRows(appt, zone),
-    action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
-  });
-}
+export function sendConfirmation(appt, tenant = {}) { return sendMessage('confirmation', appt, tenant); }
+export function sendReschedule(appt, previousStart, tenant = {}) { return sendMessage('reschedule', appt, tenant, previousStart); }
+export function sendCancellation(appt, tenant = {}) { return sendMessage('cancellation', appt, tenant); }
+export function sendReminder(appt, tenant = {}) { return sendMessage('reminder', appt, tenant); }
 
-export function sendCancellation(appt, tenant = {}) {
+/**
+ * A message exactly as it would go out, without sending it: same subject,
+ * same HTML, same sender. The appointment is whatever the caller supplies,
+ * usually a sample, since a preview must not need a real guest.
+ */
+export function previewMessage(kind, appt, tenant = {}, extra) {
+  if (!MESSAGES[kind]) return null;
   const shop = shopFrom(tenant);
-  const zone = shop.timezone;
-  return send(shop, appt.guest_email, `Cancelled — ${prettyWhen(appt.starts_at, zone)}`, {
-    heading: 'Your appointment is cancelled',
-    intro: 'We have cancelled the appointment below and released the slot. '
-      + 'We would love to see you another time.',
-    rows: detailRows(appt, zone),
-    action: shop.site ? { label: 'Book again', href: shop.site } : undefined,
-  });
-}
-
-export function sendReminder(appt, tenant = {}) {
-  const shop = shopFrom(tenant);
-  const zone = shop.timezone;
-  return send(shop, appt.guest_email, `Tomorrow — ${prettyWhen(appt.starts_at, zone)}`, {
-    heading: 'See you tomorrow',
-    intro: `A quick reminder about your appointment at ${shop.name}.`,
-    rows: detailRows(appt, zone),
-    action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
-    footnote: 'If you cannot make it, please tell us as soon as you can so we can offer '
-      + 'the slot to someone else.',
-  });
+  const { subject, content } = MESSAGES[kind](appt, shop, shop.timezone, extra);
+  return {
+    from: fromFor(shop),
+    replyTo: shop.email || null,
+    subject,
+    html: layout(content, shop),
+    text: plain(content, shop),
+  };
 }

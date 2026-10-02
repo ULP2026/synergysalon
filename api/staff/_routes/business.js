@@ -8,8 +8,11 @@
  * here, and not the CRM credentials, which are never returned by any endpoint
  * to begin with. Those are support's job, and the blast radius is the reason.
  */
+import { DateTime } from 'luxon';
+
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
+import { MESSAGE_KINDS, previewMessage } from '../../_lib/email.js';
 import {
   HttpError, handler, json, readJson, requireString,
 } from '../../_lib/http.js';
@@ -37,10 +40,45 @@ function logoFrom(value) {
   return s;
 }
 
+/**
+ * GET ?preview=confirmation|reminder|reschedule|cancellation: a guest message
+ * rendered by the same code that sends it, for Marketing, Automation.
+ *
+ * Lives here because it is the shop's own voice to its customers, and a new
+ * file under api/ would cost a serverless function. The appointment in it is
+ * a sample: tomorrow at 10, the shop's first service and stylist, and a price
+ * only if the shop has set one, so the preview never shows a made-up figure.
+ */
+async function preview(kind, tenant) {
+  if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such message.');
+  const [svc, sty] = await Promise.all([
+    query(`SELECT name, price_cents FROM services WHERE tenant_id = $1 AND active
+            ORDER BY sort_order LIMIT 1`, [tenant.id]),
+    query(`SELECT name FROM stylists WHERE tenant_id = $1 AND active
+            ORDER BY sort_order LIMIT 1`, [tenant.id]),
+  ]);
+  const start = DateTime.now().setZone(tenant.timezone || 'America/New_York')
+    .plus({ days: 1 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
+  const appt = {
+    guest_name: 'Jamie Sample',
+    guest_email: 'jamie@example.com',
+    service_name: svc.rows[0]?.name || 'Your service',
+    stylist_name: sty.rows[0]?.name || 'Your stylist',
+    price_cents: svc.rows[0]?.price_cents ?? null,
+    starts_at: start.toJSDate(),
+    ref: 'SAMPLE',
+    manage_token: 'preview',
+  };
+  const out = previewMessage(kind, appt, tenant, start.minus({ days: 1 }).toJSDate());
+  return { kind, to: `${appt.guest_name} <${appt.guest_email}>`, ...out };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
+    const kind = new URL(req.url, 'http://localhost').searchParams.get('preview');
+    if (kind) return json(res, 200, await preview(kind, tenant));
     const { rows } = await query(
       `SELECT name, slug, logo, address, phone, email, website, about, timezone,
               host, app_host
