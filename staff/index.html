@@ -1524,6 +1524,28 @@
 <div id="boot"><img src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon"></div>
 
 <!-- ─────────────────────────── sign in ─────────────────────────── -->
+<!-- Setting up an account from an invite. Beside sign-in rather than inside
+     the app, because whoever is here has no session and no password yet. -->
+<main id="invite" class="auth hidden">
+  <div class="card">
+    <div class="logo" id="inviteMark"></div>
+    <div id="inviteErr" class="note hidden" role="status"></div>
+    <form id="inviteForm" class="hidden">
+      <h1 id="inviteHead">Choose your password</h1>
+      <p class="lede" id="inviteLede"></p>
+      <label><span>Password</span>
+        <div class="pw">
+          <input type="password" name="password" autocomplete="new-password" required>
+          <button type="button" class="iconbtn" data-reveal aria-label="Show password" aria-pressed="false">
+            <svg class="ic"><use href="#i-eye"/></svg>
+          </button>
+        </div>
+      </label>
+      <button class="btn block" type="submit">Set password and sign in</button>
+    </form>
+  </div>
+</main>
+
 <main id="login" class="auth hidden">
   <div class="card">
     <img class="logo" src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon">
@@ -1833,9 +1855,8 @@
       <p class="small muted" style="margin:-6px 0 10px">Turn on what you offer and type your starting price. Leave it off if you don&rsquo;t do it.</p>
       <div class="svcs" id="memberSvcs"></div>
       <div id="memberCreate">
-        <label><span>Password</span>
-          <input type="text" name="password" minlength="10" placeholder="At least 10 characters" autocomplete="off"></label>
-        <p class="small muted" style="margin:-6px 0 16px">Shown as you type so you can pass it on to them.</p>
+        <p class="small muted" style="margin:0 0 16px">They will be emailed a link to choose
+          their own password. Nobody else ever sees it &mdash; including you.</p>
       </div>
       <details id="memberPw" class="hidden md-pw">
         <summary>Change your password</summary>
@@ -1933,6 +1954,25 @@
       <button class="btn" type="submit">Confirm</button>
     </div>
   </form>
+</dialog>
+
+<!-- The invite link for somebody just added. Shown even when the email
+     went, because the person who added them is the one who can chase it. -->
+<dialog id="inviteDlg" aria-labelledby="inviteTitle">
+  <div class="ad-head">
+    <div style="flex:1;min-width:0">
+      <h2 id="inviteTitle"><span id="inviteWho"></span> has been added</h2>
+      <p class="small muted" id="inviteSent" style="margin:2px 0 0"></p>
+    </div>
+    <button type="button" class="iconbtn lg" id="inviteClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <label><span>Their invite link</span>
+    <input id="inviteLink" readonly onclick="this.select()"></label>
+  <p class="small muted" id="inviteNote" style="margin:-6px 0 14px"></p>
+  <div class="ad-acts">
+    <button type="button" class="btn quiet" id="inviteCopy">Copy link</button>
+    <button type="button" class="btn" id="inviteDone">Done</button>
+  </div>
 </dialog>
 
 <!-- One appointment, in full: what the day card had to cut short. -->
@@ -4484,6 +4524,37 @@ $('memberDanger').onclick = async () => {
   } catch (err) { note($('memberNote'), err.message); }
 };
 
+/**
+ * The invite link, on screen.
+ *
+ * Shown whether or not the email went: no provider configured, a typo in the
+ * address, a spam folder. Whoever added them is standing right there and can
+ * hand it over. An invite nobody can deliver is an account nobody can use.
+ */
+function showInviteLink(name, invite) {
+  if (!invite) { toast(`${name} has been added.`); return; }
+  $('inviteWho').textContent = name;
+  $('inviteSent').textContent = invite.emailed
+    ? 'We have emailed them a link to choose a password.'
+    : 'No email was sent — this site has no email provider connected yet. '
+      + 'Send them this link yourself.';
+  $('inviteLink').value = invite.link;
+  $('inviteNote').textContent = `The link works once and expires in ${invite.expiresDays} days.`;
+  openDialog($('inviteDlg'));
+}
+
+$('inviteCopy').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText($('inviteLink').value);
+    toast('Invite link copied.');
+  } catch {
+    $('inviteLink').select();
+    toast('Select the link and copy it.', 'bad');
+  }
+};
+$('inviteClose').onclick = () => closeDialog($('inviteDlg'));
+$('inviteDone').onclick = () => closeDialog($('inviteDlg'));
+
 $('memberForm').onsubmit = async (e) => {
   if (e.submitter?.value !== 'save') return;
   e.preventDefault();
@@ -4503,11 +4574,11 @@ $('memberForm').onsubmit = async (e) => {
   $('memberSave').disabled = true;
   try {
     if (!memberEdit) {
-      await api('/api/staff/team', {
+      const made = await api('/api/staff/team', {
         method: 'POST',
-        body: JSON.stringify({ action: 'create', ...fields, role: f.get('role'), password: f.get('password') }),
+        body: JSON.stringify({ action: 'create', ...fields, role: f.get('role') }),
       });
-      toast(`${f.get('name')} can sign in now.`);
+      showInviteLink(f.get('name'), made.invite);
     } else if (memberEdit === 'me') {
       const patch = { ...fields };
       if (f.get('newPassword')) {
@@ -5129,7 +5200,71 @@ $('feeds').onclick = async (e) => {
 
 // ───────────────────────────── boot ─────────────────────────────
 
+/**
+ * Accepting an invite.
+ *
+ * Lives outside the app: whoever follows the link has no session, and may
+ * never have seen this console before. The token is in the URL, which is why
+ * it is spent on use and short-lived -- browser history is not a safe place
+ * for a credential to sit.
+ */
+async function showInvite(token) {
+  $('boot').classList.add('hidden');
+  $('login').classList.add('hidden');
+  $('app').classList.add('hidden');
+  $('invite').classList.remove('hidden');
+
+  let who;
+  try {
+    who = await (await fetch(`/api/staff/invite?t=${encodeURIComponent(token)}`)).json()
+      .then((d) => { if (d.error) throw new Error(d.error); return d; });
+  } catch (err) {
+    const n = $('inviteErr');
+    n.textContent = err.message;
+    n.className = 'note bad';
+    return;
+  }
+
+  $('inviteLede').textContent = `You have been added to the team at ${who.salon}. `
+    + `Choose a password for ${who.email} and you are in.`;
+  $('inviteForm').querySelector('input[name=password]')
+    .setAttribute('minlength', String(who.minPasswordLength));
+  $('inviteForm').classList.remove('hidden');
+
+  $('inviteForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/staff/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ t: token, password: new FormData(e.target).get('password') }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'That did not work.');
+      // The token is spent, so it must not stay in the address bar for a
+      // reload to try again with.
+      history.replaceState(null, '', '/staff');
+      location.reload();
+    } catch (err) {
+      const n = $('inviteErr');
+      n.textContent = err.message;
+      n.className = 'note bad';
+      btn.disabled = false;
+    }
+  };
+}
+
 async function start(landing) {
+  // An invite link comes before everything else: whoever follows it has no
+  // session, and sending them to the sign-in form asks for a password they
+  // have not got yet.
+  const inviteToken = new URLSearchParams(location.search).get('t');
+  if (location.pathname.startsWith('/staff/invite') && inviteToken) {
+    return showInvite(inviteToken);
+  }
+
   try {
     me = await api('/api/staff/me');
   } catch {

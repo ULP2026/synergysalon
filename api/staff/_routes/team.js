@@ -9,7 +9,10 @@
  * but cannot grant anybody else access to the salon's client list.
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { randomBytes, createHash } from 'node:crypto';
+
 import { query } from '../../_lib/db.js';
+import { sendInvite } from '../../_lib/email.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
@@ -23,6 +26,33 @@ import {
 const ADMIN = ['owner', 'manager'];
 const ROLES = ['owner', 'manager', 'front_desk'];
 
+/** How long an invite is good for. Long enough for a day off, short enough
+ * that a forwarded link does not sit live for a month. */
+const INVITE_DAYS = 7;
+
+/**
+ * A fresh invite for somebody, returned as the raw link.
+ *
+ * Only the hash is kept, exactly as with a session token: a copy of this table
+ * is not a set of working invites. The raw token exists for the length of this
+ * request and is then only in the email and on the screen of whoever added
+ * them, so they can hand it over directly if the email does not arrive.
+ */
+async function mintInvite(req, userId) {
+  const token = randomBytes(32).toString('base64url');
+  await query(
+    `UPDATE staff_users
+        SET invite_hash = $2,
+            invite_expires_at = now() + make_interval(days => $3::int),
+            invited_at = now()
+      WHERE id = $1`,
+    [userId, createHash('sha256').update(token).digest('hex'), INVITE_DAYS],
+  );
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0];
+  const proto = host.startsWith('localhost') ? 'http' : 'https';
+  return `${proto}://${host}/staff/invite?t=${token}`;
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req, ADMIN);
@@ -33,6 +63,7 @@ export default handler({
       // database that has not had migration 011 yet.
       `SELECT u.id, u.name, u.email, u.role, u.status, u.note, u.avatar,
               u.requested_at, u.approved_at, u.last_seen_at, u.created_at,
+              (to_jsonb(u) ->> 'invite_hash') IS NOT NULL AS invited,
               to_jsonb(u) ->> 'username' AS username,
               to_jsonb(u) ->> 'pricing' AS pricing,
               to_jsonb(u) -> 'services' AS services,
@@ -53,6 +84,8 @@ export default handler({
       pending: rows.filter((r) => r.status === 'pending').length,
       members: rows.map((r) => ({
         id: r.id,
+        // Added but never signed in: their invite is still outstanding.
+        invited: r.invited,
         name: r.name,
         email: r.email,
         role: r.role,
@@ -89,10 +122,6 @@ export default handler({
     if (action === 'create') {
       const name = requireString(body.name, 'Name', { max: 120 });
       const email = requireEmail(body.email);
-      const password = requireString(body.password, 'Password', { max: 200 });
-      if (password.length < MIN_PASSWORD_LENGTH) {
-        throw new HttpError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-      }
       const role = ROLES.includes(body.role) ? body.role : 'front_desk';
       if (role === 'owner' && user.role !== 'owner') {
         throw new HttpError(403, 'Only an owner can make someone else an owner.');
@@ -109,12 +138,16 @@ export default handler({
       const avatar = avatarFrom(body.avatar) ?? null;
       const pricing = String(body.pricing || '').trim().slice(0, 120);
 
+      // No password is chosen for them. The column cannot be null, so it holds
+      // a hash of something nobody has: it can never be guessed, and it can
+      // never verify, so the account is unusable until the invite is accepted.
+      const unusable = await hashPassword(randomBytes(32).toString('base64url'));
       const { rows } = await query(
         `INSERT INTO staff_users (tenant_id, email, password_hash, name, role,
-                                  status, approved_at, approved_by)
-         VALUES ($1, $2, $3, $4, $5, 'active', now(), $6)
+                                  status, approved_at, approved_by, invited_by)
+         VALUES ($1, $2, $3, $4, $5, 'active', now(), $6, $6)
          RETURNING id, name, email, role`,
-        [tenant.id, email, await hashPassword(password), name, role, user.id],
+        [tenant.id, email, unusable, name, role, user.id],
       );
       // The profile extras go in a second statement so adding a person still
       // works on a database that has not had migration 011; only the extras
@@ -131,7 +164,19 @@ export default handler({
         await query('UPDATE staff_users SET services = $2::jsonb WHERE id = $1',
           [rows[0].id, JSON.stringify(services)]);
       }
-      return json(res, 201, { ok: true, member: rows[0] });
+      const link = await mintInvite(req, rows[0].id);
+      // Sending is a courtesy, not the mechanism. No email provider, a typo in
+      // the address, a spam folder -- the person adding them still has the
+      // link on screen and can hand it over directly.
+      let emailed = false;
+      try {
+        const r = await sendInvite({ name, email, link, expiresDays: INVITE_DAYS }, tenant);
+        emailed = !r?.skipped;
+      } catch (err) {
+        console.error('invite email failed for', email, err);
+      }
+
+      return json(res, 201, { ok: true, member: rows[0], invite: { link, emailed, expiresDays: INVITE_DAYS } });
     }
 
     const id = requireString(body.id, 'Member', { max: 64 });
@@ -150,6 +195,28 @@ export default handler({
     }
 
     switch (action) {
+      case 'reinvite': {
+        // Only for an account that has never been used. Re-inviting somebody
+        // who already has a password would be a way to take their account
+        // over, which is what the password reset they do themselves is for.
+        const { rows: who } = await query(
+          'SELECT id, name, email, invite_hash FROM staff_users WHERE id = $1 AND tenant_id = $2',
+          [id, tenant.id],
+        );
+        if (!who[0]) throw new HttpError(404, 'That person is not on this team.');
+        if (!who[0].invite_hash) {
+          throw new HttpError(409, `${who[0].name} has already set a password.`);
+        }
+        const link = await mintInvite(req, id);
+        let emailed = false;
+        try {
+          const r = await sendInvite(
+            { name: who[0].name, email: who[0].email, link, expiresDays: INVITE_DAYS }, tenant);
+          emailed = !r?.skipped;
+        } catch (err) { console.error('invite email failed for', who[0].email, err); }
+        return json(res, 200, { ok: true, invite: { link, emailed, expiresDays: INVITE_DAYS } });
+      }
+
       case 'approve': {
         const role = ROLES.includes(body.role) ? body.role : 'front_desk';
         await query(

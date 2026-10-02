@@ -151,6 +151,26 @@ function detailRows(appt, zone) {
  * The line that made this urgent was "Your appointment at Synergy Salon is
  * confirmed", which every shop's guests would have received.
  */
+/**
+ * "You have been added to the team; choose a password."
+ *
+ * The one message here that is not about an appointment, and the only one
+ * whose link is a credential -- so it says plainly how long it lasts and that
+ * it should not be forwarded.
+ */
+export function sendInvite({ name, email, link, expiresDays }, tenant = {}) {
+  const shop = shopFrom(tenant);
+  return send(shop, email, `Set up your ${shop.name} account`, {
+    heading: `Welcome, ${String(name || '').split(' ')[0] || 'there'}`,
+    intro: `You have been added to the team at ${shop.name}. Choose a password and `
+      + 'you are in — nobody else sees it, including whoever added you.',
+    rows: [['Your sign-in email', email]],
+    action: { label: 'Choose your password', href: link },
+    footnote: `This link works once and expires in ${expiresDays} days. It is just `
+      + 'for you: anyone who has it can set up your account, so please do not forward it.',
+  });
+}
+
 export function sendConfirmation(appt, tenant = {}) {
   const shop = shopFrom(tenant);
   const zone = shop.timezone;
