@@ -2811,7 +2811,17 @@ function renderConfirmationFlow() {
         The time goes straight back on the books, and you see it on Appointments.</p></div>
     <p class="flow-foot">${ic('eye')}View only. This shows what the app does; there is nothing to set up here.</p>`;
 }
-const VIEWS = ['home', 'appointments', 'clients', 'marketing', 'settings', 'account'];
+/**
+ * Every section go() can show, read from the page rather than listed here.
+ *
+ * It was a hand-written list, and a page whose view was missing from it was
+ * never unhidden: it routed, it loaded, it painted, and nobody saw it. The
+ * Calendars page shipped blank for exactly that reason, with its markup
+ * sitting in the DOM fully rendered and the section still carrying `hidden`.
+ * Taking the list from the markup means adding a section is enough.
+ */
+const VIEWS = [...document.querySelectorAll('section.view[id^="view-"]')]
+  .map((el) => el.id.slice(5));
 
 // The old names still land: bookmarks to /staff/dashboard and
 // /staff/contacts open Home and Clients rather than falling through.
