@@ -1462,6 +1462,13 @@
   /* One provider rather than a row of them: left-aligned and its own width,
      because a lone card stretched edge to edge reads as an empty table. */
   .conns.one { grid-template-columns: minmax(260px, 420px); }
+
+  .ok-bubble { display:grid; place-items:center; width:56px; height:56px; border-radius:50%;
+               background:#e8f5ee; color:var(--ok); margin-bottom:4px; }
+  .ok-bubble .ic { width:26px; height:26px; }
+  #cokDlg .urlrow input { font-size:var(--fs-sm); }
+  #cokDlg .urlrow .btn { border-radius:0 10px 10px 0; border:1.5px solid var(--line); border-left:0; }
+  #cokDlg .urlrow input { border-radius:10px 0 0 10px; }
 </style>
 </head>
 <body>
@@ -1972,6 +1979,35 @@
   <div class="ad-acts">
     <button type="button" class="btn quiet" id="inviteCopy">Copy link</button>
     <button type="button" class="btn" id="inviteDone">Done</button>
+  </div>
+</dialog>
+
+<!-- After a calendar is made: the two ways to use it, side by side. The link
+     to send, and the code to paste into a site. Shown once, and reachable
+     again from the calendar's settings, because nobody copies it first time. -->
+<dialog id="cokDlg" aria-labelledby="cokTitle">
+  <div class="ad-head" style="flex-direction:column;align-items:center;text-align:center;gap:6px">
+    <span class="ok-bubble"><svg class="ic"><use href="#i-calendar"/></svg></span>
+    <h2 id="cokTitle">Calendar created</h2>
+    <p class="small muted" style="margin:0" id="cokSub"></p>
+    <button type="button" class="iconbtn lg" id="cokClose" aria-label="Close"
+      style="position:absolute;top:14px;right:14px"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+
+  <label><span>Here&rsquo;s the link</span>
+    <div class="urlrow"><input id="cokLink" readonly onclick="this.select()">
+      <button type="button" class="btn quiet" data-cok-copy="cokLink">Copy</button></div>
+    <span class="small muted">Send this to a guest, or put it behind a Book button.</span></label>
+
+  <label><span>Here&rsquo;s the embed code</span>
+    <div class="urlrow"><input id="cokEmbed" readonly onclick="this.select()">
+      <button type="button" class="btn quiet" data-cok-copy="cokEmbed">Copy</button></div>
+    <span class="small muted">Paste this into a page on your own site to book from there.</span></label>
+
+  <div class="ad-acts">
+    <button type="button" class="btn quiet" id="cokSettings">Settings</button>
+    <button type="button" class="btn quiet" id="cokDone">Close</button>
+    <a class="btn" id="cokPreview" target="_blank" rel="noopener">Preview booking page</a>
   </div>
 </dialog>
 
@@ -2649,16 +2685,57 @@ async function submitCalNew() {
         members: calDraft.members,
       }),
     });
-    $('cnewDlg').close();
-    toast(`“${d.calendar.name}” created.`);
+    closeDialog($('cnewDlg'));
     calData = null;                       // both views ask again
     // Repaint wherever they were standing, rather than only the list they may
     // not be looking at.
     if (page === 'appointments') await loadAppointments();
     else await loadCalendars();
+    showCalendarMade(d.calendar);
     return d.calendar;
   } catch (err) { fail(err); return null; } finally { btn.disabled = false; }
 }
+
+/**
+ * What to do with a calendar now it exists.
+ *
+ * Two things, and a shop needs whichever matches how it works: a link to send
+ * or sit behind a Book button, and an iframe for the page they already have.
+ * Offering only the link leaves anybody with their own website to work the
+ * second one out themselves.
+ */
+function embedCodeFor(url) {
+  return `<iframe src="${url}" style="width:100%;min-height:720px;border:0" `
+    + 'loading="lazy" title="Book an appointment"></iframe>';
+}
+
+let cokSlug = null;
+
+function showCalendarMade(c) {
+  cokSlug = c.slug;
+  const url = c.url || `${location.origin}/s/${c.slug}`;
+  $('cokSub').textContent = `${c.name} · ${c.kindLabel} · ${c.durationMin} min`;
+  $('cokLink').value = url;
+  $('cokEmbed').value = embedCodeFor(url);
+  $('cokPreview').href = url;
+  openDialog($('cokDlg'));
+}
+
+$('cokDlg').onclick = async (e) => {
+  const copy = e.target.closest('[data-cok-copy]');
+  if (!copy) return;
+  const field = $(copy.dataset.cokCopy);
+  try {
+    await navigator.clipboard.writeText(field.value);
+    toast('Copied.');
+  } catch {
+    field.select();
+    toast('Select it and copy.', 'bad');
+  }
+};
+$('cokClose').onclick = () => closeDialog($('cokDlg'));
+$('cokDone').onclick = () => closeDialog($('cokDlg'));
+$('cokSettings').onclick = () => { closeDialog($('cokDlg')); goCalendarSettings(cokSlug); };
 
 // ── advanced settings, on its own path ──────────────────────────────────
 let calSettingsSlug = null;
@@ -2685,7 +2762,8 @@ function renderCalendarSettings(c) {
       <div class="card-head" style="margin-bottom:4px"><h2>Booking link</h2></div>
       <p class="small muted" style="margin:0 0 12px">Where guests book this calendar.</p>
       <div class="urlrow"><input id="setSlug" value="${esc(c.slug)}" maxlength="48"></div>
-      <div class="small muted" style="margin:8px 0 0">${esc(base)}</div>
+      <div class="small muted" style="margin:8px 0 10px">${esc(base)}</div>
+      <button type="button" class="btn quiet" id="setShare">Link and embed code</button>
     </div>
 
     <div class="card" style="margin-top:16px">
@@ -2759,6 +2837,7 @@ function renderCalendarSettings(c) {
   };
 
   $('calBack').onclick = () => go('calendars');
+  $('setShare').onclick = () => showCalendarMade(c);
   $('setDelete').onclick = async () => { await deleteCalendar(c); go('calendars'); };
 
   $('setSave').onclick = async () => {
