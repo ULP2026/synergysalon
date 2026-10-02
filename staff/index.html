@@ -237,8 +237,10 @@
   .auth .logo { display: block; height: 40px; width: auto; margin: 0 auto 24px; }
   .auth h1 { text-align: center; font-size: 1.4rem; }
   .auth .lede { text-align: center; color: var(--muted); margin: 6px 0 24px; font-size: var(--fs-sm); }
-  .auth .switch { text-align: center; margin: 18px 0 0; font-size: var(--fs-sm); color: var(--muted); }
-  .auth .switch a { color: var(--link); font-weight: 600; }
+  /* Not .switch: that is the toggle control, and sharing it squeezed this
+     line into a 44px pill. */
+  .auth .auth-alt { text-align: center; margin: 18px 0 0; font-size: var(--fs-sm); color: var(--muted); }
+  .auth .auth-alt a { color: var(--link); font-weight: 600; }
   .pw { position: relative; }
   .pw input { padding-right: 48px; }
   .pw .iconbtn { position: absolute; right: 3px; top: 3px; }
@@ -1253,6 +1255,12 @@
      lavender; the ring's periwinkle edge does the marking. */
   :root[data-theme="dark"] { --lav-fill: linear-gradient(180deg, #2a2a33 0%, #222229 100%);
                              --lav-shine: inset 0 1px 0 rgba(255, 255, 255, .10), inset 0 -6px 12px -8px rgba(0, 0, 0, .35); }
+  /* Logos are drawn in navy for white pages, which disappears on charcoal.
+     The crescent turns soft lavender; a logo image (the sign-in wordmark, or
+     the salon's own in the menu) is redrawn in near-white, keeping its
+     shape and transparency, so any upload stays readable. */
+  :root[data-theme="dark"] .grn-mark { background: #d4d8f6; }
+  :root[data-theme="dark"] .grn-logo img, :root[data-theme="dark"] .auth .logo { filter: brightness(0) invert(.94); }
   :root[data-theme="dark"] .grn-me .me-pic { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px rgba(185, 192, 232, .35); }
   :root[data-theme="dark"] .grn-item .count { box-shadow: 0 0 0 2px var(--card); }
   :root[data-theme="dark"] .card, :root[data-theme="dark"] .tile { box-shadow: var(--e1), inset 0 1px 0 rgba(255, 255, 255, .04); }
@@ -1657,7 +1665,7 @@
         </div>
       </label>
       <button class="btn block" type="submit">Sign in</button>
-      <p class="switch">New to the team? <a href="#" id="showRequest">Request access</a></p>
+      <p class="auth-alt">New to the team? <a href="#" id="showRequest">Request access</a></p>
     </form>
 
     <form id="requestForm" class="hidden">
@@ -1675,7 +1683,7 @@
       </label>
       <label><span>Anything the owner should know</span><input name="note" placeholder="e.g. new stylist, starts Monday"></label>
       <button class="btn block" type="submit">Send request</button>
-      <p class="switch"><a href="#" id="showLogin">Back to sign in</a></p>
+      <p class="auth-alt"><a href="#" id="showLogin">Back to sign in</a></p>
     </form>
   </div>
 </main>
