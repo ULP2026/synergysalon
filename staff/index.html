@@ -3116,7 +3116,11 @@ function dayColumns(d) {
   // been deactivated since. Their column stays, because the alternative is a
   // booked client silently vanishing from the day and nobody covering them.
   // It is marked instead, so it is obvious why a name nobody expected is here.
+  // A cancelled appointment does not earn a chair: those are listed under the
+  // grid as "Cancelled today", and keeping a whole empty column for somebody
+  // who has left the team only makes the day look staffed when it is not.
   for (const a of d.appointments) {
+    if (a.status === 'cancelled') continue;
     if (a.stylistSlug && !cols.some((c) => c.slug === a.stylistSlug)) {
       cols.push({ slug: a.stylistSlug, name: a.stylist, title: '', former: true });
     }
@@ -3414,11 +3418,15 @@ function openAppt(a) {
   if (a.status === 'cancelled') acts.push(b('reopen', 'Reopen', ''));
   if (a.status === 'booked') {
     acts.push(b('no_show', 'Didn’t show up'));
-    acts.push(b('cancel', 'Cancel', 'danger'));
+    // Cancelling is ordinary: the guest called off and the slot goes back on
+    // sale. Styling it like deletion, beside deletion, is how the two get
+    // confused -- and they leave very different things behind.
+    acts.push(b('cancel', 'Cancel appointment'));
     acts.push(a.checkedInAt ? b('undo_check_in', 'Undo check-in') : '');
     acts.push(a.checkedInAt ? b('complete', 'Done', '') : b('check_in', 'Check in', ''));
   }
-  if (me?.user?.role === 'owner' || me?.user?.role === 'manager') acts.unshift(b('delete', 'Delete for good', 'danger'));
+  // Last, not first: it is the one action here that cannot be undone.
+  if (me?.user?.role === 'owner' || me?.user?.role === 'manager') acts.push(b('delete', 'Delete for good', 'danger'));
   $('adActs').innerHTML = acts.join('');
   openDialog($('apptDlg'));
 }
