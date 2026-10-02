@@ -352,9 +352,9 @@
   /* pt-20, as in RocketOS's Index: the nav is fixed, so the page starts below it. */
   .main {
     display: flex; flex-direction: column; min-width: 0; flex: 1;
-    /* 1000px across: the day view's four stylist columns still fit without
-       scrolling, and nothing else leaves a band of empty page beside it. */
-    width: 100%; max-width: 1000px; margin: 0 auto; padding: 88px 32px 32px;
+    /* 960px across, RocketOS's measure: wide enough for the day view and the
+       client list, narrow enough that nothing leaves a band of empty page. */
+    width: 100%; max-width: 960px; margin: 0 auto; padding: 88px 32px 32px;
   }
   /* RocketOS proportions: a 1.5rem title, a small grey line under it, and
      cards that sit 16px apart. Tighter than before, which read as oversized. */
@@ -1480,6 +1480,10 @@
   .hrs .hr input[disabled] { opacity:.5; }
   .hrs .hr .dash { color:var(--muted); font-size:var(--fs-sm); }
   @media (max-width:520px) { .hrs .hr input[type=time] { width:92px; } }
+
+  /* ── Salon Calendar: one column, the time down the side ─────────────── */
+  .dg-calic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--peri-pale); color: var(--periwinkle); flex: none; }
+  .dg-ev .ln .m { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -1622,18 +1626,16 @@
         <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Home</span></a>
       <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Appointments">
         <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appointments</span></a>
-      <a class="grn-item" href="/staff/calendars" data-page="calendars" title="Calendars">
-        <svg class="ic"><use href="#i-calendar-plus"/></svg><span class="lbl">Calendars</span></a>
       <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
         <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Clients</span></a>
       <a class="grn-item" href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
         <svg class="grn-ic"><use href="#l-megaphone"/></svg><span class="lbl">Marketing</span></a>
-      <a class="grn-item icon-only hidden" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
+      <a class="grn-item icon-only" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
         <svg class="grn-ic"><use href="#l-settings"/></svg></a>
     </nav>
-    <!-- The person: their picture and first name. It opens Team Settings,
-         where their profile, the team and sign out live. -->
-    <a class="grn-me glass-strong" id="meBtn" href="/staff/account" data-page="account" title="Team Settings">
+    <!-- The person: their picture and first name. It opens Settings on Team
+         Settings, where their profile, the team and sign out live. -->
+    <a class="grn-me glass-strong" id="meBtn" href="/staff/settings" data-page="account" title="Settings">
       <span class="me-pic" id="mePic" aria-hidden="true"></span>
       <span class="me-name" id="meName"></span>
       <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span>
@@ -1684,9 +1686,9 @@
           </div>
           <span class="summary" id="dayHeading"></span>
         </div>
-        <!-- Which calendar is on screen: the Salon Calendar today, each
-             stylist's own once they connect one (see renderCalBar()). -->
-        <div class="calbar" id="calBar" role="group" aria-label="Calendars"></div>
+        <!-- Kept for renderCalBar(), which stays hidden: the shop's calendars
+             already sit above the diary (apptCals), and one list is enough. -->
+        <div class="calbar hidden" id="calBar" role="group" aria-label="Calendars"></div>
         <div id="calendar" class="hidden" style="flex:1;display:flex;flex-direction:column"></div>
         <div id="diary" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
       </div>
@@ -1735,8 +1737,9 @@
     <section class="view hidden" id="view-settings">
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
         <button type="button" data-set="profile" aria-pressed="true">Salon Profile</button>
+        <button type="button" data-set="team" aria-pressed="false">Team Settings</button>
         <button type="button" data-set="calendars" aria-pressed="false">Calendars</button>
-        <button type="button" data-set="billing" aria-pressed="false">Billing</button>
+        <button type="button" data-set="billing" aria-pressed="false" data-admin>Billing</button>
       </div>
 
       <!-- Salon Profile -->
@@ -1761,6 +1764,33 @@
         <div id="feeds"></div>
       </div>
 
+      <!-- Team Settings: how the app looks, the connections and the team, as
+           stacked cards (RocketOS's settings). The person chip opens this tab. -->
+      <div class="setpane hidden" id="set-team">
+      <div class="acct">
+          <section class="acard">
+            <h2 class="ahead"><svg class="ic"><use href="#i-sun"/></svg>Appearance</h2>
+            <div class="arow">
+              <div><b>Dark Mode</b><span>Toggle between light and dark theme</span></div>
+              <button type="button" class="switch" id="darkSwitch" role="switch" aria-checked="false" aria-label="Dark Mode"><span></span></button>
+            </div>
+          </section>
+
+          <section class="acard hidden" id="acctIntegration">
+            <h2 class="ahead"><svg class="ic"><use href="#i-link"/></svg>Integrations</h2>
+            <p class="asub">The apps the salon connects to. Your calendars are yours; the CRM and email are the salon&rsquo;s.</p>
+            <div id="centro"></div>
+          </section>
+
+          <section class="acard">
+            <h2 class="ahead"><svg class="ic"><use href="#i-shield"/></svg>Team Members</h2>
+            <p class="asub">Your profile and the people who work here. Click your picture to edit it and your prices.</p>
+            <div id="team"></div>
+          </section>
+
+        </div>
+      </div>
+
       <!-- Billing -->
       <div class="card setpane hidden" id="set-billing">
         <div class="card-head" style="margin-bottom:4px"><h2>Billing</h2></div>
@@ -1774,32 +1804,6 @@
       </div>
     </section>
 
-    <!-- Team Settings: opened from the person in the corner. Stacked cards in
-         one narrow column, as RocketOS lays out its settings. -->
-    <section class="view hidden" id="view-account">
-      <div class="acct">
-        <section class="acard">
-          <h2 class="ahead"><svg class="ic"><use href="#i-sun"/></svg>Appearance</h2>
-          <div class="arow">
-            <div><b>Dark Mode</b><span>Toggle between light and dark theme</span></div>
-            <button type="button" class="switch" id="darkSwitch" role="switch" aria-checked="false" aria-label="Dark Mode"><span></span></button>
-          </div>
-        </section>
-
-        <section class="acard hidden" id="acctIntegration">
-          <h2 class="ahead"><svg class="ic"><use href="#i-link"/></svg>Integrations</h2>
-          <p class="asub">The apps the salon connects to. Your calendars are yours; the CRM and email are the salon&rsquo;s.</p>
-          <div id="centro"></div>
-        </section>
-
-        <section class="acard">
-          <h2 class="ahead"><svg class="ic"><use href="#i-shield"/></svg>Team Members</h2>
-          <p class="asub">Your profile and the people who work here. Click your picture to edit it and your prices.</p>
-          <div id="team"></div>
-        </section>
-
-      </div>
-    </section>
   </main>
 </div>
 
@@ -2420,7 +2424,6 @@ async function loadAppointments() {
   // The whole card, not its pieces: hiding the toolbar and the grid separately
   // leaves an empty white box sitting above the message.
   $('diaryCard')?.classList.toggle('hidden', Boolean(none));
-  $('calBar')?.classList.toggle('hidden', Boolean(none));
   $('needCal').classList.toggle('hidden', !none);
   // "New appointment" would book into a calendar that does not exist.
   $('primaryBtn')?.classList.toggle('hidden', Boolean(none));
@@ -2939,7 +2942,7 @@ const PAGES = {
   },
   settings: {
     path: '/staff/settings', title: 'Settings',
-    sub: 'Your salon’s details, calendars and billing.',
+    sub: 'Your salon, your team and how the app looks.',
     load: () => showSetting(setTab),
   },
   // Opened from the person in the corner, for every role: how the app looks,
@@ -3049,7 +3052,9 @@ function pageFromUrl() {
 
 function go(name, { push = true } = {}) {
   name = PAGE_ALIASES[name] || name;
-  if (name === 'settings' && !me?.user?.canAdmin) name = 'home';
+  // Team Settings is a tab of Settings now; its old address and the person
+  // chip both land there.
+  if (name === 'account') { setTab = 'team'; name = 'settings'; }
   const p = PAGES[name];
   page = name;
   if (push && location.pathname !== p.path) history.pushState({ page: name }, '', p.path);
@@ -3058,8 +3063,7 @@ function go(name, { push = true } = {}) {
     if (a.dataset.page === name || (p.group && a.dataset.group === p.group)) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
-  if (name === 'account') $('meBtn').setAttribute('aria-current', 'page');
-  else $('meBtn').removeAttribute('aria-current');
+  $('meBtn').removeAttribute('aria-current');
   moveRing();
   const view = p.view || name;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
@@ -3351,7 +3355,7 @@ function shortDate(iso) { return iso ? fmtWhen(iso, { month: 'short', day: 'nume
 
 function dayCard(a, top, height) {
   const lines = [
-    `<span class="ln">${esc(a.service)}</span>`,
+    `<span class="ln">${esc(a.service)}${a.stylist ? ` <span class="m">· ${esc(shortName(a.stylist))}</span>` : ''}</span>`,
     a.room ? `<span class="ln m">${esc(a.room)}</span>` : '',
     a.guestPhone ? `<span class="ln m">${esc(a.guestPhone)}</span>` : '',
     a.guestEmail ? `<span class="ln m">${esc(a.guestEmail)}</span>` : '',
@@ -3374,11 +3378,10 @@ function renderDiary(d) {
   $('dayHeading').textContent = `${d.heading} · ${d.booked} appointment${d.booked === 1 ? '' : 's'}`
     + (d.arriving ? ` · ${d.arriving} still to arrive` : '');
 
-  const cols = dayColumns(d);
-  if (!cols.length) {
-    $('diary').innerHTML = emptyState({ icon: 'calendar', title: 'No stylists yet', text: 'Add stylists to see the day by chair.' });
-    return;
-  }
+  // One column, the Salon Calendar: the time down the side and every
+  // appointment in it. Stylist columns (dayColumns) come back once stylists
+  // are on the team; until then a column per name would be columns of nobody.
+  const cols = [{ slug: '', name: 'Salon Calendar' }];
   const live = d.appointments.filter((a) => a.status !== 'cancelled');
   const cancelled = d.appointments.filter((a) => a.status === 'cancelled');
   const blocks = d.blocks || [];
@@ -3401,31 +3404,48 @@ function renderDiary(d) {
     return n >= from && n <= to ? `<div class="dg-now" style="top:${px(n)}px" aria-hidden="true"></div>` : '';
   })() : '';
 
+  // Things at the same time sit side by side, each in its own lane, so two
+  // stylists' 10 o'clocks are both readable rather than stacked.
+  const items = [
+    ...live.map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin })),
+    ...blocks.map((b) => ({ b, s: Math.max(from, salonMinutes(b.startsAt)), e: Math.min(to, salonMinutes(b.endsAt) || 24 * 60) })),
+  ].sort((x, y) => x.s - y.s || y.e - x.e);
+  let cluster = [];
+  let clusterEnd = -1;
+  const lanesEnd = [];
+  const flush = () => { const n = Math.max(...cluster.map((it) => it.lane)) + 1; for (const it of cluster) it.n = n; cluster = []; lanesEnd.length = 0; };
+  for (const it of items) {
+    if (it.s >= clusterEnd && cluster.length) flush();
+    let lane = lanesEnd.findIndex((end) => end <= it.s);
+    if (lane < 0) { lane = lanesEnd.length; lanesEnd.push(it.e); } else lanesEnd[lane] = it.e;
+    it.lane = lane;
+    cluster.push(it);
+    clusterEnd = Math.max(clusterEnd, it.e);
+  }
+  if (cluster.length) flush();
+  const place = (it) => `left:calc(${(it.lane / it.n) * 100}% + 6px);width:calc(${100 / it.n}% - 12px);right:auto;`;
+
   const colHtml = cols.map((c, i) => {
-    const mine = live.filter((a) => a.stylistSlug === c.slug);
-    const off = blocks.filter((b) => !b.stylistSlug || b.stylistSlug === c.slug);
-    const cards = mine.map((a) => {
-      const s = salonMinutes(a.startsAt);
-      return dayCard(a, px(s) + 1, Math.max(22, (a.durationMin / 60) * DG_HOUR - 3));
-    }).join('');
-    const offs = off.map((b) => {
-      const s = Math.max(from, salonMinutes(b.startsAt));
-      const e = Math.min(to, salonMinutes(b.endsAt) || 24 * 60);
+    const cards = items.filter((it) => it.a).map((it) => dayCard(it.a, px(it.s) + 1,
+      Math.max(22, (it.a.durationMin / 60) * DG_HOUR - 3)).replace('style="top:', `style="${place(it)}top:`)).join('');
+    const offs = items.filter((it) => it.b).map((it) => {
+      const b = it.b;
+      const s = it.s;
+      const e = it.e;
       const label = b.kind === 'lunch' ? 'Lunch' : 'Block';
       const sub = b.kind === 'block' && b.reason && !/^blocked$/i.test(b.reason) ? `<small>${esc(b.reason)}</small>` : '';
       return `<button type="button" class="dg-blk ${b.kind}" data-more="blk-${esc(b.id)}" data-blk="${esc(b.id)}"
-        style="top:${px(s) + 1}px;height:${Math.max(20, px(e) - px(s) - 3)}px"
-        title="${esc(`${label} · ${clock(s)} to ${clock(e)}${b.reason ? ` · ${b.reason}` : ''}`)}"><span>${label}${sub}</span></button>`;
+        style="${place(it)}top:${px(s) + 1}px;height:${Math.max(20, px(e) - px(s) - 3)}px"
+        title="${esc(`${label}${b.stylist ? ` · ${b.stylist}` : ''} · ${clock(s)} to ${clock(e)}${b.reason ? ` · ${b.reason}` : ''}`)}"><span>${label}${sub}</span></button>`;
     }).join('');
     return `<div class="dg-col dg-c${i % 6}" data-col="${esc(c.slug)}" style="height:${height}px">
       <span class="ghost" aria-hidden="true"></span>${offs}${cards}${nowLine}</div>`;
   }).join('');
 
   const heads = cols.map((c, i) => `<div class="dg-head dg-c${i % 6}">
-      <span class="avatar"><img src="${esc(c.photo || charAvatar(c.name))}" alt=""></span>
-      <div style="min-width:0"><b title="${esc(c.name)}">${esc(shortName(c.name))}</b>
-        <span class="sub">${live.filter((a) => a.stylistSlug === c.slug).length} booked${
-          c.former ? ' · no longer on the team' : ''}</span></div>
+      <span class="dg-calic">${ic('calendar')}</span>
+      <div style="min-width:0"><b>${esc(c.name)}</b>
+        <span class="sub">${live.length} booked</span></div>
     </div>`).join('');
 
   $('diary').innerHTML = `
@@ -3441,7 +3461,7 @@ function renderDiary(d) {
       <span><i style="background:#d6404d"></i>Block, not bookable</span>
       <span>${ic('check')}Confirmed</span><span>${ic('user-check')}Checked in</span>
       <span>${ic('thumbs')}Done</span><span>${ic('doc')}Notes</span>
-      <span style="margin-left:auto">Click an empty time to book it, or to add lunch or a block.</span>
+      <span style="margin-left:auto">Click an empty time to book it.</span>
     </div>
     ${cancelled.length ? `<div class="dg-off">Cancelled today:
       ${cancelled.map((a) => `<button type="button" class="chip warn" data-ref="${esc(a.ref)}" style="cursor:pointer">${esc(a.time)} ${esc(a.guestName)}</button>`).join('')}</div>` : ''}`;
@@ -3511,17 +3531,12 @@ function calendarList() {
   ];
 }
 
-function renderCalBar() {
-  // Only calendars that are in use are shown; stylist calendars join the bar
-  // when they can be connected, and until then live in the create dialog.
-  $('calBar').innerHTML = `<span class="lbl">Calendars</span>${calendarList().filter((c) => c.connected).map((c) => (c.kind === 'salon'
-    ? `<button type="button" class="calchip ${selectedCalendar === c.id ? 'on' : ''}" data-cal="${c.id}" title="Every stylist's appointments">
-        <span class="dot">${ic('calendar')}</span>${esc(c.name)}</button>`
-    : `<button type="button" class="calchip ${c.connected ? '' : 'off'}" data-cal="${esc(c.id)}"
-        title="${esc(c.connected ? c.name : `${c.name}'s own calendar is not connected yet`)}">
-        <img src="${esc(c.photo || charAvatar(c.name))}" alt="">${esc(c.name.split(/\s+/)[0])}</button>`)).join('')}
-    <button type="button" class="calchip add" data-cal="new">${ic('plus')}Create or connect calendar</button>`;
-}
+/**
+ * The old Salon Calendar bar. Hidden on request: the shop's own calendars are
+ * listed above the diary (renderApptCalendars), and two rows of calendars
+ * read as two systems. Left callable so nothing that refreshes it breaks.
+ */
+function renderCalBar() {}
 
 $('calBar').onclick = (e) => {
   const b = e.target.closest('[data-cal]');
@@ -3581,16 +3596,12 @@ $('diary').onclick = (e) => {
 
   const col = e.target.closest('.dg-col');
   if (!col || e.target !== col) return;
-  const slug = col.dataset.col;
   const mins = slotAt(col, e.clientY);
-  const who = (me.stylists.find((s) => s.slug === slug) || {}).name || '';
   const anchor = col.querySelector('.ghost');
   // After this click has finished bubbling, or the page's "click elsewhere
   // closes the menu" handler would shut it straight away.
   setTimeout(() => showMenu(anchor, [
-    { label: `New appointment at ${clock(mins)} with ${shortName(who)}`, run: () => openBooking(null, { stylist: slug, date: day, minutes: mins }) },
-    { label: 'Add lunch here', run: () => openBlock(slug, mins, 'lunch') },
-    { label: 'Block this time', run: () => openBlock(slug, mins, 'block') },
+    { label: `New appointment at ${clock(mins)}`, run: () => openBooking(null, { date: day, minutes: mins }) },
   ]), 0);
 };
 
@@ -4765,7 +4776,7 @@ $('memberForm').onsubmit = async (e) => {
     // A stylist's photo is also their column on the day view.
     me = { ...me, ...(await api('/api/staff/me').catch(() => ({}))) };
     paintMe();
-    if (page === 'account') await loadTeam();
+    if (page === 'settings' && setTab === 'team') await loadTeam();
   } catch (err) {
     // Logged as well as shown: a TypeError reads badly in a dialog, but it is
     // the thing worth having when somebody reports that nothing happened.
@@ -4904,17 +4915,22 @@ function loadAccount() {
 // ─────────────────────── settings sections ───────────────────────
 
 let setTab = 'profile';
-const SET_TABS = ['profile', 'calendars', 'billing'];
+const SET_TABS = ['profile', 'team', 'calendars', 'billing'];
 
 function showSetting(name) {
   if (!SET_TABS.includes(name)) name = 'profile';
+  if (name === 'billing' && !me?.user?.canAdmin) name = 'profile';
   setTab = name;
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
   }
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
   if (name === 'profile') loadBusiness();
+  if (name === 'team') loadAccount();
   if (name === 'calendars') loadFeeds();
+  // The person chip is "you": lit while your Team Settings are open.
+  if (name === 'team') $('meBtn').setAttribute('aria-current', 'page');
+  else $('meBtn').removeAttribute('aria-current');
 }
 $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
@@ -5148,7 +5164,7 @@ function connectGoogle(btn) {
     window.removeEventListener('message', onMessage);
     clearInterval(watch);
     if (message) toast(message, ok ? '' : 'bad');
-    if (page === 'account') loadCentro(); else loadFeeds();
+    if (page === 'settings' && setTab === 'team') loadCentro(); else loadFeeds();
   };
 
   function onMessage(e) {
@@ -5449,7 +5465,9 @@ async function start(landing) {
   $('app').classList.remove('hidden');
 
   paintMe();
-  $('navSettings').classList.toggle('hidden', !me.user.canAdmin);
+  // Settings is everyone's now (Team Settings lives there); Billing is the
+  // one tab only owners and managers see.
+  for (const b of document.querySelectorAll('#setSeg [data-admin]')) b.classList.toggle('hidden', !me.user.canAdmin);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
 
