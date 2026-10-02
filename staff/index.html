@@ -619,6 +619,10 @@
   .cfilter .dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, var(--s-a), var(--s-b)); }
   .cfilter button[aria-pressed="true"] .dot { box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
 
+  .cselect { width: auto; min-width: 150px; height: 42px; padding: 0 12px; font-size: var(--fs-sm); }
+  .cstages { margin: -2px 0 12px; }
+  .cstages .n { font-variant-numeric: tabular-nums; color: var(--faint); font-weight: 600; margin-left: 2px; }
+  .cstages button[aria-pressed="true"] .n { color: inherit; opacity: .8; }
   .ctags-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: -4px 0 16px; }
   .ctags-bar > .ic { width: 16px; height: 16px; color: var(--faint); margin-right: 2px; }
   .ctags-bar .count { margin-left: auto; font-size: var(--fs-sm); color: var(--muted); }
@@ -678,24 +682,6 @@
     .crow .cmain { grid-column: 2 / -1; }
     .crow .cnext { grid-column: 2; }
     .crow .acts { grid-column: 3; }
-  }
-
-  /* ── Leads, a draft: dashed edges and a Draft chip, so nobody mistakes it
-     for a finished screen while the pipeline is still being designed. ── */
-  .card.draft { border: 1.5px dashed var(--line-2); box-shadow: none; }
-  .draft-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: var(--fs-sm); color: var(--muted); }
-  .draft-chip { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; flex: none;
-                border: 1px dashed var(--periwinkle); color: var(--indigo); background: var(--peri-pale);
-                font-size: var(--fs-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-  #leadStatus { margin: 2px 0 10px; }
-  #leadStatus .n { font-variant-numeric: tabular-nums; color: var(--faint); font-weight: 600; margin-left: 2px; }
-  #leadStatus button[aria-pressed="true"] .n { color: inherit; opacity: .8; }
-  .lrow { grid-template-columns: 36px minmax(0, 1.6fr) minmax(0, 1fr) 120px; }
-  .lrow .ladded { font-size: .8rem; color: var(--muted); text-align: right; }
-  .draft .clist { border-style: dashed; }
-  @media (max-width: 720px) {
-    .lrow { grid-template-columns: 36px minmax(0, 1fr); }
-    .lrow .ctags, .lrow .ladded { display: none; }
   }
 
   tbody tr.clickable { cursor: pointer; }
@@ -1560,7 +1546,6 @@
   <symbol id="l-layout-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
   <symbol id="l-calendar" viewBox="0 0 24 24"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></symbol>
   <symbol id="l-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol>
-  <symbol id="l-funnel" viewBox="0 0 24 24"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></symbol>
   <symbol id="l-megaphone" viewBox="0 0 24 24"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14"/><path d="M8 6v8"/></symbol>
   <symbol id="l-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
 </svg>
@@ -1650,8 +1635,6 @@
         <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appointments</span></a>
       <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
         <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Clients</span></a>
-      <a class="grn-item" href="/staff/leads" data-page="leads" title="Leads (draft)">
-        <svg class="grn-ic"><use href="#l-funnel"/></svg><span class="lbl">Leads</span></a>
       <a class="grn-item" href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
         <svg class="grn-ic"><use href="#l-megaphone"/></svg><span class="lbl">Marketing</span></a>
       <a class="grn-item icon-only" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
@@ -1726,31 +1709,13 @@
             <svg class="ic"><use href="#i-search"/></svg>
             <input id="contactSearch" type="search" placeholder="Search name, email or phone" aria-label="Search clients">
           </div>
-          <!-- All, then one per stylist, built from the team in fillStylistFilter(). -->
-          <div class="cfilter" id="contactStylist" role="group" aria-label="Show clients of"></div>
+          <!-- Only when there are stylists to choose from; built in fillStylistFilter(). -->
+          <select id="contactStylist" class="cselect hidden" aria-label="Show clients of"></select>
         </div>
+        <!-- Where each person got to, with a count; built in renderContacts(). -->
+        <div class="cfilter cstages" id="contactStatus" role="group" aria-label="Show clients who are"></div>
         <div class="ctags-bar" id="contactTags"></div>
         <div id="contacts" style="flex:1;display:flex;flex-direction:column"></div>
-      </div>
-    </section>
-
-    <!-- Leads: a draft. The lead stages and source tags the old Contacts page
-         filtered by, over the same people, until the real pipeline is designed. -->
-    <section class="view hidden" id="view-leads">
-      <div class="card fill draft">
-        <div class="draft-head">
-          <span class="draft-chip">Draft</span>
-          <span>A first look at leads. The filters and tags work on real enquiries; the layout is a placeholder.</span>
-        </div>
-        <div class="toolbar">
-          <div class="search grow">
-            <svg class="ic"><use href="#i-search"/></svg>
-            <input id="leadSearch" type="search" placeholder="Search name, email or phone" aria-label="Search leads">
-          </div>
-        </div>
-        <div class="cfilter" id="leadStatus" role="group" aria-label="Show leads that are"></div>
-        <div class="ctags-bar" id="leadTags"></div>
-        <div id="leads" style="flex:1;display:flex;flex-direction:column"></div>
       </div>
     </section>
 
@@ -2965,10 +2930,6 @@ const PAGES = {
     sub: 'Everyone who has booked or asked about a visit.',
     run: () => openContact(null), load: () => { fillStylistFilter(); loadContacts(); },
   },
-  leads: {
-    path: '/staff/leads', title: 'Leads', sub: 'Everyone who has asked about a visit, by stage. A draft for now.',
-    load: () => loadLeads(),
-  },
   calendars: {
     path: '/staff/calendars', title: 'Calendars', action: 'New calendar',
     sub: 'The ways people can book you.',
@@ -3078,7 +3039,7 @@ const VIEWS = [...document.querySelectorAll('section.view[id^="view-"]')]
 
 // The old names still land: bookmarks to /staff/dashboard and
 // /staff/contacts open Home and Clients rather than falling through.
-const PAGE_ALIASES = { dashboard: 'home', contacts: 'clients', marketing: 'automation', team: 'account' };
+const PAGE_ALIASES = { dashboard: 'home', contacts: 'clients', leads: 'clients', marketing: 'automation', team: 'account' };
 
 function pageFromUrl() {
   // A calendar's settings live at /staff/calendars/<slug>, so the last
@@ -3958,18 +3919,25 @@ let contactStylist = '';    // a stylist's slug, or '' for everyone
 let contactSource = '';
 
 /**
- * All, then one button per stylist, from the team rather than a fixed list:
- * a new stylist gets a filter the day they are added. The owner sorts first
- * because the stylists arrive in the salon's own order.
+ * Everyone, then one option per stylist, from the team rather than a fixed
+ * list. A dropdown rather than a row of buttons, so it stays one control
+ * however big the team gets, and it is left out entirely while nobody is
+ * bookable: "All" on its own offers no choice.
  */
 function fillStylistFilter() {
   const box = $('contactStylist');
   const list = me?.stylists || [];
   if (contactStylist && !list.some((s) => s.slug === contactStylist)) contactStylist = '';
-  box.innerHTML = [`<button type="button" data-stylist="" aria-pressed="${!contactStylist}">All</button>`,
-    ...list.map((s) => `<button type="button" data-stylist="${esc(s.slug)}" aria-pressed="${s.slug === contactStylist}"
-      title="Clients who have seen ${esc(s.name)}">${esc(s.name.split(/\s+/)[0])}</button>`)].join('');
+  box.classList.toggle('hidden', !list.length);
+  box.innerHTML = ['<option value="">All stylists</option>',
+    ...list.map((s) => `<option value="${esc(s.slug)}"${s.slug === contactStylist ? ' selected' : ''}>${esc(s.name)}</option>`)].join('');
 }
+
+// The lead stages, as filters with counts: what Contacts filtered by before it
+// became Clients. Applied here rather than by the server, so every stage can
+// show its count from the one list.
+let contactStatus = '';
+const CONTACT_STAGES = ['new', 'contacted', 'booked', 'won', 'lost'];
 
 /** Where somebody got to, as the class that colours them. */
 const statusClass = (st) => `s-${STATUS_LABEL[st] ? st : 'new'}`;
@@ -3977,18 +3945,23 @@ const statusClass = (st) => `s-${STATUS_LABEL[st] ? st : 'new'}`;
 function renderContacts(d, filtered) {
   contactList = d.contacts;
 
+  const count = (st) => d.contacts.filter((c) => !st || c.status === st).length;
+  $('contactStatus').innerHTML = ['', ...CONTACT_STAGES].map((st) => `<button type="button" data-status="${st}" aria-pressed="${st === contactStatus}">
+      ${st ? `<i class="dot s-${st}"></i>` : ''}${st ? esc(STATUS_LABEL[st]) : 'All'}<span class="n">${count(st)}</span></button>`).join('');
+  const inStage = contactStatus ? d.contacts.filter((c) => c.status === contactStatus) : d.contacts;
+
   // Sources become tags you can click. Built from what the server returned,
   // so they only ever offer something that will find somebody.
   const sources = [...new Set(d.contacts.map((c) => (c.source || '').trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b));
   if (contactSource && !sources.includes(contactSource)) contactSource = '';
-  const shown = contactSource ? d.contacts.filter((c) => (c.source || '').trim() === contactSource) : d.contacts;
+  const shown = contactSource ? inStage.filter((c) => (c.source || '').trim() === contactSource) : inStage;
   $('contactTags').innerHTML = (sources.length ? `${ic('tag')}${sources.map((src) =>
     `<button type="button" class="tag" data-source="${esc(src)}" aria-pressed="${src === contactSource}">${esc(src)}</button>`).join('')}` : '')
-    + (d.contacts.length ? `<span class="count">${shown.length} ${shown.length === 1 ? 'client' : 'clients'}</span>` : '');
+    + (d.contacts.length ? `<span class="count">${shown.length} ${shown.length === 1 ? 'person' : 'people'}</span>` : '');
 
   if (!shown.length) {
-    $('contacts').innerHTML = filtered
+    $('contacts').innerHTML = filtered || contactStatus
       ? emptyState({
         icon: 'search', title: 'No one matches',
         text: contactStylist && !$('contactSearch').value.trim()
@@ -4036,14 +4009,16 @@ function renderContacts(d, filtered) {
   }).join('')}</div>`;
 }
 
-$('contactStylist').onclick = (e) => {
-  const b = e.target.closest('button[data-stylist]');
-  if (!b || b.dataset.stylist === contactStylist) return;
-  contactStylist = b.dataset.stylist;
-  for (const x of $('contactStylist').querySelectorAll('button')) {
-    x.setAttribute('aria-pressed', String(x === b));
-  }
+$('contactStylist').onchange = (e) => {
+  contactStylist = e.target.value;
   loadContacts();
+};
+$('contactStatus').onclick = (e) => {
+  const b = e.target.closest('button[data-status]');
+  if (!b || b.dataset.status === contactStatus) return;
+  contactStatus = b.dataset.status;
+  // Drawn again from the list already here: a stage is a view of it, not a new search.
+  renderContacts({ contacts: contactList }, Boolean($('contactSearch').value.trim() || contactStylist || contactSource));
 };
 $('contactTags').onclick = (e) => {
   const b = e.target.closest('button[data-source]');
@@ -4314,91 +4289,6 @@ $('pxLeft').onclick = (e) => {
 };
 
 let searchTimer = null;
-// ── Leads (draft) ──────────────────────────────────────────────────────────
-//
-// The lead stages and source tags Contacts filtered by before it became
-// Clients, brought back on request as a draft. Everyone is fetched once and
-// filtered here, so every stage can show its count without a call each.
-let leadList = [];
-let leadStatus = '';
-let leadSource = '';
-let leadSeq = 0;
-const LEAD_STAGES = ['new', 'contacted', 'booked', 'won', 'lost'];
-
-async function loadLeads() {
-  const seq = ++leadSeq;
-  if (!leadList.length) $('leads').innerHTML = skeleton(6);
-  try {
-    const d = await api(`/api/staff/contacts?q=${encodeURIComponent($('leadSearch').value.trim())}&limit=300`);
-    if (seq !== leadSeq) return;
-    leadList = d.contacts;
-    renderLeads();
-  } catch (err) {
-    if (seq === leadSeq && err.message !== 'signed out') {
-      $('leads').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load leads', text: err.message });
-    }
-  }
-}
-
-function renderLeads() {
-  const count = (st) => leadList.filter((c) => !st || c.status === st).length;
-  $('leadStatus').innerHTML = ['', ...LEAD_STAGES].map((st) => `<button type="button" data-status="${st}" aria-pressed="${st === leadStatus}">
-      ${st ? `<i class="dot s-${st}"></i>` : ''}${st ? esc(STATUS_LABEL[st]) : 'All'}<span class="n">${count(st)}</span></button>`).join('');
-
-  const inStage = leadList.filter((c) => !leadStatus || c.status === leadStatus);
-  const sources = [...new Set(leadList.map((c) => (c.source || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  if (leadSource && !sources.includes(leadSource)) leadSource = '';
-  const shown = leadSource ? inStage.filter((c) => (c.source || '').trim() === leadSource) : inStage;
-  $('leadTags').innerHTML = (sources.length ? `${ic('tag')}${sources.map((src) =>
-    `<button type="button" class="tag" data-source="${esc(src)}" aria-pressed="${src === leadSource}">${esc(src)}</button>`).join('')}`
-    : `${ic('tag')}<span class="small muted">Tags appear here from where each lead came from.</span>`)
-    + `<span class="count">${shown.length} ${shown.length === 1 ? 'lead' : 'leads'}</span>`;
-
-  if (!shown.length) {
-    $('leads').innerHTML = emptyState({
-      icon: 'contacts', title: leadList.length ? 'No leads here' : 'No leads yet',
-      text: leadList.length ? 'Nobody is at this stage with this tag.' : 'Enquiries from the website land here.',
-    });
-    return;
-  }
-  $('leads').innerHTML = `<div class="clist">${shown.map((c) => `
-    <div class="crow lrow ${statusClass(c.status)}" data-open="${esc(c.id)}" tabindex="0" role="button" aria-label="Open ${esc(c.name)}">
-      <span class="cav" aria-hidden="true">${esc(initialsOf(c.name))}</span>
-      <div class="cmain">
-        <div class="cname"><span class="name">${esc(c.name)}</span>
-          <span class="spill">${esc(STATUS_LABEL[c.status] || c.status)}</span></div>
-        <div class="cmeta">
-          ${c.phone ? `<span>${ic('phone')}${esc(c.phone)}</span>` : ''}
-          ${c.email ? `<span class="email">${ic('mail')}<span>${esc(c.email)}</span></span>` : ''}
-          ${!c.phone && !c.email ? '<span>No phone or email yet</span>' : ''}
-        </div>
-      </div>
-      <div class="ctags">${c.source ? `<span class="tag">${ic('tag')}${esc(c.source)}</span>` : ''}</div>
-      <span class="ladded">${c.createdAt ? `Added ${esc(shortDate(c.createdAt))}` : ''}</span>
-    </div>`).join('')}</div>`;
-}
-
-$('leadStatus').onclick = (e) => {
-  const b = e.target.closest('button[data-status]');
-  if (!b) return;
-  leadStatus = b.dataset.status;
-  renderLeads();
-};
-$('leadTags').onclick = (e) => {
-  const b = e.target.closest('button[data-source]');
-  if (!b) return;
-  leadSource = leadSource === b.dataset.source ? '' : b.dataset.source;
-  renderLeads();
-};
-$('leads').onclick = (e) => {
-  const row = e.target.closest('[data-open]');
-  if (row) openPerson(row.dataset.open);
-};
-$('leadSearch').oninput = () => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(loadLeads, 250);
-};
-
 let contactSeq = 0;
 async function loadContacts() {
   const seq = ++contactSeq;
