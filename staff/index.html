@@ -237,8 +237,10 @@
   .auth .logo { display: block; height: 40px; width: auto; margin: 0 auto 24px; }
   .auth h1 { text-align: center; font-size: 1.4rem; }
   .auth .lede { text-align: center; color: var(--muted); margin: 6px 0 24px; font-size: var(--fs-sm); }
-  .auth .switch { text-align: center; margin: 18px 0 0; font-size: var(--fs-sm); color: var(--muted); }
-  .auth .switch a { color: var(--link); font-weight: 600; }
+  /* Not .switch: that is the toggle control, and sharing it squeezed this
+     line into a 44px pill. */
+  .auth .auth-alt { text-align: center; margin: 18px 0 0; font-size: var(--fs-sm); color: var(--muted); }
+  .auth .auth-alt a { color: var(--link); font-weight: 600; }
   .pw { position: relative; }
   .pw input { padding-right: 48px; }
   .pw .iconbtn { position: absolute; right: 3px; top: 3px; }
@@ -1226,42 +1228,54 @@
   .theme[aria-pressed="true"] b .ic { opacity: 1; }
 
   /* ── Dark mode ────────────────────────────────────────────────────────
-     The same navy and periwinkle, turned down: deep indigo surfaces, soft
-     periwinkle ink. Only tokens and the few surfaces drawn in plain white
-     change, so nothing moves between the two. */
+     RocketOS's dark: neutral charcoal surfaces with the faintest cool cast,
+     grey ink, and colour kept for what matters. The CTAs, the nav ring and
+     links are already periwinkle, so the surfaces stay out of the way; the
+     indigo surfaces this replaced read as purple on purple. Only tokens and
+     the few surfaces drawn in plain white change, so nothing moves between
+     the two. */
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #12132e; --card: #1b1c3f; --raise: #24264f; --field: #161736;
-    --line: #2d2f5c; --line-2: #3b3e73; --hair: rgba(185, 192, 232, .10);
-    --ink: #eceefb; --muted: #a9afd6; --faint: #7a80ad; --link: #b9c0e8;
-    --accent-ink: #c4caf0; --peri-pale: #2b2e63; --peri-soft: #5560a6; --sk-hi: #2e3160;
+    --bg: #0e0f12; --card: #16171b; --raise: #1f2025; --field: #121316;
+    --line: #27282e; --line-2: #35363e; --hair: rgba(255, 255, 255, .07);
+    --ink: #ededf0; --muted: #a4a5b0; --faint: #70717b; --link: #b9c0e8;
+    --accent-ink: #c4caf0; --peri-pale: #24263a; --peri-soft: #5560a6; --sk-hi: #25262c;
     --ring-ink: #c4caf0;
     /* Navy on navy disappears; dark mode runs the same five stops a step lighter. */
     --cta-grad: linear-gradient(135deg, var(--indigo) 0%, #4a539a 28%, #6b76c0 50%, #4a539a 72%, var(--indigo) 100%);
     --cta-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 12px -6px rgba(0, 0, 0, .45);
-    --glass: rgba(27, 28, 63, .78); --glass-card: rgba(27, 28, 63, .9); --glass-edge: rgba(85, 96, 166, .3);
+    --glass: rgba(22, 23, 27, .78); --glass-card: rgba(22, 23, 27, .9); --glass-edge: rgba(255, 255, 255, .08);
     --shadow: 0 12px 32px rgba(0, 0, 0, .45);
   }
-  :root[data-theme="dark"] body { background: radial-gradient(900px 520px at 88% -10%, rgba(85, 96, 166, .22), transparent 62%),
-                                  linear-gradient(180deg, #14152f 0%, #0f1027 100%); }
-  :root[data-theme="dark"] .glass-strong { background: rgba(27, 28, 63, .82); border-color: rgba(85, 96, 166, .35); }
-  :root[data-theme="dark"] { --lav-fill: linear-gradient(180deg, #34316e 0%, #2b2960 100%);
+  :root[data-theme="dark"] body { background: radial-gradient(900px 520px at 88% -10%, rgba(85, 96, 166, .08), transparent 62%),
+                                  linear-gradient(180deg, #111215 0%, #0c0d10 100%); }
+  :root[data-theme="dark"] .glass-strong { background: rgba(22, 23, 27, .82); border-color: rgba(255, 255, 255, .08);
+                                           box-shadow: 0 8px 32px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05); }
+  /* The selected nav item: a raised charcoal step with only a hint of
+     lavender; the ring's periwinkle edge does the marking. */
+  :root[data-theme="dark"] { --lav-fill: linear-gradient(180deg, #2a2a33 0%, #222229 100%);
                              --lav-shine: inset 0 1px 0 rgba(255, 255, 255, .10), inset 0 -6px 12px -8px rgba(0, 0, 0, .35); }
-  :root[data-theme="dark"] .grn-me .me-pic { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px rgba(160, 148, 236, .5); }
+  /* Logos are drawn in navy for white pages, which disappears on charcoal.
+     The crescent turns soft lavender; a logo image (the sign-in wordmark, or
+     the salon's own in the menu) is redrawn in near-white, keeping its
+     shape and transparency, so any upload stays readable. */
+  :root[data-theme="dark"] .grn-mark { background: #d4d8f6; }
+  :root[data-theme="dark"] .grn-logo img, :root[data-theme="dark"] .auth .logo { filter: brightness(0) invert(.94); }
+  :root[data-theme="dark"] .grn-me .me-pic { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px rgba(185, 192, 232, .35); }
   :root[data-theme="dark"] .grn-item .count { box-shadow: 0 0 0 2px var(--card); }
   :root[data-theme="dark"] .card, :root[data-theme="dark"] .tile { box-shadow: var(--e1), inset 0 1px 0 rgba(255, 255, 255, .04); }
-  :root[data-theme="dark"] .pop, :root[data-theme="dark"] .toast { background: rgba(27, 28, 63, .95); }
-  :root[data-theme="dark"] .btn.quiet, :root[data-theme="dark"] .seg { background: rgba(36, 38, 79, .8); }
-  :root[data-theme="dark"] .cal-cell.out { background: #17183a; }
-  :root[data-theme="dark"] .px-head, :root[data-theme="dark"] .md-head { background: linear-gradient(120deg, #23265a 0%, #1f2150 100%); border-color: var(--line); }
-  :root[data-theme="dark"] .px-left { background: #16173a; border-color: var(--line); }
-  :root[data-theme="dark"] .arch { background: linear-gradient(160deg, #23265a 0%, #1c1e4a 100%); }
+  :root[data-theme="dark"] .pop, :root[data-theme="dark"] .toast { background: rgba(22, 23, 27, .96); }
+  :root[data-theme="dark"] .btn.quiet, :root[data-theme="dark"] .seg { background: rgba(31, 32, 37, .85); }
+  :root[data-theme="dark"] .cal-cell.out { background: #131417; }
+  :root[data-theme="dark"] .px-head, :root[data-theme="dark"] .md-head { background: linear-gradient(120deg, #1d1e23 0%, #18191d 100%); border-color: var(--line); }
+  :root[data-theme="dark"] .px-left { background: #131417; border-color: var(--line); }
+  :root[data-theme="dark"] .arch { background: linear-gradient(160deg, #1d1e23 0%, #17181c 100%); }
   :root[data-theme="dark"] .arch-frame, :root[data-theme="dark"] .md-pic { box-shadow: 0 0 0 4px var(--card), 0 18px 30px -16px rgba(0, 0, 0, .7); }
   :root[data-theme="dark"] .cav, :root[data-theme="dark"] .px-head .avatar { box-shadow: 0 0 0 3px var(--card); }
-  :root[data-theme="dark"] .dg-ev { --dg-bg: color-mix(in srgb, var(--dg-edge) 26%, #1b1c3f); --dg-ink: color-mix(in srgb, var(--dg-edge) 70%, #fff); }
-  :root[data-theme="dark"] .dg-blk.lunch { background: repeating-linear-gradient(135deg, #2c2e52 0 8px, #272948 8px 16px); color: #b4b6cf; }
+  :root[data-theme="dark"] .dg-ev { --dg-bg: color-mix(in srgb, var(--dg-edge) 22%, #16171b); --dg-ink: color-mix(in srgb, var(--dg-edge) 70%, #fff); }
+  :root[data-theme="dark"] .dg-blk.lunch { background: repeating-linear-gradient(135deg, #24252b 0 8px, #1f2025 8px 16px); color: #a4a5b0; }
   :root[data-theme="dark"] .s-new, :root[data-theme="dark"] .s-contacted, :root[data-theme="dark"] .s-booked, :root[data-theme="dark"] .s-lost { --s-bg: var(--raise); --s-ink: var(--ink); }
-  :root[data-theme="dark"] .tag { background: #2b2e63; color: #d4cdfa; }
+  :root[data-theme="dark"] .tag { background: #24263a; color: #cfd3f3; }
   :root[data-theme="dark"] .note:not(.bad):not(.good) { color: var(--ink); }
   :root[data-theme="dark"] h1, :root[data-theme="dark"] dialog h2, :root[data-theme="dark"] .au-flow h3,
   :root[data-theme="dark"] .md-sec { color: var(--ink); }
@@ -1383,8 +1397,8 @@
   @media (hover: none) { .cal-add { opacity: .9; transform: none; width: 20px; height: 20px; } }
 
   :root[data-theme="dark"] .chip.role { color: var(--ink); }
-  :root[data-theme="dark"] .tm-row.me { background: #24264f; border-color: var(--line-2); }
-  :root[data-theme="dark"] .cal-cell:hover { background: #20224a; }
+  :root[data-theme="dark"] .tm-row.me { background: #1f2025; border-color: var(--line-2); }
+  :root[data-theme="dark"] .cal-cell:hover { background: #1c1d21; }
   :root[data-theme="dark"] .chip.ok, :root[data-theme="dark"] .tm-svc i.on { background: rgba(47, 125, 79, .25); color: #9fd8b6; }
   :root[data-theme="dark"] .chip.warn { background: rgba(214, 64, 77, .22); color: #f3a9b0; }
   :root[data-theme="dark"] .chip.pending { background: rgba(213, 156, 44, .2); color: #f4cf78; }
@@ -1465,7 +1479,7 @@
     .tm-addrow { flex-wrap: wrap; }
     .tm-addrow .btn { width: 100%; }
   }
-  :root[data-theme="dark"] .tm-row.me { background: #24264f; border-color: var(--line-2); }
+  :root[data-theme="dark"] .tm-row.me { background: #1f2025; border-color: var(--line-2); }
 
   /* ── calendars ───────────────────────────────────────────────────────── */
   .ctypes { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-top:4px; }
@@ -1651,7 +1665,7 @@
         </div>
       </label>
       <button class="btn block" type="submit">Sign in</button>
-      <p class="switch">New to the team? <a href="#" id="showRequest">Request access</a></p>
+      <p class="auth-alt">New to the team? <a href="#" id="showRequest">Request access</a></p>
     </form>
 
     <form id="requestForm" class="hidden">
@@ -1669,7 +1683,7 @@
       </label>
       <label><span>Anything the owner should know</span><input name="note" placeholder="e.g. new stylist, starts Monday"></label>
       <button class="btn block" type="submit">Send request</button>
-      <p class="switch"><a href="#" id="showLogin">Back to sign in</a></p>
+      <p class="auth-alt"><a href="#" id="showLogin">Back to sign in</a></p>
     </form>
   </div>
 </main>
