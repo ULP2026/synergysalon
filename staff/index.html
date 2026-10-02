@@ -2233,6 +2233,64 @@ function paintLogo() {
   // The logo's width moves every item after it; measure again once it has one.
   a.querySelector('img')?.addEventListener('load', () => moveRing(true), { once: true });
   moveRing(true);
+  paintFavicon(logo);
+}
+
+/** The icons the page shipped with, to go back to when a logo is removed. */
+const STOCK_ICONS = [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')]
+  .map((l) => ({ rel: l.getAttribute('rel'), sizes: l.getAttribute('sizes'), href: l.getAttribute('href') }));
+
+function setIcons(hrefs) {
+  for (const l of [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')]) l.remove();
+  for (const { rel, sizes, href, type } of hrefs) {
+    const l = document.createElement('link');
+    l.rel = rel;
+    if (sizes) l.setAttribute('sizes', sizes);
+    if (type) l.type = type;
+    l.href = href;
+    document.head.appendChild(l);
+  }
+}
+
+/**
+ * The shop's own logo in the browser tab.
+ *
+ * Drawn onto a square first rather than pointed at directly: a wide wordmark
+ * used as a favicon is squashed into a 32px box and becomes an illegible
+ * smear. Centring it on a square with a little padding keeps its proportions,
+ * which is the whole point of it being their logo.
+ *
+ * Failing at any step leaves the tab as it was. A favicon is not worth an
+ * error, and a broken one is worse than the stock one.
+ */
+function paintFavicon(logo) {
+  if (!logo) { setIcons(STOCK_ICONS); return; }
+
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const S = 180;
+      const pad = Math.round(S * 0.08);
+      const box = S - pad * 2;
+      const scale = Math.min(box / img.width, box / img.height);
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const c = Object.assign(document.createElement('canvas'), { width: S, height: S });
+      const g = c.getContext('2d');
+      g.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+      const href = c.toDataURL('image/png');
+      setIcons([
+        { rel: 'icon', type: 'image/png', sizes: '180x180', href },
+        { rel: 'apple-touch-icon', sizes: '180x180', href },
+      ]);
+    } catch {
+      // A logo from another origin would taint the canvas. Point at it as it
+      // is rather than giving up: squashed beats stock-when-they-have-a-logo.
+      setIcons([{ rel: 'icon', href: logo }, { rel: 'apple-touch-icon', href: logo }]);
+    }
+  };
+  img.onerror = () => setIcons(STOCK_ICONS);
+  img.src = logo;
 }
 async function signOutNow() {
   await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' });
