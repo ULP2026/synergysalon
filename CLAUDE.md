@@ -130,8 +130,12 @@ made that way are real: name them ZZ and remove them.
 
 ## Staff console
 
-- Nav: Home (`/staff`), Appointments, Clients (`/staff/clients`), Marketing,
-  Settings. There is no Calendars item: the shop's calendars are listed above
+- Nav: Home (`/staff`), Appointments, Clients (`/staff/clients`), Leads
+  (`/staff/leads`), Marketing, Settings. Leads is a draft on request: the lead
+  stages and source tags Contacts filtered by before it became Clients, over
+  the same contacts, fetched once and filtered in the browser. Settings is as
+  wide as the nav cluster (`--nav-w`, measured by `fitSettings()`), so its
+  edges line up with the menu. There is no Calendars item: the shop's calendars are listed above
   the diary on Appointments, and `/staff/calendars` still works. Settings is
   for everyone: Salon Profile, Team Settings (Appearance, Integrations, Team
   Members), Calendars, and Billing for owners and managers. The person chip

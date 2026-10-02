@@ -134,7 +134,7 @@
       "destination": "/api/calendar?k=:token"
     },
     {
-      "source": "/staff/:page(home|dashboard|appointments|clients|contacts|settings|account|team|calendars|invite)",
+      "source": "/staff/:page(home|dashboard|appointments|clients|contacts|leads|settings|account|team|calendars|invite)",
       "destination": "/staff"
     },
     {
