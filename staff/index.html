@@ -1443,6 +1443,17 @@
                   border:1px solid var(--line); border-radius:8px; padding:5px 9px;
                   max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .calrow.off { opacity:.6; }
+
+  .calchips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .calchip { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:999px;
+             border:1.5px solid var(--line); background:var(--card); font:inherit;
+             font-size:var(--fs-sm); color:var(--ink); cursor:pointer; }
+  .calchip:hover { border-color:var(--periwinkle); background:var(--raise); }
+  .calchip span { min-width:20px; height:20px; padding:0 6px; border-radius:999px;
+                  display:grid; place-items:center; font-size:var(--fs-xs); font-weight:650;
+                  background:var(--peri-pale); color:var(--indigo-deep); }
+  .calchip.off { opacity:.55; }
+  .calchip.add { border-style:dashed; color:var(--muted); }
 </style>
 </head>
 <body>
@@ -1609,6 +1620,9 @@
     <section class="view hidden" id="view-appointments">
       <!-- Shown while the shop has no calendars at all. -->
       <div id="needCal" class="hidden"></div>
+      <!-- The shop's calendars, where the work happens rather than only on
+           their own page. -->
+      <div id="apptCals"></div>
       <div class="card fill" id="diaryCard">
         <div class="toolbar">
           <button class="iconbtn lg" id="prevDay" aria-label="Previous"><svg class="ic"><use href="#i-left"/></svg></button>
@@ -1660,7 +1674,9 @@
     <!-- Settings -->
     <!-- Calendars: the ways a shop can be booked. Empty until it makes one. -->
     <section class="view hidden" id="view-calendars">
-      <div id="calendars"></div>
+      <div class="card fill">
+        <div id="calendars" style="flex:1;display:flex;flex-direction:column"></div>
+      </div>
     </section>
 
     <!-- One calendar's advanced settings, on its own path. -->
@@ -2054,6 +2070,8 @@ document.addEventListener('click', (e) => {
   if (!b) return;
   if (b.dataset.empty === 'appointment') openBooking(null);
   if (b.dataset.empty === 'client') openContact(null);
+  // Both the Calendars page and the gate on Appointments offer this.
+  if (b.dataset.empty === 'calendars') openCalType();
   // 'person-book' is handled by the contact profile itself.
 });
 
@@ -2256,9 +2274,37 @@ async function loadAppointments() {
   }
 
   renderCalBar();
+  renderApptCalendars();
   return calView === 'month'
     ? loadMonth(calMonth || monthOf(day || salonToday()))
     : loadDay(day || salonToday());
+}
+
+/**
+ * The shop's calendars, across the top of the diary.
+ *
+ * They were only on their own page, so somebody who made one had no sign of
+ * it where they actually work. Each is a way in: open it, or jump to its
+ * settings.
+ */
+function renderApptCalendars() {
+  const host = $('apptCals');
+  if (!host) return;
+  const list = calData?.calendars ?? [];
+  if (!list.length) { host.innerHTML = ''; return; }
+
+  host.innerHTML = `<div class="calchips">
+    ${list.map((c) => `<button type="button" class="calchip ${c.active ? '' : 'off'}"
+        data-appt-cal="${esc(c.slug)}" title="${esc(c.kindLabel)} · ${c.durationMin} min">
+        ${esc(c.name)}<span>${c.upcoming}</span></button>`).join('')}
+    ${calData.canManage ? '<button type="button" class="calchip add" data-appt-cal-new>+ New calendar</button>' : ''}
+  </div>`;
+
+  host.onclick = (e) => {
+    if (e.target.closest('[data-appt-cal-new]')) return openCalType();
+    const b = e.target.closest('button[data-appt-cal]');
+    if (b) goCalendarSettings(b.dataset.apptCal);
+  };
 }
 
 // ───────────────────────── calendars ─────────────────────────
@@ -2373,7 +2419,8 @@ async function deleteCalendar(c) {
     await api('/api/staff/booking-calendars', { method: 'DELETE', body: JSON.stringify({ id: c.id }) });
     toast(`“${c.name}” deleted.`);
     calData = null;
-    await loadCalendars();
+    if (page === 'appointments') await loadAppointments();
+    else await loadCalendars();
   } catch (err) { fail(err); }
 }
 
@@ -2386,8 +2433,13 @@ function cardFor(k) {
   </button>`;
 }
 
-function openCalType() {
-  if (!calData?.canManage) { toast('Only an owner or a manager can add a calendar.', 'bad'); return; }
+async function openCalType() {
+  // Fetch what the form needs rather than assuming a page has already been
+  // visited. The button is offered from two places and must work from both.
+  if (!calData) {
+    try { calData = await api('/api/staff/booking-calendars'); } catch (err) { return fail(err); }
+  }
+  if (!calData.canManage) { toast('Only an owner or a manager can add a calendar.', 'bad'); return; }
   $('ctypePrimary').innerHTML = CAL_KINDS.filter((k) => k.primary).map(cardFor).join('');
   $('ctypeRest').innerHTML = CAL_KINDS.filter((k) => !k.primary).map(cardFor).join('');
   $('ctypeRest').classList.add('hidden');
@@ -2492,8 +2544,11 @@ async function submitCalNew() {
     });
     $('cnewDlg').close();
     toast(`“${d.calendar.name}” created.`);
-    calData = null;   // the gate on Appointments asks again
-    await loadCalendars();
+    calData = null;                       // both views ask again
+    // Repaint wherever they were standing, rather than only the list they may
+    // not be looking at.
+    if (page === 'appointments') await loadAppointments();
+    else await loadCalendars();
     return d.calendar;
   } catch (err) { fail(err); return null; } finally { btn.disabled = false; }
 }
