@@ -140,7 +140,9 @@ made that way are real: name them ZZ and remove them.
   the diary on Appointments, and `/staff/calendars` still works. Settings is
   for everyone: Salon Profile, Team (Appearance, Integrations, Team
   Members), and Billing for owners and managers. It has no Calendars tab:
-  calendars are made from Appointments, and the New calendar form offers the
+  calendars are made from Appointments, without choosing members for now
+  (stylists are not on the app yet; calendar settings saves members back
+  unchanged and no longer shows a picker), and the New calendar form offers the
   calendar apps (Google by sign-in; Outlook and any other app by subscribing
   to the person's private feed, links from `GET /api/staff/calendars`), which
   Settings, Team, Integrations also lists (`calAppRows()`). The person chip
@@ -157,7 +159,7 @@ made that way are real: name them ZZ and remove them.
   availability already subtracts, so a block on the grid really stops the time
   being sold.
   `?demo` on the address shows a sample day that saves nothing.
-- Marketing, Automation is a list of automation names (confirmation,
+- Marketing, Automation is a list of automation names (Appointment Booking,
   reminder, reschedule, cancellation). Each opens a modal with its flow, laid out left to right, and
   each email step opens the email itself, rendered by the sending code in
   `api/_lib/email.js` (`MESSAGES`, `previewMessage`) through

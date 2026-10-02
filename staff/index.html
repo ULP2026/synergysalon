@@ -1151,54 +1151,59 @@
   .au-ic .ic { width: 18px; height: 18px; }
   .au-empty { padding: 28px 0; text-align: center; color: var(--muted); font-size: var(--fs-sm); }
 
-  dialog.au { max-width: 760px; padding: 0; overflow: hidden; }
+  dialog.au { max-width: 720px; padding: 0; overflow: hidden; }
   dialog.au.msg { max-width: 640px; }
-  .au-head { display: flex; align-items: center; gap: 14px; padding: 20px 22px 16px; border-bottom: 1px solid var(--line);
+  .au-head { display: flex; align-items: center; gap: 14px; padding: 16px 20px 14px; border-bottom: 1px solid var(--line);
              background: linear-gradient(120deg, #e4e6f7 0%, var(--peri-pale) 55%, #f3f2fb 100%); }
   .au-head .au-ic { width: 44px; height: 44px; border-radius: 14px; }
   .au-head h2 { margin: 0 0 2px !important; font-size: 1.1rem; }
   .au-head p { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
   .au-head .grow { flex: 1; min-width: 0; }
-  .au-body { padding: 20px 22px 8px; max-height: calc(100dvh - 220px); overflow-y: auto; }
-  .au-foot { display: flex; align-items: center; gap: 8px; padding: 12px 22px 18px; font-size: var(--fs-xs); color: var(--faint); }
+  .au-body { padding: 16px 20px 6px; max-height: calc(100dvh - 220px); overflow-y: auto; }
+  .au-foot { display: flex; align-items: center; gap: 8px; padding: 8px 20px 14px; font-size: var(--fs-xs); color: var(--faint); }
   .au-foot .ic { width: 14px; height: 14px; }
 
   /* The flow, left to right: a row of steps joined by a moving dashed line,
      read the way the automation runs. Scrolls sideways if one grows long;
      stacks on a phone, where a row of steps would be unreadable. */
-  .au-flow { list-style: none; margin: 0; padding: 4px 2px 10px; display: flex; align-items: stretch; gap: 30px; overflow-x: auto; }
-  .au-flow > li { position: relative; flex: 1 1 0; min-width: 168px; display: flex; }
-  .au-flow > li::after { content: ""; position: absolute; top: 35px; right: -29px; width: 28px; height: 2px;
-                         background: repeating-linear-gradient(90deg, var(--peri-soft) 0 6px, transparent 6px 11px);
-                         background-size: 11px 2px; animation: au-flow 1.1s linear infinite; }
+  .au-flow { list-style: none; margin: 0; padding: 2px 2px 6px; display: flex; align-items: flex-start; gap: 22px; overflow-x: auto; counter-reset: au; }
+  .au-flow > li { position: relative; flex: 1 1 0; min-width: 150px; display: flex; }
+  .au-flow > li:not(.when) { counter-increment: au; }
+  /* The connector sits level with the step icons, so the eye runs along it. */
+  .au-flow > li::after { content: ""; position: absolute; top: 24px; right: -21px; width: 20px; height: 2px;
+                         background: repeating-linear-gradient(90deg, var(--peri-soft) 0 5px, transparent 5px 9px);
+                         background-size: 9px 2px; animation: au-flow 1s linear infinite; }
   .au-flow > li:last-child::after { display: none; }
-  @keyframes au-flow { to { background-position: 11px 0; } }
+  @keyframes au-flow { to { background-position: 9px 0; } }
   @media (prefers-reduced-motion: reduce) { .au-flow > li::after { animation: none; } }
-  .au-node { position: relative; display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 14px; border-radius: 14px;
+  .au-node { position: relative; display: block; width: 100%; padding: 10px 12px 11px; border-radius: 12px;
              border: 1px solid var(--line); background: var(--card); font: inherit; color: inherit; text-align: left; }
-  .au-flow .when .au-node { background: linear-gradient(160deg, var(--peri-pale), var(--card) 70%); border-color: var(--line-2); }
-  .au-dot { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; margin-bottom: 6px;
+  .au-flow .when .au-node { background: var(--peri-pale); border-color: var(--line-2); }
+  .au-top-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .au-dot { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; flex: none;
             background: var(--raise); border: 1px solid var(--line-2); color: var(--indigo); }
-  .au-dot .ic { width: 18px; height: 18px; }
+  .au-dot .ic { width: 15px; height: 15px; }
   .au-flow .when .au-dot { background: linear-gradient(135deg, #8b94dc, var(--indigo)); color: #fff; border: 0; }
-  .au-flow .kicker { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--periwinkle); }
-  .au-flow h3 { margin: 0; font-size: .92rem; color: var(--ink); }
-  .au-flow p { margin: 0; font-size: var(--fs-xs); color: var(--muted); line-height: 1.45; }
-  .au-node .chip { align-self: flex-start; margin-top: 6px; }
+  .au-flow .kicker { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--periwinkle); }
+  .au-flow li:not(.when) .kicker::before { content: "Step " counter(au); }
+  .au-flow h3 { margin: 0 0 2px; font-size: .88rem; line-height: 1.3; color: var(--ink); }
+  .au-flow p { margin: 0; font-size: var(--fs-xs); color: var(--muted); line-height: 1.4; }
+  .au-node .chip { margin-top: 6px; height: 20px; font-size: 11px; }
   /* A message is a step you can open. */
   button.au-node.msg { cursor: pointer; border-color: var(--line-2);
                        transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
-  button.au-node.msg:hover { border-color: var(--periwinkle); box-shadow: 0 12px 26px -18px rgba(59, 67, 150, .8); transform: translateY(-2px); }
+  button.au-node.msg:hover { border-color: var(--periwinkle); box-shadow: 0 10px 22px -16px rgba(59, 67, 150, .8); transform: translateY(-1px); }
   button.au-node.msg:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .au-node .open { margin-top: auto; padding-top: 10px; display: inline-flex; align-items: center; gap: 4px;
-                   font-size: var(--fs-xs); font-weight: 650; color: var(--indigo); }
-  .au-node .open .ic { width: 14px; height: 14px; transition: transform var(--t) var(--ease); }
+  .au-node .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .au-node .foot .chip { margin: 0; }
+  .au-node .open { display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-xs); font-weight: 650; color: var(--indigo); }
+  .au-node .open .ic { width: 13px; height: 13px; transition: transform var(--t) var(--ease); }
   button.au-node.msg:hover .open .ic { transform: translateX(2px); }
   @media (max-width: 640px) {
-    .au-flow { flex-direction: column; gap: 22px; overflow: visible; }
+    .au-flow { flex-direction: column; align-items: stretch; gap: 14px; overflow: visible; }
     .au-flow > li { min-width: 0; }
-    .au-flow > li::after { top: auto; bottom: -21px; left: 33px; right: auto; width: 2px; height: 20px;
-                           background: repeating-linear-gradient(180deg, var(--peri-soft) 0 6px, transparent 6px 11px); background-size: 2px 11px; }
+    .au-flow > li::after { top: auto; bottom: -15px; left: 25px; right: auto; width: 2px; height: 14px;
+                           background: repeating-linear-gradient(180deg, var(--peri-soft) 0 5px, transparent 5px 9px); background-size: 2px 9px; }
   }
 
   /* The message preview: the envelope, then the message itself. */
@@ -2012,8 +2017,6 @@
       <textarea name="description" rows="2" maxlength="1000"
         placeholder="What a guest should know before booking"></textarea></label>
 
-    <label id="cnewTeamWrap"><span id="cnewTeamLabel">Select team member</span>
-      <div id="cnewTeam" class="pickers"></div></label>
 
     <label><span>Custom URL</span>
       <div class="urlrow"><span class="prefix" id="cnewPrefix">link</span>
@@ -2603,8 +2606,7 @@ function renderCalendars(d) {
       <div class="who">
         <b>${esc(c.name)}</b>
         <span class="small">${esc(c.kindLabel)} · ${c.durationMin} min${
-          c.capacity > 1 ? ` · ${c.capacity} places` : ''}${
-          c.members.length ? ` · ${c.members.map((m) => esc(m.name)).join(', ')}` : ''}</span>
+          c.capacity > 1 ? ` · ${c.capacity} places` : ''}</span>
         ${c.description ? `<div class="small muted" style="margin-top:4px">${esc(c.description)}</div>` : ''}
       </div>
       <span class="link" title="${esc(c.url || c.slug)}">${esc((c.url || '').replace(/^https?:\/\//, '') || c.slug)}</span>
@@ -2713,13 +2715,11 @@ function openCalNew(kind) {
   // an event has no host at all; personal takes exactly one person.
   const seats = kind === 'class' || kind === 'event';
   $('cnewCapWrap').classList.toggle('hidden', !seats);
-  $('cnewTeamWrap').classList.toggle('hidden', kind === 'event');
-  $('cnewTeamLabel').textContent = kind === 'personal' ? 'Select team member' : 'Team members';
+  // No "who it books" yet: stylists are not on the app, so a list of names
+  // to pick from would be names nobody can log in as. Calendars are made
+  // without members and get them once the team is added.
   $('cnewDurLabel').textContent = seats ? 'Session length' : 'Appointment length';
 
-  $('cnewTeam').innerHTML = (calData.team || []).map((t) => `
-    <button type="button" class="picker" data-member="${esc(t.id)}" aria-pressed="false">${esc(t.name)}</button>`).join('')
-    || '<span class="small muted">No stylists yet. Add them in Settings, Team.</span>';
 
   $('cnewDlg').showModal();
   loadCalSync();
@@ -2733,20 +2733,6 @@ $('needCal').onclick = (e) => {
   openCalType();
 };
 
-$('cnewTeam').onclick = (e) => {
-  const b = e.target.closest('button[data-member]');
-  if (!b) return;
-  const id = b.dataset.member;
-  const on = b.getAttribute('aria-pressed') === 'true';
-  // Personal booking is one person by definition, so choosing replaces.
-  if (calDraft.kind === 'personal') {
-    for (const x of $('cnewTeam').querySelectorAll('.picker')) x.setAttribute('aria-pressed', 'false');
-    calDraft.members = on ? [] : [id];
-  } else {
-    calDraft.members = on ? calDraft.members.filter((m) => m !== id) : [...calDraft.members, id];
-  }
-  b.setAttribute('aria-pressed', String(!on));
-};
 
 $('cnewDescToggle').onclick = () => {
   $('cnewDescWrap').classList.remove('hidden');
@@ -2769,9 +2755,6 @@ async function submitCalNew() {
   const f = new FormData($('cnewForm'));
   const name = String(f.get('name') || '').trim();
   if (!name) { toast('Give the calendar a name.', 'bad'); return null; }
-  if (calDraft.kind === 'personal' && !calDraft.members.length) {
-    toast('Choose the team member this calendar books.', 'bad'); return null;
-  }
 
   const btn = $('cnewForm').querySelector('button[type=submit]');
   btn.disabled = true;
@@ -2894,14 +2877,6 @@ function renderCalendarSettings(c) {
     </div>
 
     <div class="card" style="margin-top:16px">
-      <div class="card-head" style="margin-bottom:4px"><h2>Who it books</h2></div>
-      <p class="small muted" style="margin:0 0 12px">${c.kind === 'event'
-        ? 'An event has no host, so there is nobody to choose.'
-        : 'Guests are offered only the times these people are free.'}</p>
-      <div class="pickers" id="setTeam"></div>
-    </div>
-
-    <div class="card" style="margin-top:16px">
       <div class="card-head" style="margin-bottom:4px"><h2>What the guest sees</h2></div>
       <label style="margin-top:12px"><span>Description</span>
         <textarea id="setDesc" rows="2" maxlength="1000">${esc(c.description)}</textarea></label>
@@ -2920,25 +2895,9 @@ function renderCalendarSettings(c) {
       <button class="btn danger" id="setDelete" style="margin-left:auto">Delete this calendar</button>
     </div>`;
 
-  $('setTeam').innerHTML = (calData?.team || []).map((t) => `
-    <button type="button" class="picker" data-set-member="${esc(t.id)}"
-      aria-pressed="${c.members.some((m) => m.id === t.id)}">${esc(t.name)}</button>`).join('')
-    || '<span class="small muted">No stylists yet.</span>';
+  const members = c.members.map((m) => m.id);
+  // Saved back unchanged: the member picker is hidden until stylists are on the app.
 
-  let members = c.members.map((m) => m.id);
-  $('setTeam').onclick = (e) => {
-    const b = e.target.closest('button[data-set-member]');
-    if (!b) return;
-    const id = b.dataset.setMember;
-    const on = b.getAttribute('aria-pressed') === 'true';
-    if (c.kind === 'personal') {
-      for (const x of $('setTeam').querySelectorAll('.picker')) x.setAttribute('aria-pressed', 'false');
-      members = on ? [] : [id];
-    } else {
-      members = on ? members.filter((m) => m !== id) : [...members, id];
-    }
-    b.setAttribute('aria-pressed', String(!on));
-  };
 
   // Back to where the work is: Appointments, on whichever view (day or
   // month) was open last, rather than to the list of calendars.
@@ -3084,7 +3043,7 @@ function automations() {
   const lead = hours % 24 === 0 ? `${hours / 24} day${hours === 24 ? '' : 's'}` : `${hours} hours`;
   return [
     {
-      id: 'confirmation', name: 'Booking confirmation', icon: 'calendar-plus',
+      id: 'confirmation', name: 'Appointment Booking', icon: 'calendar-plus',
       sub: 'Confirms every new booking by email.',
       when: ['calendar-plus', 'A client books', 'Online, or at the front desk in this app.'],
       steps: [
@@ -3156,19 +3115,17 @@ function openAutomation(id) {
   $('autoTitle').textContent = a.name;
   $('autoSub').textContent = a.sub;
   const [wi, wt, wx] = a.when;
-  const kick = (k) => `<span class="kicker">${k}</span>`;
+  const top = (icon, k) => `<div class="au-top-row"><span class="au-dot">${ic(icon)}</span><span class="kicker">${k}</span></div>`;
   $('autoBody').innerHTML = `<ol class="au-flow">
-    <li class="when"><div class="au-node"><span class="au-dot">${ic(wi)}</span>
-      ${kick('When')}<h3>${esc(wt)}</h3><p>${esc(wx)}</p></div></li>
+    <li class="when"><div class="au-node">${top(wi, 'When')}<h3>${esc(wt)}</h3><p>${esc(wx)}</p></div></li>
     ${a.steps.map((st) => (st.msg ? `
       <li><button type="button" class="au-node msg" data-msg="${st.msg}" data-title="${esc(st.title)}">
-        <span class="au-dot">${ic('mail')}</span>${kick('Then')}
-        <h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>
-        ${emailOn ? '<span class="chip ok">Sending</span>' : '<span class="chip pending" title="The booking still happens; the client is just not emailed yet.">Once email is set up</span>'}
-        <span class="open">View email${ic('right')}</span>
+        ${top('mail', '')}<h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>
+        <div class="foot">
+          ${emailOn ? '<span class="chip ok">Sending</span>' : '<span class="chip pending" title="The booking still happens; the client is just not emailed yet.">Once email is set up</span>'}
+          <span class="open">View email${ic('right')}</span></div>
       </button></li>` : `
-      <li><div class="au-node"><span class="au-dot">${ic(st[0])}</span>${kick('Then')}
-        <h3>${esc(st[1])}</h3><p>${esc(st[2])}</p></div></li>`)).join('')}
+      <li><div class="au-node">${top(st[0], '')}<h3>${esc(st[1])}</h3><p>${esc(st[2])}</p></div></li>`)).join('')}
   </ol>`;
   openDialog($('autoDlg'));
 }
