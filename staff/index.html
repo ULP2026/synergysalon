@@ -1454,6 +1454,10 @@
                   background:var(--peri-pale); color:var(--indigo-deep); }
   .calchip.off { opacity:.55; }
   .calchip.add { border-style:dashed; color:var(--muted); }
+
+  /* A chair belonging to somebody who has left the team, kept only because
+     clients are still booked into it. */
+  .dg-head .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
 <body>
@@ -3108,8 +3112,14 @@ const money = (n) => (n == null ? '' : `$${Number(n).toLocaleString('en-US', { m
 /** The columns: every active stylist, plus anyone inactive who still has a booking today. */
 function dayColumns(d) {
   const cols = (me?.stylists || []).map((s) => ({ slug: s.slug, name: s.name, title: s.title, photo: s.photo }));
+  // Somebody with a booking who is not on the team list any more: they have
+  // been deactivated since. Their column stays, because the alternative is a
+  // booked client silently vanishing from the day and nobody covering them.
+  // It is marked instead, so it is obvious why a name nobody expected is here.
   for (const a of d.appointments) {
-    if (a.stylistSlug && !cols.some((c) => c.slug === a.stylistSlug)) cols.push({ slug: a.stylistSlug, name: a.stylist, title: '' });
+    if (a.stylistSlug && !cols.some((c) => c.slug === a.stylistSlug)) {
+      cols.push({ slug: a.stylistSlug, name: a.stylist, title: '', former: true });
+    }
   }
   return cols;
 }
@@ -3204,7 +3214,8 @@ function renderDiary(d) {
   const heads = cols.map((c, i) => `<div class="dg-head dg-c${i % 6}">
       <span class="avatar"><img src="${esc(c.photo || charAvatar(c.name))}" alt=""></span>
       <div style="min-width:0"><b title="${esc(c.name)}">${esc(shortName(c.name))}</b>
-        <span class="sub">${live.filter((a) => a.stylistSlug === c.slug).length} booked</span></div>
+        <span class="sub">${live.filter((a) => a.stylistSlug === c.slug).length} booked${
+          c.former ? ' · no longer on the team' : ''}</span></div>
     </div>`).join('');
 
   $('diary').innerHTML = `
