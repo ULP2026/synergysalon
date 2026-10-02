@@ -139,7 +139,11 @@ made that way are real: name them ZZ and remove them.
   edges line up with the menu. There is no Calendars item: the shop's calendars are listed above
   the diary on Appointments, and `/staff/calendars` still works. Settings is
   for everyone: Salon Profile, Team (Appearance, Integrations, Team
-  Members), Calendars, and Billing for owners and managers. The person chip
+  Members), and Billing for owners and managers. It has no Calendars tab:
+  calendars are made from Appointments, and the New calendar form offers the
+  calendar apps (Google by sign-in; Outlook and any other app by subscribing
+  to the person's private feed, links from `GET /api/staff/calendars`), which
+  Settings, Team, Integrations also lists (`calAppRows()`). The person chip
   and `/staff/account` open Settings on Team. The calendar settings page has a Back button to Appointments, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM" and "Integrations"; the API keeps its `centro`
@@ -149,13 +153,12 @@ made that way are real: name them ZZ and remove them.
   the first column free at its time, and cards do not name a stylist. Stylist
   columns (`dayColumns()`) come back once stylists are on the team. While the
   shop has no booking calendar the day and month are drawn empty (the diary is
-  still fetched for its heading, then emptied) under a note pointing at
-  Settings, Calendars. LUNCH and BLOCK are rows in `time_off`, the table
+  still fetched for its heading, then emptied) under a note whose link opens New calendar. LUNCH and BLOCK are rows in `time_off`, the table
   availability already subtracts, so a block on the grid really stops the time
   being sold.
   `?demo` on the address shows a sample day that saves nothing.
 - Marketing, Automation is a list of automation names (confirmation,
-  reminder, reschedule, cancellation). Each opens a modal with its flow, and
+  reminder, reschedule, cancellation). Each opens a modal with its flow, laid out left to right, and
   each email step opens the email itself, rendered by the sending code in
   `api/_lib/email.js` (`MESSAGES`, `previewMessage`) through
   `GET /api/staff/business?preview=<kind>` with a sample appointment. Add a
