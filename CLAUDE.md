@@ -131,15 +131,23 @@ made that way are real: name them ZZ and remove them.
 ## Staff console
 
 - Nav: Home (`/staff`), Appointments, Clients (`/staff/clients`), Marketing,
-  Settings (Salon Profile, Calendars, Billing). The person chip opens Team
-  Settings (`/staff/account`): Appearance, Integrations (one row per
-  connection: CRM for owners and managers, Email, Google, Apple, Outlook) and
-  Team Members. Sign out is in your own profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
+  Settings. There is no Calendars item: the shop's calendars are listed above
+  the diary on Appointments, and `/staff/calendars` still works. Settings is
+  for everyone: Salon Profile, Team Settings (Appearance, Integrations, Team
+  Members), Calendars, and Billing for owners and managers. The person chip
+  and `/staff/account` open Settings on Team Settings. Sign out is in your own
+  profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM" and "Integrations"; the API keeps its `centro`
   names, which nobody sees.
-- Appointments opens on the day: one column per stylist, the clock down the
-  side. LUNCH and BLOCK are rows in `time_off`, the table availability already
-  subtracts, so a block on the grid really stops the time being sold.
+- Appointments opens on the day as at least four blank-headed columns, the
+  clock down the side. Nobody is assigned to a column yet: an appointment takes
+  the first column free at its time, and cards do not name a stylist. Stylist
+  columns (`dayColumns()`) come back once stylists are on the team. While the
+  shop has no booking calendar the day and month are drawn empty (the diary is
+  still fetched for its heading, then emptied) under a note pointing at
+  Settings, Calendars. LUNCH and BLOCK are rows in `time_off`, the table
+  availability already subtracts, so a block on the grid really stops the time
+  being sold.
   `?demo` on the address shows a sample day that saves nothing.
 - Settings, Salon Profile is the tenant's details. Its logo is the nav's mark,
   painted from `me.salon.logo`, so saving updates the menu at once.
@@ -159,9 +167,6 @@ made that way are real: name them ZZ and remove them.
 - `api/_lib/ensure-schema.js` adds the 011 to 013 columns on the first
   `/api/staff/me` of each warm function, because production ran ahead of
   `db:migrate`. Idempotent; `db:migrate` remains the record.
-- Appointments shows a Calendars bar with only the calendars in use (the
-  Salon Calendar); stylist calendars join it once they can be connected
-  (`calendarList()`), and live in the Create or connect dialog until then.
 - Team Members lists you, then (owners and managers) everyone else on the
   team, each card opening the same modal, then an "Add a team member" row.
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
