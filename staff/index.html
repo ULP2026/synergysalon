@@ -1458,6 +1458,10 @@
   /* A chair belonging to somebody who has left the team, kept only because
      clients are still booked into it. */
   .dg-head .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* One provider rather than a row of them: left-aligned and its own width,
+     because a lone card stretched edge to edge reads as an empty table. */
+  .conns.one { grid-template-columns: minmax(260px, 420px); }
 </style>
 </head>
 <body>
@@ -1709,9 +1713,10 @@
       <div class="card setpane hidden" id="set-calendars">
         <div class="card-head" style="margin-bottom:4px"><h2>Calendars</h2></div>
         <p class="small muted" style="margin:0 0 18px">
-          Put your appointments on your own phone. Connect once and your calendar
-          app keeps itself up to date. This is your link and nobody else&rsquo;s:
-          treat it like a password, and disconnect if it ever goes astray.
+          Put your appointments in your Google Calendar. Connect once and new
+          bookings are written in as they are taken. The address below is your
+          own and nobody else&rsquo;s: treat it like a password, and disconnect
+          if it ever goes astray.
         </p>
         <div id="feeds"></div>
       </div>
@@ -4960,29 +4965,13 @@ function renderFeeds(d) {
 
     ${anyOn ? banner : ''}
 
-    <div class="conns">
+    <div class="conns one">
       ${googleCard(d)}
-      ${CAL_APPS.filter((a) => a.key !== 'google').map((app) => {
-        // Only the app that actually fetched is marked. Where the user agent
-        // does not say which one it was, none of the three is claimed rather
-        // than the wrong one being lit up.
-        const isThis = connected && d.provider === app.key;
-        return `<div class="conn ${isThis ? 'on' : 'idle'}">
-          <div class="conn-h">${app.logo}<b>${esc(app.name)}</b>
-            ${isThis ? `<span class="state">${TICK}Connected</span>` : '<span class="chip" style="margin-left:auto">Not connected</span>'}</div>
-          <p>${esc(app.blurb)}</p>
-          <a class="go" href="${esc(d[app.key])}" target="_blank" rel="noopener">
-            <svg class="ic"><use href="#i-link"/></svg>${isThis ? 'Connect another device' : 'Connect'}</a>
-        </div>`;
-      }).join('')}
     </div>
 
-    ${connected && !CAL_APPS.some((a) => a.key === d.provider)
-      ? '<p class="small muted" style="margin:14px 0 0">A calendar app is connected, '
-        + 'though it did not say which one.</p>' : ''}
-
     <div class="manual">
-      <div class="small muted">Or add this address by hand:</div>
+      <div class="small muted">Using a different calendar app? Add this address
+        to it by hand and it will keep itself up to date:</div>
       <code title="${esc(d.url)}">${esc(d.url)}</code>
       <div class="acts">
         <button class="btn quiet" data-copy>Copy link</button>
@@ -5044,12 +5033,9 @@ function renderIntegrations() {
   const g = cal?.google || {};
   rows.push(row('google', logo('google'), 'Google Calendar', 'Put your appointments in your Google Calendar',
     g.connected ? 'on' : 'off', g.connected ? btn('google-off', 'Disconnect') : btn('google-on', 'Connect')));
-  for (const k of ['apple', 'outlook']) {
-    const app = CAL_APPS.find((a) => a.key === k);
-    const on = Boolean(cal?.connected && cal.provider === k);
-    rows.push(row(k, logo(k), app.name, k === 'apple' ? 'See your appointments on iPhone, iPad and Mac' : 'See your appointments in Outlook and Microsoft 365',
-      on ? 'on' : 'off', cal?.[k] ? `<a class="btn quiet sm" href="${esc(cal[k])}" target="_blank" rel="noopener">${on ? 'Add device' : 'Connect'}</a>` : ''));
-  }
+  // Google is the only calendar offered. Anyone on another app subscribes to
+  // the address in Settings, Calendars; it is still served, and the people
+  // already using it are unaffected.
   const problem = crm?.linked && !crm.check?.ok ? (crm.check?.problems || [])[0] : '';
   $('centro').innerHTML = `<div class="ints">${rows.join('')}</div>
     ${problem ? `<p class="int-note">CRM: ${esc(problem)}</p>` : ''}`;
