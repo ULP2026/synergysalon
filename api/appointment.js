@@ -160,7 +160,7 @@ export default handler({
     });
 
     try {
-      await sendReschedule(appt, previousStart, tenant.timezone);
+      await sendReschedule(appt, previousStart, tenant);
     } catch (err) {
       console.error('reschedule email failed for', appt.ref, err);
     }

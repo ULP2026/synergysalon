@@ -139,7 +139,13 @@ made that way are real: name them ZZ and remove them.
   edges line up with the menu. There is no Calendars item: the shop's calendars are listed above
   the diary on Appointments, and `/staff/calendars` still works. Settings is
   for everyone: Salon Profile, Team (Appearance, Integrations, Team
-  Members), Calendars, and Billing for owners and managers. The person chip
+  Members), and Billing for owners and managers. It has no Calendars tab:
+  calendars are made from Appointments, without choosing members for now
+  (stylists are not on the app yet; calendar settings saves members back
+  unchanged and no longer shows a picker), and the New calendar form offers the
+  calendar apps (Google by sign-in, and any other app by subscribing
+  to the person's private feed, links from `GET /api/staff/calendars`), Outlook is left out of the form on request but
+  still listed, with the rest, in Settings, Team, Integrations (`calAppRows()`). The person chip
   and `/staff/account` open Settings on Team. The calendar settings page has a Back button to Appointments, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM" and "Integrations"; the API keeps its `centro`
@@ -149,11 +155,17 @@ made that way are real: name them ZZ and remove them.
   the first column free at its time, and cards do not name a stylist. Stylist
   columns (`dayColumns()`) come back once stylists are on the team. While the
   shop has no booking calendar the day and month are drawn empty (the diary is
-  still fetched for its heading, then emptied) under a note pointing at
-  Settings, Calendars. LUNCH and BLOCK are rows in `time_off`, the table
+  still fetched for its heading, then emptied) under a note whose link opens New calendar. LUNCH and BLOCK are rows in `time_off`, the table
   availability already subtracts, so a block on the grid really stops the time
   being sold.
   `?demo` on the address shows a sample day that saves nothing.
+- Marketing, Automation is a list of automation names (Appointment Booking,
+  reminder, reschedule, cancellation). Each opens a modal with its flow as numbered icon tiles left to right (the original confirmation picture), sized to its step count, and
+  each email step opens the email itself, rendered by the sending code in
+  `api/_lib/email.js` (`MESSAGES`, `previewMessage`) through
+  `GET /api/staff/business?preview=<kind>` with a sample appointment. Add a
+  message to `MESSAGES` and it can be previewed; there is no SMS yet, so none
+  is shown. Marketing takes the nav's width, like Settings.
 - Settings, Salon Profile is the tenant's details. Its logo is the nav's mark,
   painted from `me.salon.logo`, so saving updates the menu at once.
 - Team lists only the signed-in person for now (stylists are added later),
@@ -176,6 +188,13 @@ made that way are real: name them ZZ and remove them.
   team, each card opening the same modal, then an "Add a team member" row.
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
+- Nav and buttons follow RocketOS's restraint on Synergy colours. The ring
+  under the current page is a still gradient edge (`--ring-grad`) around a
+  2px glass inset, sprung by motion's `animate()` at stiffness 300, damping
+  20, mass 0.8, measured in `requestAnimationFrame` (`moveRing()`); no glow,
+  no spin. Primary buttons use `--cta-grad` and `--cta-shadow`, hover is
+  opacity .9, and only the page's one primary carries `--cta-glow` (capped at
+  RocketOS's gold-glow strength). Ambient page light stays at about 5%.
 
 ## Gotchas worth knowing before you hit them
 
@@ -210,7 +229,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 61 tests; the database ones skip without DATABASE_URL
+npm test                    # 77 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and
