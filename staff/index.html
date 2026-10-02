@@ -1746,7 +1746,7 @@
     <section class="view hidden" id="view-settings">
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
         <button type="button" data-set="profile" aria-pressed="true">Salon Profile</button>
-        <button type="button" data-set="team" aria-pressed="false">Team Settings</button>
+        <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="calendars" aria-pressed="false">Calendars</button>
         <button type="button" data-set="billing" aria-pressed="false" data-admin>Billing</button>
       </div>
@@ -2289,7 +2289,7 @@ function paintMe() {
   // RocketOS's chip carries the first name only.
   $('meName').textContent = me.user.name.trim().split(/\s+/)[0] || me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
-  $('meBtn').title = `Team Settings · ${meSubtitle}`;
+  $('meBtn').title = `Team · ${meSubtitle}`;
   $('mePic').innerHTML = `<img src="${esc(personPhoto(me.user))}" alt="">`;
   paintLogo();
 }
@@ -2443,9 +2443,9 @@ async function loadAppointments() {
 
   renderCalBar();
   renderApptCalendars();
-  return calView === 'month'
-    ? loadMonth(calMonth || monthOf(day || salonToday()))
-    : loadDay(day || salonToday());
+  // Through setView, so the Day/Month switch and the visible grid match the
+  // remembered view, not just the data.
+  return setView(calView);
 }
 
 /**
@@ -2648,7 +2648,7 @@ function openCalNew(kind) {
 
   $('cnewTeam').innerHTML = (calData.team || []).map((t) => `
     <button type="button" class="picker" data-member="${esc(t.id)}" aria-pressed="false">${esc(t.name)}</button>`).join('')
-    || '<span class="small muted">No stylists yet. Add them in Team Settings.</span>';
+    || '<span class="small muted">No stylists yet. Add them in Settings, Team.</span>';
 
   $('cnewDlg').showModal();
   setTimeout(() => $('cnewName').focus(), 30);
@@ -2781,7 +2781,7 @@ function renderCalendarSettings(c) {
   $('pageTitle').textContent = c.name;
 
   $('calSettings').innerHTML = `
-    <button class="btn quiet" id="calBack" style="margin-bottom:16px">← All calendars</button>
+    <button class="btn quiet" id="calBack" style="margin-bottom:16px">← Back</button>
 
     <div class="card">
       <div class="card-head" style="margin-bottom:4px"><h2>Booking link</h2></div>
@@ -2861,7 +2861,9 @@ function renderCalendarSettings(c) {
     b.setAttribute('aria-pressed', String(!on));
   };
 
-  $('calBack').onclick = () => go('calendars');
+  // Back to where the work is: Appointments, on whichever view (day or
+  // month) was open last, rather than to the list of calendars.
+  $('calBack').onclick = () => go('appointments');
   $('setShare').onclick = () => showCalendarMade(c);
   $('setDelete').onclick = async () => { await deleteCalendar(c); go('calendars'); };
 
@@ -2949,7 +2951,7 @@ const PAGES = {
   // Opened from the person in the corner, for every role: how the app looks,
   // the CRM link (owners and managers), the team, and the way out.
   account: {
-    path: '/staff/account', title: 'Team Settings',
+    path: '/staff/account', title: 'Team',
     sub: 'Your profile, your team and how the app looks.',
     load: () => loadAccount(),
   },
@@ -3236,7 +3238,7 @@ async function loadHome() {
     // One the CRM refused will not arrive on its own, so say so and say where.
     if (refused) {
       const who = refused === 1 ? '1 of today’s bookings' : `${refused} of today’s bookings`;
-      $('syncNote').innerHTML = `${ic('info')}<span>The CRM refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. ${me.user.canAdmin ? '<a href="/staff/account" data-centro>Check the CRM connection</a>. It retries on its own every day.' : 'Ask an owner or manager to check Team Settings, Integration.'}</span>`;
+      $('syncNote').innerHTML = `${ic('info')}<span>The CRM refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. ${me.user.canAdmin ? '<a href="/staff/account" data-centro>Check the CRM connection</a>. It retries on its own every day.' : 'Ask an owner or manager to check Settings, Team, Integrations.'}</span>`;
       $('syncNote').className = 'note bad';
     } else if (unsynced) {
       $('syncNote').innerHTML = `${ic('info')}<span>${unsynced === 1 ? '1 of today’s bookings hasn’t' : `${unsynced} of today’s bookings haven’t`} synced yet. They are sent across automatically; nothing to do here.</span>`;
@@ -3285,7 +3287,7 @@ function statusChips(a) {
   // Surfaced, calmly: the team should learn the CRM is behind from here,
   // not from an empty CRM later. It is information, not an alarm.
   if (a.status !== 'cancelled' && a.syncFailed) {
-    out.push('<span class="chip warn" title="The CRM refused this booking. Team Settings, Integration shows why and can retry.">Sync failed</span>');
+    out.push('<span class="chip warn" title="The CRM refused this booking. Settings, Team, Integrations shows why.">Sync failed</span>');
   } else if (a.status !== 'cancelled' && !a.syncedToCentro) {
     out.push('<span class="chip pending" title="This booking will be synced automatically.">Not synced yet</span>');
   }
@@ -3356,7 +3358,7 @@ function cardMarks(a) {
   else m.push(['', 'check', 'Confirmed']);
   m.push(a.channel === 'staff' ? ['', 'user', `Booked by ${a.bookedBy || 'staff'}`] : ['', 'link', 'Booked online']);
   if (a.notes) m.push(['', 'doc', 'Has notes']);
-  if (a.syncFailed) m.push(['bad', 'sync', 'Sync failed: see Team Settings, Integration']);
+  if (a.syncFailed) m.push(['bad', 'sync', 'Sync failed: see Settings, Team, Integrations']);
   return m.map(([cls, icon, title]) => `<i class="${cls}" title="${esc(title)}">${ic(icon)}</i>`).join('');
 }
 
@@ -3772,7 +3774,9 @@ async function loadDay(date) {
 
 // The day, by chair, is where the front desk works; the month is for seeing
 // the shape of the weeks ahead.
-let calView = 'day';
+// Remembered per browser, so Back from a calendar's settings (or a reload)
+// lands on the view that was open, not always on the day.
+let calView = (() => { try { return localStorage.getItem('ss-cal-view') === 'month' ? 'month' : 'day'; } catch { return 'day'; } })();
 // True while the shop has no calendar: the diary is drawn, empty.
 let noCals = false;
 let calMonth = '';          // YYYY-MM
@@ -3887,6 +3891,7 @@ $('calendar').onclick = (e) => {
 
 function setView(next, date) {
   calView = next;
+  try { localStorage.setItem('ss-cal-view', next); } catch { /* private mode: this tab still remembers */ }
   const month = next === 'month';
   for (const b of $('viewSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.view === next));
@@ -3895,8 +3900,7 @@ function setView(next, date) {
   $('diary').classList.toggle('hidden', month);
   $('dayPicker').classList.toggle('hidden', month);
   $('monthLabel').classList.toggle('hidden', !month);
-  if (month) loadMonth(calMonth || monthOf(date || day || salonToday()));
-  else loadDay(date || day || salonToday());
+  return month ? loadMonth(calMonth || monthOf(date || day || salonToday())) : loadDay(date || day || salonToday());
 }
 
 $('viewSeg').onclick = (e) => {

@@ -138,9 +138,9 @@ made that way are real: name them ZZ and remove them.
   wide as the nav cluster (`--nav-w`, measured by `fitSettings()`), so its
   edges line up with the menu. There is no Calendars item: the shop's calendars are listed above
   the diary on Appointments, and `/staff/calendars` still works. Settings is
-  for everyone: Salon Profile, Team Settings (Appearance, Integrations, Team
+  for everyone: Salon Profile, Team (Appearance, Integrations, Team
   Members), Calendars, and Billing for owners and managers. The person chip
-  and `/staff/account` open Settings on Team Settings. Sign out is in your own
+  and `/staff/account` open Settings on Team. The calendar settings page has a Back button to Appointments, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM" and "Integrations"; the API keeps its `centro`
   names, which nobody sees.
