@@ -25,6 +25,10 @@ const API = 'https://www.googleapis.com/calendar/v3';
  * to agree to.
  */
 export const SCOPES = [
+  // openid is what makes Google return an id_token. Without it the callback
+  // has no way to say which account was connected without a second API call,
+  // and the console shows a connection with no address against it.
+  'openid',
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');

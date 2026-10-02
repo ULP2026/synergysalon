@@ -1469,6 +1469,17 @@
   #cokDlg .urlrow input { font-size:var(--fs-sm); }
   #cokDlg .urlrow .btn { border-radius:0 10px 10px 0; border:1.5px solid var(--line); border-left:0; }
   #cokDlg .urlrow input { border-radius:10px 0 0 10px; }
+
+  .hrs { display:grid; gap:8px; margin-bottom:16px; }
+  .hrs .hr { display:flex; align-items:center; gap:12px; padding:10px 12px;
+             border:1.5px solid var(--line); border-radius:12px; }
+  .hrs .hr.off { opacity:.55; }
+  .hrs .hr b { flex:1; min-width:0; font-size:var(--fs-sm); font-weight:600; }
+  .hrs .hr input[type=time] { width:108px; padding:7px 9px; border:1.5px solid var(--line);
+             border-radius:9px; font:inherit; font-size:var(--fs-sm); background:var(--bg); color:inherit; }
+  .hrs .hr input[disabled] { opacity:.5; }
+  .hrs .hr .dash { color:var(--muted); font-size:var(--fs-sm); }
+  @media (max-width:520px) { .hrs .hr input[type=time] { width:92px; } }
 </style>
 </head>
 <body>
@@ -1861,6 +1872,16 @@
       <div class="md-sec">Services &amp; pricing</div>
       <p class="small muted" style="margin:-6px 0 10px">Turn on what you offer and type your starting price. Leave it off if you don&rsquo;t do it.</p>
       <div class="svcs" id="memberSvcs"></div>
+
+      <!-- Hours only mean anything for somebody a guest can book, so the
+           section appears when a service is switched on and not before. -->
+      <div id="memberHoursWrap" class="hidden">
+        <div class="md-sec">Working hours</div>
+        <p class="small muted" style="margin:-6px 0 10px">Guests are offered these times and no others.
+          Turn a day off and nothing can be booked that day.</p>
+        <div class="hrs" id="memberHours"></div>
+      </div>
+
       <div id="memberCreate">
         <p class="small muted" style="margin:0 0 16px">They will be emailed a link to choose
           their own password. Nobody else ever sees it &mdash; including you.</p>
@@ -4472,8 +4493,63 @@ $('memberSvcs').onclick = (e) => {
   input.disabled = !on;
   const kind = SERVICE_KINDS.find(([k]) => k === row.dataset.svc);
   row.querySelector('small').textContent = on ? kind[2] : 'Not offered';
+  syncHoursVisibility();
   if (on) input.focus();
 };
+/** Sunday first, the way a rota is written and the way the schema counts. */
+const WEEKDAYS = [
+  [0, 'Sunday'], [1, 'Monday'], [2, 'Tuesday'], [3, 'Wednesday'],
+  [4, 'Thursday'], [5, 'Friday'], [6, 'Saturday'],
+];
+
+/** The hours a salon opens with when nobody has said otherwise. */
+const DEFAULT_SHIFT = { starts: '09:00', ends: '17:00' };
+
+function paintHours(hours = []) {
+  const byDay = new Map(hours.map((h) => [Number(h.weekday), h]));
+  $('memberHours').innerHTML = WEEKDAYS.map(([n, label]) => {
+    const h = byDay.get(n);
+    const on = Boolean(h);
+    return `<div class="hr ${on ? '' : 'off'}" data-day="${n}">
+      <button type="button" class="switch" role="switch" aria-checked="${on}"
+        aria-label="${label} worked"><span></span></button>
+      <b>${label}</b>
+      <input type="time" step="900" value="${h ? esc(h.starts) : DEFAULT_SHIFT.starts}"
+        aria-label="${label} start" ${on ? '' : 'disabled'}>
+      <span class="dash">to</span>
+      <input type="time" step="900" value="${h ? esc(h.ends) : DEFAULT_SHIFT.ends}"
+        aria-label="${label} end" ${on ? '' : 'disabled'}>
+    </div>`;
+  }).join('');
+}
+
+$('memberHours').onclick = (e) => {
+  const sw = e.target.closest('.switch');
+  if (!sw || sw.disabled) return;
+  const row = sw.closest('.hr');
+  const on = sw.getAttribute('aria-checked') !== 'true';
+  sw.setAttribute('aria-checked', String(on));
+  row.classList.toggle('off', !on);
+  for (const input of row.querySelectorAll('input')) input.disabled = !on;
+};
+
+/** What the rows say, in the shape the API validates. */
+function readHoursUI() {
+  const out = [];
+  for (const row of $('memberHours').querySelectorAll('.hr')) {
+    if (row.querySelector('.switch').getAttribute('aria-checked') !== 'true') continue;
+    const [a, b] = row.querySelectorAll('input[type=time]');
+    out.push({ weekday: Number(row.dataset.day), starts: a.value, ends: b.value });
+  }
+  return out;
+}
+
+/** Hours belong to people a guest can book, so they follow the switches. */
+function syncHoursVisibility() {
+  const any = Object.values(readServices()).some((v) => v.on);
+  $('memberHoursWrap').classList.toggle('hidden', !any);
+}
+
 function readServices() {
   const out = {};
   for (const row of $('memberSvcs').querySelectorAll('.svc')) {
@@ -4516,6 +4592,8 @@ async function openMember(who) {
   $('memberAvatarNote').classList.toggle('hidden', !m?.photo);
   paintAvatarGrid();
   paintServices(m?.services || {});
+  paintHours(m?.hours || []);
+  syncHoursVisibility();
 
   // Who may change what. Nobody changes their own role, which is how a salon
   // ends up with no owner; an owner's details are an owner's to change.
@@ -4658,6 +4736,9 @@ $('memberForm').onsubmit = async (e) => {
     }
     // Sent only when it changed, so saving a name works before migration 012.
     if (JSON.stringify(services) !== memberOrig.services) fields.services = services;
+    // Hours go with whoever can be booked. Sending them for somebody with no
+    // services on would store a rota for a person no guest can reach.
+    if (Object.values(services).some((v) => v.on)) fields.hours = readHoursUI();
     if (memberPic !== undefined) fields.avatar = memberPic;
     if (!memberEdit) {
       const made = await api('/api/staff/team', {

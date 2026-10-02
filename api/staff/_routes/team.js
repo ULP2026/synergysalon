@@ -11,7 +11,8 @@
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
-import { query } from '../../_lib/db.js';
+import { query, transaction } from '../../_lib/db.js';
+import { hoursFor, readHours, syncStylist } from '../../_lib/roster.js';
 import { sendInvite } from '../../_lib/email.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
@@ -70,7 +71,16 @@ export default handler({
               to_jsonb(u) -> 'avatar_style' AS avatar_style,
               to_jsonb(s) ->> 'photo' AS photo,
               a.name AS approved_by_name,
-              s.name AS stylist_name, s.slug AS stylist_slug, s.title AS stylist_title
+              s.name AS stylist_name, s.slug AS stylist_slug, s.title AS stylist_title,
+              -- Bookable is not a column anyone sets: it is whether this person
+              -- has a live stylist row, which switching a service on creates.
+              COALESCE(s.active, false) AS bookable,
+              COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                                 'weekday', h.weekday,
+                                 'starts', to_char(h.starts_at, 'HH24:MI'),
+                                 'ends', to_char(h.ends_at, 'HH24:MI'))
+                               ORDER BY h.weekday, h.starts_at)
+                          FROM stylist_hours h WHERE h.stylist_id = s.id), '[]'::jsonb) AS hours
          FROM staff_users u
          LEFT JOIN staff_users a ON a.id = u.approved_by
          LEFT JOIN stylists s ON s.staff_user_id = u.id
@@ -86,6 +96,9 @@ export default handler({
         id: r.id,
         // Added but never signed in: their invite is still outstanding.
         invited: r.invited,
+        // Whether a guest can book them, and when.
+        bookable: r.bookable,
+        hours: r.hours ?? [],
         name: r.name,
         email: r.email,
         role: r.role,
@@ -164,6 +177,12 @@ export default handler({
         await query('UPDATE staff_users SET services = $2::jsonb WHERE id = $1',
           [rows[0].id, JSON.stringify(services)]);
       }
+      // The team is the list. Switching a service on is what makes somebody
+      // bookable, so the booking side is brought into line in the same breath
+      // rather than left for a separate screen nobody knows to visit.
+      await transaction((client) => syncStylist(client, tenant.id, {
+        id: rows[0].id, name, username,
+      }, { services, hours: readHours(body.hours), title: body.title }));
       const link = await mintInvite(req, rows[0].id);
       // Sending is a courtesy, not the mechanism. No email provider, a typo in
       // the address, a spam folder -- the person adding them still has the
@@ -303,8 +322,22 @@ export default handler({
           }
           add('role', body.role);
         }
-        if (!sets.length) throw new HttpError(400, 'Nothing to change.');
-        await query(`UPDATE staff_users SET ${sets.join(', ')} WHERE id = $1`, params);
+        const hours = readHours(body.hours);
+        if (!sets.length && !hours) throw new HttpError(400, 'Nothing to change.');
+        if (sets.length) {
+          await query(`UPDATE staff_users SET ${sets.join(', ')} WHERE id = $1`, params);
+        }
+        // Read back rather than reasoning about what changed: the booking side
+        // should follow the row that now exists, not the patch that was sent.
+        const { rows: after } = await query(
+          `SELECT id, name, to_jsonb(u) ->> 'username' AS username,
+                  to_jsonb(u) -> 'services' AS services
+             FROM staff_users u WHERE id = $1`,
+          [target.id],
+        );
+        await transaction((client) => syncStylist(client, tenant.id, after[0], {
+          services: after[0].services, hours, title: body.title,
+        }));
         break;
       }
 

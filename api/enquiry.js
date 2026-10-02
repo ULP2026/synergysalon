@@ -281,7 +281,7 @@ export default handler({
             fromDate: start.toISODate(),
             toDate: start.toISODate(),
             excludeAppointmentId: live[0].id,
-            centro: true,
+            centro: false,   // our own hours, not a third party's
           }));
           await client.query('RELEASE SAVEPOINT check_move');
         } catch {

@@ -107,8 +107,8 @@ export async function createBooking(client, tenant, {
     fromDate: startsAt.toISODate(),
     toDate: startsAt.toISODate(),
     minLeadMin,
-    // A guest is held to the stylist's CENTRO hours; staff are not.
-    centro: channel === 'online',
+    // The salon's own hours, for guests and staff alike.
+    centro: false,   // our own hours, not a third party's
   });
 
   const wanted = startsAt.toMillis();

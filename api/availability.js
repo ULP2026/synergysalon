@@ -26,7 +26,7 @@ export default handler({
     const client = await pool().connect();
     try {
       const { service, stylists, days } = await availableSlots(client, tenant, {
-        serviceSlug, stylistSlug, fromDate: from, toDate: to, centro: true,
+        serviceSlug, stylistSlug, fromDate: from, toDate: to, centro: false,   // our own hours, not a third party's
       });
       return json(res, 200, {
         timezone: tenant.timezone,
