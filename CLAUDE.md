@@ -93,20 +93,33 @@ out of the UI on request. The cron still re-queues refused jobs from the last
 30 days whenever the link checks out, and logs why each failed, and
 `POST /api/staff/centro {action:"retry"}` still exists.
 
-**Stylists' hours come from CENTRO, for guests.** Online availability offers a
-stylist only the times CENTRO's free-slots answer lists for their CENTRO user:
-the hours set for them on the calendar, what is already booked there, and the
-calendars they connected in CENTRO (`api/_lib/centro-hours.js`). A stylist not
-linked to a CENTRO user is offered nothing online, and a
-CENTRO error offers nothing rather than guess. Staff booking in the console
-still uses `stylist_hours`, on purpose. The seeded `stylist_hours` gave every
-stylist the salon's opening times, which is how 9 AM got sold with stylists
-who start later.
+**Stylists' hours are the salon's own.** Availability is built from
+`stylist_hours` and `time_off` in this database (`api/_lib/availability.js`),
+for guests and staff alike.
 
-The screen for linking stylists to CENTRO users was removed from the console
-on request. Linking now goes through `POST /api/staff/centro
-{action:"link", stylist, ghlUserId}` (or SQL on `stylists.ghl_user_id`); put a
-screen back before reopening online booking, or nobody is offered online.
+It used to be asked of CENTRO, which meant a stylist with no CENTRO user
+linked was offered nothing at all. All four were in exactly that state, which
+is why online booking was switched off: there was nobody left to offer. A
+salon that has never heard of CENTRO can now take bookings, which is the whole
+point of selling this to a second customer.
+
+`api/_lib/centro-hours.js`, `freeSlots` in `ghl.js` and the `centro` flag on
+`availableSlots` are dead as of `c8ed305`. Every caller passes `false`.
+Removing them is a tidy-up, not a behaviour change. Linking a stylist to a
+CENTRO user is no longer needed for anything.
+
+**The team is the only list.** Anyone with one of the four service switches on
+is bookable: saving them creates or revives a `stylists` row linked by
+`staff_user_id`, maps the switches to `services` by `category` (the four
+switches and the four categories are the same four things), and writes their
+weekly hours (`api/_lib/roster.js`). Turning every switch off deactivates the
+row rather than deleting it, because appointments point at it and past work
+has to keep its name. Reviving keeps the original slug, so old booking links
+still work.
+
+The console used to show a team while the booking engine read a separate
+`stylists` table maintained by hand in SQL. Nobody was told the second list
+existed, which is how every stylist ended up deactivated.
 
 **Testing while online booking is paused.** The console button was removed on
 request; `POST /api/staff/centro {action:"preview"}` still mints a signed 12-hour pass (`api/_lib/preview.js`) and opens the public
@@ -206,9 +219,13 @@ must stay that way — anything committed here is served publicly.
 
 ## Still outstanding
 
-- **Online booking is paused.** Stylists have not set their individual hours
-  yet, and the public calendar sold 9 AM slots with stylists who do not start
-  then. Every "Book" link now opens an "Online appointments are coming soon,
+- **Online booking is paused, and the reason has changed.** It is no longer
+  about hours: those are owned and editable now. It is that the salon has no
+  bookable stylist. All four `stylists` rows are deactivated and tied to no
+  login, and neither RJ nor Luis has a service switched on, so `loadStylists`
+  raises a 404 for every service. Add somebody through Team with services and
+  hours first; unpausing before that shows guests an error.
+  Every "Book" link currently opens an "Online appointments are coming soon,
   please call" notice, and `ONLINE_BOOKING = false` in `api/_lib/config.js`
   makes the server refuse online bookings too (leads are still saved as
   contacts; staff bookings are unaffected). The full booking popup is still in
@@ -216,8 +233,11 @@ must stay that way — anything committed here is served publicly.
   is the site exactly as it was before the pause.
   To restore: delete the block between `ss-booking-paused:start` and
   `ss-booking-paused:end` in the static head of `index.html` and the four
-  service pages, and set `ONLINE_BOOKING` back to `true`. Do it only once
-  availability respects each stylist's hours.
+  service pages, and set `ONLINE_BOOKING` back to `true`. Do it only once at
+  least one person is bookable and their hours are right.
+  `ONLINE_BOOKING` being a hardcoded constant does not belong in a product
+  sold to more than one salon; it wants to become "this tenant has a bookable
+  stylist".
 
 - **Service durations need Dina.** Every one in `db/seed.sql` and
   `db/migrations/004` is an industry estimate, and they decide which slots get
