@@ -356,6 +356,10 @@
        client list, narrow enough that nothing leaves a band of empty page. */
     width: 100%; max-width: 960px; margin: 0 auto; padding: 88px 32px 32px;
   }
+  /* Settings is forms, not a diary: it takes the nav's own width (--nav-w,
+     measured in fitSettings()), so its edges line up with the menu above. */
+  .main.narrow { max-width: calc(var(--nav-w, 760px) + 64px); }
+  @media (max-width: 760px) { .main.narrow { max-width: 960px; } }
   /* RocketOS proportions: a 1.5rem title, a small grey line under it, and
      cards that sit 16px apart. Tighter than before, which read as oversized. */
   .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
@@ -674,6 +678,24 @@
     .crow .cmain { grid-column: 2 / -1; }
     .crow .cnext { grid-column: 2; }
     .crow .acts { grid-column: 3; }
+  }
+
+  /* ── Leads, a draft: dashed edges and a Draft chip, so nobody mistakes it
+     for a finished screen while the pipeline is still being designed. ── */
+  .card.draft { border: 1.5px dashed var(--line-2); box-shadow: none; }
+  .draft-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: var(--fs-sm); color: var(--muted); }
+  .draft-chip { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; flex: none;
+                border: 1px dashed var(--periwinkle); color: var(--indigo); background: var(--peri-pale);
+                font-size: var(--fs-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  #leadStatus { margin: 2px 0 10px; }
+  #leadStatus .n { font-variant-numeric: tabular-nums; color: var(--faint); font-weight: 600; margin-left: 2px; }
+  #leadStatus button[aria-pressed="true"] .n { color: inherit; opacity: .8; }
+  .lrow { grid-template-columns: 36px minmax(0, 1.6fr) minmax(0, 1fr) 120px; }
+  .lrow .ladded { font-size: .8rem; color: var(--muted); text-align: right; }
+  .draft .clist { border-style: dashed; }
+  @media (max-width: 720px) {
+    .lrow { grid-template-columns: 36px minmax(0, 1fr); }
+    .lrow .ctags, .lrow .ladded { display: none; }
   }
 
   tbody tr.clickable { cursor: pointer; }
@@ -1538,6 +1560,7 @@
   <symbol id="l-layout-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
   <symbol id="l-calendar" viewBox="0 0 24 24"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></symbol>
   <symbol id="l-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol>
+  <symbol id="l-funnel" viewBox="0 0 24 24"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></symbol>
   <symbol id="l-megaphone" viewBox="0 0 24 24"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14"/><path d="M8 6v8"/></symbol>
   <symbol id="l-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
 </svg>
@@ -1627,6 +1650,8 @@
         <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appointments</span></a>
       <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
         <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Clients</span></a>
+      <a class="grn-item" href="/staff/leads" data-page="leads" title="Leads (draft)">
+        <svg class="grn-ic"><use href="#l-funnel"/></svg><span class="lbl">Leads</span></a>
       <a class="grn-item" href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
         <svg class="grn-ic"><use href="#l-megaphone"/></svg><span class="lbl">Marketing</span></a>
       <a class="grn-item icon-only" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
@@ -1706,6 +1731,26 @@
         </div>
         <div class="ctags-bar" id="contactTags"></div>
         <div id="contacts" style="flex:1;display:flex;flex-direction:column"></div>
+      </div>
+    </section>
+
+    <!-- Leads: a draft. The lead stages and source tags the old Contacts page
+         filtered by, over the same people, until the real pipeline is designed. -->
+    <section class="view hidden" id="view-leads">
+      <div class="card fill draft">
+        <div class="draft-head">
+          <span class="draft-chip">Draft</span>
+          <span>A first look at leads. The filters and tags work on real enquiries; the layout is a placeholder.</span>
+        </div>
+        <div class="toolbar">
+          <div class="search grow">
+            <svg class="ic"><use href="#i-search"/></svg>
+            <input id="leadSearch" type="search" placeholder="Search name, email or phone" aria-label="Search leads">
+          </div>
+        </div>
+        <div class="cfilter" id="leadStatus" role="group" aria-label="Show leads that are"></div>
+        <div class="ctags-bar" id="leadTags"></div>
+        <div id="leads" style="flex:1;display:flex;flex-direction:column"></div>
       </div>
     </section>
 
@@ -2920,6 +2965,10 @@ const PAGES = {
     sub: 'Everyone who has booked or asked about a visit.',
     run: () => openContact(null), load: () => { fillStylistFilter(); loadContacts(); },
   },
+  leads: {
+    path: '/staff/leads', title: 'Leads', sub: 'Everyone who has asked about a visit, by stage. A draft for now.',
+    load: () => loadLeads(),
+  },
   calendars: {
     path: '/staff/calendars', title: 'Calendars', action: 'New calendar',
     sub: 'The ways people can book you.',
@@ -3055,6 +3104,7 @@ function go(name, { push = true } = {}) {
     else a.removeAttribute('aria-current');
   });
   $('meBtn').removeAttribute('aria-current');
+  document.querySelector('.main').classList.toggle('narrow', name === 'settings');
   moveRing();
   const view = p.view || name;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
@@ -3094,6 +3144,13 @@ let motionAnimate = null;
 import('/staff/vendor/motion-13.4.6.js').then((m) => { motionAnimate = m.animate; }).catch(() => {});
 let ringAnim = null;
 let ringPlaced = false;
+/** The nav cluster's width, for Settings to match; it changes with the logo and the name. */
+function fitSettings() {
+  const w = document.querySelector('.grn')?.offsetWidth;
+  if (w) document.documentElement.style.setProperty('--nav-w', `${w}px`);
+}
+if (window.ResizeObserver) new ResizeObserver(fitSettings).observe(document.querySelector('.grn'));
+
 function moveRing(instant = false) {
   const ring = $('grnRing');
   const item = $('grnPill').querySelector('.grn-item[aria-current="page"]');
@@ -4257,6 +4314,91 @@ $('pxLeft').onclick = (e) => {
 };
 
 let searchTimer = null;
+// ── Leads (draft) ──────────────────────────────────────────────────────────
+//
+// The lead stages and source tags Contacts filtered by before it became
+// Clients, brought back on request as a draft. Everyone is fetched once and
+// filtered here, so every stage can show its count without a call each.
+let leadList = [];
+let leadStatus = '';
+let leadSource = '';
+let leadSeq = 0;
+const LEAD_STAGES = ['new', 'contacted', 'booked', 'won', 'lost'];
+
+async function loadLeads() {
+  const seq = ++leadSeq;
+  if (!leadList.length) $('leads').innerHTML = skeleton(6);
+  try {
+    const d = await api(`/api/staff/contacts?q=${encodeURIComponent($('leadSearch').value.trim())}&limit=300`);
+    if (seq !== leadSeq) return;
+    leadList = d.contacts;
+    renderLeads();
+  } catch (err) {
+    if (seq === leadSeq && err.message !== 'signed out') {
+      $('leads').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load leads', text: err.message });
+    }
+  }
+}
+
+function renderLeads() {
+  const count = (st) => leadList.filter((c) => !st || c.status === st).length;
+  $('leadStatus').innerHTML = ['', ...LEAD_STAGES].map((st) => `<button type="button" data-status="${st}" aria-pressed="${st === leadStatus}">
+      ${st ? `<i class="dot s-${st}"></i>` : ''}${st ? esc(STATUS_LABEL[st]) : 'All'}<span class="n">${count(st)}</span></button>`).join('');
+
+  const inStage = leadList.filter((c) => !leadStatus || c.status === leadStatus);
+  const sources = [...new Set(leadList.map((c) => (c.source || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  if (leadSource && !sources.includes(leadSource)) leadSource = '';
+  const shown = leadSource ? inStage.filter((c) => (c.source || '').trim() === leadSource) : inStage;
+  $('leadTags').innerHTML = (sources.length ? `${ic('tag')}${sources.map((src) =>
+    `<button type="button" class="tag" data-source="${esc(src)}" aria-pressed="${src === leadSource}">${esc(src)}</button>`).join('')}`
+    : `${ic('tag')}<span class="small muted">Tags appear here from where each lead came from.</span>`)
+    + `<span class="count">${shown.length} ${shown.length === 1 ? 'lead' : 'leads'}</span>`;
+
+  if (!shown.length) {
+    $('leads').innerHTML = emptyState({
+      icon: 'contacts', title: leadList.length ? 'No leads here' : 'No leads yet',
+      text: leadList.length ? 'Nobody is at this stage with this tag.' : 'Enquiries from the website land here.',
+    });
+    return;
+  }
+  $('leads').innerHTML = `<div class="clist">${shown.map((c) => `
+    <div class="crow lrow ${statusClass(c.status)}" data-open="${esc(c.id)}" tabindex="0" role="button" aria-label="Open ${esc(c.name)}">
+      <span class="cav" aria-hidden="true">${esc(initialsOf(c.name))}</span>
+      <div class="cmain">
+        <div class="cname"><span class="name">${esc(c.name)}</span>
+          <span class="spill">${esc(STATUS_LABEL[c.status] || c.status)}</span></div>
+        <div class="cmeta">
+          ${c.phone ? `<span>${ic('phone')}${esc(c.phone)}</span>` : ''}
+          ${c.email ? `<span class="email">${ic('mail')}<span>${esc(c.email)}</span></span>` : ''}
+          ${!c.phone && !c.email ? '<span>No phone or email yet</span>' : ''}
+        </div>
+      </div>
+      <div class="ctags">${c.source ? `<span class="tag">${ic('tag')}${esc(c.source)}</span>` : ''}</div>
+      <span class="ladded">${c.createdAt ? `Added ${esc(shortDate(c.createdAt))}` : ''}</span>
+    </div>`).join('')}</div>`;
+}
+
+$('leadStatus').onclick = (e) => {
+  const b = e.target.closest('button[data-status]');
+  if (!b) return;
+  leadStatus = b.dataset.status;
+  renderLeads();
+};
+$('leadTags').onclick = (e) => {
+  const b = e.target.closest('button[data-source]');
+  if (!b) return;
+  leadSource = leadSource === b.dataset.source ? '' : b.dataset.source;
+  renderLeads();
+};
+$('leads').onclick = (e) => {
+  const row = e.target.closest('[data-open]');
+  if (row) openPerson(row.dataset.open);
+};
+$('leadSearch').oninput = () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(loadLeads, 250);
+};
+
 let contactSeq = 0;
 async function loadContacts() {
   const seq = ++contactSeq;
