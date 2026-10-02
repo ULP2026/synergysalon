@@ -259,6 +259,11 @@
      white glass). */
   :root {
     --ring-ink:  var(--indigo);
+      /* Lavender for the nav's selected item. It used to sit on near-white
+       glass, which read as a blank button; a lavender wash with a soft top
+       highlight reads as pressed in. */
+    --lav-fill:  linear-gradient(180deg, #f3f0fe 0%, #e7e1fb 100%);
+    --lav-shine: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -6px 12px -8px rgba(110, 96, 196, .28);
     /* The ring is a still, thin gradient edge: navy, periwinkle, soft lilac
        and back. No glow and no spin; the spring is the only motion. */
     --ring-grad: linear-gradient(135deg, var(--indigo-deep) 0%, var(--periwinkle) 30%, #cfd3f3 50%, var(--periwinkle) 70%, var(--indigo-deep) 100%);
@@ -281,8 +286,8 @@
     position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50;
     display: flex; align-items: stretch; gap: 12px; max-width: calc(100vw - 16px);
   }
-  .grn-pill { position: relative; display: flex; align-items: center; gap: 4px; padding: 8px; border-radius: 16px; }
-  .grn-logo { display: grid; place-items: center; padding: 0 8px 0 6px; align-self: stretch; border-radius: 12px; }
+  .grn-pill { position: relative; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 18px; }
+  .grn-logo { display: grid; place-items: center; padding: 0 12px 0 8px; align-self: stretch; border-radius: 12px; }
   .grn-mark {
     display: block; width: 22px; height: 22px; background: var(--periwinkle);
     -webkit-mask: url(/favicon-512x512.png) center / contain no-repeat;
@@ -290,14 +295,17 @@
   }
   .grn-item {
     position: relative; z-index: 10; display: flex; align-items: center; gap: 8px;
-    padding: 8px 16px; border-radius: 16px; font-size: .875rem; line-height: 1.25rem; font-weight: 500;
+    padding: 10px 20px; border-radius: 16px; font-size: .9rem; line-height: 1.25rem; font-weight: 500;
     color: var(--muted); text-decoration: none; white-space: nowrap;
     transition: color .2s ease;
   }
-  .grn-item:hover { color: var(--indigo-deep); }
-  .grn-item[aria-current="page"] { color: var(--ring-ink); }
-  .grn-item.icon-only { padding: 8px 12px; }
-  .grn-ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2;
+  /* No hover state, on request: only the selected item is marked. The
+     site-wide a:hover would otherwise darken the label, so it is held. */
+  .grn-item:not([aria-current="page"]):hover { color: var(--muted); }
+  .grn-me:hover { color: var(--ink); }
+  .grn-item[aria-current="page"] { color: var(--ring-ink); font-weight: 600; }
+  .grn-item.icon-only { padding: 10px 14px; }
+  .grn-ic { width: 19px; height: 19px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9;
             stroke-linecap: round; stroke-linejoin: round; }
   .grn-item .count {
     position: absolute; top: 1px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px;
@@ -316,16 +324,14 @@
   }
   .grn-ring.on { opacity: 1; }
   .grn-ring-fill {
-    position: absolute; inset: 2px; border-radius: 16px; background: rgba(255, 255, 255, .92);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    position: absolute; inset: 2px; border-radius: 16px; background: var(--lav-fill);
+    box-shadow: var(--lav-shine);
   }
 
   .grn-me {
     display: flex; align-items: center; padding: 0 16px; border-radius: 16px;
     font: inherit; font-size: .875rem; font-weight: 500; color: var(--ink); cursor: pointer;
-    transition: color .2s ease;
   }
-  .grn-me:hover { color: var(--ring-ink); }
   .grn-me .me-name { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .grn a:focus-visible, .grn button:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; border-radius: 16px; }
 
@@ -335,7 +341,7 @@
   }
   @media (max-width: 420px) {
     .grn { gap: 8px; }
-    .grn-item, .grn-item.icon-only { padding: 8px 11px; }
+    .grn-item, .grn-item.icon-only { padding: 9px 11px; }
     .grn-logo { padding: 0 4px; }
     .grn-me { padding: 0 12px; }
     .grn-me .me-name { max-width: 8ch; }
@@ -1239,7 +1245,9 @@
   :root[data-theme="dark"] body { background: radial-gradient(900px 520px at 88% -10%, rgba(85, 96, 166, .22), transparent 62%),
                                   linear-gradient(180deg, #14152f 0%, #0f1027 100%); }
   :root[data-theme="dark"] .glass-strong { background: rgba(27, 28, 63, .82); border-color: rgba(85, 96, 166, .35); }
-  :root[data-theme="dark"] .grn-ring-fill { background: rgba(27, 28, 63, .92); }
+  :root[data-theme="dark"] { --lav-fill: linear-gradient(180deg, #34316e 0%, #2b2960 100%);
+                             --lav-shine: inset 0 1px 0 rgba(255, 255, 255, .10), inset 0 -6px 12px -8px rgba(0, 0, 0, .35); }
+  :root[data-theme="dark"] .grn-me .me-pic { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px rgba(160, 148, 236, .5); }
   :root[data-theme="dark"] .grn-item .count { box-shadow: 0 0 0 2px var(--card); }
   :root[data-theme="dark"] .card, :root[data-theme="dark"] .tile { box-shadow: var(--e1), inset 0 1px 0 rgba(255, 255, 255, .04); }
   :root[data-theme="dark"] .pop, :root[data-theme="dark"] .toast { background: rgba(27, 28, 63, .95); }
@@ -1256,13 +1264,15 @@
   :root[data-theme="dark"] .tag { background: #2b2e63; color: #d4cdfa; }
   :root[data-theme="dark"] .note:not(.bad):not(.good) { color: var(--ink); }
   :root[data-theme="dark"] h1, :root[data-theme="dark"] dialog h2, :root[data-theme="dark"] .au-flow h3,
-  :root[data-theme="dark"] .md-sec, :root[data-theme="dark"] .grn-item:hover { color: var(--ink); }
+  :root[data-theme="dark"] .md-sec { color: var(--ink); }
 
   /* ── the person chip: picture and first name ────────────────────────── */
   .grn-me { gap: 8px; padding: 0 14px 0 6px; position: relative; text-decoration: none; }
-  .grn-me .me-pic { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; flex: none; background: var(--peri-pale); }
-  .grn-me .me-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .grn-me[aria-current="page"] { color: var(--ring-ink); box-shadow: 0 0 0 2px var(--periwinkle), 0 8px 32px rgba(30, 31, 92, .14); }
+  .grn-me .me-pic { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex: none; background: var(--peri-pale);
+                    box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(205, 196, 246, .9); }
+  .grn-me .me-pic img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+  .grn-me[aria-current="page"] { color: var(--ring-ink); background: var(--lav-fill);
+                                 box-shadow: 0 0 0 2px var(--periwinkle), var(--lav-shine), 0 8px 32px rgba(30, 31, 92, .14); }
   .grn-me .count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px;
                    border-radius: 999px; display: grid; place-items: center; font-size: .66rem; font-weight: 650;
                    background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 2px var(--card); }
@@ -1679,8 +1689,8 @@
       </a>
       <a class="grn-item" href="/staff" data-page="home" title="Home">
         <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Home</span></a>
-      <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Appointments">
-        <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appointments</span></a>
+      <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Apt. Booking">
+        <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Apt. Booking</span></a>
       <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
         <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Clients</span></a>
       <a class="grn-item" href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
@@ -2346,12 +2356,22 @@ $('requestForm').onsubmit = async (e) => {
 let meSubtitle = '';
 
 /** The chip in the corner, painted from whatever `me` currently holds. */
+const ZIGGY_AVATAR = '/assets/ziggy-ai-support.png';
+
 function paintMe() {
   // RocketOS's chip carries the first name only.
   $('meName').textContent = me.user.name.trim().split(/\s+/)[0] || me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
   $('meBtn').title = `Team · ${meSubtitle}`;
-  $('mePic').innerHTML = `<img src="${esc(personPhoto(me.user))}" alt="">`;
+  // The chip shows Ziggy, the AI support assistant, for everyone, as asked;
+  // a person's own picture lives in their profile. Until the Ziggy image is
+  // published at ZIGGY_AVATAR the chip falls back to the person's picture
+  // rather than showing a broken image.
+  const pic = new Image();
+  pic.alt = '';
+  pic.onerror = () => { pic.onerror = null; pic.src = personPhoto(me.user); };
+  pic.src = ZIGGY_AVATAR;
+  $('mePic').replaceChildren(pic);
   paintLogo();
 }
 
@@ -2947,7 +2967,7 @@ const PAGES = {
     run: () => openBooking(null), load: () => loadHome(),
   },
   appointments: {
-    path: '/staff/appointments', title: 'Appointments', action: 'New appointment',
+    path: '/staff/appointments', title: 'Apt. Booking', action: 'New appointment',
     sub: 'Check people in and keep the day on track.',
     run: () => openBooking(null),
     load: () => loadAppointments(),
@@ -3711,7 +3731,7 @@ function openCalDialog(stylist) {
   $('calOpts').innerHTML = `
     <div class="calopt">
       <span class="ico">${ic('calendar')}</span>
-      <div><b>Salon Calendar</b><span class="d">Every stylist’s appointments in one place. This is what you see on Appointments.</span></div>
+      <div><b>Salon Calendar</b><span class="d">Every stylist’s appointments in one place. This is what you see on Apt. Booking.</span></div>
       <span class="chip ok">In use</span>
     </div>
     <div class="calopt">
@@ -4234,7 +4254,7 @@ let person = null;          // { contact, appointments, activity } for the open 
 let tlFilter = 'all';
 
 const TL_TYPES = [
-  ['all', 'All'], ['appointment', 'Appointments'], ['email', 'Email'],
+  ['all', 'All'], ['appointment', 'Apt. Booking'], ['email', 'Email'],
   ['sms', 'SMS'], ['automation', 'Automations'], ['form', 'Forms'],
 ];
 const TL_ICON = { appointment: 'calendar', email: 'mail', sms: 'message', automation: 'zap', form: 'form', sync: 'sync', lead: 'user' };
@@ -4323,7 +4343,7 @@ function renderPerson() {
       </dl>
     </section>
     <section class="px-sec">
-      <h3>Appointments</h3>
+      <h3>Apt. Booking</h3>
       <div class="px-stats">
         <div><b>${visits}</b><span>Visits</span></div>
         <div><b>${upcoming[0] ? esc(fmtWhen(upcoming[0].startsAt, { month: 'short', day: 'numeric' })) : '–'}</b><span>Next</span></div>
@@ -5247,10 +5267,11 @@ async function loadBusiness() {
  * The calendar apps a person can see their appointments in.
  *
  * Google is granted: they sign in and appointments are written in as events.
- * Outlook and the rest subscribe to the same private feed (/calendar/<token>.ics),
+ * Every other app subscribes to the same private feed (/calendar/<token>.ics),
  * which the server hands over as ready-made links (GET /api/staff/calendars).
- * Offered when a calendar is created and under Settings, Team, Integrations;
- * Outlook was taken out once and is back on request.
+ * Offered when a calendar is created and under Settings, Team, Integrations.
+ * Outlook had a row of its own and was removed on request; it can still take
+ * the link through "Other calendar apps".
  */
 const GOOGLE_LOGO = '<svg class="conn-logo" viewBox="0 0 24 24" aria-hidden="true">'
   + '<path fill="#4285F4" d="M12 10.2v3.9h5.5a4.7 4.7 0 0 1-2 3.1v2.6h3.3c1.9-1.8 3-4.4 3-7.5 0-.7-.1-1.4-.2-2.1H12z"/>'
@@ -5260,14 +5281,6 @@ const GOOGLE_LOGO = '<svg class="conn-logo" viewBox="0 0 24 24" aria-hidden="tru
 
 const CAL_APPS = [
   { key: 'google', name: 'Google Calendar', logo: GOOGLE_LOGO },
-  {
-    key: 'outlook', name: 'Outlook Calendar',
-    logo: '<svg class="conn-logo" viewBox="0 0 24 24" aria-hidden="true">'
-      + '<rect x="2" y="5" width="12" height="14" rx="2" fill="#0A66C2"/>'
-      + '<path fill="#fff" d="M8 8.4c-1.8 0-3 1.5-3 3.6s1.2 3.6 3 3.6 3-1.5 3-3.6-1.2-3.6-3-3.6zm0 5.8c-.9 0-1.5-.9-1.5-2.2S7.1 9.8 8 9.8s1.5.9 1.5 2.2-.6 2.2-1.5 2.2z"/>'
-      + '<path fill="#28A8EA" d="M15 8.5h7v9.3a1.2 1.2 0 0 1-1.2 1.2H15z"/>'
-      + '<path fill="#0364B8" d="M15 8.5h7v.6l-3.5 2.4L15 9.1z"/></svg>',
-  },
   {
     key: 'other', name: 'Other calendar apps',
     logo: '<svg class="conn-logo" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#5560a6" stroke-width="1.8" stroke-linecap="round">'
@@ -5280,7 +5293,7 @@ const CAL_APPS = [
  * shows them. "Connected" only where the app can know: Google because it was
  * granted, the others because a service of that kind has fetched the feed.
  */
-function calAppRows(d, { skip = [] } = {}) {
+function calAppRows(d) {
   if (!d) return '';
   const logo = (k) => CAL_APPS.find((a) => a.key === k).logo.replace('class="conn-logo"', '');
   const fed = (kinds) => d.connected && kinds.includes(d.provider);
@@ -5296,7 +5309,6 @@ function calAppRows(d, { skip = [] } = {}) {
       ? row('google', 'Appointments written into your Google Calendar as they are booked', g.connected,
         g.connected ? b('google-off', 'Disconnect') : b('google-on', 'Connect'))
       : row('google', 'Subscribe in Google Calendar. It updates on its own.', fed(['google']), b('google-sub', 'Add')),
-    skip.includes('outlook') ? '' : row('outlook', 'Outlook.com and Microsoft 365. It updates on its own.', fed(['outlook']), b('outlook', 'Add')),
     row('other', 'Apple Calendar, or any app that takes a calendar link', fed(['apple', 'other']), b('other', 'Copy link')),
   ].join('');
 }
@@ -5309,7 +5321,6 @@ document.addEventListener('click', async (e) => {
   if (act === 'google-on') { connectGoogle(b); return; }
   // Subscriptions are finished on the other provider's site, in a new tab.
   if (act === 'google-sub') { window.open(feedData.google, '_blank', 'noopener'); return; }
-  if (act === 'outlook') { window.open(feedData.outlook, '_blank', 'noopener'); return; }
   if (act === 'other') {
     try {
       await navigator.clipboard.writeText(feedData.url);
@@ -5338,9 +5349,7 @@ async function loadCalSync() {
   $('cnewSync').innerHTML = skeleton(2);
   try {
     feedData = await api('/api/staff/calendars');
-    // Outlook is left out here on request; it is still in Integrations, and
-    // "Other calendar apps" covers it by link.
-    $('cnewSync').innerHTML = calAppRows(feedData, { skip: ['outlook'] });
+    $('cnewSync').innerHTML = calAppRows(feedData);
   } catch (err) {
     if (err.message !== 'signed out') $('cnewSync').innerHTML = `<p class="small muted">Couldn’t load your calendar apps: ${esc(err.message)}</p>`;
   }
