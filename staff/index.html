@@ -1402,6 +1402,47 @@
     .tm-addrow .btn { width: 100%; }
   }
   :root[data-theme="dark"] .tm-row.me { background: #24264f; border-color: var(--line-2); }
+
+  /* ── calendars ───────────────────────────────────────────────────────── */
+  .ctypes { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-top:4px; }
+  .ctype { text-align:left; border:1px solid var(--line); border-radius:12px; background:var(--card);
+           padding:16px; cursor:pointer; font:inherit; color:inherit; display:flex; gap:12px; }
+  .ctype:hover { border-color:var(--periwinkle); background:var(--raise); }
+  .ctype .ic { width:22px; height:22px; flex:none; color:var(--periwinkle); }
+  .ctype b { display:block; margin-bottom:3px; }
+  .ctype span { display:block; color:var(--muted); font-size:var(--fs-sm); }
+  .ctype em { display:block; color:var(--faint); font-size:var(--fs-xs); font-style:normal; margin-top:5px; }
+  .ctype-more { display:flex; align-items:center; gap:6px; margin:16px 0 0; padding:6px 0;
+                background:none; border:0; font:inherit; color:var(--muted); cursor:pointer; }
+  .ctype-more:hover { color:var(--ink); }
+  .ctype-more .ic { width:16px; height:16px; transition:transform .15s ease; }
+  .ctype-more[aria-expanded="true"] .ic { transform:rotate(180deg); }
+
+  .urlrow { display:flex; align-items:stretch; }
+  .urlrow .prefix, .urlrow .suffix { display:flex; align-items:center; padding:0 11px;
+       background:var(--raise); border:1.5px solid var(--line); color:var(--muted); font-size:var(--fs-sm); }
+  .urlrow .prefix { border-right:0; border-radius:10px 0 0 10px; }
+  .urlrow .suffix { border-left:0; border-radius:0 10px 10px 0; }
+  .urlrow .prefix + input { border-radius:0 10px 10px 0; }
+  .urlrow input:first-child { border-radius:10px 0 0 10px; }
+  .linkish { background:none; border:0; padding:0 0 12px; font:inherit; color:var(--link); cursor:pointer; }
+  .toggle { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .toggle input { width:auto; }
+  .pickers { display:flex; flex-wrap:wrap; gap:8px; }
+  .picker { display:inline-flex; align-items:center; gap:7px; padding:7px 13px; border-radius:999px;
+            border:1.5px solid var(--line); background:var(--card); font:inherit; font-size:var(--fs-sm); cursor:pointer; }
+  .picker[aria-pressed="true"] { border-color:var(--periwinkle); background:var(--raise); color:var(--indigo); font-weight:600; }
+
+  .callist { display:grid; gap:12px; }
+  .calrow { display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+            border:1px solid var(--line); border-radius:12px; background:var(--card); padding:16px; }
+  .calrow .who { flex:1; min-width:200px; }
+  .calrow .who b { display:block; }
+  .calrow .who .small { color:var(--muted); }
+  .calrow .link { font-size:var(--fs-xs); color:var(--muted); background:var(--raise);
+                  border:1px solid var(--line); border-radius:8px; padding:5px 9px;
+                  max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .calrow.off { opacity:.6; }
 </style>
 </head>
 <body>
@@ -1415,6 +1456,7 @@
   <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6.5h9M17 6.5h3M4 12h3M11 12h9M4 17.5h11M19 17.5h1"/><circle cx="15" cy="6.5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17.5" r="2"/></symbol>
   <symbol id="i-signout" viewBox="0 0 24 24"><path d="M14.5 4H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3.5M10 16.5 14.5 12 10 7.5M14.5 12H4"/></symbol>
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.4 1.4"/><path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.4-1.4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 18-6-6 6-6"/></symbol>
   <symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
@@ -1521,6 +1563,8 @@
         <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Home</span></a>
       <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Appointments">
         <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appointments</span></a>
+      <a class="grn-item" href="/staff/calendars" data-page="calendars" title="Calendars">
+        <svg class="ic"><use href="#i-calendar-plus"/></svg><span class="lbl">Calendars</span></a>
       <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
         <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Clients</span></a>
       <a class="grn-item" href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
@@ -1612,6 +1656,16 @@
     </section>
 
     <!-- Settings -->
+    <!-- Calendars: the ways a shop can be booked. Empty until it makes one. -->
+    <section class="view hidden" id="view-calendars">
+      <div id="calendars"></div>
+    </section>
+
+    <!-- One calendar's advanced settings, on its own path. -->
+    <section class="view hidden" id="view-calendarSettings">
+      <div id="calSettings"></div>
+    </section>
+
     <section class="view hidden" id="view-settings">
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
         <button type="button" data-set="profile" aria-pressed="true">Salon Profile</button>
@@ -1785,6 +1839,73 @@
     <button type="button" class="iconbtn lg" id="calClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
   <div class="calopts" id="calOpts"></div>
+</dialog>
+
+<!-- Step one: what kind of calendar. The four a salon reaches for first,
+     then the two it rarely needs behind a disclosure, which is the order
+     every CRM puts them in because it is the order people choose them. -->
+<dialog id="ctypeDlg" aria-labelledby="ctypeTitle">
+  <div class="ad-head">
+    <div style="flex:1;min-width:0">
+      <h2 id="ctypeTitle">Choose calendar type</h2>
+      <p class="small muted" style="margin:2px 0 0">Select a calendar type to set up your
+        calendar and customize how appointments are scheduled.</p>
+    </div>
+    <button type="button" class="iconbtn lg" id="ctypeClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="ctypes" id="ctypePrimary"></div>
+  <button type="button" class="ctype-more" id="ctypeMore" aria-expanded="false">
+    <svg class="ic"><use href="#i-chev"/></svg>Explore more types</button>
+  <div class="ctypes hidden" id="ctypeRest"></div>
+</dialog>
+
+<!-- Step two: the handful of things needed to create it. Everything else is
+     on the calendar's own settings page, so this stays a form somebody can
+     finish. -->
+<dialog id="cnewDlg" aria-labelledby="cnewTitle">
+  <form id="cnewForm">
+    <div class="ad-head">
+      <div style="flex:1;min-width:0">
+        <h2 id="cnewTitle">New calendar</h2>
+        <p class="small muted" id="cnewKind" style="margin:2px 0 0"></p>
+      </div>
+      <button type="button" class="iconbtn lg" id="cnewClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    </div>
+
+    <label><span>Calendar name</span>
+      <input name="name" id="cnewName" placeholder="e.g. Colour consultation" required maxlength="120"></label>
+
+    <button type="button" class="linkish" id="cnewDescToggle">+ Add description</button>
+    <label class="hidden" id="cnewDescWrap"><span>Description</span>
+      <textarea name="description" rows="2" maxlength="1000"
+        placeholder="What a guest should know before booking"></textarea></label>
+
+    <label id="cnewTeamWrap"><span id="cnewTeamLabel">Select team member</span>
+      <div id="cnewTeam" class="pickers"></div></label>
+
+    <label><span>Custom URL</span>
+      <div class="urlrow"><span class="prefix" id="cnewPrefix">/book/</span>
+        <input name="slug" id="cnewSlug" placeholder="my-calendar" maxlength="48"></div>
+      <span class="small muted" id="cnewSlugNote">Left blank, this follows the name.</span></label>
+
+    <div class="fields">
+      <label><span id="cnewDurLabel">Meeting duration</span>
+        <div class="urlrow"><input name="durationMin" id="cnewDur" type="number" min="5" max="600" value="30" required>
+          <span class="suffix">minutes</span></div></label>
+      <label class="hidden" id="cnewCapWrap"><span>Places per session</span>
+        <input name="capacity" type="number" min="1" max="200" value="10"></label>
+    </div>
+
+    <label class="toggle"><input type="checkbox" name="acceptPayments"><span>Accept payments</span></label>
+    <p class="small muted" style="margin:-6px 0 14px">Taking payment online is not switched on yet;
+      this records the intention.</p>
+
+    <div class="ad-acts">
+      <button type="button" class="btn quiet" id="cnewAdvanced">Advanced settings</button>
+      <button type="button" class="btn quiet" id="cnewCancel">Cancel</button>
+      <button class="btn" type="submit">Confirm</button>
+    </div>
+  </form>
 </dialog>
 
 <!-- One appointment, in full: what the day card had to cut short. -->
@@ -2097,6 +2218,388 @@ async function signOutNow() {
 
 // ─────────────────────────── routing ───────────────────────────
 
+// ───────────────────────── calendars ─────────────────────────
+//
+// The ways a shop can be booked. A calendar is not a second diary: every
+// appointment still lands in the one table, so two calendars pointing at the
+// same stylist cannot both sell the same hour.
+
+let calData = null;
+let calDraft = null;          // the type chosen in step one, waiting for step two
+
+const CAL_KINDS = [
+  { kind: 'personal', icon: 'i-contacts', primary: true,
+    blurb: 'Schedules one-on-one appointments with a specific team member.',
+    eg: 'Colour consultations, a stylist’s own clients.' },
+  { kind: 'round_robin', icon: 'i-users-plus', primary: true,
+    blurb: 'Distributes appointments among team members in a rotating order.',
+    eg: 'Any stylist, whoever is next.' },
+  { kind: 'class', icon: 'i-users-plus', primary: true,
+    blurb: 'One host meets with several guests in the same slot.',
+    eg: 'Styling workshops, training evenings.' },
+  { kind: 'collective', icon: 'i-contacts', primary: true,
+    blurb: 'Several team members are booked together for one guest.',
+    eg: 'A colour correction with two stylists.' },
+  { kind: 'event', icon: 'i-calendar', primary: false,
+    blurb: 'A fixture with no host attached.',
+    eg: 'Open evenings, closures.' },
+  { kind: 'service', icon: 'i-calendar-plus', primary: false,
+    blurb: 'Scheduling for a service you sell, with whoever is free.',
+    eg: 'Haircuts, balayage, treatments.' },
+];
+
+function kindMeta(kind) { return CAL_KINDS.find((k) => k.kind === kind) || CAL_KINDS[5]; }
+function kindLabel(kind) {
+  return (calData?.kinds || []).find((k) => k.kind === kind)?.label || kind;
+}
+
+// ── the list ────────────────────────────────────────────────────────────
+function renderCalendars(d) {
+  calData = d;
+  const canManage = d.canManage;
+
+  if (!d.calendars.length) {
+    $('calendars').innerHTML = emptyState({
+      icon: 'calendar-plus',
+      title: 'No calendars yet',
+      text: 'A calendar is a way people can book you — one stylist, any stylist, '
+          + 'a class, or a service. Make the first one and it gets its own link.',
+      action: canManage ? 'calendars' : null,
+      actionLabel: 'New calendar',
+    });
+    return;
+  }
+
+  $('calendars').innerHTML = `<div class="callist">${d.calendars.map((c) => `
+    <div class="calrow ${c.active ? '' : 'off'}">
+      <div class="who">
+        <b>${esc(c.name)}</b>
+        <span class="small">${esc(c.kindLabel)} · ${c.durationMin} min${
+          c.capacity > 1 ? ` · ${c.capacity} places` : ''}${
+          c.members.length ? ` · ${c.members.map((m) => esc(m.name)).join(', ')}` : ''}</span>
+        ${c.description ? `<div class="small muted" style="margin-top:4px">${esc(c.description)}</div>` : ''}
+      </div>
+      <span class="link" title="/book/${esc(c.slug)}">/book/${esc(c.slug)}</span>
+      <span class="chip">${c.upcoming} upcoming</span>
+      ${canManage ? `<div class="acts">
+        <button class="btn quiet" data-cal-settings="${esc(c.slug)}">Settings</button>
+        <button class="iconbtn" data-cal-more="${esc(c.id)}" aria-label="More"><svg class="ic"><use href="#i-more"/></svg></button>
+      </div>` : ''}
+    </div>`).join('')}</div>`;
+}
+
+async function loadCalendars() {
+  $('calendars').innerHTML = skeleton(3);
+  try { renderCalendars(await api('/api/staff/booking-calendars')); } catch (err) {
+    if (err.message !== 'signed out') {
+      $('calendars').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load the calendars', text: err.message });
+    }
+  }
+}
+
+$('calendars').onclick = (e) => {
+  const open = e.target.closest('button[data-cal-settings]');
+  if (open) return goCalendarSettings(open.dataset.calSettings);
+
+  const more = e.target.closest('button[data-cal-more]');
+  if (!more) return;
+  const c = calData.calendars.find((x) => x.id === more.dataset.calMore);
+  showMenu(more, [
+    { label: 'Settings', run: () => goCalendarSettings(c.slug) },
+    { label: c.active ? 'Turn off' : 'Turn on',
+      run: () => patchCalendar({ id: c.id, active: !c.active }) },
+    { label: 'Delete calendar', danger: true, run: () => deleteCalendar(c) },
+  ]);
+};
+
+async function patchCalendar(patch) {
+  try {
+    await api('/api/staff/booking-calendars', { method: 'PATCH', body: JSON.stringify(patch) });
+    toast('Saved.');
+    await loadCalendars();
+  } catch (err) { fail(err); }
+}
+
+async function deleteCalendar(c) {
+  // Appointments already taken are not touched: a calendar is how a booking
+  // was made, not the booking itself.
+  if (!confirm(`Delete “${c.name}”?\n\n`
+    + 'Its link stops working. Appointments already booked through it stay in '
+    + 'the diary and are not cancelled.')) return;
+  try {
+    await api('/api/staff/booking-calendars', { method: 'DELETE', body: JSON.stringify({ id: c.id }) });
+    toast(`“${c.name}” deleted.`);
+    await loadCalendars();
+  } catch (err) { fail(err); }
+}
+
+// ── step one: the type ──────────────────────────────────────────────────
+function cardFor(k) {
+  return `<button type="button" class="ctype" data-kind="${k.kind}">
+    <svg class="ic"><use href="#${k.icon}"/></svg>
+    <span style="min-width:0"><b>${esc(kindLabel(k.kind))}</b>
+      <span>${esc(k.blurb)}</span><em>E.g. ${esc(k.eg)}</em></span>
+  </button>`;
+}
+
+function openCalType() {
+  if (!calData?.canManage) { toast('Only an owner or a manager can add a calendar.', 'bad'); return; }
+  $('ctypePrimary').innerHTML = CAL_KINDS.filter((k) => k.primary).map(cardFor).join('');
+  $('ctypeRest').innerHTML = CAL_KINDS.filter((k) => !k.primary).map(cardFor).join('');
+  $('ctypeRest').classList.add('hidden');
+  $('ctypeMore').setAttribute('aria-expanded', 'false');
+  $('ctypeDlg').showModal();
+}
+
+$('ctypeMore').onclick = () => {
+  const open = $('ctypeRest').classList.toggle('hidden');
+  $('ctypeMore').setAttribute('aria-expanded', String(!open));
+};
+$('ctypeClose').onclick = () => $('ctypeDlg').close();
+$('ctypeDlg').onclick = (e) => {
+  const b = e.target.closest('button[data-kind]');
+  if (!b) return;
+  $('ctypeDlg').close();
+  openCalNew(b.dataset.kind);
+};
+
+// ── step two: the form ──────────────────────────────────────────────────
+function openCalNew(kind) {
+  calDraft = { kind, members: [] };
+  const meta = kindMeta(kind);
+  const f = $('cnewForm');
+  f.reset();
+
+  $('cnewKind').textContent = `${kindLabel(kind)} — ${meta.blurb}`;
+  $('cnewDescWrap').classList.add('hidden');
+  $('cnewSlug').value = '';
+
+  // What the form asks for depends on the kind. A class seats several guests;
+  // an event has no host at all; personal takes exactly one person.
+  const seats = kind === 'class' || kind === 'event';
+  $('cnewCapWrap').classList.toggle('hidden', !seats);
+  $('cnewTeamWrap').classList.toggle('hidden', kind === 'event');
+  $('cnewTeamLabel').textContent = kind === 'personal' ? 'Select team member' : 'Team members';
+  $('cnewDurLabel').textContent = seats ? 'Session length' : 'Appointment length';
+
+  $('cnewTeam').innerHTML = (calData.team || []).map((t) => `
+    <button type="button" class="picker" data-member="${esc(t.id)}" aria-pressed="false">${esc(t.name)}</button>`).join('')
+    || '<span class="small muted">No stylists yet — add them in Team Settings.</span>';
+
+  $('cnewDlg').showModal();
+  setTimeout(() => $('cnewName').focus(), 30);
+}
+
+$('cnewTeam').onclick = (e) => {
+  const b = e.target.closest('button[data-member]');
+  if (!b) return;
+  const id = b.dataset.member;
+  const on = b.getAttribute('aria-pressed') === 'true';
+  // Personal booking is one person by definition, so choosing replaces.
+  if (calDraft.kind === 'personal') {
+    for (const x of $('cnewTeam').querySelectorAll('.picker')) x.setAttribute('aria-pressed', 'false');
+    calDraft.members = on ? [] : [id];
+  } else {
+    calDraft.members = on ? calDraft.members.filter((m) => m !== id) : [...calDraft.members, id];
+  }
+  b.setAttribute('aria-pressed', String(!on));
+};
+
+$('cnewDescToggle').onclick = () => {
+  $('cnewDescWrap').classList.remove('hidden');
+  $('cnewDescToggle').classList.add('hidden');
+  $('cnewDescWrap').querySelector('textarea').focus();
+};
+$('cnewClose').onclick = () => $('cnewDlg').close();
+$('cnewCancel').onclick = () => $('cnewDlg').close();
+
+// Advanced settings is a page, not a deeper modal: it is where somebody goes
+// back to, and a modal is not somewhere you can be sent a link to.
+$('cnewAdvanced').onclick = async () => {
+  const created = await submitCalNew();
+  if (created) goCalendarSettings(created.slug);
+};
+
+$('cnewForm').onsubmit = (e) => { e.preventDefault(); submitCalNew(); };
+
+async function submitCalNew() {
+  const f = new FormData($('cnewForm'));
+  const name = String(f.get('name') || '').trim();
+  if (!name) { toast('Give the calendar a name.', 'bad'); return null; }
+  if (calDraft.kind === 'personal' && !calDraft.members.length) {
+    toast('Choose the team member this calendar books.', 'bad'); return null;
+  }
+
+  const btn = $('cnewForm').querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    const d = await api('/api/staff/booking-calendars', {
+      method: 'POST',
+      body: JSON.stringify({
+        kind: calDraft.kind,
+        name,
+        slug: String(f.get('slug') || '').trim(),
+        description: String(f.get('description') || '').trim(),
+        durationMin: Number(f.get('durationMin')) || 30,
+        capacity: Number(f.get('capacity')) || 1,
+        acceptPayments: f.get('acceptPayments') === 'on',
+        members: calDraft.members,
+      }),
+    });
+    $('cnewDlg').close();
+    toast(`“${d.calendar.name}” created.`);
+    await loadCalendars();
+    return d.calendar;
+  } catch (err) { fail(err); return null; } finally { btn.disabled = false; }
+}
+
+// ── advanced settings, on its own path ──────────────────────────────────
+let calSettingsSlug = null;
+
+function goCalendarSettings(slug) {
+  calSettingsSlug = slug;
+  history.pushState({ page: 'calendarSettings' }, '', `/staff/calendars/${encodeURIComponent(slug)}`);
+  go('calendarSettings', { push: false });
+}
+
+function renderCalendarSettings(c) {
+  const base = `${location.origin}/book/${c.slug}`;
+  const st = c.settings || {};
+  $('pageSub').textContent = `${c.kindLabel} · ${c.durationMin} min`;
+  $('pageTitle').textContent = c.name;
+
+  $('calSettings').innerHTML = `
+    <button class="btn quiet" id="calBack" style="margin-bottom:16px">← All calendars</button>
+
+    <div class="card">
+      <div class="card-head" style="margin-bottom:4px"><h2>Booking link</h2></div>
+      <p class="small muted" style="margin:0 0 12px">Where guests book this calendar.</p>
+      <div class="urlrow"><input id="setSlug" value="${esc(c.slug)}" maxlength="48"></div>
+      <div class="small muted" style="margin:8px 0 0">${esc(base)}</div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-head" style="margin-bottom:4px"><h2>Scheduling</h2></div>
+      <p class="small muted" style="margin:0 0 16px">How far ahead, how late, and how much
+        room to leave between appointments.</p>
+      <div class="fields">
+        <label><span>Appointment length</span>
+          <div class="urlrow"><input id="setDur" type="number" min="5" max="600" value="${c.durationMin}">
+            <span class="suffix">minutes</span></div></label>
+        <label><span>Clean-down after</span>
+          <div class="urlrow"><input id="setBuf" type="number" min="0" max="240" value="${c.bufferMin}">
+            <span class="suffix">minutes</span></div>
+          <span class="small muted">Blocks the diary. Never sold, and not shown to the guest.</span></label>
+        <label><span>Shortest notice</span>
+          <div class="urlrow"><input id="setLead" type="number" min="0" max="168" value="${Number(st.minNoticeHours ?? 2)}">
+            <span class="suffix">hours</span></div></label>
+        <label><span>Book up to</span>
+          <div class="urlrow"><input id="setWindow" type="number" min="1" max="365" value="${Number(st.windowDays ?? 60)}">
+            <span class="suffix">days ahead</span></div></label>
+        ${c.capacity > 1 ? `<label><span>Places per session</span>
+          <input id="setCap" type="number" min="1" max="200" value="${c.capacity}"></label>` : ''}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-head" style="margin-bottom:4px"><h2>Who it books</h2></div>
+      <p class="small muted" style="margin:0 0 12px">${c.kind === 'event'
+        ? 'An event has no host, so there is nobody to choose.'
+        : 'Guests are offered only the times these people are free.'}</p>
+      <div class="pickers" id="setTeam"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-head" style="margin-bottom:4px"><h2>What the guest sees</h2></div>
+      <label style="margin-top:12px"><span>Description</span>
+        <textarea id="setDesc" rows="2" maxlength="1000">${esc(c.description)}</textarea></label>
+      <label><span>Confirmation message</span>
+        <textarea id="setConfirm" rows="2" maxlength="500"
+          placeholder="Shown after they book. Left blank, the standard wording is used."
+          >${esc(st.confirmation || '')}</textarea></label>
+      <label class="toggle"><input type="checkbox" id="setPay" ${c.acceptPayments ? 'checked' : ''}>
+        <span>Accept payments</span></label>
+      <label class="toggle"><input type="checkbox" id="setActive" ${c.active ? 'checked' : ''}>
+        <span>Calendar is live</span></label>
+    </div>
+
+    <div class="row" style="margin-top:18px;display:flex;gap:10px">
+      <button class="btn" id="setSave">Save changes</button>
+      <button class="btn quiet" id="setDelete" style="margin-left:auto">Delete calendar</button>
+    </div>`;
+
+  $('setTeam').innerHTML = (calData?.team || []).map((t) => `
+    <button type="button" class="picker" data-set-member="${esc(t.id)}"
+      aria-pressed="${c.members.some((m) => m.id === t.id)}">${esc(t.name)}</button>`).join('')
+    || '<span class="small muted">No stylists yet.</span>';
+
+  let members = c.members.map((m) => m.id);
+  $('setTeam').onclick = (e) => {
+    const b = e.target.closest('button[data-set-member]');
+    if (!b) return;
+    const id = b.dataset.setMember;
+    const on = b.getAttribute('aria-pressed') === 'true';
+    if (c.kind === 'personal') {
+      for (const x of $('setTeam').querySelectorAll('.picker')) x.setAttribute('aria-pressed', 'false');
+      members = on ? [] : [id];
+    } else {
+      members = on ? members.filter((m) => m !== id) : [...members, id];
+    }
+    b.setAttribute('aria-pressed', String(!on));
+  };
+
+  $('calBack').onclick = () => go('calendars');
+  $('setDelete').onclick = async () => { await deleteCalendar(c); go('calendars'); };
+
+  $('setSave').onclick = async () => {
+    $('setSave').disabled = true;
+    try {
+      const d = await api('/api/staff/booking-calendars', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          id: c.id,
+          slug: $('setSlug').value.trim(),
+          durationMin: Number($('setDur').value),
+          bufferMin: Number($('setBuf').value),
+          capacity: $('setCap') ? Number($('setCap').value) : undefined,
+          description: $('setDesc').value,
+          acceptPayments: $('setPay').checked,
+          active: $('setActive').checked,
+          members,
+          settings: {
+            minNoticeHours: Number($('setLead').value),
+            windowDays: Number($('setWindow').value),
+            confirmation: $('setConfirm').value.trim(),
+          },
+        }),
+      });
+      toast('Saved.');
+      // The link may have changed under us, so follow it.
+      calSettingsSlug = d.calendar.slug;
+      history.replaceState({ page: 'calendarSettings' }, '', `/staff/calendars/${encodeURIComponent(d.calendar.slug)}`);
+      renderCalendarSettings(d.calendar);
+    } catch (err) { fail(err); } finally { $('setSave').disabled = false; }
+  };
+}
+
+async function loadCalendarSettings() {
+  const slug = calSettingsSlug
+    || decodeURIComponent((location.pathname.match(/^\/staff\/calendars\/([^/]+)/) || [])[1] || '');
+  if (!slug) return go('calendars');
+  calSettingsSlug = slug;
+  $('calSettings').innerHTML = skeleton(4);
+  try {
+    // The list request also carries the team, which the pickers need.
+    if (!calData) calData = await api('/api/staff/booking-calendars');
+    const d = await api(`/api/staff/booking-calendars?slug=${encodeURIComponent(slug)}`);
+    renderCalendarSettings(d.calendar);
+  } catch (err) {
+    if (err.message !== 'signed out') {
+      $('calSettings').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load that calendar', text: err.message });
+    }
+  }
+}
+
 const PAGES = {
   home: {
     path: '/staff', title: 'Home', action: 'New appointment',
@@ -2117,6 +2620,17 @@ const PAGES = {
     path: '/staff/clients', title: 'Clients', action: 'Add client',
     sub: 'Everyone who has booked or asked about a visit.',
     run: () => openContact(null), load: () => { fillStylistFilter(); loadContacts(); },
+  },
+  calendars: {
+    path: '/staff/calendars', title: 'Calendars', action: 'New calendar',
+    sub: 'The ways people can book you.',
+    run: () => openCalType(), load: () => loadCalendars(),
+  },
+  // Each calendar's deeper options live on their own path, so a shop can send
+  // somebody straight to the one they are setting up.
+  calendarSettings: {
+    path: '/staff/calendars', title: 'Calendar settings', hidden: true,
+    sub: '', load: () => loadCalendarSettings(),
   },
   settings: {
     path: '/staff/settings', title: 'Settings',
@@ -2209,6 +2723,10 @@ const VIEWS = ['home', 'appointments', 'clients', 'marketing', 'settings', 'acco
 const PAGE_ALIASES = { dashboard: 'home', contacts: 'clients', marketing: 'automation', team: 'account' };
 
 function pageFromUrl() {
+  // A calendar's settings live at /staff/calendars/<slug>, so the last
+  // segment is the calendar, not the page.
+  const deep = location.pathname.match(/^\/staff\/calendars\/([^/]+)/);
+  if (deep) { calSettingsSlug = decodeURIComponent(deep[1]); return 'calendarSettings'; }
   const seg = location.pathname.replace(/\/+$/, '').split('/').pop();
   const name = PAGE_ALIASES[seg] || seg;
   return PAGES[name] ? name : 'home';

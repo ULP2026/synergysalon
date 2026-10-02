@@ -114,6 +114,10 @@
   ],
   "rewrites": [
     {
+      "source": "/staff/calendars/:slug",
+      "destination": "/staff"
+    },
+    {
       "source": "/s/:slug",
       "destination": "/shop"
     },
@@ -122,7 +126,7 @@
       "destination": "/api/calendar?k=:token"
     },
     {
-      "source": "/staff/:page(home|dashboard|appointments|clients|contacts|settings|account|team)",
+      "source": "/staff/:page(home|dashboard|appointments|clients|contacts|settings|account|team|calendars)",
       "destination": "/staff"
     },
     {
