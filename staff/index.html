@@ -129,21 +129,18 @@
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     height: 42px; padding: 0 18px; border: 1px solid transparent; border-radius: 999px;
-    background: var(--periwinkle); color: #fff; font-weight: 600; font-size: .95rem;
+    background: var(--cta-grad); color: #fff; font-weight: 500; font-size: .95rem;
     white-space: nowrap; cursor: pointer; text-decoration: none;
-    box-shadow: 0 1px 2px rgba(30, 31, 92, .14), 0 8px 18px -10px rgba(85, 96, 166, .7);
-    transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease),
-                color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease);
+    box-shadow: var(--cta-shadow);
+    transition: opacity .2s ease, background-color var(--t) var(--ease), border-color var(--t) var(--ease), color var(--t) var(--ease);
   }
-  .btn:hover:not(:disabled) {
-    background: var(--peri-hover); color: #fff; transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(30, 31, 92, .14), 0 12px 24px -12px rgba(53, 54, 118, .75);
-  }
-  .btn:active:not(:disabled) { transform: translateY(0) scale(.98); box-shadow: 0 1px 2px rgba(30, 31, 92, .16); }
+  /* RocketOS's hover: opacity .9, nothing else moves or glows. */
+  .btn:hover:not(:disabled) { opacity: .9; color: #fff; }
+  .btn:active:not(:disabled) { opacity: .85; }
   .btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
   .btn .ic { width: 18px; height: 18px; }
   .btn.quiet { background: rgba(255, 255, 255, .72); color: var(--ink); border-color: var(--line-2); font-weight: 500; box-shadow: none; }
-  .btn.quiet:hover:not(:disabled) { background: var(--peri-pale); color: var(--indigo); }
+  .btn.quiet:hover:not(:disabled) { opacity: 1; background: var(--peri-pale); color: var(--indigo); }
   .btn.sm { height: 34px; padding: 0 14px; font-size: var(--fs-sm); }
   .btn.block { width: 100%; }
   .iconbtn {
@@ -262,8 +259,16 @@
      white glass). */
   :root {
     --ring-ink:  var(--indigo);
-    --ring-grad: conic-gradient(from 0deg, var(--indigo-deep), var(--periwinkle), var(--peri-soft), var(--periwinkle), var(--indigo-deep));
-    --ring-glow: 0 0 20px rgba(85, 96, 166, .35), 0 0 42px -6px rgba(85, 96, 166, .22);
+    /* The ring is a still, thin gradient edge: navy, periwinkle, soft lilac
+       and back. No glow and no spin; the spring is the only motion. */
+    --ring-grad: linear-gradient(135deg, var(--indigo-deep) 0%, var(--periwinkle) 30%, #cfd3f3 50%, var(--periwinkle) 70%, var(--indigo-deep) 100%);
+    /* Primary actions, RocketOS's restraint on Synergy's palette: a quiet
+       135deg navy gradient with a soft highlight through the middle, a soft
+       elevation, and a glow capped at RocketOS's gold-glow strength
+       (30px at .30, 60px at .15), used only on the page's one primary. */
+    --cta-grad: linear-gradient(135deg, var(--indigo-deep) 0%, var(--indigo) 28%, #4a539a 50%, var(--indigo) 72%, var(--indigo-deep) 100%);
+    --cta-shadow: 0 1px 2px rgba(30, 31, 92, .12), 0 4px 12px -6px rgba(30, 31, 92, .22);
+    --cta-glow: 0 0 30px -5px rgba(85, 96, 166, .28), 0 0 60px -10px rgba(85, 96, 166, .14);
   }
   .glass-strong {
     background: rgba(255, 255, 255, .8);
@@ -271,8 +276,6 @@
     box-shadow: 0 8px 32px rgba(30, 31, 92, .14), inset 0 1px 0 rgba(255, 255, 255, .9);
     backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6);
   }
-  .ring-glow { box-shadow: var(--ring-glow); }
-  @keyframes ring-spin { to { transform: rotate(360deg); } }
 
   .grn {
     position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50;
@@ -287,7 +290,7 @@
   }
   .grn-item {
     position: relative; z-index: 10; display: flex; align-items: center; gap: 8px;
-    padding: 8px 16px; border-radius: 12px; font-size: .875rem; line-height: 1.25rem; font-weight: 500;
+    padding: 8px 16px; border-radius: 16px; font-size: .875rem; line-height: 1.25rem; font-weight: 500;
     color: var(--muted); text-decoration: none; white-space: nowrap;
     transition: color .2s ease;
   }
@@ -302,34 +305,29 @@
     background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 2px #fff;
   }
 
-  /* The ring: a periwinkle conic gradient turning slowly behind a 2px inset of
-     frosted card, so only its edge shows. left and width are driven by the
-     spring in moveRing(); top and bottom match the pill's py-2. */
+  /* The ring: an outer plate of the brand gradient behind a 2px inset of
+     frosted glass, so only a thin edge shows (18px outside, 16px inside).
+     left and width are driven by the spring in moveRing(); top and bottom
+     match the pill's py-2. No glow, no spin: it should read as a frame. */
   .grn-ring {
-    position: absolute; top: 8px; bottom: 8px; left: 0; width: 0; z-index: 1;
-    border-radius: 12px; overflow: hidden; pointer-events: none; opacity: 0;
-    box-shadow: var(--ring-glow); transition: opacity .2s ease;
+    position: absolute; top: 6px; bottom: 6px; left: 0; width: 0; z-index: 1;
+    border-radius: 18px; pointer-events: none; opacity: 0;
+    background: var(--ring-grad); transition: opacity .2s ease;
   }
   .grn-ring.on { opacity: 1; }
-  .grn-ring::before {
-    content: ""; position: absolute; left: 50%; top: 50%; width: 400px; height: 400px;
-    margin: -200px 0 0 -200px; background: var(--ring-grad);
-    animation: ring-spin 4s linear infinite;
-  }
   .grn-ring-fill {
-    position: absolute; inset: 2px; border-radius: 10px; background: rgba(255, 255, 255, .9);
+    position: absolute; inset: 2px; border-radius: 16px; background: rgba(255, 255, 255, .92);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   }
 
   .grn-me {
     display: flex; align-items: center; padding: 0 16px; border-radius: 16px;
     font: inherit; font-size: .875rem; font-weight: 500; color: var(--ink); cursor: pointer;
-    transition: color .2s ease, box-shadow .2s ease, transform .2s ease;
+    transition: color .2s ease;
   }
-  .grn-me:hover { color: var(--ring-ink); box-shadow: 0 8px 32px rgba(30, 31, 92, .14), var(--ring-glow); }
-  .grn-me:active { transform: scale(.98); }
+  .grn-me:hover { color: var(--ring-ink); }
   .grn-me .me-name { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .grn a:focus-visible, .grn button:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; border-radius: 12px; }
+  .grn a:focus-visible, .grn button:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; border-radius: 16px; }
 
   /* sm: labels show from 640px up, as RocketOS's "hidden sm:inline". */
   @media (max-width: 639px) {
@@ -476,7 +474,7 @@
      same treatment as the current page in the nav bar. */
   .seg button[aria-pressed="true"] { color:#fff; font-weight:600;
                 background:linear-gradient(135deg, #6b76c0 0%, var(--periwinkle) 45%, var(--indigo) 100%);
-                box-shadow:0 5px 14px -5px rgba(85,96,166,.6), inset 0 1px 0 rgba(255,255,255,.18);
+                box-shadow:0 2px 6px -3px rgba(30,31,92,.3), inset 0 1px 0 rgba(255,255,255,.14);
                 animation: pick .22s var(--ease); }
   .seg button:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
 
@@ -614,7 +612,7 @@
   .cfilter button[aria-pressed="true"] {
     color: #fff; border-color: transparent; font-weight: 600;
     background: linear-gradient(135deg, #6b76c0 0%, var(--periwinkle) 45%, var(--indigo) 100%);
-    box-shadow: 0 5px 14px -5px rgba(85, 96, 166, .6); animation: pick .22s var(--ease);
+    box-shadow: 0 2px 6px -3px rgba(30, 31, 92, .3); animation: pick .22s var(--ease);
   }
   .cfilter .dot { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, var(--s-a), var(--s-b)); }
   .cfilter button[aria-pressed="true"] .dot { box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
@@ -783,7 +781,7 @@
   .tl-filters button:hover:not([aria-pressed="true"]) { border-color: var(--line-2); background: var(--peri-pale); color: var(--indigo); }
   .tl-filters button[aria-pressed="true"] { color: #fff; border-color: transparent;
     background: linear-gradient(135deg, #6b76c0 0%, var(--periwinkle) 45%, var(--indigo) 100%);
-    box-shadow: 0 5px 14px -5px rgba(85, 96, 166, .6); }
+    box-shadow: 0 2px 6px -3px rgba(30, 31, 92, .3); }
   .tl-filters .n { font-variant-numeric: tabular-nums; opacity: .75; }
   .tl { list-style: none; margin: 0; padding: 0; }
   .tl li { position: relative; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 14px; padding-bottom: 22px; }
@@ -837,8 +835,8 @@
     content: ""; position: absolute; z-index: -1; pointer-events: none;
     left: 50%; top: -60px; width: min(1100px, 100%); height: 420px; transform: translateX(-50%);
     background:
-      radial-gradient(closest-side at 72% 38%, rgba(85, 96, 166, .16), transparent),
-      radial-gradient(closest-side at 22% 60%, rgba(185, 192, 232, .28), transparent);
+      radial-gradient(closest-side at 72% 38%, rgba(85, 96, 166, .05), transparent),
+      radial-gradient(closest-side at 22% 60%, rgba(185, 192, 232, .08), transparent);
   }
 
   /* Frosted chrome. Browsers without backdrop-filter keep the solid white. */
@@ -855,25 +853,12 @@
   /* A hairline of light along the top edge: depth from shading, not borders. */
   .card, .tile { box-shadow: var(--e1), inset 0 1px 0 rgba(255, 255, 255, .9); }
 
-  /* Primary buttons: lift on a gentle spring, a periwinkle halo, press to .98. */
-  .btn {
-    transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease),
-                color var(--t) var(--ease), box-shadow .22s var(--ease), transform .24s var(--spring);
-  }
-  .btn:not(.quiet):hover:not(:disabled) {
-    background-image: linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, 0));
-    box-shadow: var(--halo), 0 2px 4px rgba(30, 31, 92, .14), 0 16px 30px -12px rgba(85, 96, 166, .85);
-  }
-  .btn:not(.quiet):active:not(:disabled) {
-    transform: scale(.98); transition-duration: .08s;
-    box-shadow: 0 0 0 3px rgba(85, 96, 166, .12), 0 1px 2px rgba(30, 31, 92, .16);
-  }
-  .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; box-shadow: 0 0 0 6px rgba(85, 96, 166, .16); }
-  .btn.quiet:hover:not(:disabled) { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); box-shadow: 0 6px 16px -10px rgba(85, 96, 166, .6); }
-  .btn.quiet:active:not(:disabled) { transform: scale(.98); }
-  /* The page's one primary action carries a faint standing glow, so it is
-     found first; hover brings it up to full. */
-  .pagehead .primary { box-shadow: 0 1px 2px rgba(30, 31, 92, .14), 0 10px 26px -10px rgba(85, 96, 166, .75); }
+  /* Primary buttons are set once, at .btn: gradient, soft elevation,
+     opacity on hover. Nothing here adds lift, halo or bloom on top. */
+  .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .btn.quiet:hover:not(:disabled) { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); }
+  /* The page's one primary action carries the capped glow, so it is found first. */
+  .pagehead .primary { box-shadow: var(--cta-shadow), var(--cta-glow); }
   .iconbtn.lg { transition: background-color var(--t) var(--ease), color var(--t) var(--ease),
                             box-shadow var(--t) var(--ease), border-color var(--t) var(--ease), transform var(--t) var(--ease); }
   .iconbtn.lg:hover:not(:disabled) { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); box-shadow: var(--halo); }
@@ -885,10 +870,9 @@
 
   /* Chosen filters and tags glow a touch. */
   .cfilter button[aria-pressed="true"], .seg button[aria-pressed="true"], .tl-filters button[aria-pressed="true"] {
-    box-shadow: 0 5px 14px -5px rgba(85, 96, 166, .6), 0 0 0 3px rgba(85, 96, 166, .10),
-                inset 0 1px 0 rgba(255, 255, 255, .18);
+    box-shadow: 0 2px 6px -3px rgba(30, 31, 92, .3), inset 0 1px 0 rgba(255, 255, 255, .14);
   }
-  button.tag[aria-pressed="true"] { box-shadow: 0 4px 12px -4px rgba(106, 79, 176, .55); animation: pick .22s var(--ease); }
+  button.tag[aria-pressed="true"] { box-shadow: 0 2px 6px -3px rgba(106, 79, 176, .3); animation: pick .22s var(--ease); }
   .cfilter button:active, .seg button:active, .tl-filters button:active, button.tag:active { transform: scale(.97); }
   .tl-filters button { transition: background-color var(--t) var(--ease), color var(--t) var(--ease),
                                    border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
@@ -901,7 +885,7 @@
   .conn:hover { border-color: color-mix(in srgb, var(--periwinkle) 35%, var(--line)); }
   .cal-ev { transition: background-color var(--t) var(--ease), transform var(--t) var(--ease), box-shadow var(--t) var(--ease); }
   .cal-ev:hover { transform: translateY(-1px); box-shadow: 0 4px 10px -4px rgba(30, 31, 92, .5); }
-  .cal-cell.today .cal-n { box-shadow: 0 0 0 3px rgba(85, 96, 166, .16), 0 4px 10px -3px rgba(85, 96, 166, .6); }
+  .cal-cell.today .cal-n { box-shadow: 0 0 0 3px rgba(85, 96, 166, .14); }
   .upcoming button { transition: background-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
   .upcoming button:hover { box-shadow: inset 0 0 0 1px rgba(85, 96, 166, .10); }
 
@@ -954,7 +938,7 @@
     .grn-me:active, .iconbtn:active:not(:disabled), .crow:hover, .crow:active, .cal-ev:hover,
     .upcoming button:hover .go, .arch-card, .arch-card:hover, .mrow:hover, .dg-ev:hover,
     .cfilter button:active, .seg button:active, .tl-filters button:active, button.tag:active { transform: none; }
-    .grn-ring::before, .seg button[aria-pressed="true"], .cfilter button[aria-pressed="true"],
+    .seg button[aria-pressed="true"], .cfilter button[aria-pressed="true"],
     button.tag[aria-pressed="true"], .soon .chip { animation: none; }
     dialog[open], dialog.closing, .view:not(.hidden) > *, .setpane:not(.hidden), .pagehead .titles,
     .pop:not(.hidden), .toast:not(.hidden) { animation: fade .01ms; }
@@ -1147,7 +1131,7 @@
   .au-row .go { display: grid; color: var(--faint); transition: transform var(--t) var(--ease), color var(--t) var(--ease); }
   .au-row:hover .go { transform: translateX(3px); color: var(--indigo); }
   .au-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; flex: none; color: #fff;
-           background: linear-gradient(135deg, #8b94dc, var(--indigo)); box-shadow: 0 8px 18px -10px rgba(59, 67, 150, .8); }
+           background: linear-gradient(135deg, #8b94dc, var(--indigo)); box-shadow: 0 6px 14px -10px rgba(30, 31, 92, .35); }
   .au-ic .ic { width: 18px; height: 18px; }
   .au-empty { padding: 28px 0; text-align: center; color: var(--muted); font-size: var(--fs-sm); }
 
@@ -1193,7 +1177,7 @@
   .au-step .open { margin-top: 8px; display: inline-flex; align-items: center; gap: 2px; font-size: var(--fs-xs); font-weight: 650; color: var(--indigo); }
   .au-step .open .ic { width: 13px; height: 13px; transition: transform var(--t) var(--ease); }
   button.au-step { cursor: pointer; border-radius: 14px; }
-  button.au-step:hover .au-tile { transform: translateY(-2px); border-color: var(--periwinkle); box-shadow: 0 14px 26px -16px rgba(59, 67, 150, .8); }
+  button.au-step:hover .au-tile { transform: translateY(-2px); border-color: var(--periwinkle); box-shadow: 0 10px 20px -14px rgba(30, 31, 92, .35); }
   button.au-step:hover .open .ic { transform: translateX(2px); }
   button.au-step:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
   @media (max-width: 640px) {
@@ -1246,6 +1230,9 @@
     --ink: #eceefb; --muted: #a9afd6; --faint: #7a80ad; --link: #b9c0e8;
     --accent-ink: #c4caf0; --peri-pale: #2b2e63; --peri-soft: #5560a6; --sk-hi: #2e3160;
     --ring-ink: #c4caf0;
+    /* Navy on navy disappears; dark mode runs the same five stops a step lighter. */
+    --cta-grad: linear-gradient(135deg, var(--indigo) 0%, #4a539a 28%, #6b76c0 50%, #4a539a 72%, var(--indigo) 100%);
+    --cta-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 12px -6px rgba(0, 0, 0, .45);
     --glass: rgba(27, 28, 63, .78); --glass-card: rgba(27, 28, 63, .9); --glass-edge: rgba(85, 96, 166, .3);
     --shadow: 0 12px 32px rgba(0, 0, 0, .45);
   }
@@ -3273,12 +3260,24 @@ function fitSettings() {
 }
 if (window.ResizeObserver) new ResizeObserver(fitSettings).observe(document.querySelector('.grn'));
 
+// Measured on the next frame, after go() has set aria-current and the page
+// has laid out, as RocketOS measures its button refs in requestAnimationFrame.
+// Calls in the same frame collapse into one; an instant one stays instant.
+let ringFrame = 0;
+let ringInstant = false;
 function moveRing(instant = false) {
+  ringInstant = ringInstant || instant;
+  cancelAnimationFrame(ringFrame);
+  ringFrame = requestAnimationFrame(() => { const i = ringInstant; ringInstant = false; placeRing(i); });
+}
+function placeRing(instant) {
   const ring = $('grnRing');
   const item = $('grnPill').querySelector('.grn-item[aria-current="page"]');
   ringAnim?.stop(); ringAnim = null;
   if (!item || !item.offsetWidth) { ring.classList.remove('on'); ringPlaced = false; return; }
-  const left = `${item.offsetLeft}px`, width = `${item.offsetWidth}px`;
+  // 2px out on each side, as it is above and below: the glass inset then
+  // lines up with the item and only the thin gradient edge shows.
+  const left = `${item.offsetLeft - 2}px`, width = `${item.offsetWidth + 4}px`;
   // The first placement lands in position rather than flying in from the edge.
   if (instant || !ringPlaced || !motionAnimate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
     ring.style.left = left; ring.style.width = width;

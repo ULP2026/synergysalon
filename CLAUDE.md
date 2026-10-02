@@ -188,6 +188,13 @@ made that way are real: name them ZZ and remove them.
   team, each card opening the same modal, then an "Add a team member" row.
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
+- Nav and buttons follow RocketOS's restraint on Synergy colours. The ring
+  under the current page is a still gradient edge (`--ring-grad`) around a
+  2px glass inset, sprung by motion's `animate()` at stiffness 300, damping
+  20, mass 0.8, measured in `requestAnimationFrame` (`moveRing()`); no glow,
+  no spin. Primary buttons use `--cta-grad` and `--cta-shadow`, hover is
+  opacity .9, and only the page's one primary carries `--cta-glow` (capped at
+  RocketOS's gold-glow strength). Ambient page light stays at about 5%.
 
 ## Gotchas worth knowing before you hit them
 
