@@ -1607,7 +1607,9 @@
 
     <!-- Appointments -->
     <section class="view hidden" id="view-appointments">
-      <div class="card fill">
+      <!-- Shown while the shop has no calendars at all. -->
+      <div id="needCal" class="hidden"></div>
+      <div class="card fill" id="diaryCard">
         <div class="toolbar">
           <button class="iconbtn lg" id="prevDay" aria-label="Previous"><svg class="ic"><use href="#i-left"/></svg></button>
           <input type="date" id="dayPicker" aria-label="Day">
@@ -2218,6 +2220,47 @@ async function signOutNow() {
 
 // ─────────────────────────── routing ───────────────────────────
 
+// ── appointments waits for a calendar ───────────────────────────────────
+//
+// A diary with no calendars is a diary nobody can be booked into. Showing an
+// empty week in that state reads as "quiet day" rather than "not set up yet",
+// and the difference matters when somebody is wondering why no bookings are
+// arriving.
+
+async function loadAppointments() {
+  // Cheap, and the answer changes the whole page, so it is asked first rather
+  // than painting a calendar that may have to be replaced.
+  if (!calData) {
+    try { calData = await api('/api/staff/booking-calendars'); } catch { calData = null; }
+  }
+  const none = calData && !calData.calendars.length;
+
+  // The whole card, not its pieces: hiding the toolbar and the grid separately
+  // leaves an empty white box sitting above the message.
+  $('diaryCard')?.classList.toggle('hidden', Boolean(none));
+  $('calBar')?.classList.toggle('hidden', Boolean(none));
+  $('needCal').classList.toggle('hidden', !none);
+  // "New appointment" would book into a calendar that does not exist.
+  $('primaryBtn')?.classList.toggle('hidden', Boolean(none));
+
+  if (none) {
+    $('needCal').innerHTML = emptyState({
+      icon: 'calendar-plus',
+      title: 'Create a calendar first',
+      text: 'Appointments live in a calendar — one stylist, any stylist, a class '
+          + 'or a service. Make the first one and the diary opens up here.',
+      action: calData.canManage ? 'calendars' : null,
+      actionLabel: 'Create a calendar',
+    });
+    return null;
+  }
+
+  renderCalBar();
+  return calView === 'month'
+    ? loadMonth(calMonth || monthOf(day || salonToday()))
+    : loadDay(day || salonToday());
+}
+
 // ───────────────────────── calendars ─────────────────────────
 //
 // The ways a shop can be booked. A calendar is not a second diary: every
@@ -2329,6 +2372,7 @@ async function deleteCalendar(c) {
   try {
     await api('/api/staff/booking-calendars', { method: 'DELETE', body: JSON.stringify({ id: c.id }) });
     toast(`“${c.name}” deleted.`);
+    calData = null;
     await loadCalendars();
   } catch (err) { fail(err); }
 }
@@ -2448,6 +2492,7 @@ async function submitCalNew() {
     });
     $('cnewDlg').close();
     toast(`“${d.calendar.name}” created.`);
+    calData = null;   // the gate on Appointments asks again
     await loadCalendars();
     return d.calendar;
   } catch (err) { fail(err); return null; } finally { btn.disabled = false; }
@@ -2525,7 +2570,7 @@ function renderCalendarSettings(c) {
 
     <div class="row" style="margin-top:18px;display:flex;gap:10px">
       <button class="btn" id="setSave">Save changes</button>
-      <button class="btn quiet" id="setDelete" style="margin-left:auto">Delete calendar</button>
+      <button class="btn danger" id="setDelete" style="margin-left:auto">Delete this calendar</button>
     </div>`;
 
   $('setTeam').innerHTML = (calData?.team || []).map((t) => `
@@ -2609,12 +2654,7 @@ const PAGES = {
     path: '/staff/appointments', title: 'Appointments', action: 'New appointment',
     sub: 'Check people in and keep the day on track.',
     run: () => openBooking(null),
-    load: () => {
-      renderCalBar();
-      return calView === 'month'
-        ? loadMonth(calMonth || monthOf(day || salonToday()))
-        : loadDay(day || salonToday());
-    },
+    load: () => loadAppointments(),
   },
   clients: {
     path: '/staff/clients', title: 'Clients', action: 'Add client',
