@@ -4532,7 +4532,9 @@ async function openMember(who) {
   $('memberPicPick').classList.toggle('hidden', Boolean(lockedOwner));
 
   $('memberCreate').classList.toggle('hidden', Boolean(m));
-  f.elements.password.required = !m;
+  // No password field to require any more: a new member chooses their own
+  // from the invite link. The field was taken out and this line was left
+  // behind, which threw before the dialog ever opened.
   $('memberPw').classList.toggle('hidden', !self);
   $('memberPw').open = false;
   $('memberSave').textContent = m ? 'Save' : 'Add';
@@ -4637,21 +4639,26 @@ $('inviteDone').onclick = () => closeDialog($('inviteDlg'));
 $('memberForm').onsubmit = async (e) => {
   if (e.submitter?.value !== 'save') return;
   e.preventDefault();
-  const f = new FormData(e.target);
-  const el = e.target.elements;
-  const fields = { name: f.get('name'), email: f.get('email') };
-  const username = String(f.get('username') || '').trim().replace(/^@/, '');
-  if (username !== memberOrig.username) fields.username = username || null;
-  const services = readServices();
-  for (const [key, label] of SERVICE_KINDS) {
-    const v = services[key];
-    if (v.on && v.price != null && !(v.price >= 0)) { note($('memberNote'), `The ${label} price needs to be a number.`); return; }
-  }
-  // Sent only when it changed, so saving a name works before migration 012.
-  if (JSON.stringify(services) !== memberOrig.services) fields.services = services;
-  if (memberPic !== undefined) fields.avatar = memberPic;
+  // Reading the form happens inside the try as well. A throw out here escaped
+  // the handler completely: the dialog closed, nothing was sent, and nothing
+  // was said. From the outside that is indistinguishable from a dead button.
   $('memberSave').disabled = true;
   try {
+    const f = new FormData(e.target);
+    const el = e.target.elements;
+    const fields = { name: f.get('name'), email: f.get('email') };
+    const username = String(f.get('username') || '').trim().replace(/^@/, '');
+    if (username !== memberOrig.username) fields.username = username || null;
+    const services = readServices();
+    for (const [key, label] of SERVICE_KINDS) {
+      // Guarded the way paintServices and svcSummary already guard it. This
+      // was the one place that assumed every row had been painted.
+      const v = services[key] || {};
+      if (v.on && v.price != null && !(v.price >= 0)) { note($('memberNote'), `The ${label} price needs to be a number.`); return; }
+    }
+    // Sent only when it changed, so saving a name works before migration 012.
+    if (JSON.stringify(services) !== memberOrig.services) fields.services = services;
+    if (memberPic !== undefined) fields.avatar = memberPic;
     if (!memberEdit) {
       const made = await api('/api/staff/team', {
         method: 'POST',
@@ -4679,7 +4686,10 @@ $('memberForm').onsubmit = async (e) => {
     paintMe();
     if (page === 'account') await loadTeam();
   } catch (err) {
-    note($('memberNote'), err.message);
+    // Logged as well as shown: a TypeError reads badly in a dialog, but it is
+    // the thing worth having when somebody reports that nothing happened.
+    console.error('Saving a team member failed:', err);
+    note($('memberNote'), err.message || 'That did not save. Please try again.');
   } finally { $('memberSave').disabled = false; }
 };
 
