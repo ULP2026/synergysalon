@@ -259,11 +259,9 @@
      white glass). */
   :root {
     --ring-ink:  var(--indigo);
-    /* Lavender for the nav's hover and selected states. The selected item
-       used to sit on near-white glass, which read as a blank button; a
-       lavender wash with a soft top highlight reads as pressed in. */
-    --lav-hover: rgba(205, 196, 246, .38);
-    --lav-press: rgba(205, 196, 246, .62);
+      /* Lavender for the nav's selected item. It used to sit on near-white
+       glass, which read as a blank button; a lavender wash with a soft top
+       highlight reads as pressed in. */
     --lav-fill:  linear-gradient(180deg, #f3f0fe 0%, #e7e1fb 100%);
     --lav-shine: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -6px 12px -8px rgba(110, 96, 196, .28);
     /* The ring is a still, thin gradient edge: navy, periwinkle, soft lilac
@@ -299,12 +297,12 @@
     position: relative; z-index: 10; display: flex; align-items: center; gap: 8px;
     padding: 10px 20px; border-radius: 16px; font-size: .9rem; line-height: 1.25rem; font-weight: 500;
     color: var(--muted); text-decoration: none; white-space: nowrap;
-    transition: color .2s ease, background-color .2s ease;
+    transition: color .2s ease;
   }
-  /* Hover washes lavender. The selected item gets its colour from the ring
-     underneath instead, so it is left transparent here. */
-  .grn-item:not([aria-current="page"]):hover { color: var(--indigo-deep); background: var(--lav-hover); }
-  .grn-item:not([aria-current="page"]):active { background: var(--lav-press); }
+  /* No hover state, on request: only the selected item is marked. The
+     site-wide a:hover would otherwise darken the label, so it is held. */
+  .grn-item:not([aria-current="page"]):hover { color: var(--muted); }
+  .grn-me:hover { color: var(--ink); }
   .grn-item[aria-current="page"] { color: var(--ring-ink); font-weight: 600; }
   .grn-item.icon-only { padding: 10px 14px; }
   .grn-ic { width: 19px; height: 19px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.9;
@@ -333,9 +331,7 @@
   .grn-me {
     display: flex; align-items: center; padding: 0 16px; border-radius: 16px;
     font: inherit; font-size: .875rem; font-weight: 500; color: var(--ink); cursor: pointer;
-    transition: color .2s ease, background-color .2s ease;
   }
-  .grn-me:hover { color: var(--ring-ink); background: rgba(243, 240, 254, .92); }
   .grn-me .me-name { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .grn a:focus-visible, .grn button:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; border-radius: 16px; }
 
@@ -1249,10 +1245,8 @@
   :root[data-theme="dark"] body { background: radial-gradient(900px 520px at 88% -10%, rgba(85, 96, 166, .22), transparent 62%),
                                   linear-gradient(180deg, #14152f 0%, #0f1027 100%); }
   :root[data-theme="dark"] .glass-strong { background: rgba(27, 28, 63, .82); border-color: rgba(85, 96, 166, .35); }
-  :root[data-theme="dark"] { --lav-hover: rgba(160, 148, 236, .16); --lav-press: rgba(160, 148, 236, .26);
-                             --lav-fill: linear-gradient(180deg, #34316e 0%, #2b2960 100%);
+  :root[data-theme="dark"] { --lav-fill: linear-gradient(180deg, #34316e 0%, #2b2960 100%);
                              --lav-shine: inset 0 1px 0 rgba(255, 255, 255, .10), inset 0 -6px 12px -8px rgba(0, 0, 0, .35); }
-  :root[data-theme="dark"] .grn-me:hover { background: rgba(52, 49, 110, .92); }
   :root[data-theme="dark"] .grn-me .me-pic { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px rgba(160, 148, 236, .5); }
   :root[data-theme="dark"] .grn-item .count { box-shadow: 0 0 0 2px var(--card); }
   :root[data-theme="dark"] .card, :root[data-theme="dark"] .tile { box-shadow: var(--e1), inset 0 1px 0 rgba(255, 255, 255, .04); }
@@ -1270,7 +1264,7 @@
   :root[data-theme="dark"] .tag { background: #2b2e63; color: #d4cdfa; }
   :root[data-theme="dark"] .note:not(.bad):not(.good) { color: var(--ink); }
   :root[data-theme="dark"] h1, :root[data-theme="dark"] dialog h2, :root[data-theme="dark"] .au-flow h3,
-  :root[data-theme="dark"] .md-sec, :root[data-theme="dark"] .grn-item:hover { color: var(--ink); }
+  :root[data-theme="dark"] .md-sec { color: var(--ink); }
 
   /* ── the person chip: picture and first name ────────────────────────── */
   .grn-me { gap: 8px; padding: 0 14px 0 6px; position: relative; text-decoration: none; }
@@ -2362,21 +2356,21 @@ $('requestForm').onsubmit = async (e) => {
 let meSubtitle = '';
 
 /** The chip in the corner, painted from whatever `me` currently holds. */
-const SAMMY_AVATAR = '/assets/sammy-ai-support.png';
+const ZIGGY_AVATAR = '/assets/ziggy-ai-support.png';
 
 function paintMe() {
   // RocketOS's chip carries the first name only.
   $('meName').textContent = me.user.name.trim().split(/\s+/)[0] || me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
   $('meBtn').title = `Team · ${meSubtitle}`;
-  // The chip shows Sammy, the AI support assistant, for everyone, as asked;
-  // a person's own picture lives in their profile. Until the Sammy image is
-  // published at SAMMY_AVATAR the chip falls back to the person's picture
+  // The chip shows Ziggy, the AI support assistant, for everyone, as asked;
+  // a person's own picture lives in their profile. Until the Ziggy image is
+  // published at ZIGGY_AVATAR the chip falls back to the person's picture
   // rather than showing a broken image.
   const pic = new Image();
   pic.alt = '';
   pic.onerror = () => { pic.onerror = null; pic.src = personPhoto(me.user); };
-  pic.src = SAMMY_AVATAR;
+  pic.src = ZIGGY_AVATAR;
   $('mePic').replaceChildren(pic);
   paintLogo();
 }
