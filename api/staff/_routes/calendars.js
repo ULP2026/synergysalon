@@ -23,10 +23,10 @@ function hostOf(req) {
 }
 
 /**
- * The three links a Connect button needs.
+ * The links a Connect button needs.
  *
- * Each provider has its own way of being handed a subscription URL, and all
- * three are better than telling somebody to find "add calendar from URL" in a
+ * Each provider has its own way of being handed a subscription URL, and each
+ * is better than telling somebody to find "add calendar from URL" in a
  * settings menu they have never opened. webcal:// is what makes Apple
  * subscribe rather than download a one-off copy that never updates again.
  */
@@ -39,7 +39,6 @@ function connectLinks(req, token) {
     url,
     webcal,
     google: `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`,
-    outlook: 'https://outlook.live.com/calendar/0/addfromweb?url=' + encodeURIComponent(url),
     apple: webcal,
   };
 }
@@ -50,12 +49,13 @@ function connectLinks(req, token) {
  * Deliberately a guess rather than a fact. Google identifies itself clearly,
  * Apple's devices less so, and anything unrecognised is reported as
  * "a calendar app" instead of being forced into one of three boxes.
+ * Outlook has no row of its own any more (removed on request), so a fetch
+ * from it lights "Other calendar apps", which is how it would be added now.
  */
 function providerFrom(agent) {
   const a = String(agent || '');
   if (/Google/i.test(a)) return 'google';
   if (/CalendarAgent|Mac OS X|iOS|iPhone|iPad|dataaccessd/i.test(a)) return 'apple';
-  if (/Outlook|Microsoft|Office/i.test(a)) return 'outlook';
   return a ? 'other' : null;
 }
 
