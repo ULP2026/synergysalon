@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
 
-import { icsBusyBetween, parseIcsLink } from '../api/_lib/google-ics.js';
+import { icsBusyBetween, parseIcsLink, readIcsLink } from '../api/_lib/google-ics.js';
 
 const ZONE = 'America/New_York';
 const NY = `BEGIN:VTIMEZONE
@@ -68,7 +68,19 @@ test('a day of a Google Calendar, as busy times only', async () => {
 
 test('only Google Calendar iCal addresses are accepted', () => {
   assert.deepEqual(parseIcsLink(LINK), { url: LINK, account: 'zz.stylist@gmail.com', isPrivate: true });
-  assert.equal(parseIcsLink('zz.stylist@gmail.com'), null);
-  assert.equal(parseIcsLink('http://calendar.google.com/calendar/ical/a/private-b/basic.ics'), null);
   assert.equal(parseIcsLink('https://evil.example/calendar/ical/a/private-b/basic.ics'), null);
+});
+
+test('what people actually paste is fixed or answered', () => {
+  // Forgivable: quotes, spaces, webcal://, http://, no scheme, text around it.
+  for (const pasted of [` "${LINK}" `, LINK.replace('https://', 'webcal://'), LINK.replace('https://', 'http://'),
+    LINK.replace('https://', ''), `My calendar: ${LINK} thanks`]) {
+    assert.equal(readIcsLink(pasted).url, LINK, pasted);
+  }
+  // Mistakes, each with its own answer.
+  assert.match(readIcsLink('zz.stylist@gmail.com').reason, /calendar ID/);
+  assert.match(readIcsLink('https://calendar.google.com/calendar/embed?src=zz.stylist%40gmail.com').reason, /viewing the calendar/);
+  assert.match(readIcsLink('https://calendar.google.com/calendar/ical/zz.stylist%40gmail.com/private-abc').reason, /cut short/);
+  assert.match(readIcsLink('https://outlook.office365.com/owa/calendar/x/reachcalendar.ics').reason, /not a Google Calendar/);
+  assert.match(readIcsLink('').reason, /Paste/);
 });

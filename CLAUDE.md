@@ -132,7 +132,8 @@ made that way are real: name them ZZ and remove them.
 
 - Home (`/staff`) greets nobody and has no primary button: its subtitle is
   the date. Two tiles from `GET /api/staff/home` (`_routes/home.js`, counted
-  in SQL), each as wide as its text: "N Appointments Today" with their value
+  in SQL), two equal columns as wide as Coming up, each a figure on the left
+  and a periwinkle icon on the right: "N Appt. Today" with their value
   (appointment price, else the service's list price; unpriced ones are
   counted and said, never guessed), then "N Clients" over "Last 30 Days"
   (contacts, the same table as the Clients list, added or with a kept
@@ -176,8 +177,15 @@ made that way are real: name them ZZ and remove them.
 - **Connect your tools** is in the team member window, right under Username
   (yours, or anyone's for owners and managers). Google Calendar only, for now,
   two ways in. Pasting the calendar's "Secret address in iCal format" works
-  with no Google setup (`google-ics.js`: calendar.google.com only, checked
-  against Google before it is kept, `staff_users.google_ics` (018),
+  with no Google setup (`google-ics.js`: `readIcsLink` fixes quotes, spaces,
+  webcal:// and a missing https://, and names each common wrong paste
+  (calendar ID, the browser link, a cut-short address); `checkIcsLink`
+  fetches it and reads today before it is kept, and says what Google
+  answered (404 private: reset; 404 public: calendar not public; 403: a
+  Workspace admin turned secret addresses off). The reason shows under the
+  field and is logged as `google-link refused`, never with the address.
+  calendar.google.com only, verified against live Google from a Vercel
+  sandbox, `staff_users.google_ics` (018),
   encrypted when `TOKEN_KEY` is set, plain until then; parsed with ical.js,
   repeats and moved occurrences included, times only). Signing in with
   Google needs the OAuth client below and is offered as a second link once

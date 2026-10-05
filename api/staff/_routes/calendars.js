@@ -16,7 +16,9 @@ import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
 import { disconnectGoogle, googleConfigured } from '../../_lib/google.js';
-import { openLink, parseIcsLink, sealLink } from '../../_lib/google-ics.js';
+import {
+  checkIcsLink, openLink, parseIcsLink, readIcsLink, sealLink,
+} from '../../_lib/google-ics.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
 function hostOf(req) {
@@ -186,15 +188,18 @@ export default handler({
     // must answer it, so a typo is said now rather than as an empty column.
     if (action === 'google-link') {
       const target = await targetOf(user, body.member);
-      const link = parseIcsLink(body.link);
-      if (!link) {
-        throw new HttpError(400, 'Paste the “Secret address in iCal format” from Google Calendar. It starts with https://calendar.google.com/calendar/ical/');
+      const link = readIcsLink(body.link);
+      // Why a connect failed goes to the log (never the address itself: it
+      // is a credential), so "it won't connect" can be answered from Vercel.
+      if (!link.ok) {
+        console.warn('google-link refused before fetching:', link.reason.slice(0, 60));
+        throw new HttpError(400, link.reason);
       }
-      try {
-        const res2 = await fetch(link.url, { signal: AbortSignal.timeout(15_000), redirect: 'error' });
-        if (!res2.ok) throw new Error(String(res2.status));
-      } catch {
-        throw new HttpError(400, 'Google did not answer that address. Copy it again from Google Calendar and paste the whole thing.');
+      const tenant = await tenantForUser(user);
+      const check = await checkIcsLink(link, tenant.timezone);
+      if (!check.ok) {
+        console.warn('google-link refused by check:', check.why);
+        throw new HttpError(400, check.reason);
       }
       await query('UPDATE staff_users SET google_ics = $2 WHERE id = $1', [target, sealLink(link.url)]);
       return json(res, 200, { google: { connected: true, via: 'link', account: link.account } });

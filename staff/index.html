@@ -388,8 +388,15 @@
   /* Each card as wide as what it says (with a floor so the two match in
      height and rhythm), rather than half the page with the number lost at
      one end of it. */
-  .tiles { display: flex; flex-wrap: wrap; gap: 14px; }
-  .tiles .tile { flex: 0 1 auto; min-width: 220px; padding-right: 26px; }
+  /* Two equal columns spanning the same width as Coming up below. Each card
+     is a row: the figure on the left, a matching icon on the right, so the
+     right side is part of the card rather than empty space, and the padding
+     is the same on all four sides. */
+  .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .tiles .tile { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; }
+  .tile .t-ic { width: 44px; height: 44px; flex: none; border-radius: 12px; display: grid; place-items: center;
+                background: var(--peri-pale); color: var(--indigo); }
+  .tile .t-ic .ic { width: 22px; height: 22px; }
   .tile { background: var(--card); border: 1px solid var(--hair); border-radius: 14px; padding: 16px 18px; box-shadow: var(--e1);
           transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease), border-color var(--t) var(--ease); }
   .tile .num { color: var(--indigo); font-size: 1.7rem; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -493,8 +500,7 @@
     .toolbar .summary { margin-left: 0; width: 100%; }
     .upcoming button { grid-template-columns: 84px 1fr; }
     .upcoming .go { display: none; }
-    .tiles { gap: 10px; }
-    .tiles .tile { flex: 1 1 100%; min-width: 0; }
+    .tiles { grid-template-columns: minmax(0, 1fr); gap: 10px; }
     .tile { padding: 14px; }
     .tile .num { font-size: 1.6rem; }
     .toolbar input[type=date] { flex: 1; min-width: 150px; }
@@ -1533,6 +1539,10 @@
                color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tool-acct.none { color: var(--faint); }
   .tool-row .btn { height: 40px; flex: none; }
+  .tool-err { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; font-size: .8rem; line-height: 1.45;
+              color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--card));
+              border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); }
+  input.tool-acct[aria-invalid="true"] { border-color: color-mix(in srgb, var(--warn) 60%, transparent); }
   .tool-how { margin-top: 10px; font-size: .8rem; color: var(--muted); }
   .tool-how summary { cursor: pointer; color: var(--link); font-weight: 600; width: max-content; }
   .tool-how ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
@@ -3499,8 +3509,9 @@ function greeting() {
     { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', ...(tz ? { timeZone: tz } : {}) });
 }
 
-function tile(num, label, href) {
-  const inner = `<div class="num">${num}</div><div class="lbl">${esc(label)}</div>`;
+function tile(num, label, href, icon) {
+  const inner = `<div><div class="num">${num}</div><div class="lbl">${esc(label)}</div></div>`
+    + (icon ? `<span class="t-ic" aria-hidden="true">${ic(icon)}</span>` : '');
   return href
     ? `<a class="tile" href="${PAGES[href].path}" data-page="${href}">${inner}</a>`
     : `<div class="tile">${inner}</div>`;
@@ -3536,9 +3547,9 @@ async function loadHome() {
     const pending = me.user.canAdmin ? (me.pendingApprovals || 0) : 0;
     const c = h.clients30;
     $('tiles').innerHTML = [
-      tile(`${n} <span class="unit">${n === 1 ? 'Appointment' : 'Appointments'} Today</span>`, value, 'appointments'),
-      tile(`${c} <span class="unit">${c === 1 ? 'Client' : 'Clients'}</span>`, 'Last 30 Days', 'clients'),
-      pending ? tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'account') : '',
+      tile(`${n} <span class="unit">Appt. Today</span>`, value, 'appointments', 'calendar'),
+      tile(`${c} <span class="unit">${c === 1 ? 'Client' : 'Clients'}</span>`, 'Last 30 Days', 'clients', 'contacts'),
+      pending ? tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'account', 'users-plus') : '',
     ].join('');
 
     const live = (first?.appointments || []).filter((a) => a.status !== 'cancelled');
@@ -5702,6 +5713,7 @@ function paintTools() {
       <div style="min-width:0">
         <b>Google Calendar</b><span class="d">${esc(desc)}</span>
         <div class="tool-row">${row}</div>
+        <p class="tool-err hidden" id="toolErr" role="alert"></p>
         ${extra}
         <span class="why">${esc(why)}</span>
       </div>
@@ -5730,7 +5742,13 @@ async function refreshTools() {
 async function saveToolLink(b) {
   const input = $('toolLink');
   const link = input.value.trim();
-  if (!link) { input.focus(); toast('Paste the secret address from Google Calendar first.', 'bad'); return; }
+  if (!link) {
+    $('toolErr').textContent = 'Paste the Secret address in iCal format from Google Calendar first.';
+    $('toolErr').classList.remove('hidden');
+    input.focus();
+    return;
+  }
+  $('toolErr').classList.add('hidden');
   const forId = memberEdit === 'me' ? null : toolsFor.id;
   b.disabled = true;
   b.textContent = 'Checking…';
@@ -5744,11 +5762,24 @@ async function saveToolLink(b) {
     if (page === 'settings' && setTab === 'team') loadTeam();
     if (page === 'appointments' && calView === 'day') loadDay(day);
   } catch (err) {
-    fail(err);
+    // Said where they are looking, under the field, and kept there until
+    // they change the address: a toast was gone before it was read.
+    if (err.message !== 'signed out') {
+      $('toolErr').textContent = err.message;
+      $('toolErr').classList.remove('hidden');
+      input.setAttribute('aria-invalid', 'true');
+      input.focus();
+    }
     b.disabled = false;
     b.textContent = 'Connect';
   }
 }
+
+$('memberToolsList').addEventListener('input', (e) => {
+  if (e.target.id !== 'toolLink') return;
+  $('toolErr')?.classList.add('hidden');
+  e.target.removeAttribute('aria-invalid');
+});
 
 // Enter in the address field connects, rather than submitting the whole
 // member form behind it.
