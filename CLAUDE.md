@@ -87,9 +87,9 @@ half-typed address is not a worse email, it is not an email yet.
 **Every push to CENTRO sends the appointment as it stands now**, not the event
 the job describes: jobs run late and out of order after a failure, and an old
 "booked" must not undo a newer "cancelled". Check-in, done and no-show are
-mirrored as CENTRO's showed/noshow. Team Settings, Integrations shows only
-whether the CRM is connected; the refused list and its retry button were taken
-out of the UI on request. The cron still re-queues refused jobs from the last
+mirrored as CENTRO's showed/noshow. Settings has no Integrations card any
+more (removed on request): nothing in the console shows the CRM link, and the
+refused list and its retry button were taken out before that. The cron still re-queues refused jobs from the last
 30 days whenever the link checks out, and logs why each failed, and
 `POST /api/staff/centro {action:"retry"}` still exists.
 
@@ -130,28 +130,44 @@ made that way are real: name them ZZ and remove them.
 
 ## Staff console
 
-- Nav: Home (`/staff`), Appointments, Clients (`/staff/clients`), Marketing,
-  Settings. Clients filters by lead stage (New, Contacted, Booked, Client,
-  Lost, each with a count, applied in the browser), by source tag, and by
-  stylist from a dropdown shown only while somebody is bookable. A Leads page
+- Nav: Home (`/staff`), Appt. Book (`/staff/appointments`), Clients
+  (`/staff/clients`), Marketing, Settings. Clients filters by stylist (All,
+  then a button per team member with the Stylist role, matched through the
+  stylist row linked to their login, `?member=`), by lead stage (New,
+  Contacted, Booked, Client, Lost, each with a count, applied in the browser)
+  and by source tag. While nobody has the Stylist role the whole team stands
+  in as placeholder filters, with a hint saying so. Stylist is a role (016,
+  also in ensure-schema) with front desk's access. A Leads page
   held the stages for a while; `/staff/leads` now lands on Clients. Settings is as
   wide as the nav cluster (`--nav-w`, measured by `fitSettings()`), so its
   edges line up with the menu. There is no Calendars item: the shop's calendars are listed above
-  the diary on Appointments, and `/staff/calendars` still works. Settings is
-  for everyone: Salon Profile, Team (Appearance, Integrations, Team
-  Members), and Billing for owners and managers. It has no Calendars tab:
-  calendars are made from Appointments, without choosing members for now
+  the diary on Appt. Book, and `/staff/calendars` still works. Settings is
+  for everyone: Salon Profile, Team (Appearance, Team Members), and Billing for owners and managers. It has no Calendars tab:
+  calendars are made from Appt. Book's "Create a calendar" note (shown only
+  while there are none) or `/staff/calendars`, without choosing members for now
   (stylists are not on the app yet; calendar settings saves members back
   unchanged and no longer shows a picker), and the New calendar form offers the
   calendar apps (Google by sign-in, and any other app by subscribing
-  to the person's private feed, links from `GET /api/staff/calendars`), Outlook is left out of the form on request but
-  still listed, with the rest, in Settings, Team, Integrations (`calAppRows()`). The person chip
-  and `/staff/account` open Settings on Team. The calendar settings page has a Back button to Appointments, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
+  to the person's private feed, links from `GET /api/staff/calendars`), Outlook is left out of the form on request (`calAppRows()`). The person chip
+  and `/staff/account` open Settings on Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
-  Clients. The UI says "CRM" and "Integrations"; the API keeps its `centro`
+  Clients. The UI says "CRM"; the API keeps its `centro`
   names, which nobody sees.
-- Appointments opens on the day as at least four blank-headed columns, the
-  clock down the side. Nobody is assigned to a column yet: an appointment takes
+- **Connect your tools** is in the team member window (yours, or anyone's for
+  owners and managers). Google Calendar only, for now. Connecting for somebody
+  else (`/api/oauth/google?start=1&for=<id>`) is for an owner adding a
+  stylist who signs in to their own Google beside them. Each connected
+  person is a column on Appt. Book's day view, right of the salon's lanes:
+  their Google busy times read live by `busyBetween` in `google.js` (times
+  only, the fields mask never asks Google for titles) plus their own salon
+  bookings. Those columns do not book on click. Google busy time does not
+  yet block online availability. Needs `GOOGLE_CLIENT_ID`,
+  `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY` in Vercel; without them the Connect
+  button is disabled with a note. `pushEvent` (writing into Google) exists
+  but nothing calls it.
+- Appt. Book opens on the day as at least four lanes under one "<salon>
+  Calendar" heading, the clock down the side. It has no "+ New calendar"
+  chip (removed on request). Nobody is assigned to a column yet: an appointment takes
   the first column free at its time, and cards do not name a stylist. Stylist
   columns (`dayColumns()`) come back once stylists are on the team. While the
   shop has no booking calendar the day and month are drawn empty (the diary is

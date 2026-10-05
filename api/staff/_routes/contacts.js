@@ -1,7 +1,7 @@
 /**
  * /api/staff/contacts: everyone the salon knows.
  *
- *   GET     ?q=&status=&stylist=&limit=   search and list
+ *   GET     ?q=&status=&stylist=&member=&limit=   search and list
  *   GET     ?id=                 one person, their appointments and activity
  *   POST                         add somebody
  *   PATCH                        edit somebody
@@ -211,6 +211,13 @@ export default handler({
     // A stylist's clients: anyone with an appointment in their chair that was
     // not cancelled. Booked-and-cancelled is not a relationship.
     const stylist = (url.searchParams.get('stylist') || '').trim().slice(0, 60) || null;
+    // The same, named by team member rather than by diary slug: the Clients
+    // filters are the team, and a member's chair is whichever stylist row is
+    // linked to their login. Somebody with no chair has no clients yet, which
+    // is the honest answer for a placeholder filter.
+    const memberParam = (url.searchParams.get('member') || '').trim();
+    const member = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(memberParam)
+      ? memberParam : null;
 
     const { rows } = await query(
       `SELECT c.id, c.name, c.email, c.phone, c.source, c.status, c.notes,
@@ -230,10 +237,15 @@ export default handler({
                   JOIN stylists ss ON ss.id = sa.stylist_id
                  WHERE sa.contact_id = c.id AND sa.status <> 'cancelled'
                    AND ss.slug = $5::text))
+          AND ($6::uuid IS NULL OR EXISTS (
+                SELECT 1 FROM appointments ma
+                  JOIN stylists ms ON ms.id = ma.stylist_id
+                 WHERE ma.contact_id = c.id AND ma.status <> 'cancelled'
+                   AND ms.staff_user_id = $6::uuid))
         GROUP BY c.id
         ORDER BY (c.status = 'new') DESC, c.created_at DESC
         LIMIT $4`,
-      [tenant.id, STATUSES.includes(status) ? status : null, q, limit, stylist],
+      [tenant.id, STATUSES.includes(status) ? status : null, q, limit, stylist, member],
     );
 
     return json(res, 200, {

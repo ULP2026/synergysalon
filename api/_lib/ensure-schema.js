@@ -2,7 +2,7 @@
  * The columns the staff console's profile features write to, added if they
  * are missing.
  *
- * Migrations 011 to 013 were shipped with "run npm run db:migrate" and the
+ * Migrations 010 to 013 and 016 were shipped with "run npm run db:migrate" and the
  * console went live before anyone did, so every save of a username, price
  * or avatar choice failed in production. These are the same statements, all
  * idempotent (IF NOT EXISTS), run once per warm function. db:migrate still
@@ -20,6 +20,16 @@ const STATEMENTS = [
   'ALTER TABLE stylists ADD COLUMN IF NOT EXISTS photo text',
   "ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS services jsonb NOT NULL DEFAULT '{}'::jsonb",
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS avatar_style jsonb',
+  // 010: a person's Google connection. Connect your tools writes these, and
+  // Appt. Book reads them to draw each connected person's column.
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_email text',
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_refresh_token text',
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_access_token text',
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_expires_at timestamptz',
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_calendar_id text',
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_connected_at timestamptz',
+  // 016: Stylist as a role, so Clients can offer a filter per stylist.
+  "ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'stylist'",
 ];
 
 let done = null;

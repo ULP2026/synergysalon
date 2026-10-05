@@ -25,7 +25,7 @@ import {
 } from './profile.js';
 
 const ADMIN = ['owner', 'manager'];
-const ROLES = ['owner', 'manager', 'front_desk'];
+const ROLES = ['owner', 'manager', 'front_desk', 'stylist'];
 
 /** How long an invite is good for. Long enough for a day off, short enough
  * that a forwarded link does not sit live for a month. */
@@ -70,6 +70,9 @@ export default handler({
               to_jsonb(u) -> 'services' AS services,
               to_jsonb(u) -> 'avatar_style' AS avatar_style,
               to_jsonb(s) ->> 'photo' AS photo,
+              -- Through to_jsonb, so the team still lists before migration 010.
+              to_jsonb(u) ->> 'google_email' AS google_email,
+              (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL AS google_connected,
               a.name AS approved_by_name,
               s.name AS stylist_name, s.slug AS stylist_slug, s.title AS stylist_title,
               -- Bookable is not a column anyone sets: it is whether this person
@@ -112,6 +115,9 @@ export default handler({
         photo: r.photo || (r.stylist_slug ? stylistPhoto(tenant.slug, r.stylist_slug) : null),
         stylist: r.stylist_name,
         stylistSlug: r.stylist_slug,
+        // Connect your tools: whether their Google Calendar is linked, and as
+        // whom. Never the tokens.
+        google: { connected: r.google_connected, account: r.google_email || null },
         title: r.stylist_title || '',
         requestedAt: r.requested_at,
         approvedAt: r.approved_at,
