@@ -56,7 +56,8 @@ export default handler({
       // whole team as stand-ins while nobody has the Stylist role. Names and
       // roles only, which everybody on the team already sees on the diary.
       query(
-        `SELECT u.id, u.name, u.role, s.slug AS stylist_slug
+        `SELECT u.id, u.name, u.role, s.slug AS stylist_slug,
+                to_jsonb(u) ->> 'username' AS username
            FROM staff_users u
            LEFT JOIN stylists s ON s.staff_user_id = u.id
           WHERE u.tenant_id = $1 AND u.status = 'active'
@@ -91,6 +92,9 @@ export default handler({
       }),
       team: team.rows.map((t) => ({
         id: t.id, name: t.name, role: t.role, stylistSlug: t.stylist_slug,
+        // The Clients filters print the username when there is one: short,
+        // and what the person chose to be called in the app.
+        username: t.username || '',
       })),
       // What Marketing, Automation shows as on or waiting. Whether email can
       // be sent is a fact about this deployment, not a setting anyone edits.
