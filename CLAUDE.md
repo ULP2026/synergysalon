@@ -132,15 +132,16 @@ made that way are real: name them ZZ and remove them.
 
 - Home (`/staff`) greets nobody and has no primary button: its subtitle is
   the date. Two tiles from `GET /api/staff/home` (`_routes/home.js`, counted
-  in SQL): "Clients in the Last 30 Days" (contacts added, or with a kept
-  appointment that has started, in the last 30 days, each person once) and
-  "N Appointments Today" with their value (appointment price, else the
-  service's list price; unpriced ones are counted and said, never guessed).
+  in SQL), each as wide as its text: "N Appointments Today" with their value
+  (appointment price, else the service's list price; unpriced ones are
+  counted and said, never guessed), then "N Clients" over "Last 30 Days"
+  (contacts, the same table as the Clients list, added or with a kept
+  appointment that has started in the last 30 days, each person once).
   Coming up lists the next six booked appointments in the reference's rows
   (tag, guest, service with stylist, when on the salon's clock, Open), with
-  "Past appointments (n)" underneath. The nav shows no person chip: the app
-  is shared by the salon, and `#meBtn` stays in the page, `hidden`, because
-  paintMe() still writes to it. `.main` starts 116px down (108 and 100 on
+  "Past appointments (n)" underneath. The person chip (avatar and name) is
+  on the right of the nav; it was hidden for a day and brought back on
+  request. `.main` starts 116px down (108 and 100 on
   smaller screens) so titles clear the fixed nav.
 - Nav: Home (`/staff`), Appt. Book (`/staff/appointments`), Clients
   (`/staff/clients`), Marketing, Settings. Clients filters by stylist (All,
