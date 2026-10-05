@@ -29,9 +29,15 @@ ticker (the same three files, copied). Behaviour lives in the page's own
 re-renders, and a setState would redraw the template and drop the
 transforms. The hero sits in a 150vh `.hero-pin`; the panel is sticky and
 scales by `1 - k * p(2 - p)` (k .42 from 1180px, .10 from 768px, off below
-768 and for reduced motion), and `#tour` is pulled up by 50vh on a white
-sheet so it rises over the hero with no gap. Book a Salon Tour lands the
-whole form in view, counting the phone's bottom bar. The GoHighLevel iframe,
+768 and for reduced motion), and `#tour` has no sheet of its own: it is the
+page, pulled up by exactly what the shrunk hero gives back (74k vh), so it
+follows the hero with no band and no overlap. The fold is the main site's
+hero (badge and title centred, chair centred and rising into the title's
+last line, placed by `placeChair` as on the main site; details along the
+foot). Images below the fold open from an inset frame as they scroll in
+(GSAP ScrollTrigger, scrubbed, off for reduced motion). The black footer is
+the only footer; the old gray one was removed on request. Book a Salon Tour
+lands the whole form in view, counting the phone's bottom bar. The GoHighLevel iframe,
 its embed script and the thank-you message listener are untouched.
 
 ## The pages are design-tool exports
