@@ -18,6 +18,22 @@ Hosted on Vercel from one repo, two projects. `vercel.json` does host-based
 redirects; `.vercelignore` must not exist, because it applies to every project
 built from the repo and once emptied the join deployment.
 
+## join.synergysalon.com
+
+`join/index.html` is a bundle like the main pages, served by its own Vercel
+project (root `join/`), so anything it loads must be under `join/assets/`.
+Its header is the main site's (util strip, bar with in-page links, burger and
+drawer, same CSS values), and it runs the main site's Lenis on the GSAP
+ticker (the same three files, copied). Behaviour lives in the page's own
+`text/x-dc` component, `joinMount()`, as plain DOM: the page never
+re-renders, and a setState would redraw the template and drop the
+transforms. The hero sits in a 150vh `.hero-pin`; the panel is sticky and
+scales by `1 - k * p(2 - p)` (k .42 from 1180px, .10 from 768px, off below
+768 and for reduced motion), and `#tour` is pulled up by 50vh on a white
+sheet so it rises over the hero with no gap. Book a Salon Tour lands the
+whole form in view, counting the phone's bottom bar. The GoHighLevel iframe,
+its embed script and the thank-you message listener are untouched.
+
 ## The pages are design-tool exports
 
 `index.html` and the four service pages are single-file bundles from a design
