@@ -37,8 +37,9 @@ last line, placed by `placeChair` as on the main site; details along the
 foot). Images below the fold open from an inset frame as they scroll in
 (GSAP ScrollTrigger, scrubbed, off for reduced motion). From 1180px, with motion allowed, two salon photos per side
 (`.fold-gal`, a sticky layer behind the panel) slide out from behind the card
-as it shrinks, sized to the card's end state; from 1360px one photo sits in
-each gutter beside the tour form (`.tour-side`). The black footer is
+as it shrinks, laid out as the Legacy home page's: two equal portrait cards a
+side, 18px apart, a little lower than the card. The tour section has no side
+photos (removed on request). The black footer is
 the only footer; the old gray one was removed on request. Book a Salon Tour
 lands the whole form in view, counting the phone's bottom bar. The GoHighLevel iframe,
 its embed script and the thank-you message listener are untouched.
