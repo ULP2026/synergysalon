@@ -385,7 +385,11 @@
   .search input { padding-left: 40px; }
 
   /* Home */
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  /* Each card as wide as what it says (with a floor so the two match in
+     height and rhythm), rather than half the page with the number lost at
+     one end of it. */
+  .tiles { display: flex; flex-wrap: wrap; gap: 14px; }
+  .tiles .tile { flex: 0 1 auto; min-width: 220px; padding-right: 26px; }
   .tile { background: var(--card); border: 1px solid var(--hair); border-radius: 14px; padding: 16px 18px; box-shadow: var(--e1);
           transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease), border-color var(--t) var(--ease); }
   .tile .num { color: var(--indigo); font-size: 1.7rem; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -489,7 +493,8 @@
     .toolbar .summary { margin-left: 0; width: 100%; }
     .upcoming button { grid-template-columns: 84px 1fr; }
     .upcoming .go { display: none; }
-    .tiles { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+    .tiles { gap: 10px; }
+    .tiles .tile { flex: 1 1 100%; min-width: 0; }
     .tile { padding: 14px; }
     .tile .num { font-size: 1.6rem; }
     .toolbar input[type=date] { flex: 1; min-width: 150px; }
@@ -1356,7 +1361,6 @@
   .grn-me .me-pic img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
   .grn-me[aria-current="page"] { color: var(--ring-ink); background: var(--lav-fill);
                                  box-shadow: 0 0 0 2px var(--periwinkle), var(--lav-shine), 0 8px 32px rgba(30, 31, 92, .14); }
-  .grn-me[hidden] { display: none !important; }
   .grn-me .count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px;
                    border-radius: 999px; display: grid; place-items: center; font-size: .66rem; font-weight: 650;
                    background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 2px var(--card); }
@@ -1822,11 +1826,9 @@
       <a class="grn-item icon-only" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
         <svg class="grn-ic"><use href="#l-settings"/></svg></a>
     </nav>
-    <!-- The person chip is hidden: the app is shared by everyone in the salon,
-         so the nav does not name one of them. Kept in the page because
-         paintMe() and the approvals badge still write to it; your profile and
-         sign out are in Settings, Team. -->
-    <a class="grn-me glass-strong" hidden id="meBtn" href="/staff/settings" data-page="account" title="Settings">
+    <!-- The person: their picture and first name. It opens Settings on Team
+         Settings, where their profile, the team and sign out live. -->
+    <a class="grn-me glass-strong" id="meBtn" href="/staff/settings" data-page="account" title="Settings">
       <span class="me-pic" id="mePic" aria-hidden="true"></span>
       <span class="me-name" id="meName"></span>
       <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span>
@@ -3532,9 +3534,10 @@ async function loadHome() {
     const value = `${dollars(h.today.value)} total value`
       + (h.today.unpriced ? ` · ${h.today.unpriced} without a price` : '');
     const pending = me.user.canAdmin ? (me.pendingApprovals || 0) : 0;
+    const c = h.clients30;
     $('tiles').innerHTML = [
-      tile(h.clients30, 'Clients in the Last 30 Days', 'clients'),
       tile(`${n} <span class="unit">${n === 1 ? 'Appointment' : 'Appointments'} Today</span>`, value, 'appointments'),
+      tile(`${c} <span class="unit">${c === 1 ? 'Client' : 'Clients'}</span>`, 'Last 30 Days', 'clients'),
       pending ? tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'account') : '',
     ].join('');
 
