@@ -20,6 +20,7 @@ import {
 import { MIN_PASSWORD_LENGTH, hashPassword } from '../../_lib/password.js';
 import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import { googleStatus } from './calendars.js';
 import {
   assertUsernameFree, avatarFrom, avatarStyleFrom, servicesFrom, usernameFrom,
 } from './profile.js';
@@ -73,6 +74,8 @@ export default handler({
               -- Through to_jsonb, so the team still lists before migration 010.
               to_jsonb(u) ->> 'google_email' AS google_email,
               (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL AS google_connected,
+              to_jsonb(u) ->> 'google_connected_at' AS google_connected_at,
+              to_jsonb(u) ->> 'google_ics' AS google_ics,
               a.name AS approved_by_name,
               s.name AS stylist_name, s.slug AS stylist_slug, s.title AS stylist_title,
               -- Bookable is not a column anyone sets: it is whether this person
@@ -117,7 +120,7 @@ export default handler({
         stylistSlug: r.stylist_slug,
         // Connect your tools: whether their Google Calendar is linked, and as
         // whom. Never the tokens.
-        google: { connected: r.google_connected, account: r.google_email || null },
+        google: googleStatus(r),
         title: r.stylist_title || '',
         requestedAt: r.requested_at,
         approvedAt: r.approved_at,

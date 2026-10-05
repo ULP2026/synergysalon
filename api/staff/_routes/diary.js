@@ -28,6 +28,7 @@ import { DateTime } from 'luxon';
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import { busyBetween, googleConfigured } from '../../_lib/google.js';
+import { icsBusyBetween, openLink } from '../../_lib/google-ics.js';
 import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
@@ -143,24 +144,36 @@ export default handler({
     // side. A person whose Google refuses still gets their column, saying so,
     // rather than an empty one that reads as a free day.
     let team = [];
-    if (!month && googleConfigured()) {
+    // Signed in with Google (needs the site's OAuth client), or connected by
+    // the calendar's private iCal address (google-ics.js). Through to_jsonb
+    // so this still runs before migrations 010 and 018.
+    if (!month) {
       const { rows: linked } = await query(
-        `SELECT u.id, u.name, u.role, u.avatar, u.google_email,
+        `SELECT u.id, u.name, u.role, u.avatar,
+                to_jsonb(u) ->> 'google_email' AS google_email,
+                (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL AS signed_in,
+                to_jsonb(u) ->> 'google_ics' AS google_ics,
                 s.slug AS stylist_slug, to_jsonb(s) ->> 'photo' AS photo
            FROM staff_users u
            LEFT JOIN stylists s ON s.staff_user_id = u.id
           WHERE u.tenant_id = $1::uuid AND u.status = 'active'
-            AND u.google_refresh_token IS NOT NULL
+            AND ((to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL
+                 OR (to_jsonb(u) ->> 'google_ics') IS NOT NULL)
           ORDER BY u.name`,
         [tenant.id],
-      ).catch(() => ({ rows: [] }));   // before migration 010, nobody is linked
+      ).catch(() => ({ rows: [] }));
       team = await Promise.all(linked.map(async (u) => {
         const col = {
           id: u.id, name: u.name, role: u.role, avatar: u.avatar, photo: u.photo,
           stylistSlug: u.stylist_slug, account: u.google_email, busy: [], error: null,
         };
         try {
-          const busy = await busyBetween(u.id, from.toISO(), to.toISO());
+          // The sign-in first when there is one; the pasted address otherwise.
+          const busy = u.signed_in && googleConfigured()
+            ? await busyBetween(u.id, from.toISO(), to.toISO())
+            : u.google_ics
+              ? await icsBusyBetween(openLink(u.google_ics), from.toISO(), to.toISO(), tenant.timezone)
+              : null;
           if (busy === null) col.error = 'Google disconnected. Connect it again from their profile.';
           else col.busy = busy;
         } catch (err) {

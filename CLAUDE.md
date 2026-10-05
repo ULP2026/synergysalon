@@ -133,9 +133,9 @@ made that way are real: name them ZZ and remove them.
 - Nav: Home (`/staff`), Appt. Book (`/staff/appointments`), Clients
   (`/staff/clients`), Marketing, Settings. Clients filters by stylist (All,
   then a button per team member with the Stylist role, matched through the
-  stylist row linked to their login, `?member=`), by lead stage (New,
-  Contacted, Booked, Client, Lost, each with a count, applied in the browser)
-  and by source tag. The stylist row stays on one line (scrolls sideways),
+  stylist row linked to their login, `?member=`) and by source tag. The
+  lead-stage filters (All, New, Contacted, Booked, Client, Lost) were removed
+  on request; each row still shows its stage. The stylist row stays on one line (scrolls sideways),
   labels each person by username, else a name shortened past 12 characters,
   and gives each a colour fixed by their id. While nobody has the Stylist
   role the whole team stands in as placeholder filters. It refetches the team
@@ -160,17 +160,24 @@ made that way are real: name them ZZ and remove them.
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM"; the API keeps its `centro`
   names, which nobody sees.
-- **Connect your tools** is in the team member window (yours, or anyone's for
-  owners and managers). Google Calendar only, for now. Connecting for somebody
+- **Connect your tools** is in the team member window, right under Username
+  (yours, or anyone's for owners and managers). Google Calendar only, for now,
+  two ways in. Pasting the calendar's "Secret address in iCal format" works
+  with no Google setup (`google-ics.js`: calendar.google.com only, checked
+  against Google before it is kept, `staff_users.google_ics` (018),
+  encrypted when `TOKEN_KEY` is set, plain until then; parsed with ical.js,
+  repeats and moved occurrences included, times only). Signing in with
+  Google needs the OAuth client below and is offered as a second link once
+  it exists; when both are set the sign-in is read. Connecting for somebody
   else (`/api/oauth/google?start=1&for=<id>`) is for an owner adding a
   stylist who signs in to their own Google beside them. Each connected
   person is a column on Appt. Book's day view, right of the salon's lanes:
   their Google busy times read live by `busyBetween` in `google.js` (times
   only, the fields mask never asks Google for titles) plus their own salon
   bookings. Those columns do not book on click. Google busy time does not
-  yet block online availability. Needs `GOOGLE_CLIENT_ID`,
-  `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY` in Vercel; without them the Connect
-  button is disabled with a note. `pushEvent` (writing into Google) exists
+  yet block online availability. Sign-in needs `GOOGLE_CLIENT_ID`,
+  `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY` in Vercel; the pasted address needs
+  nothing. `pushEvent` (writing into Google) exists
   but nothing calls it.
 - Appt. Book opens on the day as at least four lanes under one "<salon>
   Calendar" heading, the clock down the side. It has no "+ New calendar"

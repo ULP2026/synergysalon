@@ -16,6 +16,7 @@ import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
 import { disconnectGoogle, googleConfigured } from '../../_lib/google.js';
+import { openLink, parseIcsLink, sealLink } from '../../_lib/google-ics.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
 function hostOf(req) {
@@ -64,6 +65,7 @@ async function mine(userId) {
     `SELECT u.calendar_token, u.name,
             u.calendar_last_fetch, u.calendar_fetches, u.calendar_last_agent,
             u.google_email, u.google_connected_at,
+            to_jsonb(u) ->> 'google_ics' AS google_ics,
             s.id AS stylist_id, s.name AS stylist_name,
             count(a.id) FILTER (
               WHERE a.status = 'booked' AND a.starts_at >= now()
@@ -82,6 +84,36 @@ async function mine(userId) {
     [userId],
   );
   return rows[0] ?? null;
+}
+
+/** Whether a person's Google Calendar is on Appt. Book, and as whom. */
+export function googleStatus(row) {
+  const signedIn = Boolean(row.google_email || row.google_connected_at);
+  const link = parseIcsLink(openLink(row.google_ics));
+  return {
+    available: googleConfigured(),
+    connected: signedIn || Boolean(link),
+    via: signedIn ? 'google' : link ? 'link' : null,
+    account: row.google_email || link?.account || null,
+    since: row.google_connected_at,
+  };
+}
+
+/**
+ * Whose calendar an action is for: yourself, or (owners and managers) a
+ * member of your own salon named in the body.
+ */
+async function targetOf(user, member) {
+  if (!member || member === user.id) return user.id;
+  if (!['owner', 'manager'].includes(user.role)) {
+    throw new HttpError(403, 'Only an owner or manager can change somebody else’s calendar.');
+  }
+  const { rows } = /^[0-9a-f-]{36}$/.test(String(member))
+    ? await query('SELECT id FROM staff_users WHERE id = $1::uuid AND tenant_id = $2::uuid',
+      [member, user.tenant_id])
+    : { rows: [] };
+  if (!rows[0]) throw new HttpError(404, 'That team member was not found.');
+  return rows[0].id;
 }
 
 export default handler({
@@ -122,12 +154,9 @@ export default handler({
       // Google is a different kind of connection from the others: it is
       // granted rather than subscribed, so we know for certain whether it is
       // on, and which account it is on.
-      google: {
-        available: googleConfigured(),
-        connected: Boolean(row.google_email || row.google_connected_at),
-        account: row.google_email || null,
-        since: row.google_connected_at,
-      },
+      // Connected one of two ways: signed in (needs the site's Google
+      // client), or by the calendar's private iCal address, pasted in.
+      google: googleStatus(row),
       ...connectLinks(req, row.calendar_token),
     });
   },
@@ -143,20 +172,32 @@ export default handler({
     // An owner or manager can take a team member's off too, from that
     // member's Connect your tools, as they could put it on for them.
     if (action === 'disconnect-google') {
-      let target = user.id;
-      if (body.member && body.member !== user.id) {
-        if (!['owner', 'manager'].includes(user.role)) {
-          throw new HttpError(403, 'Only an owner or manager can disconnect somebody else.');
-        }
-        const { rows } = /^[0-9a-f-]{36}$/.test(String(body.member))
-          ? await query('SELECT id FROM staff_users WHERE id = $1::uuid AND tenant_id = $2::uuid',
-            [body.member, user.tenant_id])
-          : { rows: [] };
-        if (!rows[0]) throw new HttpError(404, 'That team member was not found.');
-        target = rows[0].id;
-      }
+      const target = await targetOf(user, body.member);
       await disconnectGoogle(target);
+      // Off Appt. Book whichever way it was on. Not inside disconnectGoogle,
+      // which also runs when a sign-in expires and must not drop a pasted
+      // address that still works.
+      await query('UPDATE staff_users SET google_ics = NULL WHERE id = $1', [target]).catch(() => {});
       return json(res, 200, { disconnected: 'google' });
+    }
+
+    // The private iCal address, pasted into Connect your tools. Checked
+    // before it is kept: it must be a Google Calendar address, and Google
+    // must answer it, so a typo is said now rather than as an empty column.
+    if (action === 'google-link') {
+      const target = await targetOf(user, body.member);
+      const link = parseIcsLink(body.link);
+      if (!link) {
+        throw new HttpError(400, 'Paste the “Secret address in iCal format” from Google Calendar. It starts with https://calendar.google.com/calendar/ical/');
+      }
+      try {
+        const res2 = await fetch(link.url, { signal: AbortSignal.timeout(15_000), redirect: 'error' });
+        if (!res2.ok) throw new Error(String(res2.status));
+      } catch {
+        throw new HttpError(400, 'Google did not answer that address. Copy it again from Google Calendar and paste the whole thing.');
+      }
+      await query('UPDATE staff_users SET google_ics = $2 WHERE id = $1', [target, sealLink(link.url)]);
+      return json(res, 200, { google: { connected: true, via: 'link', account: link.account } });
     }
 
     if (action !== 'regenerate') {

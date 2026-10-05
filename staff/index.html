@@ -1490,6 +1490,13 @@
                color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tool-acct.none { color: var(--faint); }
   .tool-row .btn { height: 40px; flex: none; }
+  .tool-how { margin-top: 10px; font-size: .8rem; color: var(--muted); }
+  .tool-how summary { cursor: pointer; color: var(--link); font-weight: 600; width: max-content; }
+  .tool-how ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+  .tool-how a { color: var(--link); }
+  .tool .tool-how b { display: inline; font-size: inherit; font-weight: 650; color: var(--ink); }
+  .tool .linkbtn { margin-top: 8px; padding: 0; border: 0; background: none; font: inherit; font-size: .8rem;
+                   font-weight: 600; color: var(--link); cursor: pointer; }
   input.tool-acct { font: inherit; font-size: .9rem; outline: none; }
   input.tool-acct:focus { border-color: var(--periwinkle); box-shadow: 0 0 0 3px color-mix(in srgb, var(--periwinkle) 25%, transparent); }
   input.tool-acct::placeholder { color: var(--faint); }
@@ -1850,8 +1857,6 @@
         </div>
         <!-- All, then one per stylist; built in fillStylistFilter(). -->
         <div class="cfilter cstylists hidden" id="contactStylist" role="group" aria-label="Show clients of"></div>
-        <!-- Where each person got to, with a count; built in renderContacts(). -->
-        <div class="cfilter cstages" id="contactStatus" role="group" aria-label="Show clients who are"></div>
         <div class="ctags-bar" id="contactTags"></div>
         <div id="contacts" style="flex:1;display:flex;flex-direction:column"></div>
       </div>
@@ -1999,6 +2004,14 @@
       </div>
       <p class="small muted hidden" id="memberRoleNote" style="margin:-8px 0 12px"></p>
 
+      <!-- Connect your tools, right under the username: each person's own
+           connections, Google Calendar first. Built in paintTools(). -->
+      <div id="memberTools">
+        <div class="md-sec">Connect your tools<span class="n" id="memberToolsN"></span></div>
+        <div class="tools" id="memberToolsList"></div>
+      </div>
+
+
       <!-- Avatars: pick one, as in RocketOS's team dialog; a photo upload still wins. -->
       <div class="md-sec">Avatar</div>
       <p class="small muted hidden" id="memberAvatarNote" style="margin:-6px 0 10px">Your salon photo is shown in the app. An avatar is used only where there is no photo.</p>
@@ -2016,13 +2029,6 @@
         <p class="small muted" style="margin:-6px 0 10px">Guests are offered these times and no others.
           Turn a day off and nothing can be booked that day.</p>
         <div class="hrs" id="memberHours"></div>
-      </div>
-
-      <!-- Connect your tools: the person's own connections, Google Calendar
-           first. Built in paintTools(). -->
-      <div id="memberTools">
-        <div class="md-sec">Connect your tools<span class="n" id="memberToolsN"></span></div>
-        <div class="tools" id="memberToolsList"></div>
       </div>
 
       <div id="memberCreate">
@@ -4258,11 +4264,10 @@ function fillStylistFilter() {
       title="${esc(t.name)}" aria-pressed="${String(t.id) === contactStylist}"><i class="dot"></i>${esc(filterLabel(t))}</button>`).join('');
 }
 
-// The lead stages, as filters with counts: what Contacts filtered by before it
-// became Clients. Applied here rather than by the server, so every stage can
-// show its count from the one list.
-let contactStatus = '';
-const CONTACT_STAGES = ['new', 'contacted', 'booked', 'won', 'lost'];
+// The lead-stage filters (All, New, Contacted, Booked, Client, Lost) were
+// removed on request: the stylist row is the one line of filters. Each
+// person's stage still shows on their row.
+const contactStatus = '';
 
 /** Where somebody got to, as the class that colours them. */
 const statusClass = (st) => `s-${STATUS_LABEL[st] ? st : 'new'}`;
@@ -4270,10 +4275,7 @@ const statusClass = (st) => `s-${STATUS_LABEL[st] ? st : 'new'}`;
 function renderContacts(d, filtered) {
   contactList = d.contacts;
 
-  const count = (st) => d.contacts.filter((c) => !st || c.status === st).length;
-  $('contactStatus').innerHTML = ['', ...CONTACT_STAGES].map((st) => `<button type="button" data-status="${st}" aria-pressed="${st === contactStatus}">
-      ${st ? `<i class="dot s-${st}"></i>` : ''}${st ? esc(STATUS_LABEL[st]) : 'All'}<span class="n">${count(st)}</span></button>`).join('');
-  const inStage = contactStatus ? d.contacts.filter((c) => c.status === contactStatus) : d.contacts;
+  const inStage = d.contacts;
 
   // Sources become tags you can click. Built from what the server returned,
   // so they only ever offer something that will find somebody.
@@ -4356,13 +4358,6 @@ $('contactStylist').onclick = (e) => {
   contactStylist = b.dataset.member;
   fillStylistFilter();
   loadContacts();
-};
-$('contactStatus').onclick = (e) => {
-  const b = e.target.closest('button[data-status]');
-  if (!b || b.dataset.status === contactStatus) return;
-  contactStatus = b.dataset.status;
-  // Drawn again from the list already here: a stage is a view of it, not a new search.
-  renderContacts({ contacts: contactList }, Boolean($('contactSearch').value.trim() || contactStylist || contactSource));
 };
 $('contactTags').onclick = (e) => {
   const b = e.target.closest('button[data-source]');
@@ -5614,26 +5609,41 @@ function paintTools() {
   const self = memberEdit === 'me';
   const g = (m && m.google) || { connected: false, account: null };
   const canAct = Boolean(m && m.status !== 'pending' && (self || me?.user?.canAdmin));
-  const available = Boolean(me?.features?.google);
+  // Signing in with Google needs the site's own Google client. Pasting the
+  // calendar's private address works without it, so that is always offered.
+  const signIn = Boolean(me?.features?.google);
 
   const desc = self
     ? 'Your Google Calendar shows on Appt. Book beside the salon calendar, so the team can see when you are busy.'
     : 'Their Google Calendar shows on Appt. Book beside the salon calendar, so you can see when they are busy.';
-  let acct = g.connected ? esc(g.account || 'Connected') : (self ? 'Not connected' : 'Not connected yet');
-  let button = '';
+  let row;
+  let extra = '';
   let why = 'Only the times are shown on Appt. Book, never what the event is.';
-  if (!m) {
-    acct = 'Available once they are added';
-    why = 'After saving, open them again to connect it with them here, or they connect it from their own profile when they sign in.';
+  if (g.connected) {
+    row = `<span class="tool-acct">${esc(g.account || 'Connected')}</span>
+      ${canAct ? '<button type="button" class="btn quiet sm" data-tool="google-off">Disconnect</button>' : ''}`;
+  } else if (!m) {
+    row = '<span class="tool-acct none">Available once they are added</span>';
+    why = 'After saving, open them again to connect it here, or they connect it from their own profile when they sign in.';
   } else if (m.status === 'pending') {
+    row = '<span class="tool-acct none">Not connected yet</span>';
     why = 'They can connect it once their request is approved.';
-  } else if (!available && !g.connected) {
-    why = 'Google sign-in is not set up on this site yet. Your web team adds it, then this button works.';
-    button = '<button type="button" class="btn sm" disabled>Connect</button>';
-  } else if (canAct) {
-    button = g.connected
-      ? '<button type="button" class="btn quiet sm" data-tool="google-off">Disconnect</button>'
-      : `<button type="button" class="btn sm go" data-tool="google-on">Connect</button>`;
+  } else if (!canAct) {
+    row = '<span class="tool-acct none">Not connected yet</span>';
+  } else {
+    row = `<input class="tool-acct" id="toolLink" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+        placeholder="Paste ${self ? 'your' : 'their'} Google Calendar secret address" aria-label="Google Calendar secret address in iCal format">
+      <button type="button" class="btn sm confirm" data-tool="google-link">Connect</button>`;
+    extra = `<details class="tool-how">
+        <summary>Where do I find it?</summary>
+        <ol>
+          <li>Open <a href="https://calendar.google.com/calendar/r/settings" target="_blank" rel="noopener">Google Calendar settings</a> on a computer.</li>
+          <li>Under <b>Settings for my calendars</b>, click ${self ? 'your' : 'their'} calendar.</li>
+          <li>Scroll to <b>Integrate calendar</b> and copy <b>Secret address in iCal format</b>.</li>
+          <li>Paste it above and press Connect.</li>
+        </ol>
+      </details>
+      ${signIn ? `<button type="button" class="linkbtn" data-tool="google-on">Or sign in with Google instead</button>` : ''}`;
   }
 
   $('memberToolsN').textContent = `(${g.connected ? 1 : 0})`;
@@ -5642,7 +5652,8 @@ function paintTools() {
       <span class="tool-ic">${g.connected ? CHECK_SVG : GOOGLE_LOGO.replace('class="conn-logo"', '')}</span>
       <div style="min-width:0">
         <b>Google Calendar</b><span class="d">${esc(desc)}</span>
-        <div class="tool-row"><span class="tool-acct${g.connected ? '' : ' none'}">${acct}</span>${button}</div>
+        <div class="tool-row">${row}</div>
+        ${extra}
         <span class="why">${esc(why)}</span>
       </div>
     </div>`;
@@ -5656,7 +5667,7 @@ async function refreshTools() {
     if (memberEdit === 'me') {
       const cal = await api('/api/staff/calendars');
       feedData = cal;
-      m.google = { connected: Boolean(cal.google?.connected), account: cal.google?.account || null };
+      m.google = cal.google || { connected: false, account: null };
     } else {
       const t = await api('/api/staff/team');
       const fresh = (t.members || []).find((x) => String(x.id) === String(m.id));
@@ -5666,10 +5677,45 @@ async function refreshTools() {
   if (toolsFor === m && $('memberDlg').open) paintTools();
 }
 
+/** Save the pasted address; the server checks Google answers it first. */
+async function saveToolLink(b) {
+  const input = $('toolLink');
+  const link = input.value.trim();
+  if (!link) { input.focus(); toast('Paste the secret address from Google Calendar first.', 'bad'); return; }
+  const forId = memberEdit === 'me' ? null : toolsFor.id;
+  b.disabled = true;
+  b.textContent = 'Checking…';
+  try {
+    const r = await api('/api/staff/calendars', {
+      method: 'POST', body: JSON.stringify({ action: 'google-link', link, ...(forId ? { member: forId } : {}) }),
+    });
+    toolsFor.google = r.google;
+    paintTools();
+    toast(`Google Calendar connected${r.google.account ? ` (${r.google.account})` : ''}. It now shows on Appt. Book.`);
+    if (page === 'settings' && setTab === 'team') loadTeam();
+    if (page === 'appointments' && calView === 'day') loadDay(day);
+  } catch (err) {
+    fail(err);
+    b.disabled = false;
+    b.textContent = 'Connect';
+  }
+}
+
+// Enter in the address field connects, rather than submitting the whole
+// member form behind it.
+$('memberToolsList').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'toolLink') {
+    e.preventDefault();
+    const b = $('memberToolsList').querySelector('[data-tool="google-link"]');
+    if (b && !b.disabled) saveToolLink(b);
+  }
+});
+
 $('memberToolsList').onclick = async (e) => {
   const b = e.target.closest('button[data-tool]');
   if (!b || !toolsFor) return;
   const forId = memberEdit === 'me' ? null : toolsFor.id;
+  if (b.dataset.tool === 'google-link') { saveToolLink(b); return; }
   if (b.dataset.tool === 'google-on') { connectGoogle(b, forId); return; }
   const whose = forId ? `${toolsFor.name}’s` : 'your';
   if (!confirm(`Disconnect ${whose} Google Calendar?\n\nIt stops showing on Appt. Book. Nothing in Google is changed.`)) return;
