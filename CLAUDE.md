@@ -135,8 +135,15 @@ made that way are real: name them ZZ and remove them.
   then a button per team member with the Stylist role, matched through the
   stylist row linked to their login, `?member=`), by lead stage (New,
   Contacted, Booked, Client, Lost, each with a count, applied in the browser)
-  and by source tag. While nobody has the Stylist role the whole team stands
-  in as placeholder filters, with a hint saying so. Stylist is a role (016,
+  and by source tag. The stylist row stays on one line (scrolls sideways),
+  labels each person by username, else a name shortened past 12 characters,
+  and gives each a colour fixed by their id. While nobody has the Stylist
+  role the whole team stands in as placeholder filters. It refetches the team
+  on opening Clients, after the team list loads, and when the tab regains
+  focus, so a new stylist appears without a reload.
+- Team Settings has "Where do you want people to reply to": `tenants.reply_to`
+  (017, also in ensure-schema), the reply-to on every guest email
+  (`shopFrom().replyTo`), falling back to the salon profile email when empty. Stylist is a role (016,
   also in ensure-schema) with front desk's access. A Leads page
   held the stages for a while; `/staff/leads` now lands on Clients. Settings is as
   wide as the nav cluster (`--nav-w`, measured by `fitSettings()`), so its

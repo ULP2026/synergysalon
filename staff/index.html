@@ -627,9 +627,18 @@
 
   .cselect { width: auto; min-width: 150px; height: 42px; padding: 0 12px; font-size: var(--fs-sm); }
   .cstages { margin: -2px 0 12px; }
-  .cstylists { margin: -2px 0 10px; align-items: center; }
-  .cstylists .lbl { font-size: var(--fs-xs); font-weight: 650; color: var(--muted); margin-right: 4px; }
-  .cstylists .hint { font-size: var(--fs-xs); color: var(--faint); margin-left: 4px; }
+  /* One line however many stylists there are: it scrolls sideways rather
+     than wrapping into a second row. Each stylist has their own colour, a dot
+     at rest and the whole pill when chosen, so a filter is recognised by
+     colour before its name is read. */
+  .cstylists { margin: -2px 0 10px; align-items: center; flex-wrap: nowrap; overflow-x: auto;
+               scrollbar-width: none; padding: 2px 1px; }
+  .cstylists::-webkit-scrollbar { display: none; }
+  .cstylists button { flex: none; white-space: nowrap; }
+  .cstylists .dot { background: var(--c); }
+  .cstylists button[data-member]:not([data-member=""])[aria-pressed="true"] {
+    background: var(--c); border-color: var(--c); color: #fff; box-shadow: 0 6px 14px -8px var(--c); }
+  .cstylists button[aria-pressed="true"] .dot { background: #fff; box-shadow: none; }
   .cstages .n { font-variant-numeric: tabular-nums; color: var(--faint); font-weight: 600; margin-left: 2px; }
   .cstages button[aria-pressed="true"] .n { color: inherit; opacity: .8; }
   .ctags-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: -4px 0 16px; }
@@ -1481,6 +1490,14 @@
                color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tool-acct.none { color: var(--faint); }
   .tool-row .btn { height: 40px; flex: none; }
+  input.tool-acct { font: inherit; font-size: .9rem; outline: none; }
+  input.tool-acct:focus { border-color: var(--periwinkle); box-shadow: 0 0 0 3px color-mix(in srgb, var(--periwinkle) 25%, transparent); }
+  input.tool-acct::placeholder { color: var(--faint); }
+  .tool .tool-ic.mail .ic { width: 20px; height: 20px; color: var(--muted); }
+  .tool .btn.confirm { background: #17877a; border-color: #17877a; color: #fff; }
+  #replyCard .tool { margin: 0; border: 0; padding: 0; background: none; }
+  #replyCard.on { border-color: color-mix(in srgb, #17877a 45%, transparent); background: color-mix(in srgb, #17877a 7%, var(--card)); }
+  :root[data-theme="dark"] #replyCard.on { background: rgba(23, 135, 122, .14); }
   .tool.on .tool-row .btn.go { background: #17877a; border-color: #17877a; color: #fff; }
   .tool .why { display: block; font-size: .76rem; color: var(--muted); margin-top: 8px; }
   @media (max-width: 520px) { .tool-row { flex-wrap: wrap; } .tool-acct { flex-basis: 100%; } }
@@ -1892,6 +1909,9 @@
               <button type="button" class="switch" id="darkSwitch" role="switch" aria-checked="false" aria-label="Dark Mode"><span></span></button>
             </div>
           </section>
+
+          <!-- The inbox guests' replies land in; built in paintReplyTo(). -->
+          <section class="acard" id="replyCard"></section>
 
           <section class="acard">
             <h2 class="ahead"><svg class="ic"><use href="#i-shield"/></svg>Team Members</h2>
@@ -4212,8 +4232,16 @@ let contactSource = '';
  *
  * Until somebody has that role, the whole team stands in, so the filters can
  * be seen and tried. Their clients are whoever booked in the chair linked to
- * their login, which for a placeholder is nobody yet; the hint says why.
+ * their login, which for a placeholder is nobody yet.
  */
+const STYLIST_COLORS = ['#5560a6', '#c2547a', '#17877a', '#d0812a', '#7b4fc0', '#2f7fb8', '#9a6b1f', '#3f8f4f'];
+
+/** What a filter says: their username, else their name, shortened when long. */
+function filterLabel(t) {
+  if (t.username) return t.username.replace(/^@/, '');
+  return t.name.length > 12 ? shortName(t.name) : t.name;
+}
+
 function fillStylistFilter() {
   const box = $('contactStylist');
   const team = me?.team || [];
@@ -4221,10 +4249,13 @@ function fillStylistFilter() {
   const list = stylists.length ? stylists : team;
   if (contactStylist && !list.some((t) => String(t.id) === contactStylist)) contactStylist = '';
   box.classList.toggle('hidden', !list.length);
-  box.innerHTML = '<span class="lbl">Stylist</span>'
-    + [{ id: '', name: 'All' }, ...list].map((t) => `<button type="button" data-member="${esc(t.id)}"
-      aria-pressed="${String(t.id) === contactStylist}">${esc(t.name)}</button>`).join('')
-    + (stylists.length ? '' : '<span class="hint">Team shown until stylists are added</span>');
+  // A colour per person by their place in the whole team, sorted by id, so it
+  // stays theirs when somebody else joins or the placeholders give way.
+  const order = [...team].map((t) => String(t.id)).sort();
+  const color = (t) => STYLIST_COLORS[order.indexOf(String(t.id)) % STYLIST_COLORS.length];
+  box.innerHTML = `<button type="button" data-member="" aria-pressed="${contactStylist === ''}">All</button>`
+    + list.map((t) => `<button type="button" data-member="${esc(t.id)}" style="--c:${color(t)}"
+      title="${esc(t.name)}" aria-pressed="${String(t.id) === contactStylist}"><i class="dot"></i>${esc(filterLabel(t))}</button>`).join('');
 }
 
 // The lead stages, as filters with counts: what Contacts filtered by before it
@@ -4307,6 +4338,10 @@ function renderContacts(d, filtered) {
  * The team as it is now. Somebody given the Stylist role since this page was
  * loaded gets their filter without a reload: me is fetched once per visit.
  */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && page === 'clients') refreshTeamFilter();
+});
+
 async function refreshTeamFilter() {
   try {
     const fresh = await api('/api/staff/me');
@@ -5217,6 +5252,8 @@ async function loadTeam() {
     const pending = t ? t.members.filter((m) => m.status === 'pending') : [];
     const others = t ? t.members.filter((m) => m.id !== t.you.id && m.status !== 'pending') : [];
     renderTeam({ ...p, status: 'active' }, others, pending);
+    // A member added, renamed or made a Stylist is a new Clients filter.
+    refreshTeamFilter();
     if (t) {
       me.pendingApprovals = t.pending;
       $('pendingBadge').textContent = t.pending;
@@ -5231,8 +5268,61 @@ async function loadTeam() {
 
 // ── Team Settings ─────────────────────────────────────────────────────────
 
+// ── Where do you want people to reply to ──────────────────────────────────
+//
+// The reply-to on every email a guest gets. Empty means the salon profile's
+// email, which is what was used before there was a choice.
+
+let replyTo = { value: '', fallback: '', canEdit: false };
+
+function paintReplyTo() {
+  const card = $('replyCard');
+  const set = Boolean(replyTo.value);
+  card.classList.toggle('on', set);
+  card.innerHTML = `<div class="tool${set ? ' on' : ''}">
+    <span class="tool-ic${set ? '' : ' mail'}">${set ? CHECK_SVG : ic('mail')}</span>
+    <div style="min-width:0">
+      <b>Where do you want people to reply to</b>
+      <span class="d">Inbound client replies will be delivered to this inbox</span>
+      <form class="tool-row" id="replyForm" novalidate>
+        <input class="tool-acct" type="email" name="replyTo" value="${esc(replyTo.value)}"
+          placeholder="Your team's inbox" autocomplete="email" aria-label="Reply-to email"
+          ${replyTo.canEdit ? '' : 'disabled'}>
+        ${replyTo.canEdit ? '<button class="btn sm confirm">Confirm</button>' : ''}
+      </form>
+      ${!set && replyTo.fallback ? `<span class="why">Until this is set, replies go to the salon profile email, ${esc(replyTo.fallback)}.</span>` : ''}
+      ${replyTo.canEdit ? '' : '<span class="why">An owner or manager sets this.</span>'}
+    </div></div>`;
+}
+
+async function loadReplyTo() {
+  try {
+    const b = await api('/api/staff/business');
+    replyTo = { value: b.replyTo || '', fallback: b.email || '', canEdit: Boolean(b.canEdit) };
+    paintReplyTo();
+  } catch (err) {
+    if (err.message !== 'signed out') $('replyCard').innerHTML = `<p class="small muted">Couldn’t load the reply-to inbox: ${esc(err.message)}</p>`;
+  }
+}
+
+$('replyCard').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const value = f.elements.replyTo.value.trim();
+  if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { toast('That does not look like an email address.', 'bad'); return; }
+  const btn = f.querySelector('button');
+  btn.disabled = true;
+  try {
+    const r = await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify({ replyTo: value }) });
+    replyTo.value = r.replyTo || '';
+    paintReplyTo();
+    toast(replyTo.value ? `Replies now go to ${replyTo.value}.` : 'Replies go to the salon profile email again.');
+  } catch (err) { fail(err); btn.disabled = false; }
+});
+
 function loadAccount() {
   paintDarkSwitch();
+  loadReplyTo();
   // No Integrations card any more: calendars are connected per person, in
   // Connect your tools on their own profile, and the CRM and email are set
   // up by the web team rather than switched on here.

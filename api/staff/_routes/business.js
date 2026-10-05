@@ -14,7 +14,7 @@ import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import { MESSAGE_KINDS, previewMessage } from '../../_lib/email.js';
 import {
-  HttpError, handler, json, readJson, requireString,
+  HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
@@ -81,7 +81,7 @@ export default handler({
     if (kind) return json(res, 200, await preview(kind, tenant));
     const { rows } = await query(
       `SELECT name, slug, logo, address, phone, email, website, about, timezone,
-              host, app_host
+              host, app_host, to_jsonb(tenants) ->> 'reply_to' AS reply_to
          FROM tenants WHERE id = $1`,
       [tenant.id],
     );
@@ -93,6 +93,7 @@ export default handler({
       address: t.address,
       phone: t.phone,
       email: t.email,
+      replyTo: t.reply_to || '',
       website: t.website,
       about: t.about,
       // Shown, never edited here: an owner should be able to see what their
@@ -120,6 +121,11 @@ export default handler({
     if (body.phone !== undefined) add('phone', text(body.phone, 40));
     if (body.email !== undefined) add('email', text(body.email, 254).toLowerCase());
     if (body.about !== undefined) add('about', text(body.about, 1000));
+    // Empty is allowed, and means "use the profile email" again.
+    if (body.replyTo !== undefined) {
+      const to = text(body.replyTo, 254).toLowerCase();
+      add('reply_to', to ? requireEmail(to, 'Reply-to email') : null);
+    }
 
     if (body.website !== undefined) {
       const site = text(body.website, 200);
@@ -135,7 +141,8 @@ export default handler({
 
     const { rows } = await query(
       `UPDATE tenants SET ${sets.join(', ')} WHERE id = $1
-        RETURNING name, logo, address, phone, email, website, about`,
+        RETURNING name, logo, address, phone, email, website, about,
+                  COALESCE(reply_to, '') AS "replyTo"`,
       params,
     );
     return json(res, 200, { ...rows[0], saved: true });

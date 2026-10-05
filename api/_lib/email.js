@@ -122,7 +122,7 @@ async function send(shop, to, subject, content) {
   }
   const { error } = await resend.emails.send({
     from: fromFor(shop),
-    replyTo: shop.email || undefined,
+    replyTo: shop.replyTo || undefined,
     to,
     subject,
     html: layout(content, shop),
@@ -247,7 +247,7 @@ export function previewMessage(kind, appt, tenant = {}, extra) {
   const { subject, content } = MESSAGES[kind](appt, shop, shop.timezone, extra);
   return {
     from: fromFor(shop),
-    replyTo: shop.email || null,
+    replyTo: shop.replyTo || null,
     subject,
     html: layout(content, shop),
     text: plain(content, shop),
