@@ -360,7 +360,9 @@
     display: flex; flex-direction: column; min-width: 0; flex: 1;
     /* 960px across, RocketOS's measure: wide enough for the day view and the
        client list, narrow enough that nothing leaves a band of empty page. */
-    width: 100%; max-width: 960px; margin: 0 auto; padding: 88px 32px 32px;
+    /* 116px: the fixed nav, then about 40px of air before the title. 88
+       left the title pressed against the nav. */
+    width: 100%; max-width: 960px; margin: 0 auto; padding: 116px 32px 32px;
   }
   /* Settings and Marketing are forms and lists, not a diary: they take the nav's own width (--nav-w,
      measured in fitSettings()), so its edges line up with the menu above. */
@@ -390,6 +392,42 @@
   .tile .lbl { color: var(--muted); font-size: var(--fs-sm); margin-top: 2px; }
   a.tile { display: block; color: inherit; text-decoration: none; }
   a.tile:hover { border-color: color-mix(in srgb, var(--periwinkle) 35%, transparent); box-shadow: var(--e2); transform: translateY(-2px); }
+  .tile .num .unit { font-size: 1.05rem; font-weight: 600; letter-spacing: -.01em; }
+
+  /* Coming up: one row per appointment, as in the reference. A tag, the
+     guest, what and with whom; when on the right with a way in. Synergy's
+     own colours only: periwinkle tags, indigo names. */
+  .cu-head { display: flex; align-items: center; gap: 8px; }
+  .cu-head .ic { width: 20px; height: 20px; color: var(--periwinkle); }
+  .coming { list-style: none; margin: 0; padding: 0; }
+  .coming li + li { border-top: 1px solid var(--line); }
+  .coming button { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 16px;
+                   width: 100%; padding: 14px 10px; border: 0; background: transparent; text-align: left;
+                   cursor: pointer; border-radius: 12px; font: inherit; color: inherit;
+                   transition: background-color var(--t) var(--ease); }
+  .coming button:hover { background: var(--raise); }
+  .cu-main { min-width: 0; display: grid; gap: 3px; justify-items: start; }
+  .cu-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px;
+            font-size: .72rem; font-weight: 650; letter-spacing: .01em; color: var(--indigo);
+            background: var(--peri-pale); border: 1px solid color-mix(in srgb, var(--periwinkle) 40%, transparent); }
+  .cu-tag.first { color: #fff; background: var(--cta-grad); border-color: transparent; }
+  .cu-name { font-size: .98rem; font-weight: 650; color: var(--ink); max-width: 100%;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cu-what { font-size: var(--fs-sm); color: var(--muted); max-width: 100%;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cu-when { font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cu-open { height: 32px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 999px;
+             border: 1px solid var(--line-2); font-size: var(--fs-sm); font-weight: 600; color: var(--indigo); background: var(--card); }
+  .coming button:hover .cu-open { background: var(--peri-pale); }
+  .up-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding: 14px 10px 4px;
+             border-top: 1px solid var(--line); color: var(--muted); font-size: var(--fs-sm); text-decoration: none; }
+  .up-foot:hover { color: var(--indigo); }
+  .up-foot .ic { width: 16px; height: 16px; }
+  @media (max-width: 640px) {
+    .coming button { grid-template-columns: minmax(0, 1fr) auto; }
+    .cu-when { grid-column: 1; grid-row: 2; }
+    .cu-open { grid-row: 1 / span 2; grid-column: 2; }
+  }
   .upcoming { list-style: none; margin: 0; padding: 0; }
   .upcoming li + li { border-top: 1px solid var(--line); }
   .upcoming button {
@@ -439,10 +477,10 @@
 
   /* ───────────── responsive ───────────── */
   @media (max-width: 1100px) {
-    .main { padding: 80px 24px 28px; }
+    .main { padding: 108px 24px 28px; }
   }
   @media (max-width: 720px) {
-    .main { padding: 80px 16px 24px; }
+    .main { padding: 100px 16px 24px; }
     .pagehead { flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
     .pagehead .primary { width: 100%; }
     h1 { font-size: 1.4rem; }
@@ -1318,6 +1356,7 @@
   .grn-me .me-pic img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
   .grn-me[aria-current="page"] { color: var(--ring-ink); background: var(--lav-fill);
                                  box-shadow: 0 0 0 2px var(--periwinkle), var(--lav-shine), 0 8px 32px rgba(30, 31, 92, .14); }
+  .grn-me[hidden] { display: none !important; }
   .grn-me .count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px;
                    border-radius: 999px; display: grid; place-items: center; font-size: .66rem; font-weight: 650;
                    background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 2px var(--card); }
@@ -1476,11 +1515,11 @@
   .tools { display: grid; gap: 10px; margin-bottom: 16px; }
   .tool { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px; padding: 16px;
           border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
-  .tool.on { border-color: color-mix(in srgb, #17877a 45%, transparent); background: color-mix(in srgb, #17877a 7%, var(--card)); }
+  .tool.on { border-color: color-mix(in srgb, var(--periwinkle) 45%, transparent); background: color-mix(in srgb, var(--peri-pale) 55%, var(--card)); }
   .tool-ic { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
              background: var(--raise); border: 1px solid var(--line); }
   .tool-ic svg { width: 22px; height: 22px; }
-  .tool.on .tool-ic { background: #17877a; border-color: #17877a; }
+  .tool.on .tool-ic { background: var(--cta-grad); border-color: transparent; }
   .tool.on .tool-ic svg { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
   .tool b { display: block; font-size: .95rem; font-weight: 600; color: var(--ink); }
   .tool .d { display: block; font-size: .8rem; color: var(--muted); margin-top: 1px; }
@@ -1501,14 +1540,12 @@
   input.tool-acct:focus { border-color: var(--periwinkle); box-shadow: 0 0 0 3px color-mix(in srgb, var(--periwinkle) 25%, transparent); }
   input.tool-acct::placeholder { color: var(--faint); }
   .tool .tool-ic.mail .ic { width: 20px; height: 20px; color: var(--muted); }
-  .tool .btn.confirm { background: #17877a; border-color: #17877a; color: #fff; }
   #replyCard .tool { margin: 0; border: 0; padding: 0; background: none; }
-  #replyCard.on { border-color: color-mix(in srgb, #17877a 45%, transparent); background: color-mix(in srgb, #17877a 7%, var(--card)); }
-  :root[data-theme="dark"] #replyCard.on { background: rgba(23, 135, 122, .14); }
-  .tool.on .tool-row .btn.go { background: #17877a; border-color: #17877a; color: #fff; }
+  #replyCard.on { border-color: color-mix(in srgb, var(--periwinkle) 45%, transparent); background: color-mix(in srgb, var(--peri-pale) 55%, var(--card)); }
+  :root[data-theme="dark"] #replyCard.on { background: rgba(85, 96, 166, .16); }
   .tool .why { display: block; font-size: .76rem; color: var(--muted); margin-top: 8px; }
   @media (max-width: 520px) { .tool-row { flex-wrap: wrap; } .tool-acct { flex-basis: 100%; } }
-  :root[data-theme="dark"] .tool.on { background: rgba(23, 135, 122, .14); }
+  :root[data-theme="dark"] .tool.on { background: rgba(85, 96, 166, .16); }
 
 
   /* ── avatar choices in the team modal ───────────────────────────────── */
@@ -1785,9 +1822,11 @@
       <a class="grn-item icon-only" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
         <svg class="grn-ic"><use href="#l-settings"/></svg></a>
     </nav>
-    <!-- The person: their picture and first name. It opens Settings on Team
-         Settings, where their profile, the team and sign out live. -->
-    <a class="grn-me glass-strong" id="meBtn" href="/staff/settings" data-page="account" title="Settings">
+    <!-- The person chip is hidden: the app is shared by everyone in the salon,
+         so the nav does not name one of them. Kept in the page because
+         paintMe() and the approvals badge still write to it; your profile and
+         sign out are in Settings, Team. -->
+    <a class="grn-me glass-strong" hidden id="meBtn" href="/staff/settings" data-page="account" title="Settings">
       <span class="me-pic" id="mePic" aria-hidden="true"></span>
       <span class="me-name" id="meName"></span>
       <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span>
@@ -1811,10 +1850,11 @@
       <div id="syncNote" class="note hidden" style="margin:0"></div>
       <div class="card fill">
         <div class="card-head">
-          <h2>Coming up</h2>
+          <h2 class="cu-head"><svg class="ic"><use href="#i-calendar"/></svg>Coming up</h2>
           <a href="/staff/appointments" data-page="appointments" class="small">See all appointments</a>
         </div>
         <div id="upcoming" class="fill-body" style="flex:1;display:flex;flex-direction:column"></div>
+        <div id="upcomingFoot"></div>
       </div>
     </section>
 
@@ -3051,9 +3091,10 @@ async function loadCalendarSettings() {
 }
 
 const PAGES = {
+  // No primary button on Home: booking starts from Appt. Book.
   home: {
-    path: '/staff', title: 'Home', action: 'New appointment',
-    run: () => openBooking(null), load: () => loadHome(),
+    path: '/staff', title: 'Home', action: null,
+    load: () => loadHome(),
   },
   appointments: {
     path: '/staff/appointments', title: 'Appt. Book', action: 'New appointment',
@@ -3449,14 +3490,11 @@ window.addEventListener('resize', hideMenu);
 
 // ───────────────────────────── home ─────────────────────────────
 
+/** Today's date on the salon's clock: Home's subtitle, now that it greets nobody. */
 function greeting() {
   const tz = me?.salon?.timezone;
-  const hour = Number(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, ...(tz ? { timeZone: tz } : {}) }));
-  const part = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const first = (me?.user?.name || '').split(' ')[0];
-  const date = new Date().toLocaleDateString('en-US',
-    { weekday: 'long', month: 'long', day: 'numeric', ...(tz ? { timeZone: tz } : {}) });
-  return `${part}${first ? `, ${first}` : ''}. It's ${date}.`;
+  return new Date().toLocaleDateString('en-US',
+    { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', ...(tz ? { timeZone: tz } : {}) });
 }
 
 function tile(num, label, href) {
@@ -3466,39 +3504,41 @@ function tile(num, label, href) {
     : `<div class="tile">${inner}</div>`;
 }
 
-const UPCOMING = 6;
 let homeSeq = 0;
+const dollars = (n) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/**
+ * Home: two numbers and what is coming up, all from /api/staff/home, which
+ * counts them in the database. Today's diary is still read for the CRM sync
+ * note, which is about today's bookings and nothing else.
+ */
 async function loadHome() {
   const seq = ++homeSeq;
-  const today = salonToday();
+  $('pageSub').textContent = greeting();
   $('tiles').innerHTML = [0, 1].map(() =>
     '<div class="tile"><span class="sk" style="height:32px;width:56px"></span><span class="sk" style="margin-top:10px;width:60%"></span></div>').join('');
   $('upcoming').innerHTML = skeleton(4);
+  $('upcomingFoot').innerHTML = '';
   $('syncNote').classList.add('hidden');
 
   try {
-    const first = await api(`/api/staff/diary?date=${today}`);
-    const days = [first];
-    const upcomingOf = (d) => d.appointments
-      .filter((a) => a.status === 'booked' && !a.checkedInAt && new Date(a.startsAt) > Date.now())
-      .map((a) => ({ ...a, date: d.date }));
-    // Look a week ahead only when today alone does not fill the list.
-    if (upcomingOf(first).length < UPCOMING) {
-      const later = await Promise.allSettled(
-        [1, 2, 3, 4, 5, 6].map((n) => api(`/api/staff/diary?date=${addDays(today, n)}`)));
-      later.forEach((r) => r.status === 'fulfilled' && days.push(r.value));
-    }
+    const [h, first] = await Promise.all([
+      api('/api/staff/home'),
+      api(`/api/staff/diary?date=${salonToday()}`).catch(() => null),
+    ]);
     if (seq !== homeSeq) return;
 
+    const n = h.today.count;
+    const value = `${dollars(h.today.value)} total value`
+      + (h.today.unpriced ? ` · ${h.today.unpriced} without a price` : '');
     const pending = me.user.canAdmin ? (me.pendingApprovals || 0) : 0;
     $('tiles').innerHTML = [
-      tile(first.booked, `booked today`, 'appointments'),
-      tile(first.arriving, 'still to arrive today', 'appointments'),
+      tile(h.clients30, 'Clients in the Last 30 Days', 'clients'),
+      tile(`${n} <span class="unit">${n === 1 ? 'Appointment' : 'Appointments'} Today</span>`, value, 'appointments'),
       pending ? tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'account') : '',
     ].join('');
 
-    const live = first.appointments.filter((a) => a.status !== 'cancelled');
+    const live = (first?.appointments || []).filter((a) => a.status !== 'cancelled');
     const refused = live.filter((a) => a.syncFailed).length;
     const unsynced = live.filter((a) => !a.syncedToCentro).length;
     // "Nothing to do here" is only true while the bookings are on their way.
@@ -3512,21 +3552,27 @@ async function loadHome() {
       $('syncNote').className = 'note';
     }
 
-    const list = days.flatMap(upcomingOf).slice(0, UPCOMING);
-    if (!list.length) {
+    $('upcomingFoot').innerHTML = h.past
+      ? `<a class="up-foot" href="/staff/appointments" data-page="appointments">Past appointments (${h.past})${ic('right')}</a>` : '';
+    if (!h.upcoming.length) {
       $('upcoming').innerHTML = emptyState({
-        icon: 'calendar', title: 'Nothing on the books yet',
-        text: 'When someone books online or you add an appointment, it will show up here.',
-        action: 'appointment', actionLabel: 'New appointment',
+        icon: 'calendar', title: 'Nothing coming up yet',
+        text: 'When someone books online or the team adds an appointment, it shows up here.',
       });
       return;
     }
-    $('upcoming').innerHTML = `<ul class="upcoming">${list.map((a) => `
-      <li><button data-date="${a.date}">
-        <span class="when"><b>${esc(a.time)}</b>${esc(dayLabel(a.date))}</span>
-        <span><span class="name">${esc(a.guestName)}</span>
-          <span class="what" style="display:block">${esc(a.service)} with ${esc(a.stylist)}</span></span>
-        <span class="go">${ic('right')}</span>
+    // One row per appointment, the reference's shape: a tag, who, what, and
+    // on the right when, with a way in.
+    const tag = (a) => (a.firstVisit ? 'First visit' : a.online ? 'Online booking' : 'Booked');
+    $('upcoming').innerHTML = `<ul class="coming">${h.upcoming.map((a) => `
+      <li><button type="button" data-date="${esc(a.date)}" aria-label="${esc(`${a.guestName}, ${a.when}`)}">
+        <span class="cu-main">
+          <span class="cu-tag${a.firstVisit ? ' first' : ''}">${esc(tag(a))}</span>
+          <b class="cu-name">${esc(a.guestName)}</b>
+          <span class="cu-what">${esc(a.service)} · with ${esc(a.stylist)}${a.price != null ? ` · ${esc(dollars(a.price))}` : ''}</span>
+        </span>
+        <span class="cu-when">${esc(a.when)}</span>
+        <span class="cu-open">Open</span>
       </button></li>`).join('')}</ul>`;
   } catch (err) {
     if (seq !== homeSeq || err.message === 'signed out') return;

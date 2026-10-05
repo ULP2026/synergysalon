@@ -130,6 +130,18 @@ made that way are real: name them ZZ and remove them.
 
 ## Staff console
 
+- Home (`/staff`) greets nobody and has no primary button: its subtitle is
+  the date. Two tiles from `GET /api/staff/home` (`_routes/home.js`, counted
+  in SQL): "Clients in the Last 30 Days" (contacts added, or with a kept
+  appointment that has started, in the last 30 days, each person once) and
+  "N Appointments Today" with their value (appointment price, else the
+  service's list price; unpriced ones are counted and said, never guessed).
+  Coming up lists the next six booked appointments in the reference's rows
+  (tag, guest, service with stylist, when on the salon's clock, Open), with
+  "Past appointments (n)" underneath. The nav shows no person chip: the app
+  is shared by the salon, and `#meBtn` stays in the page, `hidden`, because
+  paintMe() still writes to it. `.main` starts 116px down (108 and 100 on
+  smaller screens) so titles clear the fixed nav.
 - Nav: Home (`/staff`), Appt. Book (`/staff/appointments`), Clients
   (`/staff/clients`), Marketing, Settings. Clients filters by stylist (All,
   then a button per team member with the Stylist role, matched through the

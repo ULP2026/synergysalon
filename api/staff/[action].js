@@ -21,6 +21,7 @@ import calendars from './_routes/calendars.js';
 import centro from './_routes/centro.js';
 import contacts from './_routes/contacts.js';
 import diary from './_routes/diary.js';
+import home from './_routes/home.js';
 import login from './_routes/login.js';
 import invite from './_routes/invite.js';
 import logout from './_routes/logout.js';
@@ -39,6 +40,7 @@ const ROUTES = {
   centro,
   contacts,
   diary,
+  home,
   login,
   invite,
   logout,
