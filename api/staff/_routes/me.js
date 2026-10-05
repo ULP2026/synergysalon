@@ -8,6 +8,7 @@
 import { requireStaff } from '../../_lib/auth.js';
 import { REMINDER_LEAD_HOURS } from '../../_lib/config.js';
 import { query } from '../../_lib/db.js';
+import { googleConfigured } from '../../_lib/google.js';
 import { handler, json } from '../../_lib/http.js';
 import { ensureSchema } from '../../_lib/ensure-schema.js';
 import { stylistPhoto } from '../../_lib/stylist-photos.js';
@@ -22,7 +23,7 @@ export default handler({
     await ensureSchema();
 
     const canAdmin = ['owner', 'manager'].includes(user.role);
-    const [services, stylists, pending, own] = await Promise.all([
+    const [services, stylists, pending, own, team] = await Promise.all([
       query(
         `SELECT slug, name, duration_min, price_cents, consult_first
            FROM services WHERE tenant_id = $1 AND active ORDER BY sort_order`,
@@ -51,6 +52,17 @@ export default handler({
           WHERE s.staff_user_id = $1 LIMIT 1`,
         [user.id],
       ),
+      // Everyone active, for the Clients filters: stylists by name, or the
+      // whole team as stand-ins while nobody has the Stylist role. Names and
+      // roles only, which everybody on the team already sees on the diary.
+      query(
+        `SELECT u.id, u.name, u.role, s.slug AS stylist_slug
+           FROM staff_users u
+           LEFT JOIN stylists s ON s.staff_user_id = u.id
+          WHERE u.tenant_id = $1 AND u.status = 'active'
+          ORDER BY u.name`,
+        [tenant.id],
+      ),
     ]);
 
     return json(res, 200, {
@@ -77,11 +89,17 @@ export default handler({
         const portrait = stylistPhoto(tenant.slug, s.slug);
         return { ...s, photo: uploaded || portrait || s.photo };
       }),
+      team: team.rows.map((t) => ({
+        id: t.id, name: t.name, role: t.role, stylistSlug: t.stylist_slug,
+      })),
       // What Marketing, Automation shows as on or waiting. Whether email can
       // be sent is a fact about this deployment, not a setting anyone edits.
       features: {
         email: Boolean(process.env.RESEND_API_KEY),
         reminderHours: REMINDER_LEAD_HOURS,
+        // Connect your tools offers Google only once the site has the
+        // credentials to send somebody to Google with.
+        google: googleConfigured(),
       },
     });
   },

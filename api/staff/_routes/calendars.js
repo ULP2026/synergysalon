@@ -140,8 +140,22 @@ export default handler({
 
     // Revoking Google is its own thing: it does not touch the subscribe link,
     // and the subscribe link's disconnect does not touch Google.
+    // An owner or manager can take a team member's off too, from that
+    // member's Connect your tools, as they could put it on for them.
     if (action === 'disconnect-google') {
-      await disconnectGoogle(user.id);
+      let target = user.id;
+      if (body.member && body.member !== user.id) {
+        if (!['owner', 'manager'].includes(user.role)) {
+          throw new HttpError(403, 'Only an owner or manager can disconnect somebody else.');
+        }
+        const { rows } = /^[0-9a-f-]{36}$/.test(String(body.member))
+          ? await query('SELECT id FROM staff_users WHERE id = $1::uuid AND tenant_id = $2::uuid',
+            [body.member, user.tenant_id])
+          : { rows: [] };
+        if (!rows[0]) throw new HttpError(404, 'That team member was not found.');
+        target = rows[0].id;
+      }
+      await disconnectGoogle(target);
       return json(res, 200, { disconnected: 'google' });
     }
 

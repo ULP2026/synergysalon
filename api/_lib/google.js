@@ -7,9 +7,11 @@
  * their dentist appointment rather than in a separate subscribed calendar
  * they have to remember to look at.
  *
- * Only the write direction is implemented. Reading a staff member's personal
- * events to block salon slots is a bigger privacy conversation than a checkbox
- * should decide, and is deliberately not done here.
+ * It is also read back: a connected person's events are shown as their own
+ * column on Appt. Book, beside the salon's calendar, so the front desk can see
+ * when they are busy. Only the times are shown. A stylist's dentist
+ * appointment is their business; that they are not free at 2pm is the
+ * salon's. The connect card says so before anybody signs in.
  */
 import { query } from './db.js';
 import { decryptSecret, encryptSecret } from './secrets.js';
@@ -211,4 +213,35 @@ export async function pushEvent(userId, appt, timezone) {
     [appt.id, userId, created.id],
   );
   return created.id;
+}
+
+/**
+ * One person's Google events between two instants, as busy spans.
+ *
+ * Titles, attendees and descriptions are not asked for (the fields mask
+ * leaves them out), so they never pass through this server at all, rather
+ * than being fetched and then hidden. Free time marked "show me as available"
+ * is skipped: it is in the calendar but it is not a reason to say they are
+ * busy. Returns null when the person is not connected.
+ */
+export async function busyBetween(userId, fromIso, toIso) {
+  const token = await accessTokenFor(userId);
+  if (!token) return null;
+  const p = new URLSearchParams({
+    timeMin: fromIso,
+    timeMax: toIso,
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    maxResults: '250',
+    fields: 'items(id,status,transparency,start,end)',
+  });
+  const data = await call(token, `/calendars/primary/events?${p}`);
+  return (data?.items || [])
+    .filter((e) => e.status !== 'cancelled' && e.transparency !== 'transparent')
+    .map((e) => ({
+      // An all-day event has a date and no time: it covers the whole day.
+      allDay: Boolean(e.start?.date && !e.start?.dateTime),
+      startsAt: e.start?.dateTime || e.start?.date,
+      endsAt: e.end?.dateTime || e.end?.date,
+    }));
 }

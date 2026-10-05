@@ -13,6 +13,11 @@
  * the same appointments, grouped by date. A second endpoint would be a second
  * place for the two to disagree about what "cancelled" looks like.
  *
+ * The day also carries a column per team member who has connected Google
+ * Calendar: their busy times that day, read live from Google (google.js says
+ * why only the times). Live rather than synced, because a copy would be
+ * wrong the moment they moved something in Google, and a day is one request.
+ *
  * Scoped to the signed-in user's salon, never to a tenant named in the query
  * string. Cancelled appointments are included but marked, because the front
  * desk needs to see that the 2pm was cancelled rather than wonder where it
@@ -22,6 +27,7 @@ import { DateTime } from 'luxon';
 
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
+import { busyBetween, googleConfigured } from '../../_lib/google.js';
 import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
@@ -133,9 +139,42 @@ export default handler({
       }));
     }
 
+    // Google, for the day view only, one call per connected person, side by
+    // side. A person whose Google refuses still gets their column, saying so,
+    // rather than an empty one that reads as a free day.
+    let team = [];
+    if (!month && googleConfigured()) {
+      const { rows: linked } = await query(
+        `SELECT u.id, u.name, u.role, u.avatar, u.google_email,
+                s.slug AS stylist_slug, to_jsonb(s) ->> 'photo' AS photo
+           FROM staff_users u
+           LEFT JOIN stylists s ON s.staff_user_id = u.id
+          WHERE u.tenant_id = $1::uuid AND u.status = 'active'
+            AND u.google_refresh_token IS NOT NULL
+          ORDER BY u.name`,
+        [tenant.id],
+      ).catch(() => ({ rows: [] }));   // before migration 010, nobody is linked
+      team = await Promise.all(linked.map(async (u) => {
+        const col = {
+          id: u.id, name: u.name, role: u.role, avatar: u.avatar, photo: u.photo,
+          stylistSlug: u.stylist_slug, account: u.google_email, busy: [], error: null,
+        };
+        try {
+          const busy = await busyBetween(u.id, from.toISO(), to.toISO());
+          if (busy === null) col.error = 'Google disconnected. Connect it again from their profile.';
+          else col.busy = busy;
+        } catch (err) {
+          console.error('google busy failed', u.id, err.message);
+          col.error = 'Google did not answer. Try again in a moment.';
+        }
+        return col;
+      }));
+    }
+
     return json(res, 200, {
       date,
       blocks,
+      team,
       month: month ? month.toFormat('yyyy-MM') : null,
       timezone: tenant.timezone,
       today: DateTime.now().setZone(tenant.timezone).toISODate(),
