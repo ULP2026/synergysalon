@@ -35,7 +35,10 @@ follows the hero with no band and no overlap. The fold is the main site's
 hero (badge and title centred, chair centred and rising into the title's
 last line, placed by `placeChair` as on the main site; details along the
 foot). Images below the fold open from an inset frame as they scroll in
-(GSAP ScrollTrigger, scrubbed, off for reduced motion). The black footer is
+(GSAP ScrollTrigger, scrubbed, off for reduced motion). From 1180px, with motion allowed, two salon photos per side
+(`.fold-gal`, a sticky layer behind the panel) slide out from behind the card
+as it shrinks, sized to the card's end state; from 1360px one photo sits in
+each gutter beside the tour form (`.tour-side`). The black footer is
 the only footer; the old gray one was removed on request. Book a Salon Tour
 lands the whole form in view, counting the phone's bottom bar. The GoHighLevel iframe,
 its embed script and the thank-you message listener are untouched.
