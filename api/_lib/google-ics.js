@@ -22,21 +22,99 @@ import { DateTime } from 'luxon';
 import { canStoreSecrets, decryptSecret, encryptSecret } from './secrets.js';
 
 /**
- * The address, checked, with the calendar it belongs to (the address in its
- * path), or null when it is not a Google Calendar iCal address. A Gmail
- * address on its own is the common mistake; the caller says what to paste.
+ * Read whatever was pasted into a Google Calendar iCal address, or say what
+ * was pasted instead.
+ *
+ * People paste what they find. The first version accepted only the exact
+ * https address and answered everything else with the same sentence, so a
+ * calendar ID, the public link or an address with a stray quote all looked
+ * like "it doesn't work". Each common mistake now has its own answer, and
+ * the forgivable ones (spaces, quotes, webcal://, no https://) are fixed.
+ *
+ * Returns { ok: true, url, account, isPrivate } or { ok: false, reason }.
  */
-export function parseIcsLink(raw) {
+export function readIcsLink(raw) {
+  let text = String(raw || '').trim().replace(/^[<"'`\s]+|[>"'`\s]+$/g, '');
+  if (!text) return { ok: false, reason: 'Paste your calendar’s Secret address in iCal format.' };
+
+  // A calendar ID (an email address, or Google's long group id) is not an
+  // address Google will serve; it is the most common thing pasted.
+  if (/^[^\s/@]+@[^\s/@]+\.[^\s/@]+$/.test(text)) {
+    return { ok: false, reason: 'That is your calendar ID, not its address. In Google Calendar settings, under Integrate calendar, copy “Secret address in iCal format” instead.' };
+  }
+  // A link pasted inside other text: take the Google address out of it.
+  const found = text.match(/(?:https?|webcal):\/\/calendar\.google\.com\/\S+/i)
+    || text.match(/calendar\.google\.com\/\S+/i);
+  if (found) text = found[0];
+  text = text.replace(/^webcal:\/\//i, 'https://').replace(/^http:\/\//i, 'https://');
+  if (!/^https:\/\//i.test(text)) text = `https://${text}`;
+
   let url;
-  try { url = new URL(String(raw || '').trim()); } catch { return null; }
-  if (url.protocol !== 'https:' || url.hostname !== 'calendar.google.com') return null;
+  try { url = new URL(text); } catch {
+    return { ok: false, reason: 'That is not a web address. Copy “Secret address in iCal format” from Google Calendar settings.' };
+  }
+  if (url.hostname !== 'calendar.google.com') {
+    return { ok: false, reason: 'That is not a Google Calendar address. It should start with https://calendar.google.com/calendar/ical/' };
+  }
+  if (/\/calendar\/(embed|u\/\d+\/r|r)\b/.test(url.pathname) || url.searchParams.has('src') || url.searchParams.has('cid')) {
+    return { ok: false, reason: 'That is the link for viewing the calendar in a browser. Under Integrate calendar, copy “Secret address in iCal format” instead.' };
+  }
   const m = url.pathname.match(/^\/calendar\/ical\/([^/]+)\/([^/]+)\/basic\.ics$/);
-  if (!m) return null;
-  // The public address works too, but only for a calendar made public, which
-  // a personal calendar should not be; the private one is what is asked for.
+  if (!m) {
+    return { ok: false, reason: 'That address looks cut short. Copy the whole “Secret address in iCal format”; it ends in /basic.ics' };
+  }
   let account = '';
   try { account = decodeURIComponent(m[1]); } catch { account = m[1]; }
-  return { url: url.toString(), account, isPrivate: m[2].startsWith('private-') };
+  url.search = '';
+  url.hash = '';
+  return { ok: true, url: url.toString(), account, isPrivate: m[2].startsWith('private-') };
+}
+
+/** The address, if it is one; for reading back what is already stored. */
+export function parseIcsLink(raw) {
+  const r = readIcsLink(raw);
+  return r.ok ? { url: r.url, account: r.account, isPrivate: r.isPrivate } : null;
+}
+
+/**
+ * Ask Google for the feed and read today from it, as Appt. Book will, so a
+ * calendar is only called connected once it has actually been read. Says in
+ * plain words what Google answered when it is not a calendar.
+ */
+export async function checkIcsLink(link, zone) {
+  let res;
+  try {
+    res = await fetch(link.url, { signal: AbortSignal.timeout(15_000), redirect: 'follow', headers: { Accept: 'text/calendar' } });
+  } catch (err) {
+    return { ok: false, why: `network: ${err.name}`, reason: 'Google did not answer in time. Check your connection and press Connect again.' };
+  }
+  if (res.status === 404) {
+    return {
+      ok: false, why: '404',
+      reason: link.isPrivate
+        ? 'Google has no calendar at that address. If the secret address was reset, copy the new one from Google Calendar settings.'
+        : 'That is the public address, and this calendar is not public. Copy “Secret address in iCal format” instead.',
+    };
+  }
+  if (res.status === 400) {
+    return { ok: false, why: '400', reason: 'Google says that address is incomplete. Copy the whole “Secret address in iCal format” again.' };
+  }
+  if (res.status === 401 || res.status === 403) {
+    return { ok: false, why: String(res.status), reason: 'Google refused to share this calendar. A work Google account may have secret addresses turned off by its administrator.' };
+  }
+  if (!res.ok) return { ok: false, why: String(res.status), reason: `Google answered with an error (${res.status}). Try again in a minute.` };
+  const text = await res.text();
+  if (!text.startsWith('BEGIN:VCALENDAR')) {
+    return { ok: false, why: 'not-ics', reason: 'That address did not return a calendar. Copy “Secret address in iCal format” from Google Calendar settings.' };
+  }
+  cache.set(link.url, { at: Date.now(), text });
+  try {
+    const now = DateTime.now().setZone(zone);
+    await icsBusyBetween(link.url, now.startOf('day').toISO(), now.endOf('day').toISO(), zone);
+  } catch (err) {
+    return { ok: false, why: `parse: ${err.message}`, reason: 'Google sent the calendar but it could not be read. Please tell your web team.' };
+  }
+  return { ok: true };
 }
 
 /** Encrypted when the site can, so a database copy is not a set of calendars. */
@@ -58,7 +136,7 @@ const MAX_BYTES = 8 * 1024 * 1024;
 async function fetchFeed(url) {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.text;
-  const res = await fetch(url, { signal: AbortSignal.timeout(15_000), redirect: 'error' });
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000), redirect: 'follow', headers: { Accept: 'text/calendar' } });
   if (res.status === 404 || res.status === 403) {
     throw new Error('Google no longer accepts this calendar address. It may have been reset.');
   }
