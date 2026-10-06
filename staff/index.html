@@ -5022,6 +5022,15 @@ async function openMember(who) {
   paintServices(m?.services || {});
   paintHours(m?.hours || []);
   syncHoursVisibility();
+
+  // A stylist with no login has no email, no role and no password, so the
+  // parts of this dialog that are about access do not apply to them.
+  const noLogin = Boolean(m && m.noLogin);
+  f.elements.email.closest('label').classList.toggle('hidden', noLogin);
+  f.elements.role.closest('label').classList.toggle('hidden', noLogin);
+  f.elements.username.closest('label').classList.toggle('hidden', noLogin);
+  f.elements.email.required = !noLogin;
+  if (noLogin) $('memberCreate').classList.add('hidden');
   toolsFor = m;
   paintTools();
   if (self) refreshTools();      // your own status comes from your calendar link
@@ -5171,7 +5180,16 @@ $('memberForm').onsubmit = async (e) => {
     // services on would store a rota for a person no guest can reach.
     if (Object.values(services).some((v) => v.on)) fields.hours = readHoursUI();
     if (memberPic !== undefined) fields.avatar = memberPic;
-    if (!memberEdit) {
+    if (memberEdit && memberEdit.noLogin) {
+      await api('/api/staff/team', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: memberEdit.id, action: 'update', services, hours: readHoursUI(),
+        }),
+      });
+      toast(Object.values(services).some((v) => v.on)
+        ? `${memberEdit.name} can be booked.` : `${memberEdit.name} is off the booking page.`);
+    } else if (!memberEdit) {
       const made = await api('/api/staff/team', {
         method: 'POST',
         body: JSON.stringify({ action: 'create', ...fields, role: f.get('role') }),
@@ -5224,12 +5242,14 @@ function svcSummary(services = {}) {
 let teamOthers = [];        // everyone else on the team, for owners and managers
 
 function memberRow(m, self) {
-  const status = m.status === 'disabled' ? '<span class="chip">Turned off</span>' : '<span class="chip ok">Active</span>';
+  const status = m.noLogin
+    ? (m.bookable ? '<span class="chip ok">Bookable</span>' : '<span class="chip">Not bookable</span>')
+    : m.status === 'disabled' ? '<span class="chip">Turned off</span>' : '<span class="chip ok">Active</span>';
   return `<button type="button" class="tm-row${self ? ' me' : ''}${m.status === 'disabled' ? ' off' : ''}" data-member="${self ? 'me' : esc(m.id)}"
       aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
     <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""><span class="pen">${ic('edit')}</span></span>
     <span class="tm-who"><b>${esc(m.name)}${m.username ? ` <i class="tm-handle">@${esc(m.username)}</i>` : ''}${self ? ' <i class="tm-you">You</i>' : ''}</b>
-      <span>${esc(m.email)}</span>
+      <span>${esc(m.noLogin ? (m.title || 'Stylist — no sign in') : m.email)}</span>
       <span class="tm-svc">${svcSummary(m.services)}</span></span>
     <span class="tm-badges"><span class="chip role">${esc(ROLE_LABEL[m.role] || m.role)}</span>${status}</span>
   </button>`;
@@ -5305,7 +5325,12 @@ async function loadTeam() {
       me?.user?.canAdmin ? api('/api/staff/team') : Promise.resolve(null),
     ]);
     const pending = t ? t.members.filter((m) => m.status === 'pending') : [];
-    const others = t ? t.members.filter((m) => m.id !== t.you.id && m.status !== 'pending') : [];
+    // Stylists with no login sit in the same list as the staff. A salon owner
+    // thinks in people behind chairs, not in who happens to have a password.
+    const others = t
+      ? [...t.members.filter((m) => m.id !== t.you.id && m.status !== 'pending'),
+        ...(t.standalone ?? [])]
+      : [];
     renderTeam({ ...p, status: 'active' }, others, pending);
     // A member added, renamed or made a Stylist is a new Clients filter.
     refreshTeamFilter();
