@@ -41,7 +41,16 @@ as it shrinks, laid out as the Legacy home page's: two equal portrait cards a
 side, 18px apart, a little lower than the card. The tour section has no side
 photos (removed on request). The black footer is
 the only footer; the old gray one was removed on request. Book a Salon Tour
-lands the whole form in view, counting the phone's bottom bar. The GoHighLevel iframe,
+lands the whole form in view, counting the phone's bottom bar. It opens with
+the main site's loader, copied beat for beat (SYNERGY, the three-picture
+window, the card growing into the fold, then chair, header, headline, foot):
+`html.js-anim` is armed in the template head, `playIntro()` runs it, and it
+is skipped for reduced motion or when the page opens part way down. While
+it runs the hero is `position:relative` (`.rc.intro`), because sticky
+always makes a stacking context and would keep the card under the loader.
+Type follows the main site's measured scale: labels 14px/500 untracked, the
+fold headline as its h1, the fold paragraph as its hero lede, paragraphs
+16px/1.5, small titles and FAQ questions 20px/500. The GoHighLevel iframe,
 its embed script and the thank-you message listener are untouched.
 
 ## The pages are design-tool exports
