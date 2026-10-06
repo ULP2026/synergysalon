@@ -12,7 +12,9 @@ import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
 import { query, transaction } from '../../_lib/db.js';
-import { hoursFor, readHours, syncStylist } from '../../_lib/roster.js';
+import {
+  hoursFor, listStandalone, readHours, syncStandalone, syncStylist,
+} from '../../_lib/roster.js';
 import { sendInvite } from '../../_lib/email.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
@@ -95,9 +97,15 @@ export default handler({
       [tenant.id],
     );
 
+    // Stylists who take appointments but never sign in. They are on the same
+    // list because from a salon's point of view they are the same thing: a
+    // person in a chair that a guest can book.
+    const standalone = await listStandalone({ query }, tenant.id);
+
     return json(res, 200, {
       you: { id: user.id, role: user.role },
       pending: rows.filter((r) => r.status === 'pending').length,
+      standalone,
       members: rows.map((r) => ({
         id: r.id,
         // Added but never signed in: their invite is still outstanding.
@@ -208,6 +216,18 @@ export default handler({
     }
 
     const id = requireString(body.id, 'Member', { max: 64 });
+
+    // "st_<uuid>" is a stylist with no login. They have no role, no password
+    // and no session, so none of the access rules below apply to them -- only
+    // what they do and when.
+    if (id.startsWith('st_')) {
+      if (action !== 'update') throw new HttpError(400, 'That cannot be done to a stylist without a login.');
+      const saved = await transaction((client) => syncStandalone(
+        client, tenant.id, id.slice(3),
+        { services: servicesFrom(body.services), hours: readHours(body.hours) },
+      ));
+      return json(res, 200, { ok: true, id, action, bookable: saved.bookable });
+    }
 
     const { rows } = await query(
       'SELECT id, name, role, status FROM staff_users WHERE id = $1 AND tenant_id = $2',
