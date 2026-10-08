@@ -15,6 +15,7 @@ import {
 } from '../../_lib/http.js';
 import { MIN_PASSWORD_LENGTH, hashPassword, verifyPassword } from '../../_lib/password.js';
 import { stylistPhoto } from '../../_lib/stylist-photos.js';
+import { googleStatus } from './calendars.js';
 
 /**
  * An avatar, or nothing.
@@ -127,7 +128,13 @@ export default handler({
               to_jsonb(u) -> 'avatar_style' AS avatar_style,
               (SELECT to_jsonb(s) ->> 'photo' FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS photo,
               (SELECT s.slug FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS stylist_slug,
-              (SELECT t.slug FROM tenants t WHERE t.id = u.tenant_id) AS tenant_slug
+              (SELECT t.slug FROM tenants t WHERE t.id = u.tenant_id) AS tenant_slug,
+              -- Whether their calendar is connected, so their own window opens
+              -- showing it rather than offering Connect until a second request
+              -- says otherwise. Through to_jsonb, as everywhere else.
+              to_jsonb(u) ->> 'google_email' AS google_email,
+              to_jsonb(u) ->> 'google_connected_at' AS google_connected_at,
+              to_jsonb(u) ->> 'google_ics' AS google_ics
          FROM staff_users u WHERE id = $1`,
       [user.id],
     );
@@ -147,6 +154,7 @@ export default handler({
       since: me.created_at,
       lastSeen: me.last_seen_at,
       minPasswordLength: MIN_PASSWORD_LENGTH,
+      google: (() => { try { return googleStatus(me); } catch { return undefined; } })(),
     });
   },
 

@@ -3948,8 +3948,9 @@ function openCalDialog(stylist) {
     <div class="calopt">
       <span class="ico">${ic('link')}</span>
       <div><b>Connect your phone’s calendar</b><span class="d">Put your appointments in your Google Calendar. It updates on its own.</span></div>
-      ${admin ? '<button type="button" class="btn sm" data-calgo="connect">Connect</button>'
-        : '<span class="chip">Ask an owner</span>'}
+      ${feedData?.google?.connected ? '<span class="chip ok">Connected</span>'
+        : admin ? '<button type="button" class="btn sm" data-calgo="connect">Connect</button>'
+          : '<span class="chip">Ask an owner</span>'}
     </div>
     <div class="calopt soon">
       <span class="ico">${ic('calendar-plus')}</span>
@@ -5631,11 +5632,18 @@ function calAppRows(d) {
       <div style="min-width:0"><b>${esc(CAL_APPS.find((a) => a.key === k).name)}</b><span class="d">${esc(desc)}</span></div>
       <span class="int-r">${st(on)}${button}</span></div>`;
   const g = d.google || {};
+  // Connected is connected, whichever way it was done: signed in, or the
+  // private address pasted into Connect your tools. This row used to look
+  // only at the sign-in, so somebody connected by the address was offered
+  // Google again here as if they were not.
+  const googleRow = g.connected
+    ? row('google', `Connected${g.account ? ` as ${g.account}` : ''}. Your busy times show on Appt. Book.`, true,
+      b('google-off', 'Disconnect'))
+    : g.available
+      ? row('google', 'Show your Google busy times on Appt. Book', false, b('google-on', 'Connect'))
+      : row('google', 'Add your salon appointments to Google Calendar. It updates on its own.', fed(['google']), b('google-sub', 'Add'));
   return [
-    g.available
-      ? row('google', 'Appointments written into your Google Calendar as they are booked', g.connected,
-        g.connected ? b('google-off', 'Disconnect') : b('google-on', 'Connect'))
-      : row('google', 'Subscribe in Google Calendar. It updates on its own.', fed(['google']), b('google-sub', 'Add')),
+    googleRow,
     row('other', 'Apple Calendar, or any app that takes a calendar link', fed(['apple', 'other']), b('other', 'Copy link')),
   ].join('');
 }
@@ -5729,7 +5737,11 @@ function paintTools() {
   let row;
   let extra = '';
   let why = 'Only the times are shown on Appt. Book, never what the event is.';
-  if (g.connected) {
+  if (m && self && m.google === undefined) {
+    // Not known yet. Offering Connect here was how somebody already connected
+    // got asked to connect again while their status was on its way.
+    row = '<span class="tool-acct none">Checking…</span>';
+  } else if (g.connected) {
     row = `<span class="tool-acct">${esc(g.account || 'Connected')}</span>
       ${canAct ? '<button type="button" class="btn quiet sm" data-tool="google-off">Disconnect</button>' : ''}`;
   } else if (!m) {
@@ -5784,7 +5796,11 @@ async function refreshTools() {
       const fresh = (t.members || []).find((x) => String(x.id) === String(m.id));
       if (fresh) m.google = fresh.google;
     }
-  } catch { /* the card keeps what it showed */ }
+  } catch {
+    // Unknown is shown as not connected only once asking has failed, so the
+    // way to connect is still there.
+    if (m.google === undefined) m.google = { connected: false, account: null };
+  }
   if (toolsFor === m && $('memberDlg').open) paintTools();
 }
 
@@ -5807,6 +5823,7 @@ async function saveToolLink(b) {
       method: 'POST', body: JSON.stringify({ action: 'google-link', link, ...(forId ? { member: forId } : {}) }),
     });
     toolsFor.google = r.google;
+    if (!forId && feedData) feedData.google = r.google;
     paintTools();
     toast(`Google Calendar connected${r.google.account ? ` (${r.google.account})` : ''}. It now shows on Appt. Book.`);
     if (page === 'settings' && setTab === 'team') loadTeam();
@@ -5856,6 +5873,7 @@ $('memberToolsList').onclick = async (e) => {
     });
     toast('Google Calendar disconnected.');
     toolsFor.google = { connected: false, account: null };
+    if (!forId && feedData) feedData.google = { ...(feedData.google || {}), connected: false, account: null, via: null };
     paintTools();
     if (page === 'settings' && setTab === 'team') loadTeam();
     if (page === 'appointments' && calView === 'day') loadDay(day);

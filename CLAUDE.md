@@ -257,6 +257,12 @@ made that way are real: name them ZZ and remove them.
   `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY` in Vercel; the pasted address needs
   nothing. `pushEvent` (writing into Google) exists
   but nothing calls it.
+  Connected means connected either way (`googleStatus`), everywhere: the
+  tools card, the New calendar form's Google row (`calAppRows`, which used to
+  read only the sign-in and offered Google again to anyone connected by the
+  address) and the calendar dialog. `GET /api/staff/profile` carries the
+  status, so your own window opens right instead of offering Connect until a
+  second request answered; it says "Checking…" if the status is missing.
 - Appt. Book's day is the people with a connected calendar, one column each
   (the four salon lanes were removed on request once anybody connects).
   Anything nobody on the grid owns (a booking with a stylist who has not
