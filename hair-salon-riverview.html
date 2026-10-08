@@ -158,6 +158,18 @@ html.ss-soon-lock,html.ss-soon-lock body{overflow:hidden}
     return;
   }
 
+  // A demo of the popup on a preview deployment: see the booking adapter
+  // below. Only ever on a preview address, never on the salon's own domain.
+  var demo = false;
+  try {
+    var dh = location.hostname;
+    if (/\.vercel\.app$/.test(dh) || dh === 'localhost' || dh === '127.0.0.1') {
+      if (new URL(location.href).searchParams.get('booking-demo') === '1') sessionStorage.setItem('ss-booking-demo', '1');
+      demo = sessionStorage.getItem('ss-booking-demo') === '1';
+    }
+  } catch (e) {}
+  if (demo) return;
+
   var PHONE = '813.654.2055';
   var TEL = 'tel:+18136542055';
   var el = null;
@@ -273,6 +285,41 @@ html.ss-soon-lock,html.ss-soon-lock body{overflow:hidden}
   var ENDPOINT = '/api/enquiry';
   var sending = false, lastSent = '', timer = null;
 
+  // Demo mode, for trying the popup on a preview link before it goes live.
+  //
+  // Preview deployments share the live database, so a booking made on one is
+  // a real appointment, mirrored to CENTRO. In demo mode nothing is posted at
+  // all: "Book Me Now!" gets a made-up confirmation after a short pause, so
+  // the confetti and the toast can be seen. It is switched on with
+  // ?booking-demo=1, lasts for the tab, and only works on a *.vercel.app or
+  // local address, so the salon's own site can never pretend to book anyone.
+  var DEMO = false;
+  try {
+    var host = location.hostname;
+    if (/\.vercel\.app$/.test(host) || host === 'localhost' || host === '127.0.0.1') {
+      if (new URL(location.href).searchParams.get('booking-demo') === '1') sessionStorage.setItem('ss-booking-demo', '1');
+      DEMO = sessionStorage.getItem('ss-booking-demo') === '1';
+    }
+  } catch (e) {}
+  if (DEMO) {
+    // The page swaps its document once it loads; keep the bar on screen.
+    setInterval(function () {
+      if (document.getElementById('ss-demo-bar') || !document.body) return;
+      var b = document.createElement('div');
+      b.id = 'ss-demo-bar';
+      b.setAttribute('style', 'position:fixed;left:50%;bottom:12px;transform:translateX(-50%);max-width:calc(100vw - 24px);z-index:2147483001;'
+        + 'display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:999px;box-sizing:border-box;'
+        + 'background:#F2B84B;color:#1E1F5C;font:600 14px/1.3 system-ui,sans-serif;box-shadow:0 12px 30px -10px rgba(20,5,40,.6)');
+      b.innerHTML = 'Booking demo: nothing is saved or sent.'
+        + '<button type="button" style="border:0;border-radius:999px;padding:6px 12px;background:#1E1F5C;color:#fff;font:inherit;cursor:pointer">Exit demo</button>';
+      b.querySelector('button').onclick = function () {
+        try { sessionStorage.removeItem('ss-booking-demo'); } catch (e) {}
+        location.reload();
+      };
+      document.body.appendChild(b);
+    }, 1000);
+  }
+
   // One id for this sitting, minted before anything is typed.
   //
   // The server used to work out who was booking from whatever was in the email
@@ -346,6 +393,10 @@ html.ss-soon-lock,html.ss-soon-lock body{overflow:hidden}
   function send(complete, snap) {
     var body = payload(complete, snap);
     if (!body) { if (complete) answer({ ok: false }); return; }
+    if (DEMO) {
+      if (complete) setTimeout(function () { answer({ ok: true, ref: 'DEMO', saved: true }); }, 1200);
+      return;
+    }
     var key = JSON.stringify(body);
     // A send already in flight must never swallow the finished one: that is
     // the difference between a booking and a lead nobody knows to call. Hold

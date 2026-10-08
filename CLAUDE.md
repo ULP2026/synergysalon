@@ -119,6 +119,13 @@ the typed name): looking a profile up by name on a public page would expose
 any client's email and phone. Color's "Other" has no service, so it saves a
 lead for the salon to call, as "Not sure yet" did.
 
+**Demo mode for preview links.** `?booking-demo=1` on a `*.vercel.app` (or
+local) address opens the real popup despite the pause, shows a yellow
+"nothing is saved" bar, and answers "Book Me Now!" with a made-up booking
+without posting anything. It exists because preview deployments have their
+own `DATABASE_URL` that points at the live data, so a real test booking there
+is a real appointment. The flag is ignored on the salon's own domain.
+
 `/api/enquiry` saves the contact *before* attempting the appointment, and books
 whenever it has a service and a time rather than waiting for the wizard to say
 it finished — that signal failed four separate ways. Because it is called on
