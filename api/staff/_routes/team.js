@@ -5,10 +5,12 @@
  *   POST   add someone, edit their details, approve, reject, disable,
  *          re-enable, or change a role
  *
- * Owners and managers only. A front-desk account can use the console all day
- * but cannot grant anybody else access to the salon's client list.
+ * The owner and the agency's support login only (canManageTeam). Anybody else
+ * can use the console all day but only ever sees and changes their own
+ * account, so nobody can grant themselves or anyone else access, or open a
+ * colleague's details.
  */
-import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertSameOrigin, requireTeamAdmin } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
 import { query, transaction } from '../../_lib/db.js';
@@ -27,7 +29,6 @@ import {
   assertUsernameFree, avatarFrom, avatarStyleFrom, servicesFrom, usernameFrom,
 } from './profile.js';
 
-const ADMIN = ['owner', 'manager'];
 const ROLES = ['owner', 'manager', 'front_desk', 'stylist'];
 
 /** How long an invite is good for. Long enough for a day off, short enough
@@ -59,7 +60,7 @@ async function mintInvite(req, userId) {
 
 export default handler({
   async GET(req, res) {
-    const user = await requireStaff(req, ADMIN);
+    const user = await requireTeamAdmin(req);
     const tenant = await tenantForUser(user);
 
     const { rows } = await query(
@@ -140,7 +141,7 @@ export default handler({
 
   async POST(req, res) {
     assertSameOrigin(req);
-    const user = await requireStaff(req, ADMIN);
+    const user = await requireTeamAdmin(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
 

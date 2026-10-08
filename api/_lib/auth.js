@@ -8,6 +8,7 @@
  */
 import { createHash, randomBytes } from 'node:crypto';
 
+import { TEAM_ADMIN_EMAILS } from './config.js';
 import { query } from './db.js';
 import { HttpError } from './http.js';
 
@@ -103,6 +104,28 @@ export async function requireStaff(req, roles = null) {
   if (!user) throw new HttpError(401, 'Please sign in.');
   if (roles && !roles.includes(user.role)) {
     throw new HttpError(403, 'You do not have access to that.');
+  }
+  return user;
+}
+
+/**
+ * Whether this person may open, change or act for somebody else's account.
+ *
+ * Everybody else sees and changes their own account only. Managers used to
+ * be able to as well; the salon asked for that to be the owner alone, plus
+ * the agency's support login (TEAM_ADMIN_EMAILS), which sets people up.
+ */
+export function canManageTeam(user) {
+  if (!user) return false;
+  return user.role === 'owner'
+    || TEAM_ADMIN_EMAILS.includes(String(user.email || '').trim().toLowerCase());
+}
+
+/** requireStaff, and then canManageTeam. */
+export async function requireTeamAdmin(req) {
+  const user = await requireStaff(req);
+  if (!canManageTeam(user)) {
+    throw new HttpError(403, 'Only the owner can open other team members’ accounts.');
   }
   return user;
 }

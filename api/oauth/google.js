@@ -14,7 +14,7 @@
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-import { currentUser } from '../_lib/auth.js';
+import { canManageTeam, currentUser } from '../_lib/auth.js';
 import { query } from '../_lib/db.js';
 import { consentUrl, exchangeCode, googleConfigured } from '../_lib/google.js';
 import { canStoreSecrets, encryptSecret } from '../_lib/secrets.js';
@@ -88,15 +88,15 @@ export default async function handler(req, res) {
   if (url.searchParams.get('start')) {
     const user = await currentUser(req);
     if (!user) return closePage(res, false, 'Please sign in again and retry.');
-    // Connecting for somebody else: an owner or manager adding a stylist who
+    // Connecting for somebody else: the owner (or the support login) adding a stylist who
     // is standing beside them, signing in to their own Google account on the
     // salon's computer. Only within the same salon, and only for an admin,
     // because the state below is what decides whose row the tokens land on.
     let target = user.id;
     const forId = url.searchParams.get('for');
     if (forId && forId !== user.id) {
-      if (!['owner', 'manager'].includes(user.role)) {
-        return closePage(res, false, 'Only an owner or manager can connect a calendar for somebody else.');
+      if (!canManageTeam(user)) {
+        return closePage(res, false, 'Only the owner can connect a calendar for somebody else.');
       }
       const { rows } = /^[0-9a-f-]{36}$/.test(forId)
         ? await query('SELECT id FROM staff_users WHERE id = $1::uuid AND tenant_id = $2::uuid',

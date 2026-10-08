@@ -232,7 +232,7 @@ made that way are real: name them ZZ and remove them.
   Clients. The UI says "CRM"; the API keeps its `centro`
   names, which nobody sees.
 - **Connect your tools** is in the team member window, right under Username
-  (yours, or anyone's for owners and managers). Google Calendar only, for now,
+  (yours, or anyone's for the owner and the support login). Google Calendar only, for now,
   two ways in. Pasting the calendar's "Secret address in iCal format" works
   with no Google setup (`google-ics.js`: `readIcsLink` fixes quotes, spaces,
   webcal:// and a missing https://, and names each common wrong paste
@@ -249,16 +249,20 @@ made that way are real: name them ZZ and remove them.
   it exists; when both are set the sign-in is read. Connecting for somebody
   else (`/api/oauth/google?start=1&for=<id>`) is for an owner adding a
   stylist who signs in to their own Google beside them. Each connected
-  person is a column on Appt. Book's day view, right of the salon's lanes:
-  their Google busy times read live by `busyBetween` in `google.js` (times
-  only, the fields mask never asks Google for titles) plus their own salon
-  bookings. Those columns do not book on click. Google busy time does not
+  person is a column on Appt. Book's day view: their Google busy times read
+  live by `busyBetween` in `google.js` (times only, the fields mask never asks
+  Google for titles), their own salon bookings and blocks, and the salon-wide
+  ones. Clicking an empty time books with them. Google busy time does not
   yet block online availability. Sign-in needs `GOOGLE_CLIENT_ID`,
   `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY` in Vercel; the pasted address needs
   nothing. `pushEvent` (writing into Google) exists
   but nothing calls it.
-- Appt. Book opens on the day as at least four lanes under one "<salon>
-  Calendar" heading, the clock down the side. It has no "+ New calendar"
+- Appt. Book's day is the people with a connected calendar, one column each
+  (the four salon lanes were removed on request once anybody connects).
+  Anything nobody on the grid owns (a booking with a stylist who has not
+  connected) gets one "Other appointments" column that day, so it never
+  vanishes. Until somebody connects, the day is at least four lanes under one
+  "<salon> Calendar" heading, the clock down the side. It has no "+ New calendar"
   chip (removed on request). Nobody is assigned to a column yet: an appointment takes
   the first column free at its time, and cards do not name a stylist. Stylist
   columns (`dayColumns()`) come back once stylists are on the team. While the
@@ -292,8 +296,19 @@ made that way are real: name them ZZ and remove them.
 - `api/_lib/ensure-schema.js` adds the 011 to 013 columns on the first
   `/api/staff/me` of each warm function, because production ran ahead of
   `db:migrate`. Idempotent; `db:migrate` remains the record.
-- Team Members lists you, then (owners and managers) everyone else on the
-  team, each card opening the same modal, then an "Add a team member" row.
+- Team Members lists you, then (the owner and the support login only)
+  everyone else on the team, each card opening the same modal, then an "Add a
+  team member" row. Everybody else sees and changes their own account only:
+  `canManageTeam` in `auth.js` (role owner, or an email in `TEAM_ADMIN_EMAILS`
+  in `config.js`, today support@unclelouieproductions.com) gates
+  `/api/staff/team`, connecting a calendar for somebody else, and the console's
+  team views (`me.user.canManageTeam`). Managers keep the rest of `canAdmin`
+  (billing, deleting clients). Adding somebody sends the welcome
+  (`sendInvite`, `welcomeContent` in `email.js`): the one-use setup link
+  (they choose their own password; none is ever emailed), the app address,
+  what to fill in on their own account, and how to connect their calendar.
+  It is skipped without `RESEND_API_KEY`, and the link is always shown to
+  whoever added them.
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
 - Nav and buttons follow RocketOS's restraint on Synergy colours. The ring

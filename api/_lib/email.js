@@ -62,7 +62,7 @@ function escapeHtml(s) {
   ));
 }
 
-function layout({ heading, intro, rows, action, footnote }, shop) {
+function layout({ heading, intro, rows, action, steps, footnote }, shop) {
   const cells = rows
     .map(([label, value]) => `
       <tr>
@@ -80,6 +80,14 @@ function layout({ heading, intro, rows, action, footnote }, shop) {
        </p>`
     : '';
 
+  // Numbered instructions, for the one message that has any: the welcome.
+  const list = steps && steps.items && steps.items.length
+    ? `<h2 style="margin:32px 0 4px;font-size:16px;color:#1b1b1b;">${escapeHtml(steps.title || 'What to do next')}</h2>
+       <ol style="margin:0;padding:0 0 0 20px;color:#4a4a4a;font-size:14px;line-height:1.6;">
+         ${steps.items.map((it) => `<li style="margin:10px 0 0;"><b style="color:#1b1b1b;">${escapeHtml(it.title)}</b><br>${escapeHtml(it.text)}</li>`).join('')}
+       </ol>`
+    : '';
+
   return `<!doctype html>
 <html lang="en"><body style="margin:0;background:#faf8f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <div style="max-width:520px;margin:0 auto;padding:32px 24px;">
@@ -87,6 +95,7 @@ function layout({ heading, intro, rows, action, footnote }, shop) {
     <p style="margin:0 0 24px;color:#4a4a4a;font-size:15px;line-height:1.55;">${escapeHtml(intro)}</p>
     <table style="border-collapse:collapse;">${cells}</table>
     ${button}
+    ${list}
     ${footnote ? `<p style="margin:28px 0 0;color:#6b6b6b;font-size:13px;line-height:1.55;">${escapeHtml(footnote)}</p>` : ''}
     <hr style="border:none;border-top:1px solid #e8e2dc;margin:28px 0 16px;">
     <p style="margin:0;color:#6b6b6b;font-size:13px;line-height:1.6;">
@@ -98,7 +107,7 @@ function layout({ heading, intro, rows, action, footnote }, shop) {
 </body></html>`;
 }
 
-function plain({ heading, intro, rows, action, footnote }, shop) {
+function plain({ heading, intro, rows, action, steps, footnote }, shop) {
   return [
     heading,
     '',
@@ -106,6 +115,9 @@ function plain({ heading, intro, rows, action, footnote }, shop) {
     '',
     ...rows.map(([label, value]) => `${label}: ${value}`),
     ...(action ? ['', `${action.label}: ${action.href}`] : []),
+    ...(steps && steps.items && steps.items.length
+      ? ['', steps.title || 'What to do next', ...steps.items.map((it, i) => `${i + 1}. ${it.title}: ${it.text}`)]
+      : []),
     ...(footnote ? ['', footnote] : []),
     '',
     shop.name,
@@ -152,23 +164,75 @@ function detailRows(appt, zone) {
  * confirmed", which every shop's guests would have received.
  */
 /**
- * "You have been added to the team; choose a password."
+ * The welcome a new team member gets the moment they are added.
  *
- * The one message here that is not about an appointment, and the only one
- * whose link is a credential -- so it says plainly how long it lasts and that
- * it should not be forwarded.
+ * Everything they need in one place, because the person who added them is
+ * often not beside them when they open it: the link that sets them up, where
+ * the app lives afterwards, what to fill in on their own account, and how to
+ * put their calendar on Appt. Book. No password is ever in it: there is none
+ * to send, since they choose it themselves through the link, which is the
+ * only credential here and says plainly how long it lasts and not to forward
+ * it.
  */
-export function sendInvite({ name, email, link, expiresDays }, tenant = {}) {
+export function welcomeContent({ name, email, link, appUrl, expiresDays }, shop) {
+  const first = String(name || '').trim().split(/\s+/)[0] || 'there';
+  return {
+    subject: `Welcome to the ${shop.name} team: set up your account`,
+    content: {
+      heading: `Welcome to the team, ${first}`,
+      intro: `You have been added to the ${shop.name} app, where the team keeps the `
+        + 'appointment book, clients and their own calendars. Setting up takes a few minutes.',
+      rows: [['Your sign-in email', email], ['The app', appUrl]],
+      action: { label: 'Set up your account', href: link },
+      steps: {
+        title: 'Getting started',
+        items: [
+          {
+            title: 'Choose your password',
+            text: `Use the button above. It signs you straight in. The link works once `
+              + `and expires in ${expiresDays} days.`,
+          },
+          {
+            title: 'Sign in any time after that',
+            text: `Go to ${appUrl} and sign in with ${email} and the password you chose.`,
+          },
+          {
+            title: 'Complete your Team Settings',
+            text: 'Open Settings, then Team, and click your own name. Add your photo, a username, '
+              + 'your phone number, and switch on the services you do with your price for each. '
+              + 'The owner sets your weekly hours.',
+          },
+          {
+            title: 'Connect your calendar',
+            text: 'In the same window, under Connect your tools, choose Google Calendar. Paste your '
+              + 'calendar\u2019s secret address (in Google Calendar: Settings, your calendar, '
+              + 'Integrate calendar, "Secret address in iCal format"), or sign in with Google if '
+              + 'that option is shown. Your busy times then appear on Appt. Book, so nobody books '
+              + 'you when you are away. Only the times are read, never what the events are.',
+          },
+        ],
+      },
+      footnote: 'The setup link is just for you: anyone who has it can set up your account, so '
+        + 'please do not forward it. If it has expired, ask the owner to send a new one.',
+    },
+  };
+}
+
+/** The welcome as it will be sent, for a preview or a test. */
+export function welcomeEmail(args, tenant = {}) {
   const shop = shopFrom(tenant);
-  return send(shop, email, `Set up your ${shop.name} account`, {
-    heading: `Welcome, ${String(name || '').split(' ')[0] || 'there'}`,
-    intro: `You have been added to the team at ${shop.name}. Choose a password and `
-      + 'you are in. Nobody else sees it, including whoever added you.',
-    rows: [['Your sign-in email', email]],
-    action: { label: 'Choose your password', href: link },
-    footnote: `This link works once and expires in ${expiresDays} days. It is just `
-      + 'for you: anyone who has it can set up your account, so please do not forward it.',
-  });
+  const { subject, content } = welcomeContent(args, shop);
+  return { subject, html: layout(content, shop), text: plain(content, shop) };
+}
+
+export function sendInvite({ name, email, link, appUrl, expiresDays }, tenant = {}) {
+  const shop = shopFrom(tenant);
+  // The app's own address: app.synergysalon.com opens the console at its
+  // root, and any other host (a preview, localhost) serves it under /staff.
+  const u = new URL(link);
+  const app = appUrl || (u.hostname.startsWith('app.') ? u.origin : `${u.origin}/staff`);
+  const { subject, content } = welcomeContent({ name, email, link, appUrl: app, expiresDays }, shop);
+  return send(shop, email, subject, content);
 }
 
 /**

@@ -5,7 +5,7 @@
  * the login form or the diary without a round trip that loses the URL someone
  * was trying to reach.
  */
-import { requireStaff } from '../../_lib/auth.js';
+import { canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { REMINDER_LEAD_HOURS } from '../../_lib/config.js';
 import { query } from '../../_lib/db.js';
 import { googleConfigured } from '../../_lib/google.js';
@@ -23,6 +23,9 @@ export default handler({
     await ensureSchema();
 
     const canAdmin = ['owner', 'manager'].includes(user.role);
+    // Other people's accounts: the owner and the support login only. Managers
+    // keep everything else canAdmin gives them (billing, deleting clients).
+    const canManage = canManageTeam(user);
     const [services, stylists, pending, own, team] = await Promise.all([
       query(
         `SELECT slug, name, duration_min, price_cents, consult_first
@@ -42,7 +45,7 @@ export default handler({
         [tenant.id],
       ),
       // Drives the badge on Settings, so a request does not sit unseen.
-      canAdmin
+      canManage
         ? query("SELECT count(*)::int n FROM staff_users WHERE tenant_id = $1 AND status = 'pending'", [tenant.id])
         : Promise.resolve({ rows: [{ n: 0 }] }),
       // A stylist who never uploaded a picture still has the portrait the
@@ -68,7 +71,7 @@ export default handler({
 
     return json(res, 200, {
       user: {
-        name: user.name, email: user.email, role: user.role, canAdmin,
+        name: user.name, email: user.email, role: user.role, canAdmin, canManageTeam: canManage,
         avatar: user.avatar ?? null,
         photo: own.rows[0]?.photo ?? (own.rows[0] ? stylistPhoto(tenant.slug, own.rows[0].slug) : null),
       },
