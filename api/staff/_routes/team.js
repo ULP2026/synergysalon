@@ -2,8 +2,8 @@
  * /api/staff/team: who has access, and who is asking for it.
  *
  *   GET    the team, pending requests first
- *   POST   add someone, edit their details, approve, reject, disable,
- *          re-enable, or change a role
+ *   POST   add someone, edit their details, approve, reject, remove for
+ *          good (delete), disable, re-enable, or change a role
  *
  * The owner and the agency's support login only (canManageTeam). Anybody else
  * can use the console all day but only ever sees and changes their own
@@ -284,6 +284,44 @@ export default handler({
         // without an owner having to find and undo an old rejection.
         await query("DELETE FROM staff_users WHERE id = $1 AND status = 'pending'", [target.id]);
         break;
+
+      // Removing somebody from the team, for good. Asked for in place of
+      // turning the account off, which left people on the list.
+      //
+      // Their stylist row is kept but switched off first: appointments point
+      // at it, so past and booked work keeps their name, and a stylist with
+      // no login otherwise counts as bookable, which would leave the person
+      // just removed still taking online bookings. Everything else that
+      // points at the login lets go by itself: sessions and calendar tokens
+      // are deleted with it, and "booked by" or "approved by" become empty.
+      case 'delete': {
+        if (target.role === 'owner' && user.role !== 'owner') {
+          throw new HttpError(403, 'Only an owner can remove another owner.');
+        }
+        try {
+          await transaction(async (client) => {
+            await client.query(
+              'UPDATE stylists SET active = false WHERE staff_user_id = $1::uuid AND tenant_id = $2::uuid',
+              [target.id, tenant.id],
+            );
+            await client.query(
+              'DELETE FROM staff_users WHERE id = $1::uuid AND tenant_id = $2::uuid',
+              [target.id, tenant.id],
+            );
+          });
+        } catch (err) {
+          // Something added outside the migrations still points at them with
+          // no rule for letting go. Nothing was changed (it is one
+          // transaction), so say so rather than half-removing them.
+          if (err.code === '23503') {
+            console.error('team delete blocked by', err.constraint, err.table);
+            throw new HttpError(409, `${target.name} is still linked to other records, so they were not removed. `
+              + 'Nothing was changed. Please let support know.');
+          }
+          throw err;
+        }
+        break;
+      }
 
       case 'disable':
         await query(

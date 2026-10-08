@@ -309,6 +309,13 @@ made that way are real: name them ZZ and remove them.
   what to fill in on their own account, and how to connect their calendar.
   It is skipped without `RESEND_API_KEY`, and the link is always shown to
   whoever added them.
+  Removing somebody deletes them (`action:"delete"` on `/api/staff/team`,
+  "Remove from team" in their window), asked for in place of turning the
+  account off. Their `stylists` row is switched off first, not deleted:
+  appointments keep their name, and a stylist with no login would otherwise
+  count as bookable. Sessions and calendar tokens go with the login; booked-by
+  and approved-by links become empty. Only an owner can remove an owner, and
+  nobody can remove themselves.
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
 - Nav and buttons follow RocketOS's restraint on Synergy colours. The ring

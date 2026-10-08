@@ -5081,14 +5081,15 @@ async function openMember(who) {
   $('memberMeta').textContent = meta;
   $('memberMeta').classList.toggle('hidden', !meta);
 
-  // Your own profile is where you sign out; someone else can be turned off
-  // or back on.
+  // Your own profile is where you sign out; someone else is removed from the
+  // team for good (asked for in place of turning the account off), or, while
+  // they are only asking to join, declined.
   const danger = $('memberDanger');
   danger.dataset.act = '';
   if (self) { danger.textContent = 'Sign out'; danger.dataset.act = 'signout'; }
   else if (m && !lockedOwner && admin) {
-    const act = m.status === 'pending' ? 'reject' : m.status === 'disabled' ? 'enable' : 'disable';
-    danger.textContent = { reject: 'Decline request', enable: 'Turn back on', disable: 'Turn off account' }[act];
+    const act = m.status === 'pending' ? 'reject' : 'delete';
+    danger.textContent = { reject: 'Decline request', delete: 'Remove from team' }[act];
     danger.dataset.act = act;
   }
   danger.classList.toggle('hidden', !danger.dataset.act);
@@ -5132,7 +5133,13 @@ $('memberDanger').onclick = async () => {
   if (act === 'signout') { closeDialog($('memberDlg')); signOutNow(); return; }
   const m = memberEdit;
   if (!m || m === 'me') return;
-  if (act === 'disable' && !confirm('Turn off this account? They are signed out straight away.')) return;
+  if (act === 'delete' && !confirm(`Remove ${m.name} from the team for good?
+
+`
+    + 'Their login, profile and calendar connection are deleted and they are signed out '
+    + 'straight away. Their past and booked appointments stay on Appt. Book under their name, '
+    + 'and nobody can book them online any more. This cannot be undone: to have them back, '
+    + 'add them again.')) return;
   if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
   try {
     await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: m.id, action: act }) });
