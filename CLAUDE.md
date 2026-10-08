@@ -109,10 +109,10 @@ Cuts, Treatments, Styling, AI Scalp Analysis, "Select all that apply" as a
 pill), 2 who it is for, 3 service details (one question per kind picked; the
 scalp analysis is a details card), 4 stylist, 5 availability, 6 name, email,
 phone and optional notes with "Book Me Now!", then a confirmation with
-confetti and an optional "How did you hear about us?". The popup publishes its
+confetti, a six-second "Appointment booked!" toast, and an optional "How did you hear about us?". The popup publishes its
 answers on `window.__ssBk`; the adapter reads them there (not from headings),
 answers `ss-bk-confirm` with `ss-bk-result`, and the popup says "booked" and
-throws confetti only when the reply has a ref. There is no redirect to
+throws confetti and the toast only when the reply has a ref. There is no redirect to
 `/thank-you` any more. Returning guests are filled in only from what this
 browser saved at their last booking (`ss-guest` in `localStorage`, matched on
 the typed name): looking a profile up by name on a public page would expose
