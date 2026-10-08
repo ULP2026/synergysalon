@@ -104,6 +104,21 @@ invented: a hash of the date and stylist name kept 42% of slots. The adapter in
 the static head reads the rendered DOM, posts to `/api/enquiry`, and replaces
 the fake availability with the real diary.
 
+The survey (same code in all six pages, Riverview included) is: 1 the kinds of service (Color,
+Cuts, Treatments, Styling, AI Scalp Analysis, "Select all that apply" as a
+pill), 2 who it is for, 3 service details (one question per kind picked; the
+scalp analysis is a details card), 4 stylist, 5 availability, 6 name, email,
+phone and optional notes with "Book Me Now!", then a confirmation with
+confetti and an optional "How did you hear about us?". The popup publishes its
+answers on `window.__ssBk`; the adapter reads them there (not from headings),
+answers `ss-bk-confirm` with `ss-bk-result`, and the popup says "booked" and
+throws confetti only when the reply has a ref. There is no redirect to
+`/thank-you` any more. Returning guests are filled in only from what this
+browser saved at their last booking (`ss-guest` in `localStorage`, matched on
+the typed name): looking a profile up by name on a public page would expose
+any client's email and phone. Color's "Other" has no service, so it saves a
+lead for the salon to call, as "Not sure yet" did.
+
 `/api/enquiry` saves the contact *before* attempting the appointment, and books
 whenever it has a service and a time rather than waiting for the wizard to say
 it finished — that signal failed four separate ways. Because it is called on

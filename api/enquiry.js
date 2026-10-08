@@ -42,6 +42,7 @@ import { drain } from './cron/sync.js';
  */
 const SERVICE_BY_LABEL = {
   "single process color": "single-process-color",
+  "single process": "single-process-color",
   "highlights & foils": "highlights-and-foils",
   "balayage": "balayage",
   "biolage highlights": "biolage-highlights",
