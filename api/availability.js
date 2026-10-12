@@ -3,6 +3,10 @@
  *
  * `stylist` is optional; leaving it out means "first available" and each slot
  * comes back with the stylists who could take it.
+ *
+ * `with` lists the visit's other services (comma separated): the slots then
+ * fit all of them end to end with one stylist who offers every one. A
+ * connected stylist's Google busy times are taken out, as for a booking.
  */
 import { availableSlots } from './_lib/availability.js';
 import { pool } from './_lib/db.js';
@@ -20,20 +24,25 @@ export default handler({
       ? requireId(stylistParam, 'Stylist')
       : null;
 
+    const extraServiceSlugs = String(url.searchParams.get('with') || '')
+      .split(',').map((x) => x.trim()).filter(Boolean).slice(0, 5)
+      .map((x) => requireId(x, 'Service'));
     const from = requireDate(url.searchParams.get('from'), 'Start date');
     const to = requireDate(url.searchParams.get('to') || from, 'End date');
 
     const client = await pool().connect();
     try {
-      const { service, stylists, days } = await availableSlots(client, tenant, {
-        serviceSlug, stylistSlug, fromDate: from, toDate: to, centro: false,   // our own hours, not a third party's
+      const { service, visit, stylists, days } = await availableSlots(client, tenant, {
+        serviceSlug, stylistSlug, extraServiceSlugs, fromDate: from, toDate: to,
+        centro: false,   // our own hours, not a third party's
+        google: true,    // what a guest is offered leaves out Google busy time
       });
       return json(res, 200, {
         timezone: tenant.timezone,
         service: {
           slug: service.slug,
           name: service.name,
-          durationMin: service.duration_min,
+          durationMin: visit.durationMin,
           price: service.price_cents == null ? null : service.price_cents / 100,
           consultFirst: service.consult_first,
         },

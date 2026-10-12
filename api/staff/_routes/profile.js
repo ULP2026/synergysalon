@@ -10,7 +10,7 @@
  */
 import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { query, transaction } from '../../_lib/db.js';
-import { hoursFor, readHours, syncStylist } from '../../_lib/roster.js';
+import { hoursFor, syncStylist } from '../../_lib/roster.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
@@ -238,8 +238,10 @@ export default handler({
       add('password_hash', await hashPassword(next));
     }
 
-    const hours = readHours(body.hours);
-    if (!sets.length && !hours) throw new HttpError(400, 'Nothing to change.');
+    // Nobody sets their own working hours: the admin does, from the team
+    // (team.js). Hours sent here are ignored, so the stored rota stands.
+    const hours = null;
+    if (!sets.length) throw new HttpError(400, 'Nothing to change.');
 
     const returning = `RETURNING id, name, email, phone, role, avatar,
                   to_jsonb(staff_users) ->> 'username' AS username,

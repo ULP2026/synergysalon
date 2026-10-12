@@ -17,9 +17,19 @@ import { enqueueSync } from './_lib/booking.js';
 import { EXCLUSION_VIOLATION, transaction } from './_lib/db.js';
 import { sendCancellation, sendReschedule } from './_lib/email.js';
 import {
-  HttpError, handler, json, readJson, requireId, requireString, tokenMatches,
+  HttpError, handler, json, readJson, requireDate, requireId, requireString, tokenMatches,
 } from './_lib/http.js';
 import { tenantForRequest } from './_lib/tenant.js';
+import { drain } from './cron/sync.js';
+
+/**
+ * CENTRO's copy (and the stylist's Google copy) follow at once rather than at
+ * the daily cron. The job is already committed, so a failure here is only a
+ * delay, never a loss.
+ */
+async function nudgeQueue(ref) {
+  try { await drain(10); } catch (err) { console.error('sync deferred for', ref, err); }
+}
 
 const SLOT_TAKEN = 'SLOT_TAKEN';
 
@@ -58,7 +68,9 @@ function present(appt) {
   return {
     ref: appt.ref,
     status: appt.status,
-    service: appt.service_name,
+    // A visit of several services is one appointment against its first; the
+    // full list was written into the notes when it was booked (enquiry.js).
+    service: (String(appt.notes || '').match(/^Services: (.+)$/m) || [])[1] || appt.service_name,
     serviceSlug: appt.service_slug,
     stylist: appt.stylist_name,
     stylistSlug: appt.stylist_slug,
@@ -82,9 +94,42 @@ function assertChangeable(appt) {
 }
 
 export default handler({
+  // With &from=YYYY-MM-DD[&to=], also the times it could move to: the same
+  // stylist, the appointment's own length, and the rules of a new booking
+  // (Google busy time left out), so the page offers nothing PATCH refuses.
   async GET(req, res) {
     const tenant = await tenantForRequest(req);
-    return transaction(async (client) => json(res, 200, present(await load(client, req, tenant))));
+    const url = new URL(req.url, 'http://localhost');
+    return transaction(async (client) => {
+      const appt = await load(client, req, tenant);
+      const out = present(appt);
+      const from = url.searchParams.get('from');
+      if (from && appt.status !== 'cancelled' && new Date(appt.starts_at) > new Date()) {
+        const fromDate = requireDate(from, 'Start date');
+        const toDate = requireDate(url.searchParams.get('to') || fromDate, 'End date');
+        try {
+          const { days } = await availableSlots(client, tenant, {
+            serviceSlug: appt.service_slug,
+            stylistSlug: appt.stylist_slug,
+            fromDate,
+            toDate,
+            excludeAppointmentId: appt.id,
+            centro: false,
+            google: true,
+            length: { durationMin: appt.duration_min, bufferMin: appt.buffer_min },
+          });
+          out.timezone = tenant.timezone;
+          out.days = days.map((d) => ({ date: d.date, slots: d.slots.map((x) => x.start) }));
+        } catch (err) {
+          // Their stylist no longer takes this service, for instance: say
+          // there is nothing to move to rather than failing the whole page.
+          if (err.status !== 404) throw err;
+          out.timezone = tenant.timezone;
+          out.days = [];
+        }
+      }
+      return json(res, 200, out);
+    });
   },
 
   async PATCH(req, res) {
@@ -114,6 +159,8 @@ export default handler({
         toDate: startsAt.toISODate(),
         excludeAppointmentId: current.id,
         centro: false,   // our own hours, not a third party's
+        google: true,    // a guest is not offered time a stylist is busy in Google
+        length: { durationMin: current.duration_min, bufferMin: current.buffer_min },
       });
 
       const wanted = startsAt.toMillis();
@@ -159,6 +206,7 @@ export default handler({
       }
     });
 
+    await nudgeQueue(appt.ref);
     try {
       await sendReschedule(appt, previousStart, tenant);
     } catch (err) {
@@ -192,6 +240,7 @@ export default handler({
       };
     });
 
+    await nudgeQueue(appt.ref);
     try {
       await sendCancellation(appt, tenant);
     } catch (err) {

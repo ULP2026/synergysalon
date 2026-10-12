@@ -137,8 +137,8 @@ function notesFrom(body) {
     const v = Array.isArray(value) ? value.filter(Boolean).join(', ') : clean(value, 400);
     if (v) lines.push(`${label}: ${v}`);
   };
-  // Guests can choose several services for one visit. The appointment is
-  // booked against one of them; the stylist sets the real length from this.
+  // Guests can choose several services for one visit. They are booked as one
+  // appointment long enough for all of them; the list is kept here as well.
   const services = Array.isArray(body.services)
     ? body.services.map((v) => clean(v, 80)).filter(Boolean).slice(0, 12)
     : [];
@@ -172,6 +172,10 @@ export default handler({
     }
 
     const serviceSlug = serviceSlugFor(body.serviceLabel);
+    // Every other service picked for the same visit. They are booked
+    // together, end to end with one stylist, as one appointment.
+    const extraServiceSlugs = [...new Set((Array.isArray(body.services) ? body.services : [])
+      .map((v) => serviceSlugFor(v)).filter((x) => x && x !== serviceSlug))];
     const start = startInstant(body.month, body.day, body.time, tenant.timezone);
 
     const result = await transaction(async (client) => {
@@ -275,9 +279,12 @@ export default handler({
         // saved above, so it counts as "not available" instead.
         await client.query('SAVEPOINT check_move');
         let days = [];
+        let visit = null;
         try {
-          ({ days } = await availableSlots(client, tenant, {
+          ({ days, visit } = await availableSlots(client, tenant, {
             serviceSlug,
+            extraServiceSlugs,
+            google: true,
             stylistSlug: clean(body.stylistSlug, 40) || null,
             fromDate: start.toISODate(),
             toDate: start.toISODate(),
@@ -294,14 +301,18 @@ export default handler({
         const stylistId = slot.stylistIds.includes(live[0].stylist_id)
           ? live[0].stylist_id : slot.stylistIds[0];
         try {
+          // The length follows what they picked this time, so changing the
+          // services mid-flow is not left booked at the old length.
           await client.query(
             `UPDATE appointments
                 SET starts_at = $2::timestamptz, stylist_id = $3::uuid,
+                    duration_min = $4::int, buffer_min = $5::int,
+                    price_cents = $6::int,
                     during = tstzrange($2::timestamptz,
-                             $2::timestamptz + make_interval(mins => duration_min + buffer_min), '[)'),
+                             $2::timestamptz + make_interval(mins => $4::int + $5::int), '[)'),
                     updated_at = now()
               WHERE id = $1`,
-            [live[0].id, start.toISO(), stylistId],
+            [live[0].id, start.toISO(), stylistId, visit.durationMin, visit.bufferMin, visit.priceCents],
           );
           await enqueueSync(client, tenant.id, 'appointment.rescheduled',
                             { appointmentId: live[0].id });
@@ -314,6 +325,7 @@ export default handler({
       try {
         const appt = await createBooking(client, tenant, {
           serviceSlug,
+          extraServiceSlugs,
           stylistSlug: clean(body.stylistSlug, 40) || null,
           start: start.toISO(),
           guestName: name,

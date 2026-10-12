@@ -12,6 +12,7 @@
 import { DateTime } from 'luxon';
 
 import { pool, query, transaction } from '../_lib/db.js';
+import { mirrorToGoogle } from '../_lib/google-mirror.js';
 import {
   GhlError, cancelAppointment, checkConnection, createAppointment, deleteAppointment,
   deleteContact, ghlStatusFor, updateAppointment, updateContact, upsertContact,
@@ -253,6 +254,9 @@ export async function drain(limit = BATCH, { tenantId = null } = {}) {
     if (!result) break;
     done.push(result);
   }
+  // The same moment is when a stylist's Google copy is brought up to date
+  // (google-mirror.js). It is separate from CENTRO and never fails the drain.
+  await mirrorToGoogle({ tenantId }).catch((err) => console.error('google mirror:', err.message));
   return done;
 }
 
