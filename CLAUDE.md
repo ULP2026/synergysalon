@@ -257,14 +257,21 @@ made that way are real: name them ZZ and remove them.
   Personal information (Email, Phone, Role; phone is `staff_users.phone`,
   007, now read and written by `team.js` as well as `profile.js`), Connect
   your tools, Services & pricing, Working hours. A stylist without a sign-in shows only
-  services and hours (name and picture read-only). Working hours is closed
-  (every day grey, every control disabled, and no hours sent on save, so the
-  stored ones are kept) until at least one service is on AND a Google
-  Calendar is connected (`hoursGate()`); the two steps are listed at the top
-  of the section with a Connect button. A stylist without a sign-in cannot
-  connect a calendar, so a service alone opens theirs. Its classes are
-  `wh-` prefixed: the console already has a generic `.locked`, which once
-  made this section inline-flex and pushed its note to the left. Open, each
+  services and hours (name and picture read-only). Working hours is shown
+  grey and disabled for everybody for now (`HOURS_OPEN = false`, asked for
+  by the salon: team members only add services and connect a calendar), and
+  no hours are sent on save, so the stored ones are kept; the steps card
+  that used to say what opens it was removed on request. An admin
+  (`isSalonAdmin` in `auth.js`: role owner or manager, or a
+  `TEAM_ADMIN_EMAILS` login; Luis Lara is the admin, and owner and manager
+  both count because his role was not checked) gets neither Services & pricing nor Working hours (`#memberWork`
+  hidden, `admin` flag from `/profile` and `/team`, and the server ignores
+  services sent for an admin), and admin rows on the Team list show no
+  service chips. Dina Lara is the owner AND a stylist: if she is given a
+  login as Owner or Manager her services disappear with it, so give her the
+  Stylist role. Classes are `wh-` prefixed: the console already has a
+  generic `.locked`, which once made this section inline-flex. With
+  `HOURS_OPEN` on, each
   day shows the coming week from that calendar (busy times and what is left
   of the shift) via `GET /api/staff/calendars?busy=week`
   (`&member=` for the owner and the support login). Your own window now gets your hours

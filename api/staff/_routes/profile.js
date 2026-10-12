@@ -8,7 +8,7 @@
  * somebody *else* is team management, and lives in team.js behind a role
  * check.
  */
-import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertSameOrigin, isSalonAdmin, requireStaff } from '../../_lib/auth.js';
 import { query, transaction } from '../../_lib/db.js';
 import { hoursFor, readHours, syncStylist } from '../../_lib/roster.js';
 import {
@@ -169,6 +169,9 @@ export default handler({
       avatarStyle: me.avatar_style || null,
       photo: me.photo || (me.stylist_slug ? stylistPhoto(me.tenant_slug, me.stylist_slug) : null),
       hours,
+      // An admin (isSalonAdmin) runs the place rather than taking
+      // appointments, so the window leaves out services, prices and hours.
+      admin: isSalonAdmin(me),
       since: me.created_at,
       lastSeen: me.last_seen_at,
       minPasswordLength: MIN_PASSWORD_LENGTH,
@@ -212,7 +215,8 @@ export default handler({
       add('username', username);
     }
     // Every stylist sets their own prices: they are the one quoting them.
-    const services = servicesFrom(body.services);
+    // Not the admin, who takes no appointments: whatever is stored is left.
+    const services = isSalonAdmin(user) ? undefined : servicesFrom(body.services);
     if (services !== undefined) add('services', JSON.stringify(services));
     if (body.pricing !== undefined && CAN_PRICE.includes(user.role)) {
       add('pricing', String(body.pricing || '').trim().slice(0, 120));

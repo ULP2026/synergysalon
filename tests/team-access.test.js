@@ -34,3 +34,13 @@ test('the welcome email carries the link, the app and the setup steps', () => {
   // There is no password to send: they choose it through the link.
   assert.ok(!/^(your )?(temporary )?password\s*:/im.test(e.text), 'no password is ever written into the email');
 });
+
+test('owners, managers and the support login are admins with no services', async () => {
+  const { isSalonAdmin } = await import('../api/_lib/auth.js');
+  assert.equal(isSalonAdmin({ role: 'owner', email: 'a@b.co' }), true);
+  assert.equal(isSalonAdmin({ role: 'manager', email: 'a@b.co' }), true);
+  assert.equal(isSalonAdmin({ role: 'stylist', email: 'support@unclelouieproductions.com' }), true);
+  assert.equal(isSalonAdmin({ role: 'stylist', email: 'a@b.co' }), false);
+  assert.equal(isSalonAdmin({ role: 'front_desk', email: 'a@b.co' }), false);
+  assert.equal(isSalonAdmin(null), false);
+});
