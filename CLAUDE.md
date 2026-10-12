@@ -1,4 +1,4 @@
-# Synergy Salon — working notes
+# Synergy Salon: working notes
 
 Read `README.md` first: it is the PMC, the client's brand and business record,
 and it governs what may be said on the site. This file covers the code.
@@ -58,15 +58,15 @@ its embed script and the thank-you message listener are untouched.
 `index.html` and the four service pages are single-file bundles from a design
 tool. A bundle holds:
 
-- `<script type="__bundler/manifest">` — base64 assets, some gzipped
-- `<script type="__bundler/template">` — the whole page as a JSON string
+- `<script type="__bundler/manifest">`: base64 assets, some gzipped
+- `<script type="__bundler/template">`: the whole page as a JSON string
 - a loader that mints blob URLs and calls `documentElement.replaceWith()`
 
 Two consequences that have each cost a day:
 
 **A script inside the template never executes.** The parser only runs scripts
-it parsed itself, and `replaceWith()` does not count. Anything that must run —
-tracking, the booking adapter — goes in the *static* `<head>`, binds to
+it parsed itself, and `replaceWith()` does not count. Anything that must run
+(tracking, the booking adapter) goes in the *static* `<head>`, binds to
 `document` or `window` (both survive the replacement), and delegates its
 handlers. This is not obvious locally, where it can appear to work.
 
@@ -94,7 +94,7 @@ EXCLUDE USING gist (stylist_id WITH =, during WITH &&)
 WHERE (status <> 'cancelled')
 ```
 
-Checking availability before inserting cannot work on its own — two requests
+Checking availability before inserting cannot work on its own: two requests
 both read "free" before either writes. `tests/booking.integration.test.js`
 proves the constraint by running the race.
 
@@ -128,15 +128,15 @@ is a real appointment. The flag is ignored on the salon's own domain.
 
 `/api/enquiry` saves the contact *before* attempting the appointment, and books
 whenever it has a service and a time rather than waiting for the wizard to say
-it finished — that signal failed four separate ways. Because it is called on
+it finished; that signal failed four separate ways. Because it is called on
 every keystroke, it also refuses to create a second appointment for a guest who
 already has one.
 
 **Identity comes from the session id, not from the email box.** The wizard
 mints an id when it opens and sends it with every call; the server resolves the
 contact from that first and falls back to email or phone. Keying on the email
-alone meant every prefix of an address looked like a new person — one guest
-booking once produced five contacts and four appointments — and every prefix
+alone meant every prefix of an address looked like a new person: one guest
+booking once produced five contacts and four appointments, and every prefix
 was then rejected by CENTRO with a permanent 422, which killed the appointment
 push attached to it. A detail is only stored or sent once it is whole: a
 half-typed address is not a worse email, it is not an email yet.
@@ -358,23 +358,26 @@ made that way are real: name them ZZ and remove them.
   address) and the calendar dialog. `GET /api/staff/profile` carries the
   status, so your own window opens right instead of offering Connect until a
   second request answered; it says "Checking…" if the status is missing.
-- Appt. Book's day is one column per bookable stylist ("Synergy" under the
-  name), Google or not; a connected stylist's column also carries their
-  Google busy times ("+ Google"), and somebody connected who takes no
-  appointments keeps a column for their Google day. Their bookings sit in
-  their column and clicking an empty time books with them. Anything nobody
-  on the grid owns gets one "Other appointments" column that day, so it never
-  vanishes. With nobody bookable at all, the day is at least four lanes under
-  one "<salon> Calendar" heading, the clock down the side. The shop's extra
-  booking calendars no longer gate the page: the diary and New appointment
-  always work, because every appointment is in the Synergy Calendar. It has no "+ New calendar"
-  chip (removed on request). Nobody is assigned to a column yet: an appointment takes
-  the first column free at its time, and cards do not name a stylist. Stylist
-  columns (`dayColumns()`) come back once stylists are on the team. While the
-  shop has no booking calendar the day and month are drawn empty (the diary is
-  still fetched for its heading, then emptied) under a note whose link opens New calendar. LUNCH and BLOCK are rows in `time_off`, the table
-  availability already subtracts, so a block on the grid really stops the time
-  being sold.
+- Appt. Book's day is the salon's calendar (at least three shared lanes
+  under one "<salon> Calendar" heading, more when bookings overlap) plus a
+  fourth column for the team, asked for in place of adding stylists to the
+  grid by hand. Nobody is put in it: whoever has connected their Google
+  Calendar (signed in or by the pasted address) is in it, one column each
+  ("Team member" with the Google mark), because `diary.js` lists the
+  connected people with every day it sends. Connecting or disconnecting shows
+  up on the next load; the day reloads quietly when the tab regains focus and
+  every two minutes while it is open (no dialog over it). While nobody is
+  connected the fourth column is one empty "Team members" column saying how
+  to get in. A person's column holds their Google busy times, their own
+  bookings and their own blocks, and clicking an empty time books with them;
+  everything nobody in the team column owns stays in the lanes, so a booked
+  client never vanishes. A lane is a column nobody is assigned to: an
+  appointment takes the first one free at its time. The shop's extra booking
+  calendars no longer gate the page: the diary and New appointment always
+  work, because every appointment is in the Synergy Calendar. It has no
+  "+ New calendar" chip (removed on request). LUNCH and BLOCK are rows in
+  `time_off`, the table availability already subtracts, so a block on the
+  grid really stops the time being sold.
   `?demo` on the address shows a sample day that saves nothing.
 - Marketing, Automation is a list of automation names (Appointment Booking,
   reminder, reschedule, cancellation). Each opens a modal with its flow as numbered icon tiles left to right (the original confirmation picture), sized to its step count, and
@@ -403,17 +406,23 @@ made that way are real: name them ZZ and remove them.
 - `api/_lib/ensure-schema.js` adds the 011 to 013 columns on the first
   `/api/staff/me` of each warm function, because production ran ahead of
   `db:migrate`. Idempotent; `db:migrate` remains the record.
-- Team Members lists you, then (the owner and the support login only)
-  everyone else on the team, each card opening the same modal, then an "Add a
-  team member" row. Everybody else sees and changes their own account only:
+- Team Members lists you, then everyone else on the team, each card opening
+  the same modal, then an "Add a team member" row. Everybody can read the
+  team (name, picture, email, phone, role, services, hours: `GET
+  /api/staff/team` is `requireStaff`), as the salon asked, but only the admin
+  changes anybody else: POST is `requireTeamAdmin`, and a non-admin opening a
+  colleague gets the window read-only (fields disabled, no pencils, no Save,
+  no Remove, no Connect, a note saying the admin changes it). A non-admin's
+  copy leaves out requests to join, invite state, notes, who approved whom
+  and which Google account a colleague connected (only connected or not).
   `canManageTeam` in `auth.js` (role owner, or an email in `TEAM_ADMIN_EMAILS`
-  in `config.js`, today support@unclelouieproductions.com) gates
-  `/api/staff/team`, connecting a calendar for somebody else, and the console's
-  team views (`me.user.canManageTeam`). The admin views and edits every
-  account, owners included (the "only an owner can change an owner" checks
-  in `team.js` use `canManageTeam`, so the support login is not blocked).
-  Nobody else can read another member's details: Appt. Book's day sends a
-  colleague's connected Google address only to that person and the admin.
+  in `config.js`, today support@unclelouieproductions.com) gates every
+  change on `/api/staff/team`, connecting a calendar for somebody else, and
+  the console's admin controls (`me.user.canManageTeam`). The admin views and
+  edits every account, owners included (the "only an owner can change an
+  owner" checks in `team.js` use `canManageTeam`, so the support login is not
+  blocked). Appt. Book's day sends a colleague's connected Google address
+  only to that person and the admin.
   `/api/staff/me` still lists everybody's name, role and username for the
   Clients filters and the diary. Managers keep the rest of `canAdmin`
   (billing, deleting clients). Adding somebody sends the welcome
@@ -443,7 +452,7 @@ made that way are real: name them ZZ and remove them.
 
 **Untyped query parameters.** `tstzrange($1, $1 + make_interval(mins => $2))`
 fails with `42P08` or `42883`: Postgres cannot deduce the type. Cast every
-parameter inside a function call — `$1::timestamptz`, `$2::int`. This has bitten
+parameter inside a function call: `$1::timestamptz`, `$2::int`. This has bitten
 in four places and each time the failure was silent until that path ran.
 
 **Vercel Hobby allows 12 serverless functions.** One file under `api/` is one
@@ -461,7 +470,7 @@ constraint silently fails to create and there is no double-booking protection
 at all.
 
 **Use the transaction pooler** (port 6543). Supabase's direct connection is
-IPv6 only and Vercel cannot reach it — works from a laptop, fails in production.
+IPv6 only and Vercel cannot reach it: works from a laptop, fails in production.
 
 ## Local setup
 
@@ -476,7 +485,7 @@ npm test                    # 92 tests; the database ones skip without DATABASE_
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and
-must stay that way — anything committed here is served publicly.
+must stay that way: anything committed here is served publicly.
 
 ## Conventions
 

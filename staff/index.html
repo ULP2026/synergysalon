@@ -1091,6 +1091,10 @@
   .dg-gcol { cursor: default; }
   .dg-gcol:hover { background-color: transparent; }
   .dg-head.dg-group { gap: 12px; }
+  /* The team column starts with a firmer edge, so the salon's lanes and the
+     people beside them read as two parts of one day. */
+  .dg-tfirst { border-left: 2px solid var(--line) !important; }
+  .dg-teamwait p { position: sticky; top: 72px; margin: 24px 16px; font-size: var(--fs-xs); color: var(--muted); line-height: 1.5; }
   .dg-head .dg-hic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none;
                      background: var(--peri-pale); color: var(--indigo); }
   .dg-head .dg-hic .ic { width: 20px; height: 20px; }
@@ -4364,39 +4368,28 @@ function renderDiary(d) {
     return n >= from && n <= to ? `<div class="dg-now" style="top:${px(n)}px" aria-hidden="true"></div>` : '';
   })() : '';
 
-  // Once anybody has connected a calendar, the day is those people: one
-  // column each, holding their Google busy times, their own bookings and their
-  // own blocks. The salon's four shared lanes were asked to go, because a lane
-  // nobody sits in says nothing about who is free. Until somebody connects,
-  // the lanes stay, or the day would have nowhere to draw at all.
+  // The day is the salon's calendar (three shared lanes) and, beside it, a
+  // fourth column for the team. Nobody is added to it by hand: whoever has
+  // connected their Google Calendar is on it, because the server lists the
+  // connected people with every day it sends (diary.js), so connecting or
+  // disconnecting changes the grid the next time the day loads. One column
+  // per connected person, holding their Google busy times, their own bookings
+  // and their own blocks; while nobody is connected, the fourth column is
+  // one empty column saying how to get onto it.
   //
   // A lane is a column nobody is assigned to: an appointment takes the first
   // one free at its time, and two at 10 o'clock sit side by side.
-  // Every bookable stylist has a column: the Synergy Calendar is theirs
-  // whether or not they connect Google. A connected stylist's column also
-  // carries their Google busy times; somebody connected who takes no
-  // appointments (no stylist row) keeps a column for their Google day.
-  const google = d.team || [];
-  const roster = me?.stylists || [];
-  const team = [
-    ...roster.map((st) => {
-      const g = google.find((x) => x.stylistSlug === st.slug);
-      return g ? { ...g, google: true }
-        : { id: `st-${st.slug}`, name: st.name, photo: st.photo, stylistSlug: st.slug, busy: [], error: null, google: false };
-    }),
-    ...google.filter((g) => !g.stylistSlug || !roster.some((st) => st.slug === g.stylistSlug))
-      .map((g) => ({ ...g, google: true })),
-  ];
+  const team = (d.team || []).map((g) => ({ ...g, google: true }));
   const mineSlugs = new Set(team.map((t) => t.stylistSlug).filter(Boolean));
-  // With people on the grid, the lanes only hold what belongs to nobody on
-  // it: a booking with a stylist who has not connected, or one with nobody.
-  // Hiding those would be a booked client silently vanishing from the day.
-  // A block on the whole salon (no stylist) is drawn in every person's column.
-  const owned = (slug) => team.length > 0 && slug && mineSlugs.has(slug);
+  // The lanes hold what belongs to nobody in the team column: a booking with
+  // a stylist who has not connected, or one with nobody. Hiding those would
+  // be a booked client silently vanishing from the day. A block on the whole
+  // salon (no stylist) is drawn in the lanes and in every person's column.
+  const owned = (slug) => slug && mineSlugs.has(slug);
   const items = [
     ...live.filter((a) => !owned(a.stylistSlug))
       .map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin })),
-    ...blocks.filter((b) => !team.length || (b.stylistSlug && !mineSlugs.has(b.stylistSlug)))
+    ...blocks.filter((b) => !owned(b.stylistSlug))
       .map((b) => ({ b, s: Math.max(from, salonMinutes(b.startsAt)), e: Math.min(to, salonMinutes(b.endsAt) || 24 * 60) })),
   ].sort((x, y) => x.s - y.s || y.e - x.e);
   const lanesEnd = [];
@@ -4405,7 +4398,7 @@ function renderDiary(d) {
     if (lane < 0) { lane = lanesEnd.length; lanesEnd.push(it.e); } else lanesEnd[lane] = it.e;
     it.lane = lane;
   }
-  const cols = Array.from({ length: team.length ? lanesEnd.length : Math.max(4, lanesEnd.length) }, (_, i) => i);
+  const cols = Array.from({ length: Math.max(3, lanesEnd.length) }, (_, i) => i);
   const blockHtml = (b, s, e) => {
     const label = b.kind === 'lunch' ? 'Lunch' : 'Block';
     const sub = b.kind === 'block' && b.reason && !/^blocked$/i.test(b.reason) ? `<small>${esc(b.reason)}</small>` : '';
@@ -4423,19 +4416,18 @@ function renderDiary(d) {
       <span class="ghost" aria-hidden="true"></span>${offs}${cards}${nowLine}</div>`;
   }).join('');
 
-  // The lanes share one heading: the salon calendar while they are the whole
-  // day, "Other appointments" when they only catch what nobody connected owns.
-  const heads = (cols.length ? `<div class="dg-head dg-group" style="grid-column:span ${cols.length}">
+  // The lanes share one heading, the salon's calendar. Each person in the
+  // team column has their own, marked as coming from their Google Calendar.
+  const heads = `<div class="dg-head dg-group" style="grid-column:span ${cols.length}">
       <span class="dg-hic">${ic('calendar')}</span>
-      <div style="min-width:0">${team.length
-        ? '<b>Other appointments</b><span class="sub">With nobody on the grid</span>'
-        : `<b>${esc(me?.salon?.name || 'Salon')} Calendar</b><span class="sub">Every appointment</span>`}</div></div>` : '')
-    + team.map((t) => `<div class="dg-head" title="${esc(t.account ? `${t.name} · ${t.account}` : t.name)}">
+      <div style="min-width:0"><b>${esc(me?.salon?.name || 'Salon')} Calendar</b><span class="sub">Every appointment</span></div></div>`
+    + (team.length ? team.map((t, i) => `<div class="dg-head dg-team${i ? '' : ' dg-tfirst'}" title="${esc(t.account ? `${t.name} · ${t.account}` : t.name)}">
       <img class="avatar" src="${esc(personPhoto(t))}" alt="">
-      <div style="min-width:0"><b>${esc(t.name)}</b><span class="sub">${t.google
-        ? `${GOOGLE_LOGO.replace('class="conn-logo"', '')}+ Google` : `${ic('calendar')}Synergy`}</span></div></div>`).join('');
+      <div style="min-width:0"><b>${esc(t.name)}</b><span class="sub">${GOOGLE_LOGO.replace('class="conn-logo"', '')}Team member</span></div></div>`).join('')
+      : `<div class="dg-head dg-team dg-tfirst"><span class="dg-hic">${ic('contacts')}</span>
+      <div style="min-width:0"><b>Team members</b><span class="sub">Connected calendars</span></div></div>`);
 
-  const teamHtml = team.map((t) => {
+  const teamHtml = team.map((t, i) => {
     // Their own salon bookings sit in their column too, so the column is
     // their whole day: what Google says is taken, and who is in their chair.
     const own = t.stylistSlug ? live.filter((a) => a.stylistSlug === t.stylistSlug) : [];
@@ -4454,15 +4446,16 @@ function renderDiary(d) {
     // Clicking an empty time books with them, now that their column is the
     // only place their day is drawn. Somebody who takes no appointments has
     // no stylist row, so their column books with whoever is free.
-    return `<div class="dg-col dg-c1" data-stylist="${esc(t.stylistSlug || '')}" style="height:${height}px">
+    return `<div class="dg-col dg-c1${i ? '' : ' dg-tfirst'}" data-stylist="${esc(t.stylistSlug || '')}" style="height:${height}px">
       <span class="ghost" aria-hidden="true"></span>
       ${t.error ? `<div class="dg-gerr">${esc(t.error)}</div>` : ''}${busy}${offs}${cards}${nowLine}</div>`;
-  }).join('');
+  }).join('') || `<div class="dg-col dg-c1 dg-gcol dg-teamwait dg-tfirst" style="height:${height}px">
+      <p>Team members appear here once they connect their Google Calendar in Settings, Team.</p>${nowLine}</div>`;
 
   $('diary').innerHTML = `
     ${dgDemo ? `<div class="note dg-demo">${ic('info')}<span>Sample day for a walkthrough. Nothing here is real, and nothing you do here is saved.</span></div>` : ''}
     <div class="dg-wrap" id="dgWrap">
-      <div class="dg" style="--dg-n:${cols.length + team.length};--dg-hour:${DG_HOUR}px${team.length ? ';--dg-col:minmax(140px,1fr);--dg-min:140px' : ''}">
+      <div class="dg" style="--dg-n:${cols.length + Math.max(1, team.length)};--dg-hour:${DG_HOUR}px${team.length > 1 ? ';--dg-col:minmax(140px,1fr);--dg-min:140px' : ''}">
         <div class="dg-corner"></div>${heads}
         <div class="dg-axis" style="height:${height}px;position:sticky">${hours.join('')}</div>${colHtml}${teamHtml}
       </div>
@@ -4760,17 +4753,27 @@ function demoDay(date) {
 }
 
 let daySeq = 0;
-async function loadDay(date) {
+// quiet: a refresh in the background, which keeps the grid and its scroll
+// in place instead of flashing the loading skeleton, and says nothing on
+// failure (what is drawn stays).
+async function loadDay(date, { quiet = false } = {}) {
   const seq = ++daySeq;
   day = date;
   $('dayPicker').value = date;
-  $('dayHeading').textContent = '';
-  $('diary').innerHTML = skeleton(5);
+  const keep = quiet ? { top: $('dgWrap')?.scrollTop, left: $('dgWrap')?.scrollLeft } : null;
+  if (!quiet) {
+    $('dayHeading').textContent = '';
+    $('diary').innerHTML = skeleton(5);
+  }
   try {
     const d = dgDemo ? demoDay(date) : await api(`/api/staff/diary?date=${encodeURIComponent(date)}`);
     if (noCals && !dgDemo) Object.assign(d, { appointments: [], blocks: [], booked: 0, arriving: 0 });
-    if (seq === daySeq) renderDiary(d);
+    if (seq === daySeq) {
+      renderDiary(d);
+      if (keep && $('dgWrap')) Object.assign($('dgWrap'), { scrollTop: keep.top ?? 0, scrollLeft: keep.left ?? 0 });
+    }
   } catch (err) {
+    if (quiet) return;
     if (seq === daySeq && err.message !== 'signed out') {
       $('diary').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this day', text: err.message });
     }
@@ -5044,7 +5047,17 @@ function renderContacts(d, filtered) {
  */
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && page === 'clients') refreshTeamFilter();
+  // Somebody who connected their Google Calendar meanwhile (often in another
+  // tab, or on their own phone) joins Appt. Book's team column without a reload.
+  if (document.visibilityState === 'visible' && page === 'appointments' && calView === 'day' && !dgDemo) loadDay(day, { quiet: true });
 });
+// And while the day sits open on the front desk's screen, every two minutes,
+// unless a window is open over it.
+setInterval(() => {
+  if (document.visibilityState !== 'visible' || page !== 'appointments' || calView !== 'day' || dgDemo) return;
+  if (document.querySelector('dialog[open]')) return;
+  loadDay(day, { quiet: true });
+}, 120000);
 
 async function refreshTeamFilter() {
   try {
@@ -5775,9 +5788,10 @@ async function openMember(who) {
   const self = memberEdit === 'me';
   const admin = me?.user?.canManageTeam;
   // The admin (canManageTeam: the owner or the support login) edits
-  // everybody, owners included; nobody else opens anyone but themselves.
+  // everybody, owners included. Everybody else can open a colleague to read
+  // their details, as the salon asked, but changes only their own.
   const owner = Boolean(me?.user?.canManageTeam);
-  const lockedOwner = m && m.role === 'owner' && !owner && !self;
+  const viewOnly = Boolean(m && !owner && !self);
 
   // The heading is the person: a small label over their name, which is the
   // Name field itself, so it is never asked for twice.
@@ -5813,25 +5827,25 @@ async function openMember(who) {
 
   // Who may change what. Nobody changes their own role, which is how a salon
   // ends up with no owner; an owner's details are an owner's to change.
-  f.elements.role.disabled = Boolean(self || lockedOwner || !admin);
+  f.elements.role.disabled = Boolean(self || viewOnly || !admin);
   f.elements.role.querySelector('[value=owner]').disabled = !owner;
   // Nobody changes their own role; an owner is told why rather than being
   // told an owner sets it.
   const roleNote = self
     ? (m?.role === 'owner' ? 'Nobody can change their own role, so a salon always keeps an owner.' : 'Your role is set by an owner.')
-    : lockedOwner ? 'Only an owner can change another owner.' : '';
+    : viewOnly ? 'Only the salon’s admin can change a colleague’s details.' : '';
   $('memberRoleNote').textContent = roleNote;
   $('memberRoleNote').classList.toggle('hidden', !roleNote);
-  for (const k of ['name', 'username', 'email', 'phone']) f.elements[k].disabled = Boolean(lockedOwner);
+  for (const k of ['name', 'username', 'email', 'phone']) f.elements[k].disabled = Boolean(viewOnly);
   for (const pen of document.querySelectorAll('#memberDlg .md-pen')) {
     const input = f.elements[pen.dataset.edit];
     pen.classList.toggle('hidden', input.disabled || input.readOnly);
   }
   for (const sw of $('memberSvcs').querySelectorAll('.switch, input')) {
-    if (lockedOwner) sw.disabled = true;
+    if (viewOnly) sw.disabled = true;
   }
-  $('memberPic').disabled = Boolean(lockedOwner || noLogin);
-  $('memberPicPick').classList.toggle('hidden', Boolean(lockedOwner || noLogin));
+  $('memberPic').disabled = Boolean(viewOnly || noLogin);
+  $('memberPicPick').classList.toggle('hidden', Boolean(viewOnly || noLogin));
 
   $('memberCreate').classList.toggle('hidden', Boolean(m));
   // No password field to require any more: a new member chooses their own
@@ -5840,7 +5854,7 @@ async function openMember(who) {
   $('memberPw').classList.toggle('hidden', !self);
   $('memberPw').open = false;
   $('memberSave').textContent = m ? 'Save' : 'Add';
-  $('memberSave').classList.toggle('hidden', Boolean(lockedOwner));
+  $('memberSave').classList.toggle('hidden', Boolean(viewOnly));
 
   const meta = m && m.status === 'pending' ? 'Waiting for approval.'
     : m && m.stylist ? `On the diary as ${m.stylist}${m.title ? `, ${m.title}` : ''}.` : '';
@@ -5853,7 +5867,7 @@ async function openMember(who) {
   const danger = $('memberDanger');
   danger.dataset.act = '';
   if (self) { danger.textContent = 'Sign out'; danger.dataset.act = 'signout'; }
-  else if (m && !lockedOwner && admin) {
+  else if (m && !viewOnly && admin) {
     const act = m.status === 'pending' ? 'reject' : 'delete';
     danger.textContent = { reject: 'Decline request', delete: 'Remove from team' }[act];
     danger.dataset.act = act;
@@ -6067,7 +6081,7 @@ function svcSummary(services = {}) {
   }).join('');
 }
 
-let teamOthers = [];        // everyone else on the team, for the owner and the support login
+let teamOthers = [];        // everyone else on the team, visible to everybody, editable by the admin
 
 function memberRow(m, self) {
   const status = m.noLogin
@@ -6146,11 +6160,12 @@ $('team').onclick = async (e) => {
 async function loadTeam() {
   if (!teamCurrent) $('team').innerHTML = skeleton(2);
   try {
-    // The profile is the person themselves, for every role; the team list,
-    // for the admin, adds who is waiting to be let in.
+    // The profile is the person themselves, for every role. The team list is
+    // for everybody too (colleagues can look each other up); only the admin's
+    // copy carries who is waiting to be let in.
     const [p, t] = await Promise.all([
       api('/api/staff/profile'),
-      me?.user?.canManageTeam ? api('/api/staff/team') : Promise.resolve(null),
+      api('/api/staff/team').catch(() => null),
     ]);
     const pending = t ? t.members.filter((m) => m.status === 'pending') : [];
     // Stylists with no login sit in the same list as the staff. A salon owner
@@ -6162,7 +6177,7 @@ async function loadTeam() {
     renderTeam({ ...p, status: 'active' }, others, pending);
     // A member added, renamed or made a Stylist is a new Clients filter.
     refreshTeamFilter();
-    if (t) {
+    if (t && me?.user?.canManageTeam) {
       me.pendingApprovals = t.pending;
       $('pendingBadge').textContent = t.pending;
       $('pendingBadge').classList.toggle('hidden', !t.pending);
