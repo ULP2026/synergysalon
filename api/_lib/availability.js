@@ -15,6 +15,7 @@ import { DateTime, Interval } from 'luxon';
 
 import { centroWindows, fitsIn } from './centro-hours.js';
 import { MAX_ADVANCE_DAYS, MIN_LEAD_MIN, SLOT_STEP_MIN } from './config.js';
+import { googleBusyFor } from './google-busy.js';
 import { HttpError } from './http.js';
 
 /** Luxon counts Monday as 1 and Sunday as 7; the schema counts Sunday as 0. */
@@ -31,6 +32,26 @@ export async function loadService(client, tenantId, slug) {
   );
   if (!rows.length) throw new HttpError(404, 'That service is not available.');
   return rows[0];
+}
+
+/**
+ * One visit made of several services, booked as a single appointment with one
+ * stylist: the guest's time is every service end to end, with each one's
+ * clean-down between them, and the last clean-down after. Priced only when
+ * every part has a price, because a total with a hole in it is a guess.
+ */
+export function combineServices(primary, extras = []) {
+  const all = [primary, ...extras];
+  const last = all[all.length - 1];
+  const durationMin = all.reduce((t, v) => t + v.duration_min, 0)
+    + all.slice(0, -1).reduce((t, v) => t + (v.buffer_min || 0), 0);
+  const priced = all.every((v) => v.price_cents != null);
+  return {
+    durationMin,
+    bufferMin: last.buffer_min || 0,
+    priceCents: priced ? all.reduce((t, v) => t + v.price_cents, 0) : null,
+    names: all.map((v) => v.name),
+  };
 }
 
 /**
@@ -126,14 +147,51 @@ function overlapsAny(startMs, endMs, spans) {
  * only times CENTRO says that person is free are offered. Guests get it;
  * staff do not, because the person at the desk can see who is in and may
  * book outside the calendar on purpose.
+ *
+ * `google` takes a connected stylist's Google busy times out as well
+ * (google-busy.js), and offers nothing for one whose calendar cannot be read.
+ * Guests get it; the desk does not, for the same reason as above.
+ *
+ * `length` ({ durationMin, bufferMin }) is an existing appointment's own,
+ * for moving it.
+ *
+ * `extraServiceSlugs` are the visit's other services: the slot must fit all
+ * of them end to end (combineServices) with one stylist who offers each.
  */
 export async function availableSlots(client, tenant, {
-  serviceSlug, stylistSlug, fromDate, toDate,
+  serviceSlug, stylistSlug, fromDate, toDate, extraServiceSlugs = [],
   excludeAppointmentId = null, minLeadMin = MIN_LEAD_MIN, centro = false,
+  google = false, length = null,
 }) {
   const zone = tenant.timezone;
   const service = await loadService(client, tenant.id, serviceSlug);
-  const stylists = await loadStylists(client, tenant.id, service.id, stylistSlug);
+  // The other services of the same visit: the stylist has to offer every one
+  // of them, and the slot has to fit them all.
+  const extras = [];
+  for (const slug of [...new Set(extraServiceSlugs)].filter((x) => x && x !== serviceSlug).slice(0, 5)) {
+    extras.push(await loadService(client, tenant.id, slug));
+  }
+  let stylists = await loadStylists(client, tenant.id, service.id, stylistSlug);
+  if (extras.length) {
+    const { rows } = await client.query(
+      `SELECT stylist_id FROM stylist_services
+        WHERE stylist_id = ANY($1::uuid[]) AND service_id = ANY($2::uuid[])
+        GROUP BY stylist_id HAVING count(DISTINCT service_id) = $3::int`,
+      [stylists.map((x) => x.id), extras.map((x) => x.id), extras.length],
+    );
+    const ok = new Set(rows.map((r) => r.stylist_id));
+    stylists = stylists.filter((x) => ok.has(x.id));
+    if (!stylists.length) {
+      throw new HttpError(404, stylistSlug
+        ? 'That stylist does not offer all of these services.'
+        : 'No stylist currently offers all of these services together.');
+    }
+  }
+  // Moving an appointment that already exists keeps its own length, which
+  // for a visit of several services is longer than its first service.
+  const visit = length
+    ? { ...combineServices(service, extras), durationMin: length.durationMin, bufferMin: length.bufferMin }
+    : combineServices(service, extras);
   const stylistIds = stylists.map((s) => s.id);
   const slugOf = new Map(stylists.map((s) => [s.id, s.slug]));
 
@@ -157,7 +215,12 @@ export async function availableSlots(client, tenant, {
   const { shifts, busy, closed } = await loadWindow(
     client, tenant.id, stylistIds, from, to, excludeAppointmentId,
   );
-  const blockMin = service.duration_min + service.buffer_min;
+  const blockMin = visit.durationMin + visit.bufferMin;
+  // For guests: a connected stylist's Google busy times are taken out too,
+  // and one whose calendar cannot be read right now is offered nothing.
+  const gbusy = google
+    ? await googleBusyFor(client, stylistIds, from.toISO(), to.toISO(), zone)
+    : new Map();
   const windows = centro
     ? await centroWindows(client, tenant, stylists, from.toMillis(), to.toMillis())
     : null;
@@ -169,6 +232,8 @@ export async function availableSlots(client, tenant, {
     const found = new Map();
 
     for (const stylist of stylists) {
+      const gb = gbusy.get(stylist.id);
+      if (gb === 'unreachable') continue;
       // With CENTRO in charge, its windows are the stylist's hours, so the
       // whole day is a candidate and CENTRO decides. Without it, the shifts
       // stored here do.
@@ -189,16 +254,18 @@ export async function availableSlots(client, tenant, {
           // The guest must be finished by closing. Clean-down may run over,
           // which is how a salon actually works and gives back the last
           // appointment of the day.
-          if (start.plus({ minutes: service.duration_min }) > closes) break;
+          if (start.plus({ minutes: visit.durationMin }) > closes) break;
           if (start < earliest) continue;
 
           const startMs = start.toMillis();
           const blockEndMs = start.plus({ minutes: blockMin }).toMillis();
           // CENTRO has to have the guest's own time free; the clean-down
           // after it is ours to schedule.
-          if (free && !fitsIn(free, startMs, start.plus({ minutes: service.duration_min }).toMillis())) continue;
+          if (free && !fitsIn(free, startMs, start.plus({ minutes: visit.durationMin }).toMillis())) continue;
           if (overlapsAny(startMs, blockEndMs, closed)) continue;
           if (overlapsAny(startMs, blockEndMs, busy.get(stylist.id) ?? [])) continue;
+          // Google: the guest's own time must be clear; clean-down is ours.
+          if (gb && overlapsAny(startMs, start.plus({ minutes: visit.durationMin }).toMillis(), gb)) continue;
 
           const who = found.get(startMs);
           if (who) who.push(stylist.id);
@@ -221,7 +288,7 @@ export async function availableSlots(client, tenant, {
     }
   }
 
-  return { service, stylists, days };
+  return { service, extras, visit, stylists, days };
 }
 
 /**

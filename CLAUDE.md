@@ -150,9 +150,49 @@ refused list and its retry button were taken out before that. The cron still re-
 30 days whenever the link checks out, and logs why each failed, and
 `POST /api/staff/centro {action:"retry"}` still exists.
 
-**Stylists' hours are the salon's own.** Availability is built from
-`stylist_hours` and `time_off` in this database (`api/_lib/availability.js`),
-for guests and staff alike.
+**The Synergy Calendar is this database.** Availability is built from
+`stylist_hours`, `time_off` and `appointments` here (`api/_lib/availability.js`),
+for guests and staff alike, so a stylist with no Google Calendar is booked
+from it alone. Google only ever takes time away: for guests (`google: true`
+on the public paths: `/api/availability`, `/api/enquiry`, `/api/book`
+through `createBooking` with `channel: 'online'`, and the guest's own
+reschedule) a connected stylist's Google busy times are subtracted
+(`api/_lib/google-busy.js`, cached a minute), and a stylist whose calendar
+cannot be read is offered nothing online (fail closed, chosen by the salon).
+The desk is not limited by Google. Bookings are copied into the stylist's
+Google Calendar for stylists who signed in with Google (`google-mirror.js`,
+run after every `drain()` and so by the daily cron; a pasted address is
+read-only), and their copy is removed before an appointment is deleted.
+CENTRO still gets a copy of every booking, move and cancellation through
+`sync_outbox`, unchanged; the guest's own reschedule and cancel now drain
+the queue at once (`api/appointment.js`) instead of waiting for the cron.
+
+**Several services are one appointment.** The survey's other services go to
+the server (`body.services` on `/api/enquiry`, `&with=` on
+`/api/availability`) and are booked as one appointment with one stylist who
+offers every one: the guest's time is all of them end to end with the
+clean-downs between, the last clean-down after (`combineServices`), priced
+only when every part has a price. Moving it keeps its own length (`length`
+on `availableSlots`).
+
+**The website survey reads the Synergy Calendar, for real now.** Three bugs
+meant it never had: the adapter's MutationObserver watched
+`document.documentElement`, which the page replaces as it loads, so it never
+fired; its first early return never released its busy flag; and when the
+server had nothing to offer it left the survey's invented calendar showing.
+It now observes `document`, always hands back, and fails closed (every day
+shut, with the server's reason under the calendar). The survey offers a wide
+grid (every day, 8 to 9, its 42% random "taken" hash turned off) and the
+adapter hides every time the calendar cannot honour. The stylists come from
+`/api/services` (only those with a service on, with their portraits) when the
+popup opens (`bkLoadTeam`, published on `window.__ssBkTeam`); the adapter
+maps a name to a slug through that, the old fixed map only as a fallback.
+
+**The guest's manage page** is `/appointment?ref=…&t=…` (`appointment.html`),
+linked from every email: details, "Choose a new time" (the next four weeks
+from `GET /api/appointment?…&from=&to=`, same stylist, same length, same
+rules as booking) and "Cancel appointment". It did not exist before; the
+email links led nowhere.
 
 It used to be asked of CENTRO, which meant a stylist with no CENTRO user
 linked was offered nothing at all. All four were in exactly that state, which
@@ -257,10 +297,10 @@ made that way are real: name them ZZ and remove them.
   Personal information (Email, Phone, Role; phone is `staff_users.phone`,
   007, now read and written by `team.js` as well as `profile.js`), Connect
   your tools, Services & pricing, Working hours. A stylist without a sign-in shows only
-  services and hours (name and picture read-only). Working hours is shown
-  grey and disabled for everybody for now (`HOURS_OPEN = false`, asked for
-  by the salon: team members only add services and connect a calendar), and
-  no hours are sent on save, so the stored ones are kept; the steps card
+  services and hours (name and picture read-only). Working hours are set
+  by the admin only (`hoursOpen()`: the admin on somebody else's window or
+  adding somebody); a stylist sees their own grey and disabled, and
+  `/profile` ignores hours sent to it, so the stored ones are kept; the steps card
   that used to say what opens it was removed on request. The admin
   (`canManageTeam`, the app's one admin rule: role owner or a
   `TEAM_ADMIN_EMAILS` login; managers are not admins; Luis Lara is the
@@ -270,8 +310,7 @@ made that way are real: name them ZZ and remove them.
   service chips. Dina Lara is the owner AND a stylist: if she is given a
   login as Owner her services disappear with it, so give her the Stylist
   role. Classes are `wh-` prefixed: the console already has a
-  generic `.locked`, which once made this section inline-flex. With
-  `HOURS_OPEN` on, each
+  generic `.locked`, which once made this section inline-flex. Open, each
   day shows the coming week from that calendar (busy times and what is left
   of the shift) via `GET /api/staff/calendars?busy=week`
   (`&member=` for the owner and the support login). Your own window now gets your hours
@@ -308,23 +347,27 @@ made that way are real: name them ZZ and remove them.
   person is a column on Appt. Book's day view: their Google busy times read
   live by `busyBetween` in `google.js` (times only, the fields mask never asks
   Google for titles), their own salon bookings and blocks, and the salon-wide
-  ones. Clicking an empty time books with them. Google busy time does not
-  yet block online availability. Sign-in needs `GOOGLE_CLIENT_ID`,
+  ones. Clicking an empty time books with them. Google busy time blocks
+  online availability (google-busy.js). Sign-in needs `GOOGLE_CLIENT_ID`,
   `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY` in Vercel; the pasted address needs
-  nothing. `pushEvent` (writing into Google) exists
-  but nothing calls it.
+  nothing. `pushEvent` writes bookings into the Google Calendar of stylists
+  who signed in (google-mirror.js).
   Connected means connected either way (`googleStatus`), everywhere: the
   tools card, the New calendar form's Google row (`calAppRows`, which used to
   read only the sign-in and offered Google again to anyone connected by the
   address) and the calendar dialog. `GET /api/staff/profile` carries the
   status, so your own window opens right instead of offering Connect until a
   second request answered; it says "Checking…" if the status is missing.
-- Appt. Book's day is the people with a connected calendar, one column each
-  (the four salon lanes were removed on request once anybody connects).
-  Anything nobody on the grid owns (a booking with a stylist who has not
-  connected) gets one "Other appointments" column that day, so it never
-  vanishes. Until somebody connects, the day is at least four lanes under one
-  "<salon> Calendar" heading, the clock down the side. It has no "+ New calendar"
+- Appt. Book's day is one column per bookable stylist ("Synergy" under the
+  name), Google or not; a connected stylist's column also carries their
+  Google busy times ("+ Google"), and somebody connected who takes no
+  appointments keeps a column for their Google day. Their bookings sit in
+  their column and clicking an empty time books with them. Anything nobody
+  on the grid owns gets one "Other appointments" column that day, so it never
+  vanishes. With nobody bookable at all, the day is at least four lanes under
+  one "<salon> Calendar" heading, the clock down the side. The shop's extra
+  booking calendars no longer gate the page: the diary and New appointment
+  always work, because every appointment is in the Synergy Calendar. It has no "+ New calendar"
   chip (removed on request). Nobody is assigned to a column yet: an appointment takes
   the first column free at its time, and cards do not name a stylist. Stylist
   columns (`dayColumns()`) come back once stylists are on the team. While the
@@ -429,7 +472,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 77 tests; the database ones skip without DATABASE_URL
+npm test                    # 92 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and
@@ -468,17 +511,23 @@ must stay that way — anything committed here is served publicly.
   sold to more than one salon; it wants to become "this tenant has a bookable
   stylist".
 
-- **Website availability does not yet read Google Calendar.** Both the
-  website (`/api/enquiry`, `/api/book`) and the console (`/api/staff/book`)
-  book through `createBooking` into the same table, so the exclusion
-  constraint stops double bookings between them, and availability subtracts
-  every appointment and `time_off` block. But `availability.js` never asks
-  Google: a stylist busy in their own calendar is still offered online. And
-  nothing writes bookings into Google (`pushEvent` is unused); they reach a
-  stylist's calendar only if they subscribe to their private feed, which
-  Google refreshes every several hours. Working hours are also locked in the
-  console (`HOURS_OPEN = false`), so nobody can be given hours and nobody is
-  bookable until that is lifted.
+- **Go-live checklist for online booking** (the code is done and tested
+  against a local Postgres; nothing below is code):
+  1. In Team, give each stylist their services and the admin sets their
+     hours (Dina, Micah, Tami and Kim are there as stylists without a
+     sign-in, keeping the slugs the website's links use).
+  2. `RESEND_API_KEY` in Vercel, or no guest gets a confirmation, reminder,
+     or the manage link.
+  3. Dina confirms service durations.
+  4. Remove the CENTRO booking widget (the leadconnectorhq iframe in the
+     contact section of `index.html` and `hair-salon-riverview.html`): it is
+     a second calendar the Synergy Calendar cannot see, so guests booking
+     there would double-book. It is left in place only because it is the
+     salon's live online booking until this goes live.
+  5. Envision's appointments imported, or the first weeks double-book.
+  6. Then lift the pause (below).
+  Google sign-in (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_KEY`)
+  is optional: it lets bookings be copied into stylists' Google Calendars.
 - **Service durations need Dina.** Every one in `db/seed.sql` and
   `db/migrations/004` is an industry estimate, and they decide which slots get
   sold. A wrong one either wastes a chair or sells an appointment that cannot

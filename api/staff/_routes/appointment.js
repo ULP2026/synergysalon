@@ -16,6 +16,7 @@
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { enqueueSync } from '../../_lib/booking.js';
 import { EXCLUSION_VIOLATION, transaction } from '../../_lib/db.js';
+import { removeGoogleCopies } from '../../_lib/google-mirror.js';
 import { sendCancellation } from '../../_lib/email.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
@@ -125,6 +126,9 @@ export default handler({
               payload: { ghlAppointmentId: appt.ghl_appointment_id, ref },
             });
           }
+          // Its copy in the stylist's Google Calendar goes first: the record
+          // of which event it became is deleted along with it.
+          await removeGoogleCopies(appt, appt.service_name);
           await client.query('DELETE FROM appointments WHERE id = $1', [appt.id]);
           return { appt, deleted: true, inCentro: Boolean(appt.ghl_appointment_id) };
         }

@@ -101,7 +101,9 @@ export default handler({
     // Stylists who take appointments but never sign in. They are on the same
     // list because from a salon's point of view they are the same thing: a
     // person in a chair that a guest can book.
-    const standalone = await listStandalone({ query }, tenant.id);
+    // With the salon's portrait, as everywhere else a stylist's face appears.
+    const standalone = (await listStandalone({ query }, tenant.id))
+      .map((st) => ({ ...st, photo: stylistPhoto(tenant.slug, st.stylistSlug) }));
 
     return json(res, 200, {
       you: { id: user.id, role: user.role },

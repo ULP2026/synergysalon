@@ -36,7 +36,7 @@ export async function enqueueSync(client, tenantId, kind, { appointmentId = null
  */
 async function insertFor(client, stylistId, ctx) {
   const {
-    tenant, service, startsAt, guestName, guestEmail, guestPhone, notes,
+    tenant, service, visit, startsAt, guestName, guestEmail, guestPhone, notes,
     channel, bookedBy, contactId,
   } = ctx;
 
@@ -60,8 +60,10 @@ async function insertFor(client, stylistId, ctx) {
          RETURNING id, ref, starts_at, duration_min, price_cents,
                    guest_name, guest_email, guest_phone, manage_token, channel`,
         [
+          // The visit's length and price: one service's own, or several
+          // services end to end (combineServices in availability.js).
           tenant.id, newRef(), stylistId, service.id, contactId, startsAt.toISO(),
-          service.duration_min, service.buffer_min, service.price_cents,
+          visit.durationMin, visit.bufferMin, visit.priceCents,
           channel, bookedBy,
           guestName, guestEmail, guestPhone, notes, newToken(),
         ],
@@ -97,13 +99,18 @@ async function insertFor(client, stylistId, ctx) {
 export async function createBooking(client, tenant, {
   serviceSlug, stylistSlug, start, guestName, guestEmail = '', guestPhone = '',
   notes = '', channel = 'online', bookedBy = null, contactId = null, minLeadMin,
+  extraServiceSlugs = [],
 }) {
   const startsAt = DateTime.fromISO(start, { setZone: true }).setZone(tenant.timezone);
   if (!startsAt.isValid) throw new HttpError(400, 'That appointment time is not valid.');
 
-  const { service, days } = await availableSlots(client, tenant, {
+  const { service, visit, days } = await availableSlots(client, tenant, {
     serviceSlug,
     stylistSlug,
+    extraServiceSlugs,
+    // A guest booking online is not offered time a connected stylist is
+    // busy in Google; the desk, who can see the stylist, may book over it.
+    google: channel === 'online',
     fromDate: startsAt.toISODate(),
     toDate: startsAt.toISODate(),
     minLeadMin,
@@ -126,7 +133,7 @@ export async function createBooking(client, tenant, {
   const order = [preferred, ...slot.stylistIds.filter((id) => id !== preferred)];
 
   const ctx = {
-    tenant, service, startsAt, guestName, guestEmail, guestPhone, notes,
+    tenant, service, visit, startsAt, guestName, guestEmail, guestPhone, notes,
     channel, bookedBy, contactId,
   };
 

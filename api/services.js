@@ -1,5 +1,6 @@
 /** GET /api/services — the menu the booking form is built from. */
 import { query } from './_lib/db.js';
+import { stylistPhoto } from './_lib/stylist-photos.js';
 import { handler, json } from './_lib/http.js';
 import { tenantForRequest } from './_lib/tenant.js';
 
@@ -14,7 +15,8 @@ export default handler({
         [tenant.id],
       ),
       query(
-        `SELECT slug, name, title FROM stylists
+        // The photo through to_jsonb, so this still runs before migration 012.
+        `SELECT slug, name, title, to_jsonb(stylists) ->> 'photo' AS photo FROM stylists
           WHERE tenant_id = $1 AND active ORDER BY sort_order`,
         [tenant.id],
       ),
@@ -48,7 +50,18 @@ export default handler({
         consultFirst: s.consult_first,
         stylists: by.get(s.slug) ?? [],
       })),
-      stylists: stylists.rows,
+      // Only stylists who offer something: the booking survey lists these,
+      // and somebody with no service switched on cannot be booked.
+      stylists: stylists.rows
+        .filter((s) => offers.rows.some((o) => o.stylist_slug === s.slug))
+        .map((s) => ({
+          slug: s.slug,
+          name: s.name,
+          title: s.title,
+          // The salon's portrait first; an uploaded photo is a data: URL and
+          // too heavy to hand to every visitor, so it is left out here.
+          photo: stylistPhoto(tenant.slug, s.slug) || (s.photo && !s.photo.startsWith('data:') ? s.photo : null),
+        })),
     });
   },
 });

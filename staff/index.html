@@ -1793,7 +1793,7 @@
     .gdlg h2 { font-size: 1.7rem; }
   }
 
-  /* Working hours: grey and disabled for now (HOURS_OPEN in the script). */
+  /* Working hours: grey and disabled unless the admin is setting a stylist's (hoursOpen()). */
   .wh { display: block; margin-bottom: 16px; }
   /* Closed: every day grey and inert (the controls are disabled as well). */
   .wh-off .hrs .hr { background: var(--raise); border-color: var(--line); }
@@ -2323,7 +2323,7 @@
         <div class="svcs" id="memberSvcs"></div>
 
         <!-- Shown, grey and disabled, for everyone for now: the salon sets
-             schedules itself until stylists are on the app (HOURS_OPEN). -->
+             schedules: only the admin sets a stylist's hours (hoursOpen()). -->
         <div class="md-sec">Working hours</div>
         <div id="memberHoursWrap" class="wh wh-off">
           <div class="hrs" id="memberHours"></div>
@@ -2974,18 +2974,12 @@ async function loadAppointments() {
   if (!calData) {
     try { calData = await api('/api/staff/booking-calendars'); } catch { calData = null; }
   }
-  const none = Boolean(calData && !calData.calendars.length);
-  noCals = none;
-
-  // With no calendar connected the day still shows, empty: appointments live
-  // in a calendar, so until there is one nothing is listed as booked here.
-  $('needCal').classList.toggle('hidden', !none);
-  // "New appointment" would book into a calendar that does not exist.
-  $('primaryBtn')?.classList.toggle('hidden', none);
-  if (none) {
-    $('needCal').innerHTML = `<div class="note">${ic('info')}<span>No calendars are connected yet, so nothing is booked here.
-      ${calData.canManage ? '<a href="/staff/calendars" data-newcal>Create a calendar</a> to start taking appointments.' : 'An owner or manager creates the first calendar.'}</span></div>`;
-  }
+  // The Synergy Calendar is built in: every appointment, from the website
+  // or the desk, is in it whether or not the shop has made any extra
+  // booking calendars. Those used to gate this page, which drew the day
+  // empty and hid New appointment while real website bookings existed.
+  noCals = false;
+  $('needCal').classList.add('hidden');
 
   renderCalBar();
   renderApptCalendars();
@@ -4378,7 +4372,21 @@ function renderDiary(d) {
   //
   // A lane is a column nobody is assigned to: an appointment takes the first
   // one free at its time, and two at 10 o'clock sit side by side.
-  const team = d.team || [];
+  // Every bookable stylist has a column: the Synergy Calendar is theirs
+  // whether or not they connect Google. A connected stylist's column also
+  // carries their Google busy times; somebody connected who takes no
+  // appointments (no stylist row) keeps a column for their Google day.
+  const google = d.team || [];
+  const roster = me?.stylists || [];
+  const team = [
+    ...roster.map((st) => {
+      const g = google.find((x) => x.stylistSlug === st.slug);
+      return g ? { ...g, google: true }
+        : { id: `st-${st.slug}`, name: st.name, photo: st.photo, stylistSlug: st.slug, busy: [], error: null, google: false };
+    }),
+    ...google.filter((g) => !g.stylistSlug || !roster.some((st) => st.slug === g.stylistSlug))
+      .map((g) => ({ ...g, google: true })),
+  ];
   const mineSlugs = new Set(team.map((t) => t.stylistSlug).filter(Boolean));
   // With people on the grid, the lanes only hold what belongs to nobody on
   // it: a booking with a stylist who has not connected, or one with nobody.
@@ -4420,11 +4428,12 @@ function renderDiary(d) {
   const heads = (cols.length ? `<div class="dg-head dg-group" style="grid-column:span ${cols.length}">
       <span class="dg-hic">${ic('calendar')}</span>
       <div style="min-width:0">${team.length
-        ? '<b>Other appointments</b><span class="sub">Not on a connected calendar</span>'
+        ? '<b>Other appointments</b><span class="sub">With nobody on the grid</span>'
         : `<b>${esc(me?.salon?.name || 'Salon')} Calendar</b><span class="sub">Every appointment</span>`}</div></div>` : '')
     + team.map((t) => `<div class="dg-head" title="${esc(t.account ? `${t.name} · ${t.account}` : t.name)}">
       <img class="avatar" src="${esc(personPhoto(t))}" alt="">
-      <div style="min-width:0"><b>${esc(t.name)}</b><span class="sub">${GOOGLE_LOGO.replace('class="conn-logo"', '')}Google</span></div></div>`).join('');
+      <div style="min-width:0"><b>${esc(t.name)}</b><span class="sub">${t.google
+        ? `${GOOGLE_LOGO.replace('class="conn-logo"', '')}+ Google` : `${ic('calendar')}Synergy`}</span></div></div>`).join('');
 
   const teamHtml = team.map((t) => {
     // Their own salon bookings sit in their column too, so the column is
@@ -4463,7 +4472,7 @@ function renderDiary(d) {
       <span><i style="background:#d6404d"></i>Block, not bookable</span>
       <span>${ic('check')}Confirmed</span><span>${ic('user-check')}Checked in</span>
       <span>${ic('thumbs')}Done</span><span>${ic('doc')}Notes</span>
-      ${team.length ? '<span><i style="background:repeating-linear-gradient(135deg,#eceefb 0 4px,#e3e6f8 4px 8px)"></i>Busy in Google</span>' : ''}
+      ${team.some((t) => t.google) ? '<span><i style="background:repeating-linear-gradient(135deg,#eceefb 0 4px,#e3e6f8 4px 8px)"></i>Busy in Google</span>' : ''}
       <span style="margin-left:auto">Click an empty time to book it.</span>
     </div>
     ${cancelled.length ? `<div class="dg-off">Cancelled today:
@@ -5615,7 +5624,7 @@ const fromMin = (n) => {
 };
 
 function paintGoogleWeek() {
-  const week = HOURS_OPEN && hoursWeek?.google?.connected && !hoursWeek.error ? hoursWeek : null;
+  const week = hoursOpen() && hoursWeek?.google?.connected && !hoursWeek.error ? hoursWeek : null;
   for (const row of $('memberHours').querySelectorAll('.hr')) {
     const out = row.querySelector('.gday');
     const day = week?.days.find((d) => d.weekday === Number(row.dataset.day));
@@ -5650,12 +5659,16 @@ function paintGoogleWeek() {
 }
 
 /**
- * Working hours are not edited by the team for now: the section is shown grey
- * and disabled for everybody (asked for by the salon), and no hours are sent
- * on save, so the stored ones are kept. Set to true to hand them over again;
- * the save and the controls both follow it.
+ * Whether these hours can be changed: only by the admin, on somebody else's
+ * window or while adding somebody (a stylist with or without a sign-in). A
+ * stylist sees their own schedule grey and cannot change it, as the salon
+ * asked, and no hours are sent from it, so the stored ones are kept; the admin has
+ * no hours of their own. The server holds the same line: /profile ignores
+ * hours, and /team, which takes them, is the admin's alone.
  */
-const HOURS_OPEN = false;
+function hoursOpen() {
+  return Boolean(me?.user?.canManageTeam && memberEdit !== 'me' && !memberIsAdmin(toolsFor));
+}
 
 /**
  * The admin (the owner, or the support login: canManageTeam on the server,
@@ -5677,12 +5690,13 @@ function paintWorkVisibility() {
 
 /** Every day grey and every control disabled while the section is closed. */
 function paintHoursState() {
-  $('memberHoursWrap').classList.toggle('wh-off', !HOURS_OPEN);
+  const open = hoursOpen();
+  $('memberHoursWrap').classList.toggle('wh-off', !open);
   for (const row of $('memberHours').querySelectorAll('.hr')) {
     const sw = row.querySelector('.switch');
     const on = sw.getAttribute('aria-checked') === 'true';
-    sw.disabled = !HOURS_OPEN;
-    for (const input of row.querySelectorAll('input')) input.disabled = !HOURS_OPEN || !on;
+    sw.disabled = !open;
+    for (const input of row.querySelectorAll('input')) input.disabled = !open || !on;
   }
   paintGoogleWeek();
 }
@@ -5692,7 +5706,7 @@ async function loadHoursWeek() {
   const m = toolsFor;
   hoursWeek = null;
   // Nothing to show the week beside while the section is closed.
-  if (!HOURS_OPEN || !m || !m.google?.connected) { paintHoursState(); return; }
+  if (!hoursOpen() || !m || !m.google?.connected) { paintHoursState(); return; }
   paintHoursState();
   try {
     const q = memberEdit === 'me' ? '' : `&member=${encodeURIComponent(m.id)}`;
@@ -5991,14 +6005,14 @@ $('memberForm').onsubmit = async (e) => {
     if (!admin && JSON.stringify(services) !== memberOrig.services) fields.services = services;
     // Hours only while the section is open; otherwise nothing could have
     // been changed, and leaving them out keeps what is stored.
-    const hoursOpen = HOURS_OPEN && !admin;
-    if (hoursOpen) fields.hours = readHoursUI();
+    const sendHours = hoursOpen() && !admin;
+    if (sendHours) fields.hours = readHoursUI();
     if (memberPic !== undefined) fields.avatar = memberPic;
     if (memberEdit && memberEdit.noLogin) {
       await api('/api/staff/team', {
         method: 'POST',
         body: JSON.stringify({
-          id: memberEdit.id, action: 'update', services, ...(hoursOpen ? { hours: readHoursUI() } : {}),
+          id: memberEdit.id, action: 'update', services, ...(sendHours ? { hours: readHoursUI() } : {}),
         }),
       });
       toast(Object.values(services).some((v) => v.on)
