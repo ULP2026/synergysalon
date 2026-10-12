@@ -35,12 +35,9 @@ test('the welcome email carries the link, the app and the setup steps', () => {
   assert.ok(!/^(your )?(temporary )?password\s*:/im.test(e.text), 'no password is ever written into the email');
 });
 
-test('owners, managers and the support login are admins with no services', async () => {
-  const { isSalonAdmin } = await import('../api/_lib/auth.js');
-  assert.equal(isSalonAdmin({ role: 'owner', email: 'a@b.co' }), true);
-  assert.equal(isSalonAdmin({ role: 'manager', email: 'a@b.co' }), true);
-  assert.equal(isSalonAdmin({ role: 'stylist', email: 'support@unclelouieproductions.com' }), true);
-  assert.equal(isSalonAdmin({ role: 'stylist', email: 'a@b.co' }), false);
-  assert.equal(isSalonAdmin({ role: 'front_desk', email: 'a@b.co' }), false);
-  assert.equal(isSalonAdmin(null), false);
+test('managers are not admins: only the owner and the support login are', () => {
+  // One admin rule for team management, Home and the services-free window.
+  assert.equal(canManageTeam({ role: 'manager', email: 'a@b.co' }), false);
+  assert.equal(canManageTeam({ role: 'owner', email: 'a@b.co' }), true);
+  assert.equal(canManageTeam({ role: 'stylist', email: 'Support@UncleLouieProductions.com ' }), true);
 });

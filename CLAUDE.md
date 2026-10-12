@@ -261,15 +261,15 @@ made that way are real: name them ZZ and remove them.
   grey and disabled for everybody for now (`HOURS_OPEN = false`, asked for
   by the salon: team members only add services and connect a calendar), and
   no hours are sent on save, so the stored ones are kept; the steps card
-  that used to say what opens it was removed on request. An admin
-  (`isSalonAdmin` in `auth.js`: role owner or manager, or a
-  `TEAM_ADMIN_EMAILS` login; Luis Lara is the admin, and owner and manager
-  both count because his role was not checked) gets neither Services & pricing nor Working hours (`#memberWork`
+  that used to say what opens it was removed on request. The admin
+  (`canManageTeam`, the app's one admin rule: role owner or a
+  `TEAM_ADMIN_EMAILS` login; managers are not admins; Luis Lara is the
+  admin, so his account needs the Owner role) gets neither Services & pricing nor Working hours (`#memberWork`
   hidden, `admin` flag from `/profile` and `/team`, and the server ignores
   services sent for an admin), and admin rows on the Team list show no
   service chips. Dina Lara is the owner AND a stylist: if she is given a
-  login as Owner or Manager her services disappear with it, so give her the
-  Stylist role. Classes are `wh-` prefixed: the console already has a
+  login as Owner her services disappear with it, so give her the Stylist
+  role. Classes are `wh-` prefixed: the console already has a
   generic `.locked`, which once made this section inline-flex. With
   `HOURS_OPEN` on, each
   day shows the coming week from that calendar (busy times and what is left
@@ -366,7 +366,13 @@ made that way are real: name them ZZ and remove them.
   `canManageTeam` in `auth.js` (role owner, or an email in `TEAM_ADMIN_EMAILS`
   in `config.js`, today support@unclelouieproductions.com) gates
   `/api/staff/team`, connecting a calendar for somebody else, and the console's
-  team views (`me.user.canManageTeam`). Managers keep the rest of `canAdmin`
+  team views (`me.user.canManageTeam`). The admin views and edits every
+  account, owners included (the "only an owner can change an owner" checks
+  in `team.js` use `canManageTeam`, so the support login is not blocked).
+  Nobody else can read another member's details: Appt. Book's day sends a
+  colleague's connected Google address only to that person and the admin.
+  `/api/staff/me` still lists everybody's name, role and username for the
+  Clients filters and the diary. Managers keep the rest of `canAdmin`
   (billing, deleting clients). Adding somebody sends the welcome
   (`sendInvite`, `welcomeContent` in `email.js`): the one-use setup link
   (they choose their own password; none is ever emailed), the app address,
@@ -462,6 +468,17 @@ must stay that way — anything committed here is served publicly.
   sold to more than one salon; it wants to become "this tenant has a bookable
   stylist".
 
+- **Website availability does not yet read Google Calendar.** Both the
+  website (`/api/enquiry`, `/api/book`) and the console (`/api/staff/book`)
+  book through `createBooking` into the same table, so the exclusion
+  constraint stops double bookings between them, and availability subtracts
+  every appointment and `time_off` block. But `availability.js` never asks
+  Google: a stylist busy in their own calendar is still offered online. And
+  nothing writes bookings into Google (`pushEvent` is unused); they reach a
+  stylist's calendar only if they subscribe to their private feed, which
+  Google refreshes every several hours. Working hours are also locked in the
+  console (`HOURS_OPEN = false`), so nobody can be given hours and nobody is
+  bookable until that is lifted.
 - **Service durations need Dina.** Every one in `db/seed.sql` and
   `db/migrations/004` is an industry estimate, and they decide which slots get
   sold. A wrong one either wastes a chair or sells an appointment that cannot

@@ -121,18 +121,6 @@ export function canManageTeam(user) {
     || TEAM_ADMIN_EMAILS.includes(String(user.email || '').trim().toLowerCase());
 }
 
-/**
- * Whether somebody runs the salon rather than taking appointments: an owner
- * or a manager, or a TEAM_ADMIN_EMAILS login. Their own window has no
- * services, prices or working hours. Wider than canManageTeam on purpose:
- * a manager is an admin here even though only an owner manages the team.
- */
-export function isSalonAdmin(user) {
-  if (!user) return false;
-  return ['owner', 'manager'].includes(user.role)
-    || TEAM_ADMIN_EMAILS.includes(String(user.email || '').trim().toLowerCase());
-}
-
 /** requireStaff, and then canManageTeam. */
 export async function requireTeamAdmin(req) {
   const user = await requireStaff(req);
