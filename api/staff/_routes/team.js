@@ -10,7 +10,7 @@
  * account, so nobody can grant themselves or anyone else access, or open a
  * colleague's details.
  */
-import { assertSameOrigin, isSalonAdmin, requireTeamAdmin } from '../../_lib/auth.js';
+import { assertSameOrigin, canManageTeam, requireTeamAdmin } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
 import { query, transaction } from '../../_lib/db.js';
@@ -118,9 +118,9 @@ export default handler({
         email: r.email,
         phone: r.phone || '',
         role: r.role,
-        // An admin takes no appointments, so their window has no services,
-        // prices or hours (isSalonAdmin in auth.js).
-        admin: isSalonAdmin(r),
+        // The admin takes no appointments, so their window has no services,
+        // prices or hours (canManageTeam in auth.js).
+        admin: canManageTeam(r),
         status: r.status,
         note: r.note,
         avatar: r.avatar,
@@ -158,7 +158,7 @@ export default handler({
       const name = requireString(body.name, 'Name', { max: 120 });
       const email = requireEmail(body.email);
       const role = ROLES.includes(body.role) ? body.role : 'front_desk';
-      if (role === 'owner' && user.role !== 'owner') {
+      if (role === 'owner' && !canManageTeam(user)) {
         throw new HttpError(403, 'Only an owner can make someone else an owner.');
       }
 
@@ -301,7 +301,7 @@ export default handler({
       // points at the login lets go by itself: sessions and calendar tokens
       // are deleted with it, and "booked by" or "approved by" become empty.
       case 'delete': {
-        if (target.role === 'owner' && user.role !== 'owner') {
+        if (target.role === 'owner' && !canManageTeam(user)) {
           throw new HttpError(403, 'Only an owner can remove another owner.');
         }
         try {
@@ -349,7 +349,7 @@ export default handler({
         const role = requireString(body.role, 'Role', { max: 20 });
         if (!ROLES.includes(role)) throw new HttpError(400, 'That is not a role.');
         // Only an owner can make another owner.
-        if (role === 'owner' && user.role !== 'owner') {
+        if (role === 'owner' && !canManageTeam(user)) {
           throw new HttpError(403, 'Only an owner can make someone else an owner.');
         }
         await query('UPDATE staff_users SET role = $2 WHERE id = $1', [target.id, role]);
@@ -360,7 +360,7 @@ export default handler({
       // Each is changed only when sent, so a field nobody touched is left as
       // it was.
       case 'update': {
-        if (target.role === 'owner' && user.role !== 'owner') {
+        if (target.role === 'owner' && !canManageTeam(user)) {
           throw new HttpError(403, 'Only an owner can change another owner.');
         }
         const sets = [];
@@ -386,7 +386,7 @@ export default handler({
         if (body.pricing !== undefined) add('pricing', String(body.pricing || '').trim().slice(0, 120));
         // An admin (as they will be after this save) takes no appointments,
         // so services sent for them are ignored and what is stored is left.
-        const admin = isSalonAdmin({ role: body.role ?? target.role, email: body.email ?? target.email });
+        const admin = canManageTeam({ role: body.role ?? target.role, email: body.email ?? target.email });
         const services = admin ? undefined : servicesFrom(body.services);
         if (services !== undefined) add('services', JSON.stringify(services));
         const avatar = avatarFrom(body.avatar);
@@ -395,7 +395,7 @@ export default handler({
         if (style !== undefined) add('avatar_style', style);
         if (body.role !== undefined) {
           if (!ROLES.includes(body.role)) throw new HttpError(400, 'That is not a role.');
-          if (body.role === 'owner' && user.role !== 'owner') {
+          if (body.role === 'owner' && !canManageTeam(user)) {
             throw new HttpError(403, 'Only an owner can make someone else an owner.');
           }
           add('role', body.role);

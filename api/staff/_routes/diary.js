@@ -25,7 +25,7 @@
  */
 import { DateTime } from 'luxon';
 
-import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import { busyBetween, googleConfigured } from '../../_lib/google.js';
 import { icsBusyBetween, openLink } from '../../_lib/google-ics.js';
@@ -165,7 +165,11 @@ export default handler({
       team = await Promise.all(linked.map(async (u) => {
         const col = {
           id: u.id, name: u.name, role: u.role, avatar: u.avatar, photo: u.photo,
-          stylistSlug: u.stylist_slug, account: u.google_email, busy: [], error: null,
+          // Which Google account is connected is the person's own detail:
+          // shown to them and to the admin, not to every colleague.
+          stylistSlug: u.stylist_slug,
+          account: u.id === user.id || canManageTeam(user) ? u.google_email : null,
+          busy: [], error: null,
         };
         try {
           // The sign-in first when there is one; the pasted address otherwise.

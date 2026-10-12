@@ -5506,7 +5506,7 @@ function shrink(file, box, type = 'image/jpeg') {
 
 // ── the team modal ────────────────────────────────────────────────────────
 //
-// One dialog for three jobs: adding somebody, an owner or manager editing
+// One dialog for three jobs: adding somebody, the admin editing
 // somebody, and anyone editing themselves by clicking their own picture. What
 // differs is which fields are open and which endpoint saves them; the server
 // checks the same rules again either way.
@@ -5658,13 +5658,13 @@ function paintGoogleWeek() {
 const HOURS_OPEN = false;
 
 /**
- * An admin (owner, manager, or the support login: isSalonAdmin on the
- * server) runs the place rather than taking appointments, so their window
- * has no services, prices or hours. Follows the role picker while editing,
- * so making somebody Owner or Manager takes the sections away before saving.
- * An admin by email stays one whatever the role says.
+ * The admin (the owner, or the support login: canManageTeam on the server,
+ * the app's one admin rule) runs the place rather than taking appointments,
+ * so their window has no services, prices or hours. Follows the role picker
+ * while editing, so making somebody Owner takes the sections away before
+ * saving. An admin by email stays one whatever the role says.
  */
-const ADMIN_ROLES = ['owner', 'manager'];
+const ADMIN_ROLES = ['owner'];
 function memberIsAdmin(m) {
   const role = $('memberForm').elements.role.value;
   const byEmail = Boolean(m && m.admin && !ADMIN_ROLES.includes(m.role));
@@ -5760,7 +5760,9 @@ async function openMember(who) {
   }
   const self = memberEdit === 'me';
   const admin = me?.user?.canManageTeam;
-  const owner = me?.user?.role === 'owner';
+  // The admin (canManageTeam: the owner or the support login) edits
+  // everybody, owners included; nobody else opens anyone but themselves.
+  const owner = Boolean(me?.user?.canManageTeam);
   const lockedOwner = m && m.role === 'owner' && !owner && !self;
 
   // The heading is the person: a small label over their name, which is the
@@ -5858,7 +5860,7 @@ function openPicDlg() {
   openDialog($('picDlg'));
 }
 $('memberPic').onclick = openPicDlg;
-// Making somebody Owner or Manager takes services and hours away at once, and back.
+// Making somebody Owner takes services and hours away at once, and back.
 $('memberForm').elements.role.addEventListener('change', paintWorkVisibility);
 // The pencils: straight into the field, its text selected, ready to replace.
 $('memberDlg').addEventListener('click', (e) => {
@@ -6037,7 +6039,7 @@ $('memberForm').onsubmit = async (e) => {
 
 // ── Team ──────────────────────────────────────────────────────────────────
 //
-// You first, then (for owners and managers) everyone else on the team; each
+// You first, then (for the admin: the owner or the support login) everyone else on the team; each
 // card opens the same modal. Requests to join appear under the list, since
 // nothing else shows them.
 
@@ -6079,7 +6081,7 @@ function renderTeam(current, others = [], pending = []) {
     <div class="tm-addrow">
       <span class="tm-addic">${ic('users-plus')}</span>
       <span class="tm-addtx"><b>Add a team member</b>
-        <span>${admin ? 'Give each stylist their own sign in, picture and prices.' : 'The owner adds stylists to the team.'}</span></span>
+        <span>${admin ? 'Give each stylist their own sign in, picture and prices.' : 'The salon’s admin adds team members.'}</span></span>
       ${admin ? `<button type="button" class="btn sm" id="teamAdd">${ic('plus')}Add Team Member</button>` : ''}
     </div>
     ${admin && pending.length ? `<div class="tm-pending"><h3>Asking to join</h3>${pending.map((m) => `
@@ -6093,7 +6095,7 @@ function renderTeam(current, others = [], pending = []) {
 
 /** The role picker a pending request is approved with. */
 function roleControl(m) {
-  const iAmOwner = me?.user?.role === 'owner';
+  const iAmOwner = Boolean(me?.user?.canManageTeam);
   return `<select class="role" data-role="${esc(m.id)}" aria-label="Role for ${esc(m.name)}">
     ${['front_desk', 'stylist', 'manager', 'owner'].map((r) =>
       `<option value="${r}" ${r === 'front_desk' ? 'selected' : ''} ${r === 'owner' && !iAmOwner ? 'disabled' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
@@ -6131,7 +6133,7 @@ async function loadTeam() {
   if (!teamCurrent) $('team').innerHTML = skeleton(2);
   try {
     // The profile is the person themselves, for every role; the team list,
-    // for owners and managers, adds who is waiting to be let in.
+    // for the admin, adds who is waiting to be let in.
     const [p, t] = await Promise.all([
       api('/api/staff/profile'),
       me?.user?.canManageTeam ? api('/api/staff/team') : Promise.resolve(null),
