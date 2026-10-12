@@ -187,7 +187,24 @@ made that way are real: name them ZZ and remove them.
 
 ## Staff console
 
-- Home (`/staff`) greets nobody and has no primary button: its subtitle is
+- Home (`/staff`) is a grid of widgets the admin arranges: Customize (top
+  right, only for `canManageTeam`, the same "admin" as team management)
+  turns each card into an editor (move earlier or later, Bars/Line/Table
+  where the widget has them, Half or Full width, remove), with Add widget,
+  Reset (to the default, not saved until Save), Cancel and Save. The layout
+  is one per salon, `tenants.home_layout` (019, also in ensure-schema), saved
+  by `PATCH /api/staff/home` and cleaned by `layoutFrom` in
+  `api/_lib/home-layout.js`, which also holds the widget catalog and
+  `DEFAULT_LAYOUT` (the two figures and Coming up as before, with Booked
+  ahead and Services between them). Every chart's numbers are counted in
+  `home.js` (`charts()`): booked ahead 14 days, visits and booked value per
+  week for 12 weeks, services, stylists and new-client sources over 30 days,
+  busiest weekdays over 90; "kept" is not cancelled and not a no-show, and
+  an appointment with no price is left out of value and said, never
+  guessed. Charts are plain HTML/SVG in the console's periwinkle (`--viz`,
+  `#7d88d6` in dark mode, both run through the dataviz palette check), one
+  hover/focus tooltip, the peak or last value labelled. Home greets nobody
+  and has no primary button: its subtitle is
   the date. Two tiles from `GET /api/staff/home` (`_routes/home.js`, counted
   in SQL), two equal columns as wide as Coming up, each a figure on the left
   and a periwinkle icon on the right: "N Appt. Today" with their value
@@ -234,7 +251,9 @@ made that way are real: name them ZZ and remove them.
 - **The team member window** asks for each fact once. The header is the
   person: their picture (the circle, or Change picture, opens its own small
   window: Upload a photo or Choose an avatar), their name as the heading,
-  edited in place (it is the Name field), and @username under it. Then
+  edited in place (it is the Name field), and @username under it, each
+  with a pencil that puts the cursor in the field (hidden where it cannot be
+  edited). Then
   Personal information (Email, Phone, Role; phone is `staff_users.phone`,
   007, now read and written by `team.js` as well as `profile.js`), Connect
   your tools, Services & pricing, Working hours. A stylist without a sign-in shows only
