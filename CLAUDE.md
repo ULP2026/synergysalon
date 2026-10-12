@@ -257,10 +257,16 @@ made that way are real: name them ZZ and remove them.
   Personal information (Email, Phone, Role; phone is `staff_users.phone`,
   007, now read and written by `team.js` as well as `profile.js`), Connect
   your tools, Services & pricing, Working hours. A stylist without a sign-in shows only
-  services and hours (name and picture read-only). Working hours is locked
-  while no service is on, grey until a Google Calendar is connected, and
-  once it is, each day shows the coming week from that calendar (busy times
-  and what is left of the shift) via `GET /api/staff/calendars?busy=week`
+  services and hours (name and picture read-only). Working hours is closed
+  (every day grey, every control disabled, and no hours sent on save, so the
+  stored ones are kept) until at least one service is on AND a Google
+  Calendar is connected (`hoursGate()`); the two steps are listed at the top
+  of the section with a Connect button. A stylist without a sign-in cannot
+  connect a calendar, so a service alone opens theirs. Its classes are
+  `wh-` prefixed: the console already has a generic `.locked`, which once
+  made this section inline-flex and pushed its note to the left. Open, each
+  day shows the coming week from that calendar (busy times and what is left
+  of the shift) via `GET /api/staff/calendars?busy=week`
   (`&member=` for the owner and the support login). Your own window now gets your hours
   and Google status from `GET /api/staff/profile`, and `PATCH` saves hours
   and syncs the stylist row as `team.js` does; before, your own hours opened
@@ -332,7 +338,9 @@ made that way are real: name them ZZ and remove them.
 - Team lists only the signed-in person for now (stylists are added later),
   plus anyone asking to join. Each person has a username (011) and their own
   services and prices, `staff_users.services` (012): Cuts, Treatments, Color,
-  Styling, each on or off with a price they typed. Never a computed price.
+  Styling, each on or off with a price they typed (dollars and cents, the
+  field steps by 0.01; it used to step by 1 and the browser refused to save
+  45.50). Never a computed price.
   Reads use `to_jsonb` so the console loads before 011 and 012 run; saving
   those fields needs them.
 - Faces are pictures, real ones first: an uploaded photo, then the stylist's
