@@ -252,9 +252,11 @@ made that way are real: name them ZZ and remove them.
   console already knows for that person (their login email, the connected
   account, and ones connected for them from this browser, `ss-gaccts-<id>`
   in `localStorage`) plus "Use another account". With the OAuth client set,
-  picking one opens Google's sign-in on that account (`login_hint`; another
-  account sends `prompt=select_account`); without it, picking one asks for
-  the pasted address. Google Calendar only, for now,
+  the button skips that window and opens Google's own account chooser
+  directly (`prompt=select_account`), which is what the team asked for: no
+  address to find. The console's chooser and the pasted address are only the
+  fallback while the client is missing (as of this writing only
+  `DATABASE_URL` is set in Vercel). Google Calendar only, for now,
   two ways in. Pasting the calendar's "Secret address in iCal format" works
   with no Google setup (`google-ics.js`: `readIcsLink` fixes quotes, spaces,
   webcal:// and a missing https://, and names each common wrong paste

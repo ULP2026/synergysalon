@@ -6243,7 +6243,15 @@ async function saveGoogleLink() {
 $('memberDlg').addEventListener('click', async (e) => {
   const b = e.target.closest('button[data-tool]');
   if (!b || !toolsFor) return;
-  if (b.dataset.tool === 'google-open') { openGoogleDlg(); return; }
+  if (b.dataset.tool === 'google-open') {
+    // With the site's Google client set up, straight to Google's own account
+    // chooser (prompt=select_account): pick the account, allow, done. Our
+    // chooser and the pasted address are only the fallback for a site
+    // without that client.
+    if (me?.features?.google) connectGoogle(b, memberEdit === 'me' ? null : toolsFor.id, null);
+    else openGoogleDlg();
+    return;
+  }
   if (b.dataset.tool !== 'google-off') return;
   const forId = memberEdit === 'me' ? null : toolsFor.id;
   const whose = forId ? `${toolsFor.name}’s` : 'your';
