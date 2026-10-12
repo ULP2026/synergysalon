@@ -9,12 +9,14 @@
  * check.
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
-import { query } from '../../_lib/db.js';
+import { query, transaction } from '../../_lib/db.js';
+import { hoursFor, readHours, syncStylist } from '../../_lib/roster.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
 import { MIN_PASSWORD_LENGTH, hashPassword, verifyPassword } from '../../_lib/password.js';
 import { stylistPhoto } from '../../_lib/stylist-photos.js';
+import { googleStatus } from './calendars.js';
 
 /**
  * An avatar, or nothing.
@@ -52,6 +54,18 @@ export function usernameFrom(value) {
   if (!s) return null;
   if (!/^[a-z0-9._-]{3,32}$/.test(s)) {
     throw new HttpError(400, 'A username is 3 to 32 letters, numbers, dots, dashes or underscores.');
+  }
+  return s;
+}
+
+/**
+ * A phone number as typed, trimmed, or '' to clear it. Not reformatted: the
+ * team reads it back as they wrote it, and nothing dials it yet.
+ */
+export function phoneFrom(value) {
+  const s = String(value ?? '').trim().slice(0, 40);
+  if (s && !/^[0-9+().\-\s]{7,40}$/.test(s)) {
+    throw new HttpError(400, 'A phone number is digits, spaces, dashes, dots, brackets or a plus.');
   }
   return s;
 }
@@ -127,12 +141,22 @@ export default handler({
               to_jsonb(u) -> 'avatar_style' AS avatar_style,
               (SELECT to_jsonb(s) ->> 'photo' FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS photo,
               (SELECT s.slug FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS stylist_slug,
-              (SELECT t.slug FROM tenants t WHERE t.id = u.tenant_id) AS tenant_slug
+              (SELECT t.slug FROM tenants t WHERE t.id = u.tenant_id) AS tenant_slug,
+              -- Whether their calendar is connected, so their own window opens
+              -- showing it rather than offering Connect until a second request
+              -- says otherwise. Through to_jsonb, as everywhere else.
+              to_jsonb(u) ->> 'google_email' AS google_email,
+              to_jsonb(u) ->> 'google_connected_at' AS google_connected_at,
+              to_jsonb(u) ->> 'google_ics' AS google_ics
          FROM staff_users u WHERE id = $1`,
       [user.id],
     );
     const me = rows[0];
     if (!me) throw new HttpError(404, 'That account no longer exists.');
+    // Your own hours and calendar, the same as an owner sees them on your
+    // card in the team list. Without these your own window opened with every
+    // day off, and saving it wrote nothing to the diary.
+    const hours = await hoursFor({ query }, user.tenant_id, user.id);
     return json(res, 200, {
       name: me.name,
       email: me.email,
@@ -144,9 +168,11 @@ export default handler({
       services: me.services || {},
       avatarStyle: me.avatar_style || null,
       photo: me.photo || (me.stylist_slug ? stylistPhoto(me.tenant_slug, me.stylist_slug) : null),
+      hours,
       since: me.created_at,
       lastSeen: me.last_seen_at,
       minPasswordLength: MIN_PASSWORD_LENGTH,
+      google: (() => { try { return googleStatus(me); } catch { return undefined; } })(),
     });
   },
 
@@ -160,9 +186,7 @@ export default handler({
     const add = (sql, value) => { params.push(value); sets.push(`${sql} = $${params.length}`); };
 
     if (body.name !== undefined) add('name', requireString(body.name, 'Name', { max: 120 }));
-    if (body.phone !== undefined) {
-      add('phone', String(body.phone || '').trim().slice(0, 40));
-    }
+    if (body.phone !== undefined) add('phone', phoneFrom(body.phone));
 
     if (body.email !== undefined) {
       const email = requireEmail(body.email);
@@ -209,16 +233,25 @@ export default handler({
       add('password_hash', await hashPassword(next));
     }
 
-    if (!sets.length) throw new HttpError(400, 'Nothing to change.');
+    const hours = readHours(body.hours);
+    if (!sets.length && !hours) throw new HttpError(400, 'Nothing to change.');
 
-    const { rows } = await query(
-      `UPDATE staff_users SET ${sets.join(', ')} WHERE id = $1
-        RETURNING name, email, phone, role, avatar,
+    const returning = `RETURNING id, name, email, phone, role, avatar,
                   to_jsonb(staff_users) ->> 'username' AS username,
                   to_jsonb(staff_users) ->> 'pricing' AS pricing,
-                  to_jsonb(staff_users) -> 'services' AS services`,
-      params,
-    );
-    return json(res, 200, { ...rows[0], saved: true });
+                  to_jsonb(staff_users) -> 'services' AS services`;
+    const { rows } = sets.length
+      ? await query(`UPDATE staff_users SET ${sets.join(', ')} WHERE id = $1 ${returning}`, params)
+      : await query(`UPDATE staff_users SET name = name WHERE id = $1 ${returning}`, [user.id]);
+    // The same as team.js does for somebody else: your services and hours are
+    // what make you bookable, so the diary follows the row as saved. Before
+    // this, your own window sent hours here and they were thrown away.
+    if (body.services !== undefined || hours || body.name !== undefined || body.username !== undefined) {
+      await transaction((client) => syncStylist(client, user.tenant_id, rows[0], {
+        services: rows[0].services, hours,
+      }));
+    }
+    const { id, ...out } = rows[0];
+    return json(res, 200, { ...out, saved: true });
   },
 });

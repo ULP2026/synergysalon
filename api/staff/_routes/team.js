@@ -2,13 +2,15 @@
  * /api/staff/team: who has access, and who is asking for it.
  *
  *   GET    the team, pending requests first
- *   POST   add someone, edit their details, approve, reject, disable,
- *          re-enable, or change a role
+ *   POST   add someone, edit their details, approve, reject, remove for
+ *          good (delete), disable, re-enable, or change a role
  *
- * Owners and managers only. A front-desk account can use the console all day
- * but cannot grant anybody else access to the salon's client list.
+ * The owner and the agency's support login only (canManageTeam). Anybody else
+ * can use the console all day but only ever sees and changes their own
+ * account, so nobody can grant themselves or anyone else access, or open a
+ * colleague's details.
  */
-import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertSameOrigin, requireTeamAdmin } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
 import { query, transaction } from '../../_lib/db.js';
@@ -24,10 +26,9 @@ import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { googleStatus } from './calendars.js';
 import {
-  assertUsernameFree, avatarFrom, avatarStyleFrom, servicesFrom, usernameFrom,
+  assertUsernameFree, avatarFrom, avatarStyleFrom, phoneFrom, servicesFrom, usernameFrom,
 } from './profile.js';
 
-const ADMIN = ['owner', 'manager'];
 const ROLES = ['owner', 'manager', 'front_desk', 'stylist'];
 
 /** How long an invite is good for. Long enough for a day off, short enough
@@ -59,13 +60,13 @@ async function mintInvite(req, userId) {
 
 export default handler({
   async GET(req, res) {
-    const user = await requireStaff(req, ADMIN);
+    const user = await requireTeamAdmin(req);
     const tenant = await tenantForUser(user);
 
     const { rows } = await query(
       // username and pricing through to_jsonb, so the team still lists on a
       // database that has not had migration 011 yet.
-      `SELECT u.id, u.name, u.email, u.role, u.status, u.note, u.avatar,
+      `SELECT u.id, u.name, u.email, u.phone, u.role, u.status, u.note, u.avatar,
               u.requested_at, u.approved_at, u.last_seen_at, u.created_at,
               (to_jsonb(u) ->> 'invite_hash') IS NOT NULL AS invited,
               to_jsonb(u) ->> 'username' AS username,
@@ -115,6 +116,7 @@ export default handler({
         hours: r.hours ?? [],
         name: r.name,
         email: r.email,
+        phone: r.phone || '',
         role: r.role,
         status: r.status,
         note: r.note,
@@ -140,7 +142,7 @@ export default handler({
 
   async POST(req, res) {
     assertSameOrigin(req);
-    const user = await requireStaff(req, ADMIN);
+    const user = await requireTeamAdmin(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
 
@@ -183,6 +185,8 @@ export default handler({
       // works on a database that has not had migration 011; only the extras
       // need it.
       if (avatar) await query('UPDATE staff_users SET avatar = $2 WHERE id = $1', [rows[0].id, avatar]);
+      const phone = phoneFrom(body.phone);
+      if (phone) await query('UPDATE staff_users SET phone = $2 WHERE id = $1', [rows[0].id, phone]);
       const style = avatarStyleFrom(body.avatarStyle);
       if (style) await query('UPDATE staff_users SET avatar_style = $2::jsonb WHERE id = $1', [rows[0].id, style]);
       if (username || pricing) {
@@ -284,6 +288,44 @@ export default handler({
         await query("DELETE FROM staff_users WHERE id = $1 AND status = 'pending'", [target.id]);
         break;
 
+      // Removing somebody from the team, for good. Asked for in place of
+      // turning the account off, which left people on the list.
+      //
+      // Their stylist row is kept but switched off first: appointments point
+      // at it, so past and booked work keeps their name, and a stylist with
+      // no login otherwise counts as bookable, which would leave the person
+      // just removed still taking online bookings. Everything else that
+      // points at the login lets go by itself: sessions and calendar tokens
+      // are deleted with it, and "booked by" or "approved by" become empty.
+      case 'delete': {
+        if (target.role === 'owner' && user.role !== 'owner') {
+          throw new HttpError(403, 'Only an owner can remove another owner.');
+        }
+        try {
+          await transaction(async (client) => {
+            await client.query(
+              'UPDATE stylists SET active = false WHERE staff_user_id = $1::uuid AND tenant_id = $2::uuid',
+              [target.id, tenant.id],
+            );
+            await client.query(
+              'DELETE FROM staff_users WHERE id = $1::uuid AND tenant_id = $2::uuid',
+              [target.id, tenant.id],
+            );
+          });
+        } catch (err) {
+          // Something added outside the migrations still points at them with
+          // no rule for letting go. Nothing was changed (it is one
+          // transaction), so say so rather than half-removing them.
+          if (err.code === '23503') {
+            console.error('team delete blocked by', err.constraint, err.table);
+            throw new HttpError(409, `${target.name} is still linked to other records, so they were not removed. `
+              + 'Nothing was changed. Please let support know.');
+          }
+          throw err;
+        }
+        break;
+      }
+
       case 'disable':
         await query(
           "UPDATE staff_users SET status = 'disabled', active = false WHERE id = $1",
@@ -311,7 +353,7 @@ export default handler({
         break;
       }
 
-      // The team modal: name, email, username, pricing and picture together.
+      // The team modal: name, email, phone, username, pricing and picture together.
       // Each is changed only when sent, so a field nobody touched is left as
       // it was.
       case 'update': {
@@ -332,6 +374,7 @@ export default handler({
           if (clash[0]) throw new HttpError(409, 'Somebody here already signs in with that email.');
           add('email', email);
         }
+        if (body.phone !== undefined) add('phone', phoneFrom(body.phone));
         if (body.username !== undefined) {
           const username = usernameFrom(body.username);
           await assertUsernameFree(tenant.id, username, target.id);

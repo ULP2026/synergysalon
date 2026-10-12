@@ -104,6 +104,28 @@ invented: a hash of the date and stylist name kept 42% of slots. The adapter in
 the static head reads the rendered DOM, posts to `/api/enquiry`, and replaces
 the fake availability with the real diary.
 
+The survey (same code in all six pages, Riverview included) is: 1 the kinds of service (Color,
+Cuts, Treatments, Styling, AI Scalp Analysis, "Select all that apply" as a
+pill), 2 who it is for, 3 service details (one question per kind picked; the
+scalp analysis is a details card), 4 stylist, 5 availability, 6 name, email,
+phone and optional notes with "Book Me Now!", then a confirmation with
+confetti, a six-second "Appointment booked!" toast, and an optional "How did you hear about us?". The popup publishes its
+answers on `window.__ssBk`; the adapter reads them there (not from headings),
+answers `ss-bk-confirm` with `ss-bk-result`, and the popup says "booked" and
+throws confetti and the toast only when the reply has a ref. There is no redirect to
+`/thank-you` any more. Returning guests are filled in only from what this
+browser saved at their last booking (`ss-guest` in `localStorage`, matched on
+the typed name): looking a profile up by name on a public page would expose
+any client's email and phone. Color's "Other" has no service, so it saves a
+lead for the salon to call, as "Not sure yet" did.
+
+**Demo mode for preview links.** `?booking-demo=1` on a `*.vercel.app` (or
+local) address opens the real popup despite the pause, shows a yellow
+"nothing is saved" bar, and answers "Book Me Now!" with a made-up booking
+without posting anything. It exists because preview deployments have their
+own `DATABASE_URL` that points at the live data, so a real test booking there
+is a real appointment. The flag is ignored on the salon's own domain.
+
 `/api/enquiry` saves the contact *before* attempting the appointment, and books
 whenever it has a service and a time rather than waiting for the wizard to say
 it finished — that signal failed four separate ways. Because it is called on
@@ -209,8 +231,32 @@ made that way are real: name them ZZ and remove them.
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM"; the API keeps its `centro`
   names, which nobody sees.
-- **Connect your tools** is in the team member window, right under Username
-  (yours, or anyone's for owners and managers). Google Calendar only, for now,
+- **The team member window** asks for each fact once. The header is the
+  person: their picture (the circle, or Change picture, opens its own small
+  window: Upload a photo or Choose an avatar), their name as the heading,
+  edited in place (it is the Name field), and @username under it. Then
+  Personal information (Email, Phone, Role; phone is `staff_users.phone`,
+  007, now read and written by `team.js` as well as `profile.js`), Connect
+  your tools, Services & pricing, Working hours. A stylist without a sign-in shows only
+  services and hours (name and picture read-only). Working hours is locked
+  while no service is on, grey until a Google Calendar is connected, and
+  once it is, each day shows the coming week from that calendar (busy times
+  and what is left of the shift) via `GET /api/staff/calendars?busy=week`
+  (`&member=` for the owner and the support login). Your own window now gets your hours
+  and Google status from `GET /api/staff/profile`, and `PATCH` saves hours
+  and syncs the stylist row as `team.js` does; before, your own hours opened
+  empty and were thrown away on save.
+- **Connect your tools** is one "Connect Google Calendar" button in the team
+  member window (yours, or anyone's for the owner and the support login). It opens an
+  account chooser laid out like Google's (`#gDlg`), listing the accounts the
+  console already knows for that person (their login email, the connected
+  account, and ones connected for them from this browser, `ss-gaccts-<id>`
+  in `localStorage`) plus "Use another account". With the OAuth client set,
+  the button skips that window and opens Google's own account chooser
+  directly (`prompt=select_account`), which is what the team asked for: no
+  address to find. The console's chooser and the pasted address are only the
+  fallback while the client is missing (as of this writing only
+  `DATABASE_URL` is set in Vercel). Google Calendar only, for now,
   two ways in. Pasting the calendar's "Secret address in iCal format" works
   with no Google setup (`google-ics.js`: `readIcsLink` fixes quotes, spaces,
   webcal:// and a missing https://, and names each common wrong paste
@@ -227,16 +273,26 @@ made that way are real: name them ZZ and remove them.
   it exists; when both are set the sign-in is read. Connecting for somebody
   else (`/api/oauth/google?start=1&for=<id>`) is for an owner adding a
   stylist who signs in to their own Google beside them. Each connected
-  person is a column on Appt. Book's day view, right of the salon's lanes:
-  their Google busy times read live by `busyBetween` in `google.js` (times
-  only, the fields mask never asks Google for titles) plus their own salon
-  bookings. Those columns do not book on click. Google busy time does not
+  person is a column on Appt. Book's day view: their Google busy times read
+  live by `busyBetween` in `google.js` (times only, the fields mask never asks
+  Google for titles), their own salon bookings and blocks, and the salon-wide
+  ones. Clicking an empty time books with them. Google busy time does not
   yet block online availability. Sign-in needs `GOOGLE_CLIENT_ID`,
   `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY` in Vercel; the pasted address needs
   nothing. `pushEvent` (writing into Google) exists
   but nothing calls it.
-- Appt. Book opens on the day as at least four lanes under one "<salon>
-  Calendar" heading, the clock down the side. It has no "+ New calendar"
+  Connected means connected either way (`googleStatus`), everywhere: the
+  tools card, the New calendar form's Google row (`calAppRows`, which used to
+  read only the sign-in and offered Google again to anyone connected by the
+  address) and the calendar dialog. `GET /api/staff/profile` carries the
+  status, so your own window opens right instead of offering Connect until a
+  second request answered; it says "Checking…" if the status is missing.
+- Appt. Book's day is the people with a connected calendar, one column each
+  (the four salon lanes were removed on request once anybody connects).
+  Anything nobody on the grid owns (a booking with a stylist who has not
+  connected) gets one "Other appointments" column that day, so it never
+  vanishes. Until somebody connects, the day is at least four lanes under one
+  "<salon> Calendar" heading, the clock down the side. It has no "+ New calendar"
   chip (removed on request). Nobody is assigned to a column yet: an appointment takes
   the first column free at its time, and cards do not name a stylist. Stylist
   columns (`dayColumns()`) come back once stylists are on the team. While the
@@ -270,8 +326,26 @@ made that way are real: name them ZZ and remove them.
 - `api/_lib/ensure-schema.js` adds the 011 to 013 columns on the first
   `/api/staff/me` of each warm function, because production ran ahead of
   `db:migrate`. Idempotent; `db:migrate` remains the record.
-- Team Members lists you, then (owners and managers) everyone else on the
-  team, each card opening the same modal, then an "Add a team member" row.
+- Team Members lists you, then (the owner and the support login only)
+  everyone else on the team, each card opening the same modal, then an "Add a
+  team member" row. Everybody else sees and changes their own account only:
+  `canManageTeam` in `auth.js` (role owner, or an email in `TEAM_ADMIN_EMAILS`
+  in `config.js`, today support@unclelouieproductions.com) gates
+  `/api/staff/team`, connecting a calendar for somebody else, and the console's
+  team views (`me.user.canManageTeam`). Managers keep the rest of `canAdmin`
+  (billing, deleting clients). Adding somebody sends the welcome
+  (`sendInvite`, `welcomeContent` in `email.js`): the one-use setup link
+  (they choose their own password; none is ever emailed), the app address,
+  what to fill in on their own account, and how to connect their calendar.
+  It is skipped without `RESEND_API_KEY`, and the link is always shown to
+  whoever added them.
+  Removing somebody deletes them (`action:"delete"` on `/api/staff/team`,
+  "Remove from team" in their window), asked for in place of turning the
+  account off. Their `stylists` row is switched off first, not deleted:
+  appointments keep their name, and a stylist with no login would otherwise
+  count as bookable. Sessions and calendar tokens go with the login; booked-by
+  and approved-by links become empty. Only an owner can remove an owner, and
+  nobody can remove themselves.
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
 - Nav and buttons follow RocketOS's restraint on Synergy colours. The ring
