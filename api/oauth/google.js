@@ -105,7 +105,12 @@ export default async function handler(req, res) {
       if (!rows[0]) return closePage(res, false, 'That team member was not found.');
       target = rows[0].id;
     }
-    res.status(302).setHeader('Location', consentUrl(req, makeState(target)));
+    // Only an address goes to Google as the hint; anything else is dropped
+    // and Google shows its chooser instead.
+    const hint = String(url.searchParams.get('hint') || '').trim().slice(0, 200);
+    res.status(302).setHeader('Location', consentUrl(req, makeState(target), {
+      hint: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(hint) ? hint : undefined,
+    }));
     return res.end();
   }
 

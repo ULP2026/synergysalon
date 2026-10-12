@@ -45,7 +45,13 @@ export function redirectUri(req) {
   return `${proto}://${host}/api/oauth/google`;
 }
 
-export function consentUrl(req, state) {
+/**
+ * Google's own consent screen. `hint` is the address picked in the console's
+ * Connect Google Calendar window, so Google opens on that account; with no
+ * hint ("Use another account") Google is told to show its account chooser,
+ * because a browser signed in to one account otherwise skips straight past it.
+ */
+export function consentUrl(req, state, { hint } = {}) {
   const p = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri(req),
@@ -54,10 +60,11 @@ export function consentUrl(req, state) {
     // Without these two Google returns no refresh token on a second
     // connection, and the link silently dies an hour later.
     access_type: 'offline',
-    prompt: 'consent',
+    prompt: hint ? 'consent' : 'select_account consent',
     include_granted_scopes: 'true',
     state,
   });
+  if (hint) p.set('login_hint', hint);
   return `${AUTH}?${p}`;
 }
 

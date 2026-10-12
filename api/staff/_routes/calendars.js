@@ -12,12 +12,14 @@
  * the front desk -- gets the whole shop's day, which is what they are trying
  * to see anyway.
  */
+import { DateTime } from 'luxon';
+
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
-import { disconnectGoogle, googleConfigured } from '../../_lib/google.js';
+import { busyBetween, disconnectGoogle, googleConfigured } from '../../_lib/google.js';
 import {
-  checkIcsLink, openLink, parseIcsLink, readIcsLink, sealLink,
+  checkIcsLink, icsBusyBetween, openLink, parseIcsLink, readIcsLink, sealLink,
 } from '../../_lib/google-ics.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
@@ -118,10 +120,76 @@ async function targetOf(user, member) {
   return rows[0].id;
 }
 
+/**
+ * The coming seven days of somebody's Google Calendar, busy times only, for
+ * Working hours in the team member window: what their week really looks like
+ * beside the hours they are offered at. The same two sources as the day view
+ * (diary.js): the sign-in first, the pasted address otherwise.
+ */
+async function weekBusy(targetId, tenant) {
+  const { rows } = await query(
+    `SELECT u.id, to_jsonb(u) ->> 'google_email' AS google_email,
+            to_jsonb(u) ->> 'google_connected_at' AS google_connected_at,
+            (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL AS signed_in,
+            to_jsonb(u) ->> 'google_ics' AS google_ics
+       FROM staff_users u WHERE u.id = $1::uuid`,
+    [targetId],
+  );
+  const u = rows[0];
+  if (!u) throw new HttpError(404, 'That team member was not found.');
+  const google = googleStatus(u);
+  const from = DateTime.now().setZone(tenant.timezone).startOf('day');
+  const to = from.plus({ days: 7 });
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = from.plus({ days: i });
+    // Luxon counts Monday as 1 and Sunday as 7; the rota counts Sunday as 0.
+    return { date: d.toISODate(), weekday: d.weekday % 7, busy: [] };
+  });
+  if (!google.connected) return { google, days, error: null };
+  let busy;
+  try {
+    busy = u.signed_in && googleConfigured()
+      ? await busyBetween(u.id, from.toISO(), to.toISO())
+      : u.google_ics
+        ? await icsBusyBetween(openLink(u.google_ics), from.toISO(), to.toISO(), tenant.timezone)
+        : null;
+  } catch (err) {
+    console.error('week busy failed', u.id, err.message);
+    return { google, days, error: 'Google did not answer. Try again in a moment.' };
+  }
+  if (busy === null) return { google, days, error: 'Google disconnected. Connect it again.' };
+  // Each span is cut into the days it touches, as wall-clock HH:MM in the
+  // salon's zone, because that is how the hours beside it are written.
+  for (const b of busy) {
+    const s = DateTime.fromISO(b.startsAt, { zone: tenant.timezone });
+    const e = DateTime.fromISO(b.endsAt, { zone: tenant.timezone });
+    for (const day of days) {
+      const ds = DateTime.fromISO(day.date, { zone: tenant.timezone });
+      const de = ds.plus({ days: 1 });
+      if (!(s < de && e > ds)) continue;
+      const a = s < ds ? ds : s;
+      const z = e > de ? de : e;
+      day.busy.push({
+        allDay: b.allDay || (a.equals(ds) && z.equals(de)),
+        starts: a.toFormat('HH:mm'),
+        ends: z.equals(de) ? '24:00' : z.toFormat('HH:mm'),
+      });
+    }
+  }
+  return { google, days, error: null };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
+    // ?busy=week[&member=<id>]: the coming week from Google, for Working
+    // hours. Somebody else's only for owners and managers, as with connecting.
+    const url = new URL(req.url, 'http://localhost');
+    if (url.searchParams.get('busy') === 'week') {
+      const target = await targetOf(user, url.searchParams.get('member'));
+      return json(res, 200, await weekBusy(target, tenant));
+    }
     let row = await mine(user.id);
     // Migration 008 gave a link to everyone who existed then; anyone added
     // since (request access, Add Team Member) has none, and this page was an

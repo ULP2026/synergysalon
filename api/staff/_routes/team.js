@@ -22,7 +22,7 @@ import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { googleStatus } from './calendars.js';
 import {
-  assertUsernameFree, avatarFrom, avatarStyleFrom, servicesFrom, usernameFrom,
+  assertUsernameFree, avatarFrom, avatarStyleFrom, phoneFrom, servicesFrom, usernameFrom,
 } from './profile.js';
 
 const ADMIN = ['owner', 'manager'];
@@ -63,7 +63,7 @@ export default handler({
     const { rows } = await query(
       // username and pricing through to_jsonb, so the team still lists on a
       // database that has not had migration 011 yet.
-      `SELECT u.id, u.name, u.email, u.role, u.status, u.note, u.avatar,
+      `SELECT u.id, u.name, u.email, u.phone, u.role, u.status, u.note, u.avatar,
               u.requested_at, u.approved_at, u.last_seen_at, u.created_at,
               (to_jsonb(u) ->> 'invite_hash') IS NOT NULL AS invited,
               to_jsonb(u) ->> 'username' AS username,
@@ -107,6 +107,7 @@ export default handler({
         hours: r.hours ?? [],
         name: r.name,
         email: r.email,
+        phone: r.phone || '',
         role: r.role,
         status: r.status,
         note: r.note,
@@ -175,6 +176,8 @@ export default handler({
       // works on a database that has not had migration 011; only the extras
       // need it.
       if (avatar) await query('UPDATE staff_users SET avatar = $2 WHERE id = $1', [rows[0].id, avatar]);
+      const phone = phoneFrom(body.phone);
+      if (phone) await query('UPDATE staff_users SET phone = $2 WHERE id = $1', [rows[0].id, phone]);
       const style = avatarStyleFrom(body.avatarStyle);
       if (style) await query('UPDATE staff_users SET avatar_style = $2::jsonb WHERE id = $1', [rows[0].id, style]);
       if (username || pricing) {
@@ -291,7 +294,7 @@ export default handler({
         break;
       }
 
-      // The team modal: name, email, username, pricing and picture together.
+      // The team modal: name, email, phone, username, pricing and picture together.
       // Each is changed only when sent, so a field nobody touched is left as
       // it was.
       case 'update': {
@@ -312,6 +315,7 @@ export default handler({
           if (clash[0]) throw new HttpError(409, 'Somebody here already signs in with that email.');
           add('email', email);
         }
+        if (body.phone !== undefined) add('phone', phoneFrom(body.phone));
         if (body.username !== undefined) {
           const username = usernameFrom(body.username);
           await assertUsernameFree(tenant.id, username, target.id);

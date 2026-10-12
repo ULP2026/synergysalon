@@ -200,9 +200,29 @@ made that way are real: name them ZZ and remove them.
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM"; the API keeps its `centro`
   names, which nobody sees.
-- **Connect your tools** is in the team member window, right under Username
-  (yours, or anyone's for owners and managers). Google Calendar only, for now,
-  two ways in. Pasting the calendar's "Secret address in iCal format" works
+- **The team member window** asks for each fact once. The header is the
+  person: their picture (the circle, or Change picture, opens its own small
+  window: Upload a photo or Choose an avatar), their name as the heading,
+  edited in place (it is the Name field), and @username under it. Then
+  Personal information (Email, Phone, Role; phone is `staff_users.phone`,
+  007, now read and written by `team.js` as well as `profile.js`), Connect
+  your tools, Services & pricing, Working hours. Working hours is locked
+  while no service is on, grey until a Google Calendar is connected, and
+  once it is, each day shows the coming week from that calendar (busy times
+  and what is left of the shift) via `GET /api/staff/calendars?busy=week`
+  (`&member=` for owners and managers). Your own window now gets your hours
+  and Google status from `GET /api/staff/profile`, and `PATCH` saves hours
+  and syncs the stylist row as `team.js` does; before, your own hours opened
+  empty and were thrown away on save.
+- **Connect your tools** is one "Connect Google Calendar" button in the team
+  member window (yours, or anyone's for owners and managers). It opens an
+  account chooser laid out like Google's (`#gDlg`), listing the accounts the
+  console already knows for that person (their login email, the connected
+  account, and ones connected for them from this browser, `ss-gaccts-<id>`
+  in `localStorage`) plus "Use another account". With the OAuth client set,
+  picking one opens Google's sign-in on that account (`login_hint`; another
+  account sends `prompt=select_account`); without it, picking one asks for
+  the pasted address. Google Calendar only, for now, two ways in. Pasting the calendar's "Secret address in iCal format" works
   with no Google setup (`google-ics.js`: `readIcsLink` fixes quotes, spaces,
   webcal:// and a missing https://, and names each common wrong paste
   (calendar ID, the browser link, a cut-short address); `checkIcsLink`
