@@ -5,12 +5,18 @@
  *   POST   add someone, edit their details, approve, reject, remove for
  *          good (delete), disable, re-enable, or change a role
  *
- * The owner and the agency's support login only (canManageTeam). Anybody else
- * can use the console all day but only ever sees and changes their own
- * account, so nobody can grant themselves or anyone else access, or open a
- * colleague's details.
+ * Everybody on the team can read the team (name, picture, email, phone,
+ * role, services, hours): the salon asked that colleagues can look each
+ * other up. Changing anything is POST, and POST is the owner and the
+ * agency's support login only (canManageTeam), so nobody can grant
+ * themselves access or edit a colleague; their own account goes through
+ * /api/staff/profile. What only the admin needs (requests to join, invite
+ * state, notes, who approved whom, which Google account) is left out of a
+ * non-admin's copy.
  */
-import { assertSameOrigin, canManageTeam, requireTeamAdmin } from '../../_lib/auth.js';
+import {
+  assertSameOrigin, canManageTeam, requireStaff, requireTeamAdmin,
+} from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
 import { query, transaction } from '../../_lib/db.js';
@@ -60,7 +66,8 @@ async function mintInvite(req, userId) {
 
 export default handler({
   async GET(req, res) {
-    const user = await requireTeamAdmin(req);
+    const user = await requireStaff(req);
+    const admin = canManageTeam(user);
     const tenant = await tenantForUser(user);
 
     const { rows } = await query(
@@ -105,11 +112,10 @@ export default handler({
     const standalone = (await listStandalone({ query }, tenant.id))
       .map((st) => ({ ...st, photo: stylistPhoto(tenant.slug, st.stylistSlug) }));
 
-    return json(res, 200, {
-      you: { id: user.id, role: user.role },
-      pending: rows.filter((r) => r.status === 'pending').length,
-      standalone,
-      members: rows.map((r) => ({
+    // A non-admin sees the people on the team, not the ones asking to join
+    // or switched off: those are decisions only the admin makes.
+    const visible = admin ? rows : rows.filter((r) => r.status === 'active');
+    const members = visible.map((r) => ({
         id: r.id,
         // Added but never signed in: their invite is still outstanding.
         invited: r.invited,
@@ -141,7 +147,22 @@ export default handler({
         approvedAt: r.approved_at,
         approvedBy: r.approved_by_name,
         lastSeenAt: r.last_seen_at,
-      })),
+      }));
+    if (!admin) {
+      for (const m of members) {
+        // Their own row keeps everything; it is theirs.
+        if (m.id === user.id) continue;
+        delete m.invited; delete m.note; delete m.requestedAt; delete m.approvedAt;
+        delete m.approvedBy; delete m.lastSeenAt;
+        m.google = { available: m.google.available, connected: m.google.connected, via: null, account: null, since: null };
+      }
+    }
+
+    return json(res, 200, {
+      you: { id: user.id, role: user.role, canManageTeam: admin },
+      pending: admin ? rows.filter((r) => r.status === 'pending').length : 0,
+      standalone,
+      members,
     });
   },
 
