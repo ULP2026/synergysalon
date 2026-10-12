@@ -10,7 +10,7 @@
  * account, so nobody can grant themselves or anyone else access, or open a
  * colleague's details.
  */
-import { assertSameOrigin, requireTeamAdmin } from '../../_lib/auth.js';
+import { assertSameOrigin, isSalonAdmin, requireTeamAdmin } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
 import { query, transaction } from '../../_lib/db.js';
@@ -118,6 +118,9 @@ export default handler({
         email: r.email,
         phone: r.phone || '',
         role: r.role,
+        // An admin takes no appointments, so their window has no services,
+        // prices or hours (isSalonAdmin in auth.js).
+        admin: isSalonAdmin(r),
         status: r.status,
         note: r.note,
         avatar: r.avatar,
@@ -234,7 +237,7 @@ export default handler({
     }
 
     const { rows } = await query(
-      'SELECT id, name, role, status FROM staff_users WHERE id = $1 AND tenant_id = $2',
+      'SELECT id, name, email, role, status FROM staff_users WHERE id = $1 AND tenant_id = $2',
       [id, tenant.id],
     );
     const target = rows[0];
@@ -381,7 +384,10 @@ export default handler({
           add('username', username);
         }
         if (body.pricing !== undefined) add('pricing', String(body.pricing || '').trim().slice(0, 120));
-        const services = servicesFrom(body.services);
+        // An admin (as they will be after this save) takes no appointments,
+        // so services sent for them are ignored and what is stored is left.
+        const admin = isSalonAdmin({ role: body.role ?? target.role, email: body.email ?? target.email });
+        const services = admin ? undefined : servicesFrom(body.services);
         if (services !== undefined) add('services', JSON.stringify(services));
         const avatar = avatarFrom(body.avatar);
         if (avatar !== undefined) add('avatar', avatar);
