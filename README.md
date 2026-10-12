@@ -21,7 +21,7 @@ Use these exact values everywhere. Anything on the web that contradicts this blo
 | Primary domain | synergysalon.com |
 | Owner | Dina Lara, owner since 2004, licensed cosmetologist since 1981 |
 | Facebook | facebook.com/SynergySalonValrico |
-| Instagram | instagram.com/SynergySalonValrico |
+| Instagram | instagram.com/synergythesalon |
 | Languages | English and Spanish |
 | Nail services | NONE. Never mention nails anywhere, ever. |
 | Booking platform | Custom proprietary salon management software, built and owned by Synergy |

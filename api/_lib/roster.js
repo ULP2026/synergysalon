@@ -189,3 +189,82 @@ export async function hoursFor(client, tenantId, staffUserId) {
   );
   return rows;
 }
+
+/**
+ * Stylists who take appointments but do not sign in.
+ *
+ * Not everyone who stands behind a chair wants a console login, and the four
+ * at Synergy have never had one. Until now the only route onto the booking
+ * page was to be a team member, which left them invisible: deactivated rows
+ * nobody could reach, and a booking page with nobody to offer.
+ *
+ * They are the same `stylists` rows, just without a staff_user_id, so the
+ * booking engine neither knows nor cares about the difference.
+ */
+export async function listStandalone(client, tenantId) {
+  const { rows } = await client.query(
+    `SELECT s.id, s.slug, s.name, s.title, s.active,
+            COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                        'weekday', h.weekday,
+                        'starts', to_char(h.starts_at, 'HH24:MI'),
+                        'ends', to_char(h.ends_at, 'HH24:MI'))
+                      ORDER BY h.weekday, h.starts_at)
+                 FROM stylist_hours h WHERE h.stylist_id = s.id), '[]'::jsonb) AS hours,
+            COALESCE((SELECT jsonb_agg(DISTINCT v.category)
+                 FROM stylist_services ss JOIN services v ON v.id = ss.service_id
+                WHERE ss.stylist_id = s.id), '[]'::jsonb) AS categories
+       FROM stylists s
+      WHERE s.tenant_id = $1 AND s.staff_user_id IS NULL
+      ORDER BY s.active DESC, s.sort_order, s.name`,
+    [tenantId],
+  );
+  return rows.map((r) => ({
+    id: `st_${r.id}`,
+    noLogin: true,
+    name: r.name,
+    title: r.title || '',
+    bookable: r.active,
+    hours: r.hours ?? [],
+    // Back into the shape the team dialog's switches speak.
+    services: Object.fromEntries(SERVICE_KINDS.map((k) => [k, { on: (r.categories ?? []).includes(k) }])),
+    stylistSlug: r.slug,
+  }));
+}
+
+/**
+ * Save one of them. Same rules as a team member: the switches decide whether a
+ * guest can book them, and turning them all off retires the row rather than
+ * deleting it, because appointments point at it.
+ */
+export async function syncStandalone(client, tenantId, stylistId, { services, hours } = {}) {
+  const { rows } = await client.query(
+    'SELECT id, slug FROM stylists WHERE id = $1 AND tenant_id = $2 AND staff_user_id IS NULL',
+    [stylistId, tenantId],
+  );
+  if (!rows[0]) throw new HttpError(404, 'That stylist is not on this team.');
+
+  const kinds = SERVICE_KINDS.filter((k) => services?.[k]?.on);
+  await client.query('UPDATE stylists SET active = $2 WHERE id = $1', [stylistId, kinds.length > 0]);
+
+  const ids = await serviceIdsFor(client, tenantId, kinds);
+  await client.query('DELETE FROM stylist_services WHERE stylist_id = $1', [stylistId]);
+  if (ids.length) {
+    await client.query(
+      'INSERT INTO stylist_services (stylist_id, service_id) SELECT $1, unnest($2::uuid[])',
+      [stylistId, ids],
+    );
+  }
+
+  if (hours) {
+    await client.query('DELETE FROM stylist_hours WHERE stylist_id = $1', [stylistId]);
+    if (hours.length) {
+      await client.query(
+        `INSERT INTO stylist_hours (stylist_id, weekday, starts_at, ends_at)
+         SELECT $1, w, s::time, e::time
+           FROM unnest($2::int[], $3::text[], $4::text[]) AS t(w, s, e)`,
+        [stylistId, hours.map((h) => h.weekday), hours.map((h) => h.starts), hours.map((h) => h.ends)],
+      );
+    }
+  }
+  return { id: stylistId, bookable: kinds.length > 0 };
+}

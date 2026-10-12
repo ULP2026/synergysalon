@@ -100,11 +100,32 @@ database, which is the only way that guarantee is actually proven.
 ### A note on Supabase's other half
 
 These tables are reached only by the API functions, over the Postgres
-connection, using credentials that are not in the browser. They are not
-exposed through Supabase's REST API and no anon key touches them. If anyone
-later turns on the REST API for these tables, enable row level security first
-— an unprotected `appointments` table is every guest's name, email and phone
-number.
+connection, using credentials that are not in the browser. Nothing here uses
+`@supabase/supabase-js`, an anon key or a publishable key: `db.js` opens a
+`pg` Pool against `DATABASE_URL` and that is the whole of it.
+
+This section used to claim the tables were "not exposed through Supabase's
+REST API". That was wrong, and worth recording so nobody assumes it again.
+Supabase exposes the `public` schema through the Data API **by default** —
+nobody switches it on. On 6 Oct 2026 Supabase's own advisor reported two
+critical findings against this project: `rls_disabled_in_public` and
+`sensitive_columns_exposed`. All 15 tables were being served, including
+`staff_users` with its password hashes and every guest's name, email and
+phone. The only thing in the way was the anon key, which in Supabase's model
+is not a secret — it is designed to sit in browser code, and the protection
+is supposed to come from row level security, which was off.
+
+The Data API is now **disabled** on this project (Settings → Data API →
+Exposed schemas, emptied), along with "Automatically expose new tables", which
+would otherwise have republished every table added by a later migration.
+
+If anyone ever needs the Data API here, enable row level security on every
+table **before** re-exposing the schema, not after.
+
+One thing to know if you go looking: an unauthenticated request to
+`/rest/v1/...` returns `401 No API key found in request` whether the Data API
+is on or off, because the gateway rejects it before PostgREST sees it. A 401
+proves nothing either way. Check the dashboard, or the advisors page.
 
 ## Before this can go live
 

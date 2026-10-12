@@ -2161,7 +2161,7 @@
     <div class="md-body">
       <div id="memberNote" class="note bad hidden"></div>
 
-      <div class="md-sec first">Personal information</div>
+      <div class="md-sec first" id="memberPersonal">Personal information</div>
       <div class="two">
         <label><span>Email</span><input type="email" name="email" required autocomplete="off"></label>
         <label><span>Phone</span><input type="tel" name="phone" autocomplete="off" placeholder="(813) 555-0123" maxlength="40"></label>
@@ -3717,7 +3717,7 @@ async function loadHome() {
     const n = h.today.count;
     const value = `${dollars(h.today.value)} total value`
       + (h.today.unpriced ? ` · ${h.today.unpriced} without a price` : '');
-    const pending = me.user.canAdmin ? (me.pendingApprovals || 0) : 0;
+    const pending = me.user.canManageTeam ? (me.pendingApprovals || 0) : 0;
     const c = h.clients30;
     $('tiles').innerHTML = [
       tile(`${n} <span class="unit">Appt. Today</span>`, value, 'appointments', 'calendar'),
@@ -3929,13 +3929,26 @@ function renderDiary(d) {
     return n >= from && n <= to ? `<div class="dg-now" style="top:${px(n)}px" aria-hidden="true"></div>` : '';
   })() : '';
 
-  // Nobody is assigned to a column yet, so each column is a lane: an
-  // appointment takes the first one free at its time, and two at 10 o'clock
-  // sit side by side. Four at least, the shape of the floor once stylists are
-  // on the team (dayColumns), with their names in the blank headers.
+  // Once anybody has connected a calendar, the day is those people: one
+  // column each, holding their Google busy times, their own bookings and their
+  // own blocks. The salon's four shared lanes were asked to go, because a lane
+  // nobody sits in says nothing about who is free. Until somebody connects,
+  // the lanes stay, or the day would have nowhere to draw at all.
+  //
+  // A lane is a column nobody is assigned to: an appointment takes the first
+  // one free at its time, and two at 10 o'clock sit side by side.
+  const team = d.team || [];
+  const mineSlugs = new Set(team.map((t) => t.stylistSlug).filter(Boolean));
+  // With people on the grid, the lanes only hold what belongs to nobody on
+  // it: a booking with a stylist who has not connected, or one with nobody.
+  // Hiding those would be a booked client silently vanishing from the day.
+  // A block on the whole salon (no stylist) is drawn in every person's column.
+  const owned = (slug) => team.length > 0 && slug && mineSlugs.has(slug);
   const items = [
-    ...live.map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin })),
-    ...blocks.map((b) => ({ b, s: Math.max(from, salonMinutes(b.startsAt)), e: Math.min(to, salonMinutes(b.endsAt) || 24 * 60) })),
+    ...live.filter((a) => !owned(a.stylistSlug))
+      .map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin })),
+    ...blocks.filter((b) => !team.length || (b.stylistSlug && !mineSlugs.has(b.stylistSlug)))
+      .map((b) => ({ b, s: Math.max(from, salonMinutes(b.startsAt)), e: Math.min(to, salonMinutes(b.endsAt) || 24 * 60) })),
   ].sort((x, y) => x.s - y.s || y.e - x.e);
   const lanesEnd = [];
   for (const it of items) {
@@ -3943,32 +3956,31 @@ function renderDiary(d) {
     if (lane < 0) { lane = lanesEnd.length; lanesEnd.push(it.e); } else lanesEnd[lane] = it.e;
     it.lane = lane;
   }
-  const cols = Array.from({ length: Math.max(4, lanesEnd.length) }, (_, i) => i);
+  const cols = Array.from({ length: team.length ? lanesEnd.length : Math.max(4, lanesEnd.length) }, (_, i) => i);
+  const blockHtml = (b, s, e) => {
+    const label = b.kind === 'lunch' ? 'Lunch' : 'Block';
+    const sub = b.kind === 'block' && b.reason && !/^blocked$/i.test(b.reason) ? `<small>${esc(b.reason)}</small>` : '';
+    return `<button type="button" class="dg-blk ${b.kind}" data-more="blk-${esc(b.id)}" data-blk="${esc(b.id)}"
+      style="top:${px(s) + 1}px;height:${Math.max(20, px(e) - px(s) - 3)}px"
+      title="${esc(`${label}${b.stylist ? ` · ${b.stylist}` : ''} · ${clock(s)} to ${clock(e)}${b.reason ? ` · ${b.reason}` : ''}`)}"><span>${label}${sub}</span></button>`;
+  };
 
   const colHtml = cols.map((i) => {
     const mine = items.filter((it) => it.lane === i);
     const cards = mine.filter((it) => it.a).map((it) => dayCard(it.a, px(it.s) + 1,
       Math.max(22, (it.a.durationMin / 60) * DG_HOUR - 3))).join('');
-    const offs = mine.filter((it) => it.b).map((it) => {
-      const b = it.b;
-      const s = it.s;
-      const e = it.e;
-      const label = b.kind === 'lunch' ? 'Lunch' : 'Block';
-      const sub = b.kind === 'block' && b.reason && !/^blocked$/i.test(b.reason) ? `<small>${esc(b.reason)}</small>` : '';
-      return `<button type="button" class="dg-blk ${b.kind}" data-more="blk-${esc(b.id)}" data-blk="${esc(b.id)}"
-        style="top:${px(s) + 1}px;height:${Math.max(20, px(e) - px(s) - 3)}px"
-        title="${esc(`${label}${b.stylist ? ` · ${b.stylist}` : ''} · ${clock(s)} to ${clock(e)}${b.reason ? ` · ${b.reason}` : ''}`)}"><span>${label}${sub}</span></button>`;
-    }).join('');
+    const offs = mine.filter((it) => it.b).map((it) => blockHtml(it.b, it.s, it.e)).join('');
     return `<div class="dg-col dg-c0" style="height:${height}px">
       <span class="ghost" aria-hidden="true"></span>${offs}${cards}${nowLine}</div>`;
   }).join('');
 
-  // The salon's lanes share one heading, the salon calendar; each connected
-  // team member's Google Calendar follows as a column of its own.
-  const team = d.team || [];
-  const heads = `<div class="dg-head dg-group" style="grid-column:span ${cols.length}">
+  // The lanes share one heading: the salon calendar while they are the whole
+  // day, "Other appointments" when they only catch what nobody connected owns.
+  const heads = (cols.length ? `<div class="dg-head dg-group" style="grid-column:span ${cols.length}">
       <span class="dg-hic">${ic('calendar')}</span>
-      <div style="min-width:0"><b>${esc(me?.salon?.name || 'Salon')} Calendar</b><span class="sub">Every appointment</span></div></div>`
+      <div style="min-width:0">${team.length
+        ? '<b>Other appointments</b><span class="sub">Not on a connected calendar</span>'
+        : `<b>${esc(me?.salon?.name || 'Salon')} Calendar</b><span class="sub">Every appointment</span>`}</div></div>` : '')
     + team.map((t) => `<div class="dg-head" title="${esc(t.account ? `${t.name} · ${t.account}` : t.name)}">
       <img class="avatar" src="${esc(personPhoto(t))}" alt="">
       <div style="min-width:0"><b>${esc(t.name)}</b><span class="sub">${GOOGLE_LOGO.replace('class="conn-logo"', '')}Google</span></div></div>`).join('');
@@ -3987,8 +3999,14 @@ function renderDiary(d) {
     }).join('');
     const cards = own.map((a) => dayCard(a, px(salonMinutes(a.startsAt)) + 1,
       Math.max(22, (a.durationMin / 60) * DG_HOUR - 3))).join('');
-    return `<div class="dg-col dg-gcol dg-c1" style="height:${height}px">
-      ${t.error ? `<div class="dg-gerr">${esc(t.error)}</div>` : ''}${busy}${cards}${nowLine}</div>`;
+    const offs = blocks.filter((b) => !b.stylistSlug || (t.stylistSlug && b.stylistSlug === t.stylistSlug))
+      .map((b) => blockHtml(b, Math.max(from, salonMinutes(b.startsAt)), Math.min(to, salonMinutes(b.endsAt) || 24 * 60))).join('');
+    // Clicking an empty time books with them, now that their column is the
+    // only place their day is drawn. Somebody who takes no appointments has
+    // no stylist row, so their column books with whoever is free.
+    return `<div class="dg-col dg-c1" data-stylist="${esc(t.stylistSlug || '')}" style="height:${height}px">
+      <span class="ghost" aria-hidden="true"></span>
+      ${t.error ? `<div class="dg-gerr">${esc(t.error)}</div>` : ''}${busy}${offs}${cards}${nowLine}</div>`;
   }).join('');
 
   $('diary').innerHTML = `
@@ -4093,7 +4111,7 @@ $('calBar').onclick = (e) => {
 function openCalDialog(stylist) {
   $('calTitle').textContent = stylist ? `Connect ${stylist.name.split(/\s+/)[0]}’s calendar` : 'Create or connect a calendar';
   $('calSub').textContent = 'Everything is on the Salon Calendar for now, so nothing is missed.';
-  const admin = me?.user?.canAdmin;
+  const admin = me?.user?.canManageTeam;
   $('calOpts').innerHTML = `
     <div class="calopt">
       <span class="ico">${ic('calendar')}</span>
@@ -4103,8 +4121,9 @@ function openCalDialog(stylist) {
     <div class="calopt">
       <span class="ico">${ic('link')}</span>
       <div><b>Connect your phone’s calendar</b><span class="d">Put your appointments in your Google Calendar. It updates on its own.</span></div>
-      ${admin ? '<button type="button" class="btn sm" data-calgo="connect">Connect</button>'
-        : '<span class="chip">Ask an owner</span>'}
+      ${feedData?.google?.connected ? '<span class="chip ok">Connected</span>'
+        : admin ? '<button type="button" class="btn sm" data-calgo="connect">Connect</button>'
+          : '<span class="chip">Ask an owner</span>'}
     </div>
     <div class="calopt soon">
       <span class="ico">${ic('calendar-plus')}</span>
@@ -4145,7 +4164,7 @@ $('diary').onclick = (e) => {
   // After this click has finished bubbling, or the page's "click elsewhere
   // closes the menu" handler would shut it straight away.
   setTimeout(() => showMenu(anchor, [
-    { label: `New appointment at ${clock(mins)}`, run: () => openBooking(null, { date: day, minutes: mins }) },
+    { label: `New appointment at ${clock(mins)}`, run: () => openBooking(null, { date: day, minutes: mins, stylist: col.dataset.stylist || undefined }) },
   ]), 0);
 };
 
@@ -5206,7 +5225,7 @@ function paintHoursState() {
   if (!bookable) {
     msg = `${ic('info')}<span>Turn on a service above to set working hours. Guests can only book somebody who offers something.</span>`;
   } else if (!g.connected) {
-    const can = toolsFor && toolsFor.status !== 'pending' && (self || me?.user?.canAdmin);
+    const can = toolsFor && toolsFor.status !== 'pending' && (self || me?.user?.canManageTeam);
     msg = `${ic('info')}<span><b>Availability is not synced yet.</b> These hours are what guests are offered.
       ${can ? '<button type="button" class="linkbtn" data-tool="google-open">Connect Google Calendar</button> to see the week beside them.' : 'Connect Google Calendar to see the week beside them.'}</span>`;
   } else if (hoursWeek && hoursWeek.error) {
@@ -5293,7 +5312,7 @@ async function openMember(who) {
     memberEdit = null;
   }
   const self = memberEdit === 'me';
-  const admin = me?.user?.canAdmin;
+  const admin = me?.user?.canManageTeam;
   const owner = me?.user?.role === 'owner';
   const lockedOwner = m && m.role === 'owner' && !owner && !self;
 
@@ -5314,6 +5333,16 @@ async function openMember(who) {
   hoursWeek = null;
   paintServices(m?.services || {});
   paintHours(m?.hours || []);
+  // A stylist with no login has no email, phone, role or password, and only
+  // their services and hours are kept (team.js, syncStandalone), so the parts
+  // of this window about access, and the name and picture, are read-only.
+  const noLogin = Boolean(m && m.noLogin);
+  for (const k of ['email', 'phone', 'role']) f.elements[k].closest('label').classList.toggle('hidden', noLogin);
+  $('memberPersonal').classList.toggle('hidden', noLogin);
+  document.querySelector('#memberDlg .md-handle').classList.toggle('hidden', noLogin);
+  f.elements.email.required = !noLogin;
+  f.elements.name.readOnly = noLogin;
+  if (noLogin) $('memberCreate').classList.add('hidden');
   paintTools();
   paintHoursState();
   loadHoursWeek();
@@ -5329,8 +5358,8 @@ async function openMember(who) {
   for (const sw of $('memberSvcs').querySelectorAll('.switch, input')) {
     if (lockedOwner) sw.disabled = true;
   }
-  $('memberPic').disabled = Boolean(lockedOwner);
-  $('memberPicPick').classList.toggle('hidden', Boolean(lockedOwner));
+  $('memberPic').disabled = Boolean(lockedOwner || noLogin);
+  $('memberPicPick').classList.toggle('hidden', Boolean(lockedOwner || noLogin));
   for (const el of $('memberHours').querySelectorAll('.switch, input')) if (lockedOwner) el.disabled = true;
 
   $('memberCreate').classList.toggle('hidden', Boolean(m));
@@ -5347,14 +5376,15 @@ async function openMember(who) {
   $('memberMeta').textContent = meta;
   $('memberMeta').classList.toggle('hidden', !meta);
 
-  // Your own profile is where you sign out; someone else can be turned off
-  // or back on.
+  // Your own profile is where you sign out; someone else is removed from the
+  // team for good (asked for in place of turning the account off), or, while
+  // they are only asking to join, declined.
   const danger = $('memberDanger');
   danger.dataset.act = '';
   if (self) { danger.textContent = 'Sign out'; danger.dataset.act = 'signout'; }
   else if (m && !lockedOwner && admin) {
-    const act = m.status === 'pending' ? 'reject' : m.status === 'disabled' ? 'enable' : 'disable';
-    danger.textContent = { reject: 'Decline request', enable: 'Turn back on', disable: 'Turn off account' }[act];
+    const act = m.status === 'pending' ? 'reject' : 'delete';
+    danger.textContent = { reject: 'Decline request', delete: 'Remove from team' }[act];
     danger.dataset.act = act;
   }
   danger.classList.toggle('hidden', !danger.dataset.act);
@@ -5418,7 +5448,13 @@ $('memberDanger').onclick = async () => {
   if (act === 'signout') { closeDialog($('memberDlg')); signOutNow(); return; }
   const m = memberEdit;
   if (!m || m === 'me') return;
-  if (act === 'disable' && !confirm('Turn off this account? They are signed out straight away.')) return;
+  if (act === 'delete' && !confirm(`Remove ${m.name} from the team for good?
+
+`
+    + 'Their login, profile and calendar connection are deleted and they are signed out '
+    + 'straight away. Their past and booked appointments stay on Appt. Book under their name, '
+    + 'and nobody can book them online any more. This cannot be undone: to have them back, '
+    + 'add them again.')) return;
   if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
   try {
     await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: m.id, action: act }) });
@@ -5487,7 +5523,16 @@ $('memberForm').onsubmit = async (e) => {
     // services on would store a rota for a person no guest can reach.
     if (Object.values(services).some((v) => v.on)) fields.hours = readHoursUI();
     if (memberPic !== undefined) fields.avatar = memberPic;
-    if (!memberEdit) {
+    if (memberEdit && memberEdit.noLogin) {
+      await api('/api/staff/team', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: memberEdit.id, action: 'update', services, hours: readHoursUI(),
+        }),
+      });
+      toast(Object.values(services).some((v) => v.on)
+        ? `${memberEdit.name} can be booked.` : `${memberEdit.name} is off the booking page.`);
+    } else if (!memberEdit) {
       const made = await api('/api/staff/team', {
         method: 'POST',
         body: JSON.stringify({ action: 'create', ...fields, role: f.get('role') }),
@@ -5537,15 +5582,17 @@ function svcSummary(services = {}) {
   }).join('');
 }
 
-let teamOthers = [];        // everyone else on the team, for owners and managers
+let teamOthers = [];        // everyone else on the team, for the owner and the support login
 
 function memberRow(m, self) {
-  const status = m.status === 'disabled' ? '<span class="chip">Turned off</span>' : '<span class="chip ok">Active</span>';
+  const status = m.noLogin
+    ? (m.bookable ? '<span class="chip ok">Bookable</span>' : '<span class="chip">Not bookable</span>')
+    : m.status === 'disabled' ? '<span class="chip">Turned off</span>' : '<span class="chip ok">Active</span>';
   return `<button type="button" class="tm-row${self ? ' me' : ''}${m.status === 'disabled' ? ' off' : ''}" data-member="${self ? 'me' : esc(m.id)}"
       aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
     <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""><span class="pen">${ic('edit')}</span></span>
     <span class="tm-who"><b>${esc(m.name)}${m.username ? ` <i class="tm-handle">@${esc(m.username)}</i>` : ''}${self ? ' <i class="tm-you">You</i>' : ''}</b>
-      <span>${esc(m.email)}${m.phone ? ` · ${esc(m.phone)}` : ''}</span>
+      <span>${esc(m.noLogin ? (m.title || 'Stylist, no sign in') : m.email)}${!m.noLogin && m.phone ? ` · ${esc(m.phone)}` : ''}</span>
       <span class="tm-svc">${svcSummary(m.services)}</span></span>
     <span class="tm-badges"><span class="chip role">${esc(ROLE_LABEL[m.role] || m.role)}</span>${status}</span>
   </button>`;
@@ -5554,7 +5601,7 @@ function memberRow(m, self) {
 function renderTeam(current, others = [], pending = []) {
   teamCurrent = current;
   teamOthers = others;
-  const admin = me?.user?.canAdmin;
+  const admin = me?.user?.canManageTeam;
   $('team').innerHTML = `
     <div class="tm-list">
       ${memberRow(current, true)}
@@ -5563,7 +5610,7 @@ function renderTeam(current, others = [], pending = []) {
     <div class="tm-addrow">
       <span class="tm-addic">${ic('users-plus')}</span>
       <span class="tm-addtx"><b>Add a team member</b>
-        <span>${admin ? 'Give each stylist their own sign in, picture and prices.' : 'An owner or manager adds stylists to the team.'}</span></span>
+        <span>${admin ? 'Give each stylist their own sign in, picture and prices.' : 'The owner adds stylists to the team.'}</span></span>
       ${admin ? `<button type="button" class="btn sm" id="teamAdd">${ic('plus')}Add Team Member</button>` : ''}
     </div>
     ${admin && pending.length ? `<div class="tm-pending"><h3>Asking to join</h3>${pending.map((m) => `
@@ -5618,10 +5665,15 @@ async function loadTeam() {
     // for owners and managers, adds who is waiting to be let in.
     const [p, t] = await Promise.all([
       api('/api/staff/profile'),
-      me?.user?.canAdmin ? api('/api/staff/team') : Promise.resolve(null),
+      me?.user?.canManageTeam ? api('/api/staff/team') : Promise.resolve(null),
     ]);
     const pending = t ? t.members.filter((m) => m.status === 'pending') : [];
-    const others = t ? t.members.filter((m) => m.id !== t.you.id && m.status !== 'pending') : [];
+    // Stylists with no login sit in the same list as the staff. A salon owner
+    // thinks in people behind chairs, not in who happens to have a password.
+    const others = t
+      ? [...t.members.filter((m) => m.id !== t.you.id && m.status !== 'pending'),
+        ...(t.standalone ?? [])]
+      : [];
     renderTeam({ ...p, status: 'active' }, others, pending);
     // A member added, renamed or made a Stylist is a new Clients filter.
     refreshTeamFilter();
@@ -5897,11 +5949,18 @@ function calAppRows(d) {
       <div style="min-width:0"><b>${esc(CAL_APPS.find((a) => a.key === k).name)}</b><span class="d">${esc(desc)}</span></div>
       <span class="int-r">${st(on)}${button}</span></div>`;
   const g = d.google || {};
+  // Connected is connected, whichever way it was done: signed in, or the
+  // private address pasted into Connect your tools. This row used to look
+  // only at the sign-in, so somebody connected by the address was offered
+  // Google again here as if they were not.
+  const googleRow = g.connected
+    ? row('google', `Connected${g.account ? ` as ${g.account}` : ''}. Your busy times show on Appt. Book.`, true,
+      b('google-off', 'Disconnect'))
+    : g.available
+      ? row('google', 'Show your Google busy times on Appt. Book', false, b('google-on', 'Connect'))
+      : row('google', 'Add your salon appointments to Google Calendar. It updates on its own.', fed(['google']), b('google-sub', 'Add'));
   return [
-    g.available
-      ? row('google', 'Appointments written into your Google Calendar as they are booked', g.connected,
-        g.connected ? b('google-off', 'Disconnect') : b('google-on', 'Connect'))
-      : row('google', 'Subscribe in Google Calendar. It updates on its own.', fed(['google']), b('google-sub', 'Add')),
+    googleRow,
     row('other', 'Apple Calendar, or any app that takes a calendar link', fed(['apple', 'other']), b('other', 'Copy link')),
   ].join('');
 }
@@ -5970,7 +6029,7 @@ const TICK = '<svg viewBox="0 0 24 24"><path d="m5 13 4.5 4.5L19 7"/></svg>';
  */
 // ── Connect your tools ───────────────────────────────────────────────────
 //
-// In the team member window, for yourself or (owners and managers) for
+// In the team member window, for yourself or (the owner and the support login) for
 // somebody on the team. Connecting for somebody else is for the owner who
 // adds a stylist with the stylist beside them: the stylist signs in to their
 // own Google account in the window that opens. Once connected, their Google
@@ -5985,13 +6044,19 @@ function paintTools() {
   const m = toolsFor;
   const self = memberEdit === 'me';
   const g = (m && m.google) || { connected: false, account: null };
-  const canAct = Boolean(m && m.status !== 'pending' && (self || me?.user?.canAdmin));
+  const canAct = Boolean(m && !m.noLogin && m.status !== 'pending' && (self || me?.user?.canManageTeam));
   const logo = GOOGLE_LOGO.replace('class="conn-logo"', '');
   let sub;
   let act = '';
-  if (g.connected) {
+  if (m && self && m.google === undefined) {
+    // Not known yet. Offering Connect here was how somebody already connected
+    // got asked to connect again while their status was on its way.
+    sub = 'Checking…';
+  } else if (g.connected) {
     sub = `<span class="ok">Connected</span> · ${esc(g.account || 'Google Calendar')}`;
     if (canAct) act = '<button type="button" class="btn quiet sm" data-tool="google-off">Disconnect</button>';
+  } else if (m && m.noLogin) {
+    sub = 'A calendar is connected to a sign in. Give them one to connect theirs.';
   } else if (!m) {
     sub = 'Available once they are added. Save, then open them again.';
   } else if (m.status === 'pending') {
@@ -6026,7 +6091,11 @@ async function refreshTools() {
       const fresh = (t.members || []).find((x) => String(x.id) === String(m.id));
       if (fresh) m.google = fresh.google;
     }
-  } catch { /* the card keeps what it showed */ }
+  } catch {
+    // Unknown is shown as not connected only once asking has failed, so the
+    // way to connect is still there.
+    if (m.google === undefined) m.google = { connected: false, account: null };
+  }
   if (m.google?.connected) rememberAccount(m, m.google.account);
   if (toolsFor === m && $('memberDlg').open) { paintTools(); loadHoursWeek(); }
 }
@@ -6156,6 +6225,7 @@ async function saveGoogleLink() {
       method: 'POST', body: JSON.stringify({ action: 'google-link', link, ...(forId ? { member: forId } : {}) }),
     });
     m.google = r.google;
+    if (!forId && feedData) feedData.google = r.google;
     rememberAccount(m, r.google.account || gAccount);
     closeDialog($('gDlg'));
     toast(`Google Calendar connected${r.google.account ? ` (${r.google.account})` : ''}. It now shows on Appt. Book.`);
@@ -6185,6 +6255,7 @@ $('memberDlg').addEventListener('click', async (e) => {
     });
     toast('Google Calendar disconnected.');
     toolsFor.google = { connected: false, account: null };
+    if (!forId && feedData) feedData.google = { ...(feedData.google || {}), connected: false, account: null, via: null };
     afterGoogleChange();
   } catch (err) { fail(err); b.disabled = false; }
 });

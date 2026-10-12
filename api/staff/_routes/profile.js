@@ -142,6 +142,9 @@ export default handler({
               (SELECT to_jsonb(s) ->> 'photo' FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS photo,
               (SELECT s.slug FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS stylist_slug,
               (SELECT t.slug FROM tenants t WHERE t.id = u.tenant_id) AS tenant_slug,
+              -- Whether their calendar is connected, so their own window opens
+              -- showing it rather than offering Connect until a second request
+              -- says otherwise. Through to_jsonb, as everywhere else.
               to_jsonb(u) ->> 'google_email' AS google_email,
               to_jsonb(u) ->> 'google_connected_at' AS google_connected_at,
               to_jsonb(u) ->> 'google_ics' AS google_ics
@@ -166,10 +169,10 @@ export default handler({
       avatarStyle: me.avatar_style || null,
       photo: me.photo || (me.stylist_slug ? stylistPhoto(me.tenant_slug, me.stylist_slug) : null),
       hours,
-      google: googleStatus(me),
       since: me.created_at,
       lastSeen: me.last_seen_at,
       minPasswordLength: MIN_PASSWORD_LENGTH,
+      google: (() => { try { return googleStatus(me); } catch { return undefined; } })(),
     });
   },
 

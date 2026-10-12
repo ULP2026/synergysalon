@@ -23,6 +23,14 @@ export const DEFAULT_TZ = 'America/New_York';
  */
 export const ONLINE_BOOKING = false;
 
+/**
+ * Logins that may open and change other team members' accounts, as well as
+ * the salon's owners. This is the agency that runs the app for the salon, so
+ * it can set people up and help them without being made an owner. Matched on
+ * the sign-in email, within whichever salon the login belongs to.
+ */
+export const TEAM_ADMIN_EMAILS = ['support@unclelouieproductions.com'];
+
 /** Slots are offered on this grid: 09:00, 09:15, 09:30 ... */
 export const SLOT_STEP_MIN = 15;
 

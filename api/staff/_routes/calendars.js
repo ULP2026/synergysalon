@@ -14,7 +14,7 @@
  */
 import { DateTime } from 'luxon';
 
-import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
 import { busyBetween, disconnectGoogle, googleConfigured } from '../../_lib/google.js';
@@ -104,13 +104,13 @@ export function googleStatus(row) {
 }
 
 /**
- * Whose calendar an action is for: yourself, or (owners and managers) a
- * member of your own salon named in the body.
+ * Whose calendar an action is for: yourself, or (the owner and the support
+ * login, canManageTeam) a member of your own salon named in the body.
  */
 async function targetOf(user, member) {
   if (!member || member === user.id) return user.id;
-  if (!['owner', 'manager'].includes(user.role)) {
-    throw new HttpError(403, 'Only an owner or manager can change somebody else’s calendar.');
+  if (!canManageTeam(user)) {
+    throw new HttpError(403, 'Only the owner can change somebody else’s calendar.');
   }
   const { rows } = /^[0-9a-f-]{36}$/.test(String(member))
     ? await query('SELECT id FROM staff_users WHERE id = $1::uuid AND tenant_id = $2::uuid',

@@ -2,17 +2,21 @@
  * /api/staff/team: who has access, and who is asking for it.
  *
  *   GET    the team, pending requests first
- *   POST   add someone, edit their details, approve, reject, disable,
- *          re-enable, or change a role
+ *   POST   add someone, edit their details, approve, reject, remove for
+ *          good (delete), disable, re-enable, or change a role
  *
- * Owners and managers only. A front-desk account can use the console all day
- * but cannot grant anybody else access to the salon's client list.
+ * The owner and the agency's support login only (canManageTeam). Anybody else
+ * can use the console all day but only ever sees and changes their own
+ * account, so nobody can grant themselves or anyone else access, or open a
+ * colleague's details.
  */
-import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertSameOrigin, requireTeamAdmin } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
 import { query, transaction } from '../../_lib/db.js';
-import { hoursFor, readHours, syncStylist } from '../../_lib/roster.js';
+import {
+  hoursFor, listStandalone, readHours, syncStandalone, syncStylist,
+} from '../../_lib/roster.js';
 import { sendInvite } from '../../_lib/email.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
@@ -25,7 +29,6 @@ import {
   assertUsernameFree, avatarFrom, avatarStyleFrom, phoneFrom, servicesFrom, usernameFrom,
 } from './profile.js';
 
-const ADMIN = ['owner', 'manager'];
 const ROLES = ['owner', 'manager', 'front_desk', 'stylist'];
 
 /** How long an invite is good for. Long enough for a day off, short enough
@@ -57,7 +60,7 @@ async function mintInvite(req, userId) {
 
 export default handler({
   async GET(req, res) {
-    const user = await requireStaff(req, ADMIN);
+    const user = await requireTeamAdmin(req);
     const tenant = await tenantForUser(user);
 
     const { rows } = await query(
@@ -95,9 +98,15 @@ export default handler({
       [tenant.id],
     );
 
+    // Stylists who take appointments but never sign in. They are on the same
+    // list because from a salon's point of view they are the same thing: a
+    // person in a chair that a guest can book.
+    const standalone = await listStandalone({ query }, tenant.id);
+
     return json(res, 200, {
       you: { id: user.id, role: user.role },
       pending: rows.filter((r) => r.status === 'pending').length,
+      standalone,
       members: rows.map((r) => ({
         id: r.id,
         // Added but never signed in: their invite is still outstanding.
@@ -133,7 +142,7 @@ export default handler({
 
   async POST(req, res) {
     assertSameOrigin(req);
-    const user = await requireStaff(req, ADMIN);
+    const user = await requireTeamAdmin(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
 
@@ -212,6 +221,18 @@ export default handler({
 
     const id = requireString(body.id, 'Member', { max: 64 });
 
+    // "st_<uuid>" is a stylist with no login. They have no role, no password
+    // and no session, so none of the access rules below apply to them -- only
+    // what they do and when.
+    if (id.startsWith('st_')) {
+      if (action !== 'update') throw new HttpError(400, 'That cannot be done to a stylist without a login.');
+      const saved = await transaction((client) => syncStandalone(
+        client, tenant.id, id.slice(3),
+        { services: servicesFrom(body.services), hours: readHours(body.hours) },
+      ));
+      return json(res, 200, { ok: true, id, action, bookable: saved.bookable });
+    }
+
     const { rows } = await query(
       'SELECT id, name, role, status FROM staff_users WHERE id = $1 AND tenant_id = $2',
       [id, tenant.id],
@@ -266,6 +287,44 @@ export default handler({
         // without an owner having to find and undo an old rejection.
         await query("DELETE FROM staff_users WHERE id = $1 AND status = 'pending'", [target.id]);
         break;
+
+      // Removing somebody from the team, for good. Asked for in place of
+      // turning the account off, which left people on the list.
+      //
+      // Their stylist row is kept but switched off first: appointments point
+      // at it, so past and booked work keeps their name, and a stylist with
+      // no login otherwise counts as bookable, which would leave the person
+      // just removed still taking online bookings. Everything else that
+      // points at the login lets go by itself: sessions and calendar tokens
+      // are deleted with it, and "booked by" or "approved by" become empty.
+      case 'delete': {
+        if (target.role === 'owner' && user.role !== 'owner') {
+          throw new HttpError(403, 'Only an owner can remove another owner.');
+        }
+        try {
+          await transaction(async (client) => {
+            await client.query(
+              'UPDATE stylists SET active = false WHERE staff_user_id = $1::uuid AND tenant_id = $2::uuid',
+              [target.id, tenant.id],
+            );
+            await client.query(
+              'DELETE FROM staff_users WHERE id = $1::uuid AND tenant_id = $2::uuid',
+              [target.id, tenant.id],
+            );
+          });
+        } catch (err) {
+          // Something added outside the migrations still points at them with
+          // no rule for letting go. Nothing was changed (it is one
+          // transaction), so say so rather than half-removing them.
+          if (err.code === '23503') {
+            console.error('team delete blocked by', err.constraint, err.table);
+            throw new HttpError(409, `${target.name} is still linked to other records, so they were not removed. `
+              + 'Nothing was changed. Please let support know.');
+          }
+          throw err;
+        }
+        break;
+      }
 
       case 'disable':
         await query(
