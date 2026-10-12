@@ -2,7 +2,7 @@
  * The columns the staff console's profile features write to, added if they
  * are missing.
  *
- * Migrations 010 to 013 and 016 to 018 were shipped with "run npm run db:migrate" and the
+ * Migrations 010 to 013 and 016 to 019 were shipped with "run npm run db:migrate" and the
  * console went live before anyone did, so every save of a username, price
  * or avatar choice failed in production. These are the same statements, all
  * idempotent (IF NOT EXISTS), run once per warm function. db:migrate still
@@ -34,6 +34,8 @@ const STATEMENTS = [
   'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS reply_to text',
   // 018: a Google Calendar by its private iCal address (google-ics.js).
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_ics text',
+  // 019: the Home dashboard's layout, set by the admin from Customize.
+  'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS home_layout jsonb',
 ];
 
 let done = null;

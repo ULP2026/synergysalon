@@ -1805,6 +1805,123 @@
   .hr .gday i.free { background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--ok); }
   :root[data-theme="dark"] .hrs-wrap.synced .hrs-sync { background: rgba(85, 96, 166, .16); color: var(--ink); }
 
+  /* Team window: a pencil beside the name and the username */
+  .md-editrow { display: flex; align-items: center; gap: 2px; min-width: 0; }
+  /* Sized to the text so the pencil sits right after it; browsers without
+     field-sizing keep a fixed width and the pencil a little further off. */
+  .md-editrow .md-name { flex: 0 1 auto; min-width: 6ch; width: auto; max-width: 100%; field-sizing: content; }
+  .md-handle input { field-sizing: content; width: auto; min-width: 6ch; max-width: 32ch; }
+  .md-handle-row { margin: 0 0 6px; }
+  .md-handle-row .md-handle { margin-bottom: 0; }
+  .md-pen { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px;
+            background: transparent; color: var(--indigo-deep); opacity: .55; cursor: pointer;
+            transition: opacity var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .md-pen .ic { width: 16px; height: 16px; }
+  .md-handle-row .md-pen { width: 26px; height: 26px; }
+  .md-handle-row .md-pen .ic { width: 14px; height: 14px; }
+  .md-pen:hover, .md-pen:focus-visible { opacity: 1; background: rgba(85, 96, 166, .12); }
+  .md-editrow:has(input:focus) .md-pen { opacity: 0; }
+  :root[data-theme="dark"] .md-pen { color: var(--ink); }
+
+  /* ── Home: the admin's widgets, two columns ───────────────────────────── */
+  #view-home { position: relative; --viz: #5560a6; }
+  :root[data-theme="dark"] #view-home { --viz: #7d88d6; }
+  /* The figures were indigo on near-black in dark mode, too faint to read. */
+  :root[data-theme="dark"] .tile .num, :root[data-theme="dark"] .cu-open { color: var(--ink); }
+  .hm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+  .hm-w { display: flex; flex-direction: column; min-width: 0; }
+  .hm-w > .tile, .hm-w > .card { flex: 1; }
+  .hm-w > .tile { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; }
+  .hm-w.w-full, .hm-grid > .w-full { grid-column: 1 / -1; }
+  .tiles.one { grid-template-columns: minmax(0, 1fr); margin-bottom: 16px; }
+  #hmPending:empty { display: none; }
+  @media (max-width: 760px) { .hm-grid { grid-template-columns: minmax(0, 1fr); } }
+
+  .hm-card { display: flex; flex-direction: column; min-height: 0; }
+  .hm-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 16px; }
+  .hm-head h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+  .hm-about { font-size: var(--fs-sm); color: var(--muted); }
+  .hm-empty { margin: auto 0; padding: 28px 0; text-align: center; font-size: var(--fs-sm); color: var(--muted); }
+  .hm-note { margin: 12px 0 0; font-size: .76rem; color: var(--muted); }
+
+  /* columns and line share a plot: hairlines, values on the left */
+  .hm-plot { position: relative; height: 168px; margin: 8px 0 0 40px; }
+  .hm-axis { position: absolute; inset: 0; pointer-events: none; }
+  .hm-tick { position: absolute; left: 0; right: 0; height: 0; border-top: 1px solid var(--line); }
+  .hm-tick i { position: absolute; right: calc(100% + 8px); top: -8px; font-style: normal; font-size: .72rem;
+               color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .hm-cols { position: absolute; inset: 0; display: flex; align-items: stretch; }
+  .hm-col { flex: 1; min-width: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0 1px;
+            border: 0; background: none; cursor: default; border-radius: 6px; }
+  .hm-col:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: -2px; }
+  .hm-bar-v { position: relative; display: block; width: min(24px, 64%); min-height: 0; background: var(--viz);
+              border-radius: 4px 4px 0 0; transition: filter var(--t) var(--ease); }
+  .hm-col:hover .hm-bar-v, .hm-col:focus-visible .hm-bar-v { filter: brightness(1.15); }
+  .hm-bar-v em { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-style: normal;
+                 font-size: .74rem; font-weight: 600; color: var(--ink); white-space: nowrap; }
+  .hm-x { display: flex; margin: 8px 0 0 40px; }
+  .hm-x span { flex: 1; min-width: 0; text-align: center; font-size: .7rem; color: var(--muted); white-space: nowrap; overflow: visible; }
+
+  .hm-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .hl-line { fill: none; stroke: var(--viz); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .hl-area { fill: var(--viz); opacity: .1; }
+  .hm-dot { position: absolute; width: 10px; height: 10px; margin: 0 0 -5px -5px; border-radius: 50%; background: var(--viz);
+            box-shadow: 0 0 0 2px var(--card); pointer-events: none; }
+  .hm-endv { position: absolute; right: 0; transform: translate(0, -150%); font-size: .74rem; font-weight: 600; color: var(--ink); pointer-events: none; }
+  .hm-cross { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid var(--line-2); pointer-events: none; }
+  .hm-hit .hm-col { background: transparent; }
+
+  /* category bars */
+  .hm-hbars { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .hm-hbars li { display: grid; grid-template-columns: minmax(70px, 30%) minmax(0, 1fr) auto; align-items: center; gap: 12px; font-size: var(--fs-sm); }
+  .hb-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+  .hb-t { display: block; height: 12px; }
+  .hb-b { display: block; height: 100%; min-width: 2px; background: var(--viz); border-radius: 0 4px 4px 0; }
+  .hb-v { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
+
+  /* table */
+  .hm-tablewrap { max-height: 260px; overflow-y: auto; }
+  .hm-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+  .hm-table th, .hm-table td { padding: 8px 2px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 500; }
+  .hm-table td { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .hm-table tr:last-child th, .hm-table tr:last-child td { border-bottom: 0; }
+
+  .hm-tip { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 8px)); pointer-events: none;
+            padding: 7px 10px; border-radius: 9px; background: var(--card); border: 1px solid var(--line-2);
+            box-shadow: var(--e2); white-space: nowrap; }
+  .hm-tip b { display: block; font-size: .85rem; color: var(--ink); }
+  .hm-tip span { display: block; font-size: .72rem; color: var(--muted); }
+
+  /* customizing */
+  .hm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 14px 12px 18px; margin-bottom: 16px;
+            border: 1px solid color-mix(in srgb, var(--periwinkle) 35%, var(--line)); border-radius: 14px;
+            background: color-mix(in srgb, var(--peri-pale) 60%, var(--card)); position: sticky; top: 96px; z-index: 4; }
+  .hm-bar-t { flex: 1; min-width: 200px; font-size: var(--fs-sm); color: var(--muted); }
+  .hm-bar-t b { display: block; color: var(--ink); font-size: .92rem; }
+  .hm-bar-a { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hm-bar-a .btn .ic { width: 15px; height: 15px; }
+  .hm-editing .hm-w { outline: 1.5px dashed color-mix(in srgb, var(--periwinkle) 45%, transparent); outline-offset: 4px; border-radius: 14px; }
+  .hm-editing .hm-w > .tile, .hm-editing .hm-w > .card { pointer-events: none; }
+  .hm-edit { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t r" "s s";
+             align-items: center; gap: 6px 8px; margin-bottom: 10px; }
+  .hm-edit-t { grid-area: t; font-size: var(--fs-sm); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hm-edit-s { grid-area: s; display: flex; flex-wrap: wrap; gap: 8px; }
+  .hm-edit-r { grid-area: r; display: flex; gap: 4px; }
+  .hm-edit .iconbtn { width: 30px; height: 30px; }
+  .hm-edit .iconbtn .ic { width: 16px; height: 16px; }
+  .hm-seg { display: inline-flex; padding: 2px; border-radius: 9px; background: var(--raise); border: 1px solid var(--line); }
+  .hm-seg button { border: 0; background: none; padding: 4px 10px; border-radius: 7px; font: inherit; font-size: .76rem; color: var(--muted); cursor: pointer; }
+  .hm-seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(20, 21, 58, .12); }
+  @media (max-width: 520px) { .hm-bar { top: 84px; } }
+
+  dialog.hmadd { max-width: 520px; }
+  .hmadd-list { display: grid; gap: 8px; max-height: min(60vh, 520px); overflow-y: auto; }
+  .hmadd-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
+  .hmadd-row > span:first-child { flex: 1; }
+  .hmadd-row b { display: block; font-size: .9rem; }
+  .hmadd-row .d { display: block; font-size: .78rem; color: var(--muted); }
+  .hmadd-v { display: block; margin-top: 2px; font-size: .72rem; color: var(--faint); }
+
   /* ── Salon Calendar: one column, the time down the side ─────────────── */
   .dg-ev .ln .m { color: var(--muted); }
 </style>
@@ -1971,6 +2088,10 @@
         <h1 id="pageTitle">Home</h1>
         <p class="sub" id="pageSub"></p>
       </div>
+      <!-- Home only, and only for the admin: arrange the dashboard. -->
+      <button type="button" class="btn quiet hidden" id="homeEdit">
+        <svg class="ic"><use href="#i-settings"/></svg><span>Customize</span>
+      </button>
       <button class="btn primary" id="primaryBtn">
         <svg class="ic"><use href="#i-plus"/></svg><span id="primaryLbl">New appointment</span>
       </button>
@@ -1978,16 +2099,21 @@
 
     <!-- Home -->
     <section class="view" id="view-home">
-      <div class="tiles" id="tiles"></div>
-      <div id="syncNote" class="note hidden" style="margin:0"></div>
-      <div class="card fill">
-        <div class="card-head">
-          <h2 class="cu-head"><svg class="ic"><use href="#i-calendar"/></svg>Coming up</h2>
-          <a href="/staff/appointments" data-page="appointments" class="small">See all appointments</a>
+      <!-- Shown while the admin is arranging Home. -->
+      <div class="hm-bar hidden" id="hmBar" role="toolbar" aria-label="Customize Home">
+        <div class="hm-bar-t"><b>Customizing Home</b><span>Changes apply to everyone on the team once saved.</span></div>
+        <div class="hm-bar-a">
+          <button type="button" class="btn quiet sm" id="hmAdd"><svg class="ic"><use href="#i-plus"/></svg>Add widget</button>
+          <button type="button" class="btn quiet sm" id="hmReset">Reset</button>
+          <button type="button" class="btn quiet sm" id="hmCancel">Cancel</button>
+          <button type="button" class="btn sm" id="hmSave">Save</button>
         </div>
-        <div id="upcoming" class="fill-body" style="flex:1;display:flex;flex-direction:column"></div>
-        <div id="upcomingFoot"></div>
       </div>
+      <div id="syncNote" class="note hidden" style="margin:0"></div>
+      <div id="hmPending"></div>
+      <!-- The widgets, in the admin's order (GET /api/staff/home: layout). -->
+      <div class="hm-grid" id="hmGrid"></div>
+      <div class="hm-tip hidden" id="hmTip" role="tooltip"></div>
     </section>
 
     <!-- Appointments -->
@@ -2152,9 +2278,17 @@
       </button>
       <div class="md-id">
         <h2 id="memberTitle" class="md-eyebrow">Add team member</h2>
-        <input class="md-name" name="name" required autocomplete="off" placeholder="Full name" aria-label="Name" maxlength="120">
-        <div class="md-handle"><span aria-hidden="true">@</span><input name="username" placeholder="username" autocomplete="off"
-          aria-label="Username" pattern="@?[A-Za-z0-9._\-]{3,32}" title="3 to 32 letters, numbers, dots, dashes or underscores"></div>
+        <!-- Edited where they are shown; the pencil says so and puts the
+             cursor in the field, ready to type. -->
+        <div class="md-editrow">
+          <input class="md-name" name="name" required autocomplete="off" placeholder="Full name" aria-label="Name" maxlength="120">
+          <button type="button" class="md-pen" data-edit="name" aria-label="Edit name" title="Edit name"><svg class="ic"><use href="#i-edit"/></svg></button>
+        </div>
+        <div class="md-editrow md-handle-row">
+          <div class="md-handle"><span aria-hidden="true">@</span><input name="username" placeholder="username" autocomplete="off"
+            aria-label="Username" pattern="@?[A-Za-z0-9._\-]{3,32}" title="3 to 32 letters, numbers, dots, dashes or underscores"></div>
+          <button type="button" class="md-pen" data-edit="username" aria-label="Edit username" title="Edit username"><svg class="ic"><use href="#i-edit"/></svg></button>
+        </div>
         <div class="links"><button type="button" id="memberPicPick">Change picture</button></div>
       </div>
     </header>
@@ -2239,6 +2373,17 @@
     <button type="button" class="btn quiet sm" id="picDone">Done</button>
   </div>
   <input type="file" id="memberPicFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+</dialog>
+
+<!-- Add a widget to Home: everything the server can count that is not on
+     the page yet. -->
+<dialog id="hmAddDlg" class="hmadd" aria-labelledby="hmAddTitle">
+  <div class="ad-head">
+    <div style="flex:1;min-width:0"><h2 id="hmAddTitle" style="margin:0">Add a widget</h2>
+      <p class="small muted" style="margin:2px 0 0">Each can be shown as a chart or a table once it is on Home.</p></div>
+    <button type="button" class="iconbtn lg" id="hmAddClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="hmadd-list" id="hmAddList"></div>
 </dialog>
 
 <!-- Connect Google Calendar: choose the account, laid out as Google's own
@@ -3557,6 +3702,9 @@ function go(name, { push = true } = {}) {
   $('pageSub').textContent = name === 'home' ? greeting() : p.sub;
   // One primary action per view, and none where there is nothing to do yet.
   $('primaryBtn').classList.toggle('hidden', !p.action);
+  $('homeEdit').classList.toggle('hidden', !(name === 'home' && homeData?.canCustomize) || homeEditing);
+  // Leaving Home ends customizing without saving, as Cancel would.
+  if (name !== 'home' && homeEditing) { homeLayout = JSON.parse(homeBefore || '[]'); homeEditing = false; }
   if (p.action) $('primaryLbl').textContent = p.action;
   document.title = `${p.title} · Synergy Salon`;
   hideMenu();
@@ -3692,19 +3840,31 @@ function tile(num, label, href, icon) {
 
 let homeSeq = 0;
 const dollars = (n) => `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/** Axis and tip figures: whole dollars, compact from a thousand up. */
+const dollarsShort = (n) => (n >= 1000 ? `$${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K` : `$${Math.round(n)}`);
 
-/**
- * Home: two numbers and what is coming up, all from /api/staff/home, which
- * counts them in the database. Today's diary is still read for the CRM sync
- * note, which is about today's bookings and nothing else.
- */
+// ── Home ──────────────────────────────────────────────────────────────────
+//
+// A grid of widgets in the order the salon's admin chose (Customize), all
+// counted by /api/staff/home. Each widget is drawn from the same data in the
+// view picked for it: a chart, a table, a figure or a list. Today's diary is
+// still read for the CRM sync note, which is about today's bookings only.
+
+let homeData = null;        // the last answer from /api/staff/home
+let homeLayout = [];        // what is drawn; while editing, the working copy
+let homeEditing = false;
+let homeBefore = null;      // the layout editing started from, for Cancel
+
+const VIEW_LABEL = { bar: 'Bars', bars: 'Bars', line: 'Line', table: 'Table', number: 'Figure', list: 'List' };
+
 async function loadHome() {
   const seq = ++homeSeq;
   $('pageSub').textContent = greeting();
-  $('tiles').innerHTML = [0, 1].map(() =>
-    '<div class="tile"><span class="sk" style="height:32px;width:56px"></span><span class="sk" style="margin-top:10px;width:60%"></span></div>').join('');
-  $('upcoming').innerHTML = skeleton(4);
-  $('upcomingFoot').innerHTML = '';
+  if (!homeData) {
+    $('hmGrid').innerHTML = [0, 1].map(() =>
+      '<div class="tile"><span class="sk" style="height:32px;width:56px"></span><span class="sk" style="margin-top:10px;width:60%"></span></div>').join('')
+      + `<div class="card w-full">${skeleton(4)}</div>`;
+  }
   $('syncNote').classList.add('hidden');
 
   try {
@@ -3713,21 +3873,17 @@ async function loadHome() {
       api(`/api/staff/diary?date=${salonToday()}`).catch(() => null),
     ]);
     if (seq !== homeSeq) return;
+    homeData = h;
+    if (!homeEditing) homeLayout = h.layout.map((x) => ({ ...x }));
+    $('homeEdit').classList.toggle('hidden', !(h.canCustomize && page === 'home') || homeEditing);
 
-    const n = h.today.count;
-    const value = `${dollars(h.today.value)} total value`
-      + (h.today.unpriced ? ` · ${h.today.unpriced} without a price` : '');
     const pending = me.user.canManageTeam ? (me.pendingApprovals || 0) : 0;
-    const c = h.clients30;
-    $('tiles').innerHTML = [
-      tile(`${n} <span class="unit">Appt. Today</span>`, value, 'appointments', 'calendar'),
-      tile(`${c} <span class="unit">${c === 1 ? 'Client' : 'Clients'}</span>`, 'Last 30 Days', 'clients', 'contacts'),
-      pending ? tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'account', 'users-plus') : '',
-    ].join('');
+    $('hmPending').innerHTML = pending
+      ? `<div class="tiles one">${tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'account', 'users-plus')}</div>` : '';
 
-    const live = (first?.appointments || []).filter((a) => a.status !== 'cancelled');
-    const refused = live.filter((a) => a.syncFailed).length;
-    const unsynced = live.filter((a) => !a.syncedToCentro).length;
+    const live = (first?.appointments || []).filter((x) => x.status !== 'cancelled');
+    const refused = live.filter((x) => x.syncFailed).length;
+    const unsynced = live.filter((x) => !x.syncedToCentro).length;
     // "Nothing to do here" is only true while the bookings are on their way.
     // One the CRM refused will not arrive on its own, so say so and say where.
     if (refused) {
@@ -3738,41 +3894,322 @@ async function loadHome() {
       $('syncNote').innerHTML = `${ic('info')}<span>${unsynced === 1 ? '1 of today’s bookings hasn’t' : `${unsynced} of today’s bookings haven’t`} synced yet. They are sent across automatically; nothing to do here.</span>`;
       $('syncNote').className = 'note';
     }
-
-    $('upcomingFoot').innerHTML = h.past
-      ? `<a class="up-foot" href="/staff/appointments" data-page="appointments">Past appointments (${h.past})${ic('right')}</a>` : '';
-    if (!h.upcoming.length) {
-      $('upcoming').innerHTML = emptyState({
-        icon: 'calendar', title: 'Nothing coming up yet',
-        text: 'When someone books online or the team adds an appointment, it shows up here.',
-      });
-      return;
-    }
-    // One row per appointment, the reference's shape: a tag, who, what, and
-    // on the right when, with a way in.
-    const tag = (a) => (a.firstVisit ? 'First visit' : a.online ? 'Online booking' : 'Booked');
-    $('upcoming').innerHTML = `<ul class="coming">${h.upcoming.map((a) => `
-      <li><button type="button" data-date="${esc(a.date)}" aria-label="${esc(`${a.guestName}, ${a.when}`)}">
-        <span class="cu-main">
-          <span class="cu-tag${a.firstVisit ? ' first' : ''}">${esc(tag(a))}</span>
-          <b class="cu-name">${esc(a.guestName)}</b>
-          <span class="cu-what">${esc(a.service)} · with ${esc(a.stylist)}${a.price != null ? ` · ${esc(dollars(a.price))}` : ''}</span>
-        </span>
-        <span class="cu-when">${esc(a.when)}</span>
-        <span class="cu-open">Open</span>
-      </button></li>`).join('')}</ul>`;
+    renderHome();
   } catch (err) {
     if (seq !== homeSeq || err.message === 'signed out') return;
-    $('tiles').innerHTML = '';
-    $('upcoming').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load today', text: err.message });
+    $('hmGrid').innerHTML = `<div class="card w-full">${emptyState({ icon: 'info', title: 'Couldn’t load today', text: err.message })}</div>`;
   }
 }
 
-$('upcoming').onclick = (e) => {
-  const b = e.target.closest('button[data-date]');
+function renderHome() {
+  const h = homeData;
+  if (!h) return;
+  $('view-home').classList.toggle('hm-editing', homeEditing);
+  $('hmBar').classList.toggle('hidden', !homeEditing);
+  if (!homeLayout.length) {
+    $('hmGrid').innerHTML = `<div class="card w-full">${emptyState({
+      icon: 'dashboard', title: 'Home is empty',
+      text: homeEditing ? 'Add a widget to start.' : (h.canCustomize ? 'Choose Customize to add widgets.' : 'Your admin has not added anything here yet.'),
+    })}</div>`;
+    return;
+  }
+  $('hmGrid').innerHTML = homeLayout.map((item, i) => widgetHtml(item, i)).join('');
+}
+
+/** One widget's card, with the editing strip on top while customizing. */
+function widgetHtml(item, i) {
+  const h = homeData;
+  const w = h.widgets[item.id];
+  if (!w) return '';
+  const size = item.size === 'full' ? ' w-full' : '';
+  const strip = homeEditing ? editStrip(item, i, w) : '';
+  if (item.view === 'number') {
+    let num; let lbl; let href; let icon;
+    if (item.id === 'today') {
+      const n = h.today.count;
+      num = `${n} <span class="unit">Appt. Today</span>`;
+      lbl = `${dollars(h.today.value)} total value${h.today.unpriced ? ` · ${h.today.unpriced} without a price` : ''}`;
+      href = 'appointments'; icon = 'calendar';
+    } else {
+      const c = h.clients30;
+      num = `${c} <span class="unit">${c === 1 ? 'Client' : 'Clients'}</span>`;
+      lbl = 'Last 30 Days'; href = 'clients'; icon = 'contacts';
+    }
+    return `<div class="hm-w${size}" data-i="${i}">${strip}${tile(num, lbl, href, icon)}</div>`;
+  }
+  if (item.view === 'list') {
+    return `<div class="hm-w${size}" data-i="${i}">${strip}<div class="card fill hm-card">
+      <div class="card-head">
+        <h2 class="cu-head">${ic('calendar')}Coming up</h2>
+        <a href="/staff/appointments" data-page="appointments" class="small">See all appointments</a>
+      </div>
+      <div class="fill-body" style="flex:1;display:flex;flex-direction:column">${upcomingHtml(h)}</div>
+      ${h.past ? `<a class="up-foot" href="/staff/appointments" data-page="appointments">Past appointments (${h.past})${ic('right')}</a>` : ''}
+    </div></div>`;
+  }
+  const c = chartData(item.id);
+  return `<div class="hm-w${size}" data-i="${i}">${strip}<div class="card hm-card">
+    <div class="hm-head"><h2>${esc(w.title)}</h2><span class="hm-about">${esc(c.sub || w.about)}</span></div>
+    ${c.total ? chartHtml(item.view, c) : `<p class="hm-empty">Nothing to show yet. This fills in as appointments are booked.</p>`}
+    ${c.note ? `<p class="hm-note">${esc(c.note)}</p>` : ''}
+  </div></div>`;
+}
+
+/** The series a widget draws, how to write its values, and its total. */
+function chartData(id) {
+  const ch = homeData.charts;
+  const count = (n) => String(Math.round(n));
+  if (id === 'value') {
+    const pts = ch.value.points;
+    return {
+      points: pts, fmt: dollarsShort, tipFmt: dollars, unit: '',
+      total: pts.some((p) => p.value > 0),
+      note: ch.value.unpriced ? `${ch.value.unpriced} appointment${ch.value.unpriced === 1 ? '' : 's'} without a price ${ch.value.unpriced === 1 ? 'is' : 'are'} left out, never guessed.` : '',
+    };
+  }
+  const pts = ch[id] || [];
+  const unit = id === 'sources' ? ['client', 'clients'] : ['appointment', 'appointments'];
+  return {
+    points: pts, fmt: count, tipFmt: (n) => `${count(n)} ${n === 1 ? unit[0] : unit[1]}`,
+    total: pts.some((p) => p.value > 0),
+  };
+}
+
+/** A clean top for the axis: 1, 2, 2.5 or 5 times a power of ten. */
+function niceMax(max) {
+  if (max <= 4) return 4;
+  const p = 10 ** Math.floor(Math.log10(max));
+  for (const f of [1, 2, 2.5, 5, 10]) if (f * p >= max) return f * p;
+  return 10 * p;
+}
+
+function chartHtml(view, c) {
+  if (view === 'table') return tableHtml(c);
+  if (view === 'bars') return hbarsHtml(c);
+  if (view === 'line') return lineHtml(c);
+  return columnsHtml(c);
+}
+
+function tableHtml(c) {
+  return `<div class="hm-tablewrap"><table class="hm-table"><tbody>${c.points.map((p) =>
+    `<tr><th scope="row">${esc(p.label)}</th><td>${esc(c.tipFmt(p.value))}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+/** Category bars, longest first, the value at each bar's tip. */
+function hbarsHtml(c) {
+  const max = Math.max(...c.points.map((p) => p.value), 1);
+  return `<ul class="hm-hbars">${c.points.map((p) => `
+    <li><span class="hb-l" title="${esc(p.label)}">${esc(p.label)}</span>
+      <span class="hb-t"><span class="hb-b" style="width:${(p.value / max) * 100}%"></span></span>
+      <span class="hb-v">${esc(c.fmt(p.value))}</span></li>`).join('')}</ul>`;
+}
+
+/** The y axis and its hairlines, shared by columns and line. */
+function axisHtml(top, fmt) {
+  const ticks = [top, top / 2, 0].filter((t, i) => i !== 1 || Number.isInteger(t) || fmt === dollarsShort);
+  return `<div class="hm-axis">${ticks.map((t) =>
+    `<span class="hm-tick" style="bottom:${(t / top) * 100}%"><i>${esc(fmt(t))}</i></span>`).join('')}</div>`;
+}
+
+/** Labels under the plot: all of them when they fit, every other when not. */
+function xLabelsHtml(points) {
+  const step = points.length > 8 ? 2 : 1;
+  return `<div class="hm-x">${points.map((p, i) =>
+    `<span>${i % step === 0 ? esc(p.label) : ''}</span>`).join('')}</div>`;
+}
+
+function columnsHtml(c) {
+  const max = Math.max(...c.points.map((p) => p.value));
+  const top = niceMax(max);
+  const peak = c.points.findIndex((p) => p.value === max);
+  return `<div class="hm-plot">${axisHtml(top, c.fmt)}
+    <div class="hm-cols">${c.points.map((p, i) => `
+      <button type="button" class="hm-col" data-tip="${esc(c.tipFmt(p.value))}" data-tiplabel="${esc(p.label)}"
+        aria-label="${esc(`${p.label}: ${c.tipFmt(p.value)}`)}">
+        <span class="hm-bar-v" style="height:${(p.value / top) * 100}%">${i === peak && max > 0 ? `<em>${esc(c.fmt(p.value))}</em>` : ''}</span>
+      </button>`).join('')}</div></div>${xLabelsHtml(c.points)}`;
+}
+
+/** A 2px line over a 10% wash, the last point marked; a crosshair finds the week. */
+function lineHtml(c) {
+  const n = c.points.length;
+  const top = niceMax(Math.max(...c.points.map((p) => p.value)));
+  const W = 600; const H = 160;
+  const xy = c.points.map((p, i) => [((i + 0.5) / n) * W, H - (p.value / top) * H]);
+  const line = xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const area = `${xy[0][0]},${H} ${line} ${xy[n - 1][0]},${H}`;
+  const last = c.points[n - 1];
+  return `<div class="hm-plot">${axisHtml(top, c.fmt)}
+    <svg class="hm-line" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <polygon points="${area}" class="hl-area"/><polyline points="${line}" class="hl-line"/>
+    </svg>
+    <span class="hm-dot" style="left:${((n - 0.5) / n) * 100}%;bottom:${(last.value / top) * 100}%"></span>
+    <span class="hm-endv" style="bottom:${(last.value / top) * 100}%">${esc(c.fmt(last.value))}</span>
+    <span class="hm-cross hidden"></span>
+    <div class="hm-cols hm-hit">${c.points.map((p) => `
+      <button type="button" class="hm-col" data-tip="${esc(c.tipFmt(p.value))}" data-tiplabel="${esc(p.label)}"
+        aria-label="${esc(`${p.label}: ${c.tipFmt(p.value)}`)}"></button>`).join('')}</div>
+  </div>${xLabelsHtml(c.points)}`;
+}
+
+function upcomingHtml(h) {
+  if (!h.upcoming.length) {
+    return emptyState({
+      icon: 'calendar', title: 'Nothing coming up yet',
+      text: 'When someone books online or the team adds an appointment, it shows up here.',
+    });
+  }
+  // One row per appointment, the reference's shape: a tag, who, what, and
+  // on the right when, with a way in.
+  const tag = (a) => (a.firstVisit ? 'First visit' : a.online ? 'Online booking' : 'Booked');
+  return `<ul class="coming">${h.upcoming.map((a) => `
+    <li><button type="button" data-date="${esc(a.date)}" aria-label="${esc(`${a.guestName}, ${a.when}`)}">
+      <span class="cu-main">
+        <span class="cu-tag${a.firstVisit ? ' first' : ''}">${esc(tag(a))}</span>
+        <b class="cu-name">${esc(a.guestName)}</b>
+        <span class="cu-what">${esc(a.service)} · with ${esc(a.stylist)}${a.price != null ? ` · ${esc(dollars(a.price))}` : ''}</span>
+      </span>
+      <span class="cu-when">${esc(a.when)}</span>
+      <span class="cu-open">Open</span>
+    </button></li>`).join('')}</ul>`;
+}
+
+/** Move, change the view, change the width, remove. */
+function editStrip(item, i, w) {
+  const views = w.views.length > 1
+    ? `<span class="hm-seg" role="group" aria-label="Show as">${w.views.map((v) =>
+      `<button type="button" data-act="view" data-v="${v}" aria-pressed="${item.view === v}">${VIEW_LABEL[v]}</button>`).join('')}</span>`
+    : '';
+  return `<div class="hm-edit">
+    <span class="hm-edit-t">${esc(w.title)}</span>
+    <span class="hm-edit-s">${views}
+    <span class="hm-seg" role="group" aria-label="Width">
+      <button type="button" data-act="size" data-v="half" aria-pressed="${item.size !== 'full'}">Half</button>
+      <button type="button" data-act="size" data-v="full" aria-pressed="${item.size === 'full'}">Full</button>
+    </span></span>
+    <span class="hm-edit-r">
+      <button type="button" class="iconbtn" data-act="up" aria-label="Move ${esc(w.title)} earlier" ${i === 0 ? 'disabled' : ''}>${ic('left')}</button>
+      <button type="button" class="iconbtn" data-act="down" aria-label="Move ${esc(w.title)} later" ${i === homeLayout.length - 1 ? 'disabled' : ''}>${ic('right')}</button>
+      <button type="button" class="iconbtn" data-act="remove" aria-label="Remove ${esc(w.title)}">${ic('x')}</button>
+    </span>
+  </div>`;
+}
+
+$('hmGrid').addEventListener('click', (e) => {
+  const up = e.target.closest('.coming button[data-date]');
+  if (up && !homeEditing) { day = up.dataset.date; go('appointments'); return; }
+  const b = e.target.closest('[data-act]');
+  if (!b || !homeEditing) return;
+  const i = Number(b.closest('[data-i]').dataset.i);
+  const item = homeLayout[i];
+  const act = b.dataset.act;
+  if (act === 'view') item.view = b.dataset.v;
+  if (act === 'size') item.size = b.dataset.v;
+  if (act === 'remove') homeLayout.splice(i, 1);
+  if (act === 'up' && i > 0) [homeLayout[i - 1], homeLayout[i]] = [homeLayout[i], homeLayout[i - 1]];
+  if (act === 'down' && i < homeLayout.length - 1) [homeLayout[i + 1], homeLayout[i]] = [homeLayout[i], homeLayout[i + 1]];
+  renderHome();
+  // Keep the keyboard where it was: the same control on the moved card.
+  const at = act === 'up' ? i - 1 : act === 'down' ? i + 1 : i;
+  $('hmGrid').querySelector(`[data-i="${at}"] [data-act="${act}"]${b.dataset.v ? `[data-v="${b.dataset.v}"]` : ''}`)?.focus();
+});
+
+// While editing, the cards are for arranging: a click on a tile or a row
+// must not navigate away with the changes unsaved.
+$('hmGrid').addEventListener('click', (e) => {
+  if (homeEditing && e.target.closest('a[data-page], .coming button')) { e.preventDefault(); e.stopPropagation(); }
+}, true);
+
+// One tooltip for every chart: the value first, then what it is.
+function showTip(col) {
+  const tip = $('hmTip');
+  tip.innerHTML = '<b></b><span></span>';
+  tip.firstChild.textContent = col.dataset.tip;
+  tip.lastChild.textContent = col.dataset.tiplabel;
+  tip.classList.remove('hidden');
+  const r = col.getBoundingClientRect();
+  const host = $('view-home').getBoundingClientRect();
+  tip.style.left = `${r.left + r.width / 2 - host.left}px`;
+  tip.style.top = `${r.top - host.top}px`;
+  const plot = col.closest('.hm-plot');
+  const cross = plot?.querySelector('.hm-cross');
+  if (cross) {
+    const pr = plot.getBoundingClientRect();
+    cross.style.left = `${r.left + r.width / 2 - pr.left}px`;
+    cross.classList.remove('hidden');
+  }
+}
+function hideTip() {
+  $('hmTip').classList.add('hidden');
+  for (const c of $('hmGrid').querySelectorAll('.hm-cross')) c.classList.add('hidden');
+}
+$('hmGrid').addEventListener('pointerover', (e) => { const c = e.target.closest('.hm-col'); if (c) showTip(c); });
+$('hmGrid').addEventListener('pointerleave', hideTip);
+$('hmGrid').addEventListener('pointerout', (e) => { if (!e.relatedTarget?.closest?.('.hm-col')) hideTip(); });
+$('hmGrid').addEventListener('focusin', (e) => { const c = e.target.closest('.hm-col'); if (c) showTip(c); });
+$('hmGrid').addEventListener('focusout', hideTip);
+
+// ── Customize: the admin only, saved for the whole team ───────────────────
+
+$('homeEdit').onclick = () => {
+  if (!homeData?.canCustomize) return;
+  homeEditing = true;
+  homeBefore = JSON.stringify(homeLayout);
+  $('homeEdit').classList.add('hidden');
+  renderHome();
+};
+
+function stopEditing() {
+  homeEditing = false;
+  $('homeEdit').classList.toggle('hidden', !homeData?.canCustomize);
+  renderHome();
+}
+
+$('hmCancel').onclick = () => {
+  homeLayout = JSON.parse(homeBefore || '[]');
+  stopEditing();
+};
+
+$('hmReset').onclick = () => {
+  if (!confirm('Put Home back to the standard layout?\n\nNothing changes for the team until you press Save.')) return;
+  homeLayout = homeData.defaultLayout.map((x) => ({ ...x }));
+  renderHome();
+};
+
+$('hmSave').onclick = async () => {
+  const b = $('hmSave');
+  b.disabled = true;
+  try {
+    const r = await api('/api/staff/home', { method: 'PATCH', body: JSON.stringify({ layout: homeLayout }) });
+    homeData.layout = r.layout;
+    homeLayout = r.layout.map((x) => ({ ...x }));
+    stopEditing();
+    toast('Home saved for everyone on the team.');
+  } catch (err) { fail(err); } finally { b.disabled = false; }
+};
+
+$('hmAdd').onclick = () => {
+  const ids = Object.keys(homeData.widgets);
+  $('hmAddList').innerHTML = ids.map((id) => {
+    const w = homeData.widgets[id];
+    const on = homeLayout.some((x) => x.id === id);
+    return `<div class="hmadd-row">
+      <span style="min-width:0"><b>${esc(w.title)}</b><span class="d">${esc(w.about)}</span>
+        <span class="hmadd-v">${w.views.map((v) => esc(VIEW_LABEL[v])).join(' · ')}</span></span>
+      ${on ? '<span class="chip">On Home</span>' : `<button type="button" class="btn quiet sm" data-add="${esc(id)}">Add</button>`}
+    </div>`;
+  }).join('');
+  openDialog($('hmAddDlg'));
+};
+$('hmAddClose').onclick = () => closeDialog($('hmAddDlg'));
+$('hmAddList').onclick = (e) => {
+  const b = e.target.closest('[data-add]');
   if (!b) return;
-  day = b.dataset.date;
-  go('appointments');
+  const w = homeData.widgets[b.dataset.add];
+  homeLayout.push({ id: b.dataset.add, view: w.views[0], size: b.dataset.add === 'upcoming' ? 'full' : 'half' });
+  closeDialog($('hmAddDlg'));
+  renderHome();
+  $('hmGrid').lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
 // ───────────────────────── appointments ─────────────────────────
@@ -5339,7 +5776,7 @@ async function openMember(who) {
   const noLogin = Boolean(m && m.noLogin);
   for (const k of ['email', 'phone', 'role']) f.elements[k].closest('label').classList.toggle('hidden', noLogin);
   $('memberPersonal').classList.toggle('hidden', noLogin);
-  document.querySelector('#memberDlg .md-handle').classList.toggle('hidden', noLogin);
+  document.querySelector('#memberDlg .md-handle-row').classList.toggle('hidden', noLogin);
   f.elements.email.required = !noLogin;
   f.elements.name.readOnly = noLogin;
   if (noLogin) $('memberCreate').classList.add('hidden');
@@ -5355,6 +5792,10 @@ async function openMember(who) {
   $('memberRoleNote').textContent = roleNote;
   $('memberRoleNote').classList.toggle('hidden', !roleNote);
   for (const k of ['name', 'username', 'email', 'phone']) f.elements[k].disabled = Boolean(lockedOwner);
+  for (const pen of document.querySelectorAll('#memberDlg .md-pen')) {
+    const input = f.elements[pen.dataset.edit];
+    pen.classList.toggle('hidden', input.disabled || input.readOnly);
+  }
   for (const sw of $('memberSvcs').querySelectorAll('.switch, input')) {
     if (lockedOwner) sw.disabled = true;
   }
@@ -5403,6 +5844,15 @@ function openPicDlg() {
   openDialog($('picDlg'));
 }
 $('memberPic').onclick = openPicDlg;
+// The pencils: straight into the field, its text selected, ready to replace.
+$('memberDlg').addEventListener('click', (e) => {
+  const pen = e.target.closest('.md-pen');
+  if (!pen) return;
+  const input = $('memberForm').elements[pen.dataset.edit];
+  if (input.disabled || input.readOnly) return;
+  input.focus();
+  input.select();
+});
 $('memberPicPick').onclick = openPicDlg;
 $('picUpload').onclick = () => $('memberPicFile').click();
 $('picAvatars').onclick = () => {
