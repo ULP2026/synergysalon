@@ -123,6 +123,10 @@
   input:focus-visible, select:focus-visible, textarea:focus-visible {
     outline: 2px solid var(--focus); outline-offset: 1px; border-color: transparent;
   }
+  /* The browser hides [hidden] with display:none, but any rule written here
+     for a tag or a class beats it -- label and .btn both set a display, so
+     hiding either one with the attribute alone would do nothing at all. */
+  [hidden] { display: none !important; }
   label { display: block; margin: 0 0 14px; }
   label > span { display: block; margin-bottom: 6px; font-size: var(--fs-sm); color: var(--muted); font-weight: 500; }
 
@@ -2517,8 +2521,9 @@
   </form>
 </dialog>
 
-<!-- The invite link for somebody just added. Shown even when the email
-     went, because the person who added them is the one who can chase it. -->
+<!-- Somebody has just been added. The link is a credential -- whoever holds
+     it can set that account up -- so it is only put on screen when the email
+     did not go and somebody has to hand it over themselves. -->
 <dialog id="inviteDlg" aria-labelledby="inviteTitle">
   <div class="ad-head">
     <div style="flex:1;min-width:0">
@@ -2527,7 +2532,7 @@
     </div>
     <button type="button" class="iconbtn lg" id="inviteClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
-  <label><span>Their invite link</span>
+  <label id="inviteLinkRow"><span>Their invite link</span>
     <input id="inviteLink" readonly onclick="this.select()"></label>
   <p class="small muted" id="inviteNote" style="margin:-6px 0 14px"></p>
   <div class="ad-acts">
@@ -5960,11 +5965,14 @@ $('memberDanger').onclick = async () => {
 };
 
 /**
- * The invite link, on screen.
+ * Somebody has been added.
  *
- * Shown whether or not the email went: no provider configured, a typo in the
- * address, a spam folder. Whoever added them is standing right there and can
- * hand it over. An invite nobody can deliver is an account nobody can use.
+ * When the welcome went, that is the whole message: the link is a credential,
+ * and putting it on a screen somebody else can read, or into a screenshot,
+ * hands that account to whoever sees it. It is only shown when the email did
+ * not go -- no provider, a typo in the address -- because then the person who
+ * added them has to pass it on themselves, and an invite nobody can deliver is
+ * an account nobody can use.
  */
 function showInviteLink(name, invite) {
   if (!invite) { toast(`${name} has been added.`); return; }
@@ -5973,7 +5981,11 @@ function showInviteLink(name, invite) {
     ? 'We have emailed them a link to choose a password.'
     : 'No email was sent: this site has no email provider connected yet. '
       + 'Send them this link yourself.';
-  $('inviteLink').value = invite.link;
+
+  $('inviteLinkRow').hidden = invite.emailed;
+  $('inviteNote').hidden = invite.emailed;
+  $('inviteCopy').hidden = invite.emailed;
+  $('inviteLink').value = invite.emailed ? '' : invite.link;
   $('inviteNote').textContent = `The link works once and expires in ${invite.expiresDays} days.`;
   openDialog($('inviteDlg'));
 }
