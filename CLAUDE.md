@@ -271,7 +271,11 @@ made that way are real: name them ZZ and remove them.
   focus, so a new stylist appears without a reload.
 - Team Settings has "Where do you want people to reply to": `tenants.reply_to`
   (017, also in ensure-schema), the reply-to on every guest email
-  (`shopFrom().replyTo`), falling back to the salon profile email when empty. Stylist is a role (016,
+  (`shopFrom().replyTo`), falling back to the salon profile email when empty.
+  Once confirmed it shows locked (the address, a green "Saved" badge, a
+  Change button and a "Client replies now go to" line), because an open field
+  after Confirm read as nothing having happened. Salon Profile and calendar
+  settings leave a "Saved" mark by their button (`markSaved()`) until edited. Stylist is a role (016,
   also in ensure-schema) with front desk's access. A Leads page
   held the stages for a while; `/staff/leads` now lands on Clients. Settings is as
   wide as the nav cluster (`--nav-w`, measured by `fitSettings()`), so its
