@@ -1566,6 +1566,18 @@
   #replyCard.on { border-color: color-mix(in srgb, var(--periwinkle) 45%, transparent); background: color-mix(in srgb, var(--peri-pale) 55%, var(--card)); }
   :root[data-theme="dark"] #replyCard.on { background: rgba(85, 96, 166, .16); }
   .tool .why { display: block; font-size: .76rem; color: var(--muted); margin-top: 8px; }
+  .tool .why.ok { color: var(--ok); font-weight: 600; }
+  .tool-acct.locked { gap: 10px; background: color-mix(in srgb, var(--card) 70%, transparent); cursor: default; }
+  .tool-acct.locked .acct-txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* The "it worked" mark on anything that was saved: green, beside the value. */
+  .saved-tag { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 4px; height: 22px;
+               padding: 0 9px; border-radius: 999px; font-size: .74rem; font-weight: 650; color: var(--ok);
+               background: color-mix(in srgb, var(--ok) 12%, transparent);
+               border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }
+  .saved-tag svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 3;
+                   stroke-linecap: round; stroke-linejoin: round; }
+  .saved-tag.after { margin-left: 10px; height: 26px; font-size: .8rem; vertical-align: middle; }
+  :root[data-theme="dark"] .saved-tag, :root[data-theme="dark"] .tool .why.ok { color: #8fd6a8; }
   @media (max-width: 520px) { .tool-row { flex-wrap: wrap; } .tool-acct { flex-basis: 100%; } }
   :root[data-theme="dark"] .tool.on { background: rgba(85, 96, 166, .16); }
 
@@ -2715,6 +2727,19 @@ function toast(message, kind = '') {
 }
 const fail = (err) => { if (err.message !== 'signed out') toast(err.message, 'bad'); };
 
+// A "Saved" mark beside the button that saved, kept until the form is edited
+// again. The toast alone vanishes in five seconds at the edge of the screen,
+// which left people unsure whether what they typed had been kept.
+function markSaved(btn) {
+  if (!btn) return;
+  btn.parentElement.querySelectorAll('.saved-tag.after').forEach((t) => t.remove());
+  btn.insertAdjacentHTML('afterend', `<span class="saved-tag after" role="status">${CHECK_SVG}Saved</span>`);
+  const tag = btn.nextElementSibling;
+  const scope = btn.form || btn.closest('section, .page, form') || document;
+  const clear = () => { tag.remove(); scope.removeEventListener('input', clear); };
+  scope.addEventListener('input', clear);
+}
+
 function skeleton(rows = 4) {
   return `<div class="sk-rows" aria-label="Loading">${Array.from({ length: rows }, (_, i) => `
     <div class="sk-row"><span class="sk"></span><span class="sk" style="width:${70 - i * 9}%"></span><span class="sk"></span></div>`).join('')}</div>`;
@@ -3405,6 +3430,7 @@ function renderCalendarSettings(c) {
       calSettingsSlug = d.calendar.slug;
       history.replaceState({ page: 'calendarSettings' }, '', `/staff/calendars/${encodeURIComponent(d.calendar.slug)}`);
       renderCalendarSettings(d.calendar);
+      markSaved($('setSave'));
     } catch (err) { fail(err); } finally { $('setSave').disabled = false; }
   };
 }
@@ -6208,51 +6234,86 @@ async function loadTeam() {
 // The reply-to on every email a guest gets. Empty means the salon profile's
 // email, which is what was used before there was a choice.
 
-let replyTo = { value: '', fallback: '', canEdit: false };
+let replyTo = { value: '', fallback: '', canEdit: false, editing: false, saving: false, justSaved: false };
 
+// Once saved, the address is shown locked with a "Saved" badge and a Change
+// button, not left in an open field: an editable box after Confirm read as
+// "nothing happened", and the five-second toast was easy to miss.
 function paintReplyTo() {
   const card = $('replyCard');
   const set = Boolean(replyTo.value);
+  const editing = replyTo.canEdit && (!set || replyTo.editing);
   card.classList.toggle('on', set);
+  const row = editing
+    ? `<form class="tool-row" id="replyForm" novalidate>
+        <input class="tool-acct" type="email" name="replyTo" value="${esc(replyTo.value)}"
+          placeholder="Your team's inbox" autocomplete="email" aria-label="Reply-to email"
+          ${replyTo.saving ? 'disabled' : ''}>
+        <button class="btn sm confirm" ${replyTo.saving ? 'disabled' : ''}>${replyTo.saving ? 'Saving…' : 'Confirm'}</button>
+        ${set && !replyTo.saving ? '<button type="button" class="btn sm quiet" data-reply="cancel">Cancel</button>' : ''}
+      </form>`
+    : `<div class="tool-row">
+        <div class="tool-acct locked${set ? '' : ' none'}" aria-label="Reply-to email">
+          <span class="acct-txt">${esc(replyTo.value || 'Not set')}</span>
+          ${set ? `<span class="saved-tag">${CHECK_SVG}Saved</span>` : ''}
+        </div>
+        ${replyTo.canEdit ? '<button type="button" class="btn sm quiet" data-reply="change">Change</button>' : ''}
+      </div>`;
   card.innerHTML = `<div class="tool${set ? ' on' : ''}">
     <span class="tool-ic${set ? '' : ' mail'}">${set ? CHECK_SVG : ic('mail')}</span>
     <div style="min-width:0">
       <b>Where do you want people to reply to</b>
       <span class="d">Inbound client replies will be delivered to this inbox</span>
-      <form class="tool-row" id="replyForm" novalidate>
-        <input class="tool-acct" type="email" name="replyTo" value="${esc(replyTo.value)}"
-          placeholder="Your team's inbox" autocomplete="email" aria-label="Reply-to email"
-          ${replyTo.canEdit ? '' : 'disabled'}>
-        ${replyTo.canEdit ? '<button class="btn sm confirm">Confirm</button>' : ''}
-      </form>
+      ${row}
+      ${set && !editing ? `<span class="why ok" role="status">${replyTo.justSaved ? 'Saved. ' : ''}Client replies now go to ${esc(replyTo.value)}.</span>` : ''}
       ${!set && replyTo.fallback ? `<span class="why">Until this is set, replies go to the salon profile email, ${esc(replyTo.fallback)}.</span>` : ''}
       ${replyTo.canEdit ? '' : '<span class="why">An owner or manager sets this.</span>'}
     </div></div>`;
+  if (editing && replyTo.editing && !replyTo.saving) {
+    const input = card.querySelector('input[name="replyTo"]');
+    input.focus();
+    input.select();
+  }
 }
 
 async function loadReplyTo() {
   try {
     const b = await api('/api/staff/business');
-    replyTo = { value: b.replyTo || '', fallback: b.email || '', canEdit: Boolean(b.canEdit) };
+    replyTo = { value: b.replyTo || '', fallback: b.email || '', canEdit: Boolean(b.canEdit), editing: false, saving: false, justSaved: false };
     paintReplyTo();
   } catch (err) {
     if (err.message !== 'signed out') $('replyCard').innerHTML = `<p class="small muted">Couldn’t load the reply-to inbox: ${esc(err.message)}</p>`;
   }
 }
 
+$('replyCard').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-reply]');
+  if (!b) return;
+  replyTo.editing = b.dataset.reply === 'change';
+  replyTo.justSaved = false;
+  paintReplyTo();
+});
+
 $('replyCard').addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = e.target;
   const value = f.elements.replyTo.value.trim();
-  if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { toast('That does not look like an email address.', 'bad'); return; }
-  const btn = f.querySelector('button');
-  btn.disabled = true;
+  if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    f.elements.replyTo.setAttribute('aria-invalid', 'true');
+    toast('That does not look like an email address.', 'bad');
+    return;
+  }
+  replyTo.saving = true;
+  paintReplyTo();
   try {
     const r = await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify({ replyTo: value }) });
     replyTo.value = r.replyTo || '';
-    paintReplyTo();
-    toast(replyTo.value ? `Replies now go to ${replyTo.value}.` : 'Replies go to the salon profile email again.');
-  } catch (err) { fail(err); btn.disabled = false; }
+    replyTo.editing = false;
+    replyTo.justSaved = true;
+    toast(replyTo.value ? `Saved. Replies now go to ${replyTo.value}.` : 'Saved. Replies go to the salon profile email again.');
+  } catch (err) { fail(err); }
+  replyTo.saving = false;
+  paintReplyTo();
 });
 
 function loadAccount() {
@@ -6406,6 +6467,7 @@ async function saveBusiness(patch) {
   me.salon = { ...me.salon, name: d.name, logo: d.logo ?? null };
   paintMe();
   await loadBusiness();
+  markSaved(document.querySelector('#bizForm button[type="submit"]'));
 }
 
 async function loadBusiness() {
