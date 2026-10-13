@@ -86,6 +86,10 @@ export function shopFrom(tenant = {}) {
     // One line per line the owner typed, so a shop that writes its address on
     // one line is not split into invented ones.
     addressLines: String(tenant.address || '').split(/\s*\n\s*/).filter(Boolean),
+    // Only a hosted logo reaches an email: Gmail and Outlook drop <img> whose
+    // src is a data: URI, and a shop that uploaded one gets a broken image
+    // rather than none, which looks worse than a plain wordmark.
+    logo: /^https?:\/\//i.test(String(tenant.logo || '')) ? tenant.logo : '',
     site,
     timezone: tenant.timezone || DEFAULT_TZ,
   };

@@ -62,19 +62,32 @@ function escapeHtml(s) {
   ));
 }
 
+/**
+ * The salon's colours, as the site uses them.
+ *
+ * Inline styles only, and no stylesheet: Gmail strips <style> from the head,
+ * so anything not written on the element itself is lost on the client most
+ * guests read this in.
+ */
+const INK = '#1E1F5C';
+const BRAND = '#5560A6';
+const TINT = '#E6E8F7';
+const MUTED = '#6E6E85';
+const PAPER = '#F4F5FA';
+
 function layout({ heading, intro, rows, action, steps, footnote }, shop) {
   const cells = rows
     .map(([label, value]) => `
       <tr>
-        <td style="padding:6px 16px 6px 0;color:#6b6b6b;font-size:14px;">${escapeHtml(label)}</td>
-        <td style="padding:6px 0;color:#1b1b1b;font-size:14px;font-weight:600;">${escapeHtml(value)}</td>
+        <td style="padding:7px 16px 7px 0;color:${MUTED};font-size:14px;">${escapeHtml(label)}</td>
+        <td style="padding:7px 0;color:${INK};font-size:14px;font-weight:600;">${escapeHtml(value)}</td>
       </tr>`)
     .join('');
 
   const button = action
     ? `<p style="margin:28px 0 0;">
-         <a href="${action.href}" style="background:#e07a3f;color:#fff;text-decoration:none;
-            padding:12px 22px;border-radius:999px;font-weight:600;font-size:15px;display:inline-block;">
+         <a href="${action.href}" style="background:${BRAND};color:#ffffff;text-decoration:none;
+            padding:13px 24px;border-radius:999px;font-weight:600;font-size:15px;display:inline-block;">
            ${escapeHtml(action.label)}
          </a>
        </p>`
@@ -82,27 +95,46 @@ function layout({ heading, intro, rows, action, steps, footnote }, shop) {
 
   // Numbered instructions, for the one message that has any: the welcome.
   const list = steps && steps.items && steps.items.length
-    ? `<h2 style="margin:32px 0 4px;font-size:16px;color:#1b1b1b;">${escapeHtml(steps.title || 'What to do next')}</h2>
-       <ol style="margin:0;padding:0 0 0 20px;color:#4a4a4a;font-size:14px;line-height:1.6;">
-         ${steps.items.map((it) => `<li style="margin:10px 0 0;"><b style="color:#1b1b1b;">${escapeHtml(it.title)}</b><br>${escapeHtml(it.text)}</li>`).join('')}
+    ? `<h2 style="margin:32px 0 4px;font-size:16px;color:${INK};">${escapeHtml(steps.title || 'What to do next')}</h2>
+       <ol style="margin:0;padding:0 0 0 20px;color:#4A4A57;font-size:14px;line-height:1.6;">
+         ${steps.items.map((it) => `<li style="margin:10px 0 0;"><b style="color:${INK};">${escapeHtml(it.title)}</b><br>${escapeHtml(it.text)}</li>`).join('')}
        </ol>`
     : '';
 
+  // The wordmark, linked to the salon's own site. Width and height are set as
+  // attributes as well as in the style, because Outlook ignores the style and
+  // would otherwise draw it at its full 363px.
+  const mark = shop.logo
+    ? `<p style="margin:0 0 24px;">
+         <a href="${shop.site}"><img src="${shop.logo}" alt="${escapeHtml(shop.name)}"
+            width="150" height="38" style="width:150px;height:auto;border:0;display:block;"></a>
+       </p>`
+    : `<p style="margin:0 0 24px;font-size:17px;font-weight:700;color:${INK};letter-spacing:.01em;">
+         ${escapeHtml(shop.name)}
+       </p>`;
+
+  // The charset is declared in the document as well as the MIME headers: a
+  // client that reads only the body guesses windows-1252 otherwise, and every
+  // curly apostrophe in the copy arrives as "a€™".
   return `<!doctype html>
-<html lang="en"><body style="margin:0;background:#faf8f6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-  <div style="max-width:520px;margin:0 auto;padding:32px 24px;">
-    <h1 style="margin:0 0 8px;font-size:22px;color:#1b1b1b;">${escapeHtml(heading)}</h1>
-    <p style="margin:0 0 24px;color:#4a4a4a;font-size:15px;line-height:1.55;">${escapeHtml(intro)}</p>
-    <table style="border-collapse:collapse;">${cells}</table>
-    ${button}
-    ${list}
-    ${footnote ? `<p style="margin:28px 0 0;color:#6b6b6b;font-size:13px;line-height:1.55;">${escapeHtml(footnote)}</p>` : ''}
-    <hr style="border:none;border-top:1px solid #e8e2dc;margin:28px 0 16px;">
-    <p style="margin:0;color:#6b6b6b;font-size:13px;line-height:1.6;">
-      ${escapeHtml(shop.name)}<br>
-      ${shop.addressLines.map(escapeHtml).join('<br>')}${shop.addressLines.length ? '<br>' : ''}
-      ${shop.phone ? `<a href="${shop.phoneHref}" style="color:#6b6b6b;">${escapeHtml(shop.phone)}</a>` : ''}
-    </p>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;background:${PAPER};font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
+    <div style="background:#ffffff;border:1px solid ${TINT};border-radius:16px;padding:32px 28px;">
+      ${mark}
+      <h1 style="margin:0 0 8px;font-size:22px;line-height:1.3;color:${INK};">${escapeHtml(heading)}</h1>
+      <p style="margin:0 0 24px;color:#4A4A57;font-size:15px;line-height:1.55;">${escapeHtml(intro)}</p>
+      <table style="border-collapse:collapse;">${cells}</table>
+      ${button}
+      ${list}
+      ${footnote ? `<p style="margin:28px 0 0;color:${MUTED};font-size:13px;line-height:1.55;">${escapeHtml(footnote)}</p>` : ''}
+      <hr style="border:none;border-top:1px solid ${TINT};margin:28px 0 16px;">
+      <p style="margin:0;color:${MUTED};font-size:13px;line-height:1.6;">
+        ${escapeHtml(shop.name)}<br>
+        ${shop.addressLines.map(escapeHtml).join('<br>')}${shop.addressLines.length ? '<br>' : ''}
+        ${shop.phone ? `<a href="${shop.phoneHref}" style="color:${BRAND};text-decoration:none;">${escapeHtml(shop.phone)}</a>` : ''}
+      </p>
+    </div>
   </div>
 </body></html>`;
 }
