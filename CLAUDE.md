@@ -356,6 +356,22 @@ made that way are real: name them ZZ and remove them.
   `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY` in Vercel; the pasted address needs
   nothing. `pushEvent` writes bookings into the Google Calendar of stylists
   who signed in (google-mirror.js).
+  All three are set as of 2026-10-13 and one account has connected end to
+  end. **The OAuth app is still in Testing**, which has two consequences
+  nobody is warned about: anyone not on the test-user list is refused with
+  `403: access_denied`, and Google expires refresh tokens after 7 days, so
+  a stylist who connects silently drops off each week. The account that
+  worked first (`support@unclelouieproductions.com`) only worked because it
+  has access to the Cloud project itself, which bypasses the test-user
+  check -- so a successful connection proves nothing about anyone else.
+  Fix both at `console.cloud.google.com/auth/audience` -> Publish app.
+  Publishing does **not** remove Google's "hasn't verified this app"
+  warning: `calendar.events` is a sensitive scope, so every stylist sees
+  that screen and has to click Continue, and only Google's verification
+  review (privacy policy, homepage, demo video) clears it. Tell them to
+  expect it, or they press "Back to safety" and report a broken link.
+  `TOKEN_KEY` must be at least 16 characters or `secrets.js` throws, and
+  `canStoreSecrets()` turns that into a polite refusal instead of a crash.
   Connected means connected either way (`googleStatus`), everywhere: the
   tools card, the New calendar form's Google row (`calAppRows`, which used to
   read only the sign-in and offered Google again to anyone connected by the
@@ -433,8 +449,15 @@ made that way are real: name them ZZ and remove them.
   (`sendInvite`, `welcomeContent` in `email.js`): the one-use setup link
   (they choose their own password; none is ever emailed), the app address,
   what to fill in on their own account, and how to connect their calendar.
-  It is skipped without `RESEND_API_KEY`, and the link is always shown to
-  whoever added them.
+  It is skipped without `RESEND_API_KEY`. Since 2026-10-14 the key is set,
+  so the dialog says only that they have been emailed; the link is shown
+  just when sending failed or no provider is connected (`invite.emailed`
+  from `team.js`, commit `7cb18b4`). The sender is `BOOKING_FROM_EMAIL`
+  and it **must** be on the domain verified in Resend: the salon verified
+  `noreply.synergysalon.com` while the code still defaulted to the root
+  domain, and every send failed with a 403 that never reached the console.
+  Replies go to `shopFrom().replyTo` (`hair@synergysalon.com`), which is a
+  different address on purpose and not a Resend domain.
   Removing somebody deletes them (`action:"delete"` on `/api/staff/team`,
   "Remove from team" in their window), asked for in place of turning the
   account off. Their `stylists` row is switched off first, not deleted:
@@ -475,6 +498,33 @@ at all.
 
 **Use the transaction pooler** (port 6543). Supabase's direct connection is
 IPv6 only and Vercel cannot reach it: works from a laptop, fails in production.
+
+**`\u002F` inside a RegExp literal is a `/`.** The design exports escape
+every `</` as `<\u002F` so the outer script cannot close early, but
+`new RegExp('<\\u002Fspan>')` matches a literal `</span>` and therefore
+never matches the escaped text in the file. This cost an afternoon twice.
+Use plain string operations -- `indexOf`, `endsWith`, `slice` -- on the
+template, never a regex.
+
+**`[hidden]` loses to any author rule that sets `display`.** The browser's
+own `[hidden] { display: none }` is beaten by `label { display: block }` and
+`.btn { display: inline-flex }` in the console's stylesheet, so setting
+`el.hidden = true` on either did nothing at all and the change looked like
+it had not deployed. `staff/index.html` now carries
+`[hidden] { display: none !important; }`. Check anything that was relying on
+the attribute quietly failing -- the `.gday` rows in Appt. Book will now
+actually hide.
+
+**Gmail throws away most of an email.** It strips `<style>` from the head,
+so every rule has to be an inline `style` attribute, and it drops `<img>`
+whose `src` is a `data:` URI, which is why `shopFrom()` only passes a logo
+through when it is `http(s)`. Declare the charset in the document itself
+and not only in the MIME headers, or apostrophes arrive as `â€™`.
+
+**A push to `main` has twice produced no deployment at all**, with Branch
+Tracking on and no failed build to show for it. Confirm what is live by
+fetching the page and counting something you changed, rather than trusting
+the dashboard; recover by creating the production deployment from the sha.
 
 ## Local setup
 
@@ -529,8 +579,10 @@ must stay that way: anything committed here is served publicly.
   1. In Team, give each stylist their services and the admin sets their
      hours (Dina, Micah, Tami and Kim are there as stylists without a
      sign-in, keeping the slugs the website's links use).
-  2. `RESEND_API_KEY` in Vercel, or no guest gets a confirmation, reminder,
-     or the manage link.
+  2. ~~`RESEND_API_KEY` in Vercel~~ **done 2026-10-14**, together with
+     `BOOKING_FROM_EMAIL=bookings@noreply.synergysalon.com` and the
+     verified sending domain. Confirmations, reminders and the manage link
+     all send.
   3. Dina confirms service durations.
   4. Remove the CENTRO booking widget (the leadconnectorhq iframe in the
      contact section of `index.html` and `hair-salon-riverview.html`): it is
@@ -545,8 +597,12 @@ must stay that way: anything committed here is served publicly.
   `db/migrations/004` is an industry estimate, and they decide which slots get
   sold. A wrong one either wastes a chair or sells an appointment that cannot
   be finished.
-- **No `RESEND_API_KEY`**, so confirmation emails are skipped silently. The
-  booking is real; the guest is not told in writing.
+- ~~**No `RESEND_API_KEY`**~~ Resolved 2026-10-14: the key is set, the
+  domain is verified and guest email sends. Two things still owed on it --
+  the key and the Google client secret both passed through a chat window
+  and **want rotating**, and no template carries an unsubscribe link, so
+  these may send transactional mail (a booking the guest asked for) but
+  not marketing to a list.
 - **Envision still holds the live diary.** The salon books there today. Nothing
   moves until its appointments and client list are exported and imported.
 - FK Screamer is referenced but never published, so it 404s on every page and
