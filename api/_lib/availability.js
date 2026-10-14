@@ -15,7 +15,7 @@ import { DateTime, Interval } from 'luxon';
 
 import { centroWindows, fitsIn } from './centro-hours.js';
 import { MAX_ADVANCE_DAYS, MIN_LEAD_MIN, SLOT_STEP_MIN } from './config.js';
-import { googleBusyFor } from './google-busy.js';
+import { googleBusyFor, googleOptional } from './google-busy.js';
 import { HttpError } from './http.js';
 
 /** Luxon counts Monday as 1 and Sunday as 7; the schema counts Sunday as 0. */
@@ -221,8 +221,10 @@ export async function availableSlots(client, tenant, {
     // Online, only stylists who have connected a Google Calendar are offered
     // (the salon's rule): googleBusyFor answers for exactly those. Without
     // this, somebody just added to the app was bookable at every hour of
-    // their shift while their real diary was invisible to us.
-    stylists = stylists.filter((s) => gbusy.has(s.id));
+    // their shift while their real diary was invisible to us. The salon's
+    // current stylists are the exception until they connect (config.js).
+    const optional = googleOptional(tenant);
+    stylists = stylists.filter((s) => gbusy.has(s.id) || optional.includes(s.slug));
     if (!stylists.length) {
       throw new HttpError(404, stylistSlug
         ? 'That stylist is not taking online bookings yet. Please call the salon.'

@@ -159,7 +159,11 @@ stylist step and the shop page), refused by `/api/availability` with "not
 taking online bookings yet", and so refused by online `createBooking` too.
 Their services and prices are untouched and they reappear the moment they
 connect. `GOOGLE_CONNECTED_SQL` in `google-busy.js` is the one test, signed
-in or pasted address. The desk still books anyone. Google only ever takes
+in or pasted address. The exception is the salon's four current stylists
+(Dina, Micah, Tami, Kim: `GOOGLE_OPTIONAL_STYLISTS` in `config.js`, by
+slug), kept on request: they are offered from their Synergy Calendar hours
+alone until they connect, then Google takes its busy time out as for anyone.
+Empty that list once all four have connected. The desk still books anyone. Google only ever takes
 time away: for guests (`google: true`
 on the public paths: `/api/availability`, `/api/enquiry`, `/api/book`
 through `createBooking` with `channel: 'online'`, and the guest's own
@@ -195,9 +199,9 @@ adapter hides every time the calendar cannot honour. The stylists come from
 connected, with their portraits) as the page mounts and again when the popup
 opens (`bkLoadTeam`, published on `window.__ssBkTeam`); the adapter maps a
 name to a slug through that, the old fixed map only as a fallback. The
-popup's own list starts as "First available" alone, not the four names it
-shipped with, and a stylist picked from a team card who is not bookable
-online is dropped when the list arrives.
+popup always shows the four (`bkCore`, its original fixed list) and adds
+anybody else the app returns; a stylist picked from a team card who is not
+in the list is dropped when it arrives.
 
 **The guest's manage page** is `/appointment?ref=…&t=…` (`appointment.html`),
 linked from every email: details, "Choose a new time" (the next four weeks
@@ -546,7 +550,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 92 tests; the database ones skip without DATABASE_URL
+npm test                    # 93 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and
@@ -589,8 +593,9 @@ must stay that way: anything committed here is served publicly.
   against a local Postgres; nothing below is code):
   1. In Team, give each stylist their services and the admin sets their
      hours (Dina, Micah, Tami and Kim are there as stylists without a
-     sign-in, keeping the slugs the website's links use), and each connects
-     their Google Calendar: nobody without one is offered online.
+     sign-in, keeping the slugs the website's links use). Anybody added
+     after those four needs their Google Calendar connected to be offered
+     online.
   2. ~~`RESEND_API_KEY` in Vercel~~ **done 2026-10-14**, together with
      `BOOKING_FROM_EMAIL=bookings@noreply.synergysalon.com` and the
      verified sending domain. Confirmations, reminders and the manage link

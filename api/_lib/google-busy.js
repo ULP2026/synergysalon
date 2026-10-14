@@ -15,6 +15,7 @@
  * miss a booking over risking a clash. Answers are kept for a minute per warm
  * function, because the booking survey asks for the same month repeatedly.
  */
+import { GOOGLE_OPTIONAL_STYLISTS } from './config.js';
 import { busyBetween, googleConfigured } from './google.js';
 import { icsBusyBetween, openLink } from './google-ics.js';
 
@@ -29,6 +30,11 @@ let reader = async (row, fromIso, toIso, zone) => {
 };
 export function setGoogleReaderForTests(fn) { reader = fn; cache.clear(); }
 
+/** Slugs of this salon's stylists offered online without a Google Calendar. */
+export function googleOptional(tenant) {
+  return GOOGLE_OPTIONAL_STYLISTS[tenant?.slug] ?? [];
+}
+
 /**
  * Whether a team login has a Google Calendar connected, as SQL on a
  * staff_users row aliased `u`. Through to_jsonb, so it still runs before
@@ -37,7 +43,8 @@ export function setGoogleReaderForTests(fn) { reader = fn; cache.clear(); }
  * Online booking offers only stylists for whom this holds (the salon's rule):
  * somebody added to the app who has not connected their calendar could be
  * busy at any hour the salon cannot see, so a guest is not shown them at all.
- * The desk still books anyone.
+ * The desk still books anyone, and the salon's current stylists are let
+ * through without one (googleOptional).
  */
 export const GOOGLE_CONNECTED_SQL = `((to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL
              OR (to_jsonb(u) ->> 'google_ics') IS NOT NULL)`;

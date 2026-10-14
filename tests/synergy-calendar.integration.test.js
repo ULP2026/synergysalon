@@ -55,7 +55,61 @@ async function linkLogin(c, tenant, stylistSlug, { ics = null, refresh = null } 
   return rows[0].id;
 }
 
-test('a stylist with no Google Calendar is not offered online; the desk still books them', { skip }, async () => {
+/** A stylist added after the salon's four, offering what Micah offers, on her hours. */
+async function newStylist(c, tenant) {
+  const { rows } = await c.query(
+    `INSERT INTO stylists (tenant_id, slug, name) VALUES ($1, 'zz-new', 'ZZ New') RETURNING id`, [tenant.id]);
+  await c.query(
+    `INSERT INTO stylist_services (stylist_id, service_id)
+     SELECT $1, ss.service_id FROM stylist_services ss JOIN stylists s ON s.id = ss.stylist_id
+      WHERE s.tenant_id = $2 AND s.slug = 'micah'`, [rows[0].id, tenant.id]);
+  await c.query(
+    `INSERT INTO stylist_hours (stylist_id, weekday, starts_at, ends_at)
+     SELECT $1, h.weekday, h.starts_at, h.ends_at FROM stylist_hours h JOIN stylists s ON s.id = h.stylist_id
+      WHERE s.tenant_id = $2 AND s.slug = 'micah'`, [rows[0].id, tenant.id]);
+}
+
+test('a new stylist with no Google Calendar is not offered online; the desk still books them', { skip }, async () => {
+  const c = await connect();
+  try {
+    await c.query('BEGIN');
+    const tenant = await tenantOf(c);
+    const day = tuesday(tenant.timezone);
+    const ten = day.set({ hour: 10 });
+    await newStylist(c, tenant);
+    const online = () => availableSlots(c, tenant, {
+      serviceSlug: 'haircuts', stylistSlug: 'zz-new', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
+    });
+
+    // The salon's rule: nobody added to the app is shown to guests until
+    // their Google Calendar is connected, however services and hours are set.
+    await assert.rejects(online(), (err) => err.status === 404);
+    await assert.rejects(createBooking(c, tenant, {
+      serviceSlug: 'haircuts', stylistSlug: 'zz-new', start: ten.toISO(),
+      guestName: 'ZZ Website', guestEmail: 'zz@example.com', channel: 'online',
+    }), (err) => err.status === 404);
+    const anyone = await availableSlots(c, tenant, {
+      serviceSlug: 'haircuts', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
+    });
+    assert.ok(!anyone.stylists.some((s) => s.slug === 'zz-new'), 'not among "first available" either');
+    // The desk is not limited by it.
+    const desk = await availableSlots(c, tenant, {
+      serviceSlug: 'haircuts', stylistSlug: 'zz-new', fromDate: day.toISODate(), toDate: day.toISODate(),
+    });
+    assert.ok(hasAt(desk.days, ten), 'the desk sees their own hours');
+
+    // Connected, with nothing in Google: offered from the hours stored here.
+    await linkLogin(c, tenant, 'zz-new', { ics: 'https://calendar.google.com/calendar/ical/zz/private-x/basic.ics' });
+    setGoogleReaderForTests(async () => []);
+    assert.ok(hasAt((await online()).days, ten), '10:00 is offered once connected');
+  } finally {
+    setGoogleReaderForTests(async () => []);
+    await c.query('ROLLBACK');
+    await c.end();
+  }
+});
+
+test('the salon\'s four stylists are booked from the Synergy Calendar alone until they connect', { skip }, async () => {
   const c = await connect();
   try {
     await c.query('BEGIN');
@@ -66,22 +120,7 @@ test('a stylist with no Google Calendar is not offered online; the desk still bo
       serviceSlug: 'haircuts', stylistSlug: 'micah', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
     });
 
-    // The salon's rule: nobody is shown to guests until their Google
-    // Calendar is connected, however their services and hours are set.
-    await assert.rejects(online(), (err) => err.status === 404);
-    await assert.rejects(createBooking(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'micah', start: ten.toISO(),
-      guestName: 'ZZ Website', guestEmail: 'zz@example.com', channel: 'online',
-    }), (err) => err.status === 404);
-    // The desk is not limited by it.
-    const desk = await availableSlots(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'micah', fromDate: day.toISODate(), toDate: day.toISODate(),
-    });
-    assert.ok(hasAt(desk.days, ten), 'the desk sees Micah\'s own hours');
-
-    // Connected, with nothing in Google: offered from the hours stored here.
-    await linkLogin(c, tenant, 'micah', { ics: 'https://calendar.google.com/calendar/ical/zz/private-x/basic.ics' });
-    setGoogleReaderForTests(async () => []);
+    // Offered from the hours stored here, with no Google anywhere.
     assert.ok(hasAt((await online()).days, ten), '10:00 is offered from Micah\'s own hours');
 
     const web = await createBooking(c, tenant, {
@@ -104,7 +143,6 @@ test('a stylist with no Google Calendar is not offered online; the desk still bo
       "SELECT 1 FROM sync_outbox WHERE appointment_id = $1 AND kind = 'appointment.booked'", [web.id]);
     assert.equal(rows.length, 1);
   } finally {
-    setGoogleReaderForTests(async () => []);
     await c.query('ROLLBACK');
     await c.end();
   }

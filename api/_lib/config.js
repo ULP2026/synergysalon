@@ -24,6 +24,18 @@ export const DEFAULT_TZ = 'America/New_York';
 export const ONLINE_BOOKING = false;
 
 /**
+ * Stylists offered online without a Google Calendar connected, by salon.
+ * Everybody else needs one before guests see them (google-busy.js), but the
+ * salon asked that its four current stylists stay bookable meanwhile, from
+ * their hours in the Synergy Calendar, and connect their calendars later.
+ * Once one of them connects, their Google busy time is taken out as for
+ * anybody else. Matched on the stylist's slug, which never changes.
+ */
+export const GOOGLE_OPTIONAL_STYLISTS = {
+  synergy: ['dina', 'micah', 'tami', 'kim'],
+};
+
+/**
  * Logins that may open and change other team members' accounts, as well as
  * the salon's owners. This is the agency that runs the app for the salon, so
  * it can set people up and help them without being made an owner. Matched on
