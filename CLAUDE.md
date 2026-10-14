@@ -125,6 +125,12 @@ local) address opens the real popup despite the pause, shows a yellow
 without posting anything. It exists because preview deployments have their
 own `DATABASE_URL` that points at the live data, so a real test booking there
 is a real appointment. The flag is ignored on the salon's own domain.
+Previews also need `DEFAULT_TENANT=synergy` (set for Preview on 2026-10-14):
+a `*.vercel.app` host matches no salon, so before it every `/api/` call there
+answered "No salon is configured for this address" and the popup listed nobody.
+`TOKEN_KEY` and the Google client are Production only, so a preview cannot read
+anyone's Google Calendar: a connected stylist is listed there but offered no
+times (fail closed). Add those three to Preview to test Google end to end.
 
 `/api/enquiry` saves the contact *before* attempting the appointment, and books
 whenever it has a service and a time rather than waiting for the wizard to say
