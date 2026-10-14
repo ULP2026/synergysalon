@@ -25,7 +25,7 @@ export async function mirrorToGoogle({ limit = 20, tenantId = null } = {}) {
   // Through to_jsonb so this is harmless before migration 010.
   const { rows } = await query(
     `SELECT a.*, s.name AS stylist_name, v.name AS service_name, u.id AS staff_user_id,
-            t.timezone
+            t.timezone, t.name AS salon_name
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id

@@ -26,12 +26,19 @@ const API = 'https://www.googleapis.com/calendar/v3';
  * another thing Google's reviewers ask about and another thing a stylist has
  * to agree to.
  */
+export const SALON_CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.app.created';
+
 export const SCOPES = [
   // openid is what makes Google return an id_token. Without it the callback
   // has no way to say which account was connected without a second API call,
   // and the console shows a connection with no address against it.
   'openid',
   'https://www.googleapis.com/auth/calendar.events',
+  // Lets the app create one calendar of its own (named after the salon) and
+  // manage only the calendars it created, so bookings sit in their own
+  // calendar the stylist can colour, hide or show, apart from their personal
+  // events. It grants nothing over calendars the person made themselves.
+  SALON_CALENDAR_SCOPE,
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');
 
@@ -142,11 +149,14 @@ export async function accessTokenFor(userId) {
   return fresh.access_token;
 }
 
+// google_calendar_id is kept on disconnect: reconnecting the same account
+// finds the salon calendar it already has (salonCalendarFor checks it still
+// exists) instead of leaving a second one with the same name beside it.
 export async function disconnectGoogle(userId) {
   await query(
     `UPDATE staff_users
         SET google_email = NULL, google_refresh_token = NULL, google_access_token = NULL,
-            google_expires_at = NULL, google_calendar_id = NULL, google_connected_at = NULL
+            google_expires_at = NULL, google_connected_at = NULL
       WHERE id = $1`,
     [userId],
   );
@@ -177,12 +187,15 @@ export async function pushEvent(userId, appt, timezone) {
   const token = await accessTokenFor(userId);
   if (!token) return null;
 
-  const calendarId = 'primary';
+  // Through to_jsonb, so this still runs before migration 020. A copy made
+  // before then is in the main calendar, and is edited where it is.
   const { rows } = await query(
-    'SELECT event_id FROM google_events WHERE appointment_id = $1 AND staff_user_id = $2',
+    `SELECT event_id, COALESCE(to_jsonb(g) ->> 'calendar_id', 'primary') AS calendar_id
+       FROM google_events g WHERE appointment_id = $1 AND staff_user_id = $2`,
     [appt.id, userId],
   );
   const existing = rows[0]?.event_id;
+  const existingCal = rows[0]?.calendar_id || 'primary';
 
   const ends = new Date(new Date(appt.starts_at).getTime() + appt.duration_min * 60_000);
   const body = {
@@ -199,7 +212,7 @@ export async function pushEvent(userId, appt, timezone) {
   };
 
   if (existing) {
-    const updated = await call(token, `/calendars/${calendarId}/events/${existing}`,
+    const updated = await call(token, `/calendars/${encodeURIComponent(existingCal)}/events/${existing}`,
                                { method: 'PATCH', body });
     // Gone from Google's side: fall through and create it again.
     if (updated) {
@@ -211,15 +224,69 @@ export async function pushEvent(userId, appt, timezone) {
 
   if (appt.status === 'cancelled') return null;   // nothing to recreate
 
-  const created = await call(token, `/calendars/${calendarId}/events`, { method: 'POST', body });
+  const salon = { name: appt.salon_name, timezone };
+  let calendarId = await salonCalendarFor(userId, token, salon);
+  let created = await call(token, `/calendars/${encodeURIComponent(calendarId)}/events`, { method: 'POST', body });
+  if (!created && calendarId !== 'primary') {
+    // The stylist deleted the salon calendar in Google. Make it again rather
+    // than losing the booking, once.
+    await query('UPDATE staff_users SET google_calendar_id = NULL WHERE id = $1', [userId]);
+    calendarId = await salonCalendarFor(userId, token, salon);
+    created = await call(token, `/calendars/${encodeURIComponent(calendarId)}/events`, { method: 'POST', body });
+  }
+  if (!created) throw new Error(`Google Calendar would not take the event for ${appt.ref}`);
   await query(
-    `INSERT INTO google_events (appointment_id, staff_user_id, event_id)
-     VALUES ($1, $2, $3)
+    `INSERT INTO google_events (appointment_id, staff_user_id, event_id, calendar_id)
+     VALUES ($1, $2, $3, $4)
      ON CONFLICT (appointment_id, staff_user_id)
-     DO UPDATE SET event_id = EXCLUDED.event_id, updated_at = now()`,
-    [appt.id, userId, created.id],
+     DO UPDATE SET event_id = EXCLUDED.event_id, calendar_id = EXCLUDED.calendar_id, updated_at = now()`,
+    [appt.id, userId, created.id, calendarId],
   );
   return created.id;
+}
+
+/**
+ * The calendar bookings are written to in this person's Google account: one
+ * the app made, named after the salon, so salon work is its own calendar
+ * they can colour or hide, and never mixed into their personal one.
+ *
+ * google_calendar_id holds its id. 'primary' means write to their main
+ * calendar instead: a connection made before the app asked to create
+ * calendars, or one where the person unticked that permission. Those keep
+ * working as before until they reconnect. Empty means make one now.
+ *
+ * `verify` checks a stored calendar still exists, for a fresh connection:
+ * the same account reconnecting gets its old calendar back, a different
+ * account (where the stored id means nothing) gets a new one.
+ */
+export async function salonCalendarFor(userId, token, salon, { verify = false } = {}) {
+  const { rows } = await query('SELECT google_calendar_id FROM staff_users WHERE id = $1', [userId]);
+  const stored = rows[0]?.google_calendar_id;
+  if (stored === 'primary' && !verify) return 'primary';
+  if (stored && stored !== 'primary') {
+    if (!verify) return stored;
+    const still = await call(token, `/calendars/${encodeURIComponent(stored)}`).catch(() => null);
+    if (still?.id) return stored;
+  }
+  let id = 'primary';
+  try {
+    const cal = await call(token, '/calendars', {
+      method: 'POST',
+      body: {
+        summary: salon?.name || 'Salon appointments',
+        description: 'Your appointments at the salon, kept up to date by the salon app. '
+          + 'Changes made here are not sent back to the salon.',
+        ...(salon?.timezone ? { timeZone: salon.timezone } : {}),
+      },
+    });
+    if (cal?.id) id = cal.id;
+  } catch (err) {
+    // Most often the permission was not granted. Their main calendar still
+    // works, so bookings go there rather than nowhere.
+    console.error('salon calendar not created; using the main calendar', err.message);
+  }
+  await query('UPDATE staff_users SET google_calendar_id = $2 WHERE id = $1', [userId, id]);
+  return id;
 }
 
 /**
@@ -243,8 +310,19 @@ export async function busyBetween(userId, fromIso, toIso) {
     fields: 'items(id,status,transparency,start,end)',
   });
   const data = await call(token, `/calendars/primary/events?${p}`);
+  // Copies of salon bookings written to the main calendar (before the salon
+  // had its own, or where it could not) are the diary itself, already
+  // counted from this database. Read back as Google busy time they blocked a
+  // guest from moving their own appointment, so they are left out. The salon
+  // calendar is never read at all.
+  const { rows: ours } = await query(
+    `SELECT event_id FROM google_events g
+      WHERE staff_user_id = $1 AND COALESCE(to_jsonb(g) ->> 'calendar_id', 'primary') = 'primary'`,
+    [userId],
+  ).catch(() => ({ rows: [] }));
+  const own = new Set(ours.map((r) => r.event_id));
   return (data?.items || [])
-    .filter((e) => e.status !== 'cancelled' && e.transparency !== 'transparent')
+    .filter((e) => e.status !== 'cancelled' && e.transparency !== 'transparent' && !own.has(e.id))
     .map((e) => ({
       // An all-day event has a date and no time: it covers the whole day.
       allDay: Boolean(e.start?.date && !e.start?.dateTime),

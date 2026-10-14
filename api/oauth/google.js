@@ -16,7 +16,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { canManageTeam, currentUser } from '../_lib/auth.js';
 import { query } from '../_lib/db.js';
-import { consentUrl, exchangeCode, googleConfigured } from '../_lib/google.js';
+import { consentUrl, exchangeCode, googleConfigured, SALON_CALENDAR_SCOPE, salonCalendarFor } from '../_lib/google.js';
 import { canStoreSecrets, encryptSecret } from '../_lib/secrets.js';
 
 /**
@@ -152,14 +152,37 @@ export default async function handler(req, res) {
               google_refresh_token = $3,
               google_access_token = $4,
               google_expires_at = now() + make_interval(secs => $5::int),
-              google_calendar_id = 'primary',
               google_connected_at = now()
         WHERE id = $1`,
       [userId, email, encryptSecret(tokens.refresh_token),
         encryptSecret(tokens.access_token), Number(tokens.expires_in || 3600)],
     );
 
-    return closePage(res, true, email ? `${email} now shows on Appt. Book.` : 'You can close this window.');
+    // Make (or find again) the salon's own calendar in their Google account
+    // now, so it is there the moment they open Google Calendar rather than
+    // appearing with the first booking. Without the permission to create
+    // calendars (unticked on Google's screen), bookings go to their main
+    // calendar as before. Never a reason to fail the connection.
+    let salonCal = '';
+    try {
+      const { rows: t } = await query(
+        `SELECT t.name, t.timezone FROM staff_users u JOIN tenants t ON t.id = u.tenant_id WHERE u.id = $1`,
+        [userId],
+      );
+      if (String(tokens.scope || '').split(' ').includes(SALON_CALENDAR_SCOPE)) {
+        const id = await salonCalendarFor(userId, tokens.access_token, t[0], { verify: true });
+        if (id !== 'primary') salonCal = t[0]?.name || 'salon';
+      } else {
+        await query("UPDATE staff_users SET google_calendar_id = 'primary' WHERE id = $1", [userId]);
+      }
+    } catch (err) {
+      console.error('salon calendar on connect failed', err.message);
+    }
+
+    return closePage(res, true, [
+      email ? `${email} now shows on Appt. Book.` : 'You can close this window.',
+      salonCal ? `Bookings will appear in the "${salonCal}" calendar in Google Calendar.` : '',
+    ].filter(Boolean).join(' '));
   } catch (err) {
     console.error('google oauth failed', err);
     return closePage(res, false, 'Google could not complete the connection. Please try again.');

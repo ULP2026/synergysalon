@@ -180,6 +180,20 @@ The desk is not limited by Google. Bookings are copied into the stylist's
 Google Calendar for stylists who signed in with Google (`google-mirror.js`,
 run after every `drain()` and so by the daily cron; a pasted address is
 read-only), and their copy is removed before an appointment is deleted.
+The copies go into **a calendar of the salon's own in their Google account**,
+named after the salon (asked for 2026-10-14): made on connect by
+`salonCalendarFor` in `google.js` through the `calendar.app.created` scope,
+which reaches only calendars the app made. Its id is
+`staff_users.google_calendar_id`; `'primary'` there means "write to their
+main calendar" (a connection from before the scope, or one that unticked it,
+until they reconnect). Each copy records its calendar
+(`google_events.calendar_id`, 020, also in ensure-schema) and is edited
+there. Reconnecting the same account finds its calendar again; one the
+stylist deleted is made again on the next booking. Busy time is read from the
+main calendar only, never the salon one, and the main calendar's own copies
+of bookings are skipped too: read back as busy, they stopped a guest moving
+their own appointment. Add `calendar.app.created` to the OAuth consent
+screen's scope list before submitting for Google's verification.
 CENTRO still gets a copy of every booking, move and cancellation through
 `sync_outbox`, unchanged; the guest's own reschedule and cancel now drain
 the queue at once (`api/appointment.js`) instead of waiting for the cron.
@@ -556,7 +570,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 93 tests; the database ones skip without DATABASE_URL
+npm test                    # 95 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and

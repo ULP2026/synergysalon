@@ -36,6 +36,9 @@ const STATEMENTS = [
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_ics text',
   // 019: the Home dashboard's layout, set by the admin from Customize.
   'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS home_layout jsonb',
+  // 020: which Google calendar each booking copy is in (the salon's own, or
+  // the main one for copies made before it existed).
+  "ALTER TABLE google_events ADD COLUMN IF NOT EXISTS calendar_id text NOT NULL DEFAULT 'primary'",
 ];
 
 let done = null;
