@@ -1,5 +1,6 @@
 /** GET /api/services — the menu the booking form is built from. */
 import { query } from './_lib/db.js';
+import { GOOGLE_CONNECTED_SQL } from './_lib/google-busy.js';
 import { stylistPhoto } from './_lib/stylist-photos.js';
 import { handler, json } from './_lib/http.js';
 import { tenantForRequest } from './_lib/tenant.js';
@@ -21,11 +22,16 @@ export default handler({
         [tenant.id],
       ),
       query(
+        // Only stylists with a Google Calendar connected: online booking
+        // offers nobody else (availability.js), so the survey must not list
+        // them either. Pricing and services are untouched; they come back
+        // the moment their calendar is connected.
         `SELECT v.slug AS service_slug, s.slug AS stylist_slug
            FROM stylist_services ss
            JOIN stylists s ON s.id = ss.stylist_id AND s.active
            JOIN services v ON v.id = ss.service_id AND v.active
-          WHERE s.tenant_id = $1`,
+           JOIN staff_users u ON u.id = s.staff_user_id
+          WHERE s.tenant_id = $1 AND ${GOOGLE_CONNECTED_SQL}`,
         [tenant.id],
       ),
     ]);
@@ -50,8 +56,9 @@ export default handler({
         consultFirst: s.consult_first,
         stylists: by.get(s.slug) ?? [],
       })),
-      // Only stylists who offer something: the booking survey lists these,
-      // and somebody with no service switched on cannot be booked.
+      // Only stylists who offer something and have connected their Google
+      // Calendar: the booking survey lists these, and nobody else can be
+      // booked online.
       stylists: stylists.rows
         .filter((s) => offers.rows.some((o) => o.stylist_slug === s.slug))
         .map((s) => ({

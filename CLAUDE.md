@@ -152,8 +152,15 @@ refused list and its retry button were taken out before that. The cron still re-
 
 **The Synergy Calendar is this database.** Availability is built from
 `stylist_hours`, `time_off` and `appointments` here (`api/_lib/availability.js`),
-for guests and staff alike, so a stylist with no Google Calendar is booked
-from it alone. Google only ever takes time away: for guests (`google: true`
+for guests and staff alike. **Online, only stylists who have connected a
+Google Calendar are offered at all** (the salon's rule, 2026-10-14): one
+added to the app without it is left out of `/api/services` (the survey's
+stylist step and the shop page), refused by `/api/availability` with "not
+taking online bookings yet", and so refused by online `createBooking` too.
+Their services and prices are untouched and they reappear the moment they
+connect. `GOOGLE_CONNECTED_SQL` in `google-busy.js` is the one test, signed
+in or pasted address. The desk still books anyone. Google only ever takes
+time away: for guests (`google: true`
 on the public paths: `/api/availability`, `/api/enquiry`, `/api/book`
 through `createBooking` with `channel: 'online'`, and the guest's own
 reschedule) a connected stylist's Google busy times are subtracted
@@ -184,9 +191,13 @@ It now observes `document`, always hands back, and fails closed (every day
 shut, with the server's reason under the calendar). The survey offers a wide
 grid (every day, 8 to 9, its 42% random "taken" hash turned off) and the
 adapter hides every time the calendar cannot honour. The stylists come from
-`/api/services` (only those with a service on, with their portraits) when the
-popup opens (`bkLoadTeam`, published on `window.__ssBkTeam`); the adapter
-maps a name to a slug through that, the old fixed map only as a fallback.
+`/api/services` (only those with a service on and a Google Calendar
+connected, with their portraits) as the page mounts and again when the popup
+opens (`bkLoadTeam`, published on `window.__ssBkTeam`); the adapter maps a
+name to a slug through that, the old fixed map only as a fallback. The
+popup's own list starts as "First available" alone, not the four names it
+shipped with, and a stylist picked from a team card who is not bookable
+online is dropped when the list arrives.
 
 **The guest's manage page** is `/appointment?ref=…&t=…` (`appointment.html`),
 linked from every email: details, "Choose a new time" (the next four weeks
@@ -578,7 +589,8 @@ must stay that way: anything committed here is served publicly.
   against a local Postgres; nothing below is code):
   1. In Team, give each stylist their services and the admin sets their
      hours (Dina, Micah, Tami and Kim are there as stylists without a
-     sign-in, keeping the slugs the website's links use).
+     sign-in, keeping the slugs the website's links use), and each connects
+     their Google Calendar: nobody without one is offered online.
   2. ~~`RESEND_API_KEY` in Vercel~~ **done 2026-10-14**, together with
      `BOOKING_FROM_EMAIL=bookings@noreply.synergysalon.com` and the
      verified sending domain. Confirmations, reminders and the manage link

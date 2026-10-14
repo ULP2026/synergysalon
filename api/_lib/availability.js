@@ -212,15 +212,28 @@ export async function availableSlots(client, tenant, {
     throw new HttpError(400, 'That date range is too wide.');
   }
 
-  const { shifts, busy, closed } = await loadWindow(
-    client, tenant.id, stylistIds, from, to, excludeAppointmentId,
-  );
-  const blockMin = visit.durationMin + visit.bufferMin;
   // For guests: a connected stylist's Google busy times are taken out too,
   // and one whose calendar cannot be read right now is offered nothing.
   const gbusy = google
     ? await googleBusyFor(client, stylistIds, from.toISO(), to.toISO(), zone)
     : new Map();
+  if (google) {
+    // Online, only stylists who have connected a Google Calendar are offered
+    // (the salon's rule): googleBusyFor answers for exactly those. Without
+    // this, somebody just added to the app was bookable at every hour of
+    // their shift while their real diary was invisible to us.
+    stylists = stylists.filter((s) => gbusy.has(s.id));
+    if (!stylists.length) {
+      throw new HttpError(404, stylistSlug
+        ? 'That stylist is not taking online bookings yet. Please call the salon.'
+        : 'No stylist is taking online bookings for this yet. Please call the salon.');
+    }
+  }
+
+  const { shifts, busy, closed } = await loadWindow(
+    client, tenant.id, stylists.map((s) => s.id), from, to, excludeAppointmentId,
+  );
+  const blockMin = visit.durationMin + visit.bufferMin;
   const windows = centro
     ? await centroWindows(client, tenant, stylists, from.toMillis(), to.toMillis())
     : null;

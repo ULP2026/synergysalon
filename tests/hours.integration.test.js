@@ -19,6 +19,7 @@ import { DateTime } from 'luxon';
 import { availableSlots } from '../api/_lib/availability.js';
 import { createBooking } from '../api/_lib/booking.js';
 import { pool } from '../api/_lib/db.js';
+import { setGoogleReaderForTests } from '../api/_lib/google-busy.js';
 
 const url = process.env.DATABASE_URL;
 const skip = url ? false : 'DATABASE_URL is not set';
@@ -92,6 +93,17 @@ test('a booking outside those hours is refused', { skip }, async () => {
   const client = await pool().connect();
   try {
     await client.query('BEGIN');
+    // Online booking offers only stylists with a Google Calendar connected,
+    // so Tami connects one here, with nothing in it: these are her own hours.
+    const u = (await client.query(
+      `INSERT INTO staff_users (tenant_id, email, password_hash, name, role, google_ics)
+       VALUES ($1, 'zz-hours-tami@example.com', 'x', 'ZZ Tami', 'stylist',
+               'https://calendar.google.com/calendar/ical/zz/private-x/basic.ics') RETURNING id`,
+      [tenant.id],
+    )).rows[0].id;
+    await client.query("UPDATE stylists SET staff_user_id = $1 WHERE tenant_id = $2 AND slug = 'zz-tami'",
+      [u, tenant.id]);
+    setGoogleReaderForTests(async () => []);
     // An hour before they open.
     await assert.rejects(createBooking(client, tenant, {
       serviceSlug: 'zz-cut', stylistSlug: 'zz-tami', start: at(8).toISO(),
@@ -112,6 +124,7 @@ test('a booking outside those hours is refused', { skip }, async () => {
     assert.ok(made?.id, 'a time inside the hours should book');
     await client.query('ROLLBACK');
   } finally {
+    setGoogleReaderForTests(async () => []);
     client.release();
     await cleanup();
   }

@@ -55,19 +55,34 @@ async function linkLogin(c, tenant, stylistSlug, { ics = null, refresh = null } 
   return rows[0].id;
 }
 
-test('a stylist with no Google Calendar is booked from the Synergy Calendar alone', { skip }, async () => {
+test('a stylist with no Google Calendar is not offered online; the desk still books them', { skip }, async () => {
   const c = await connect();
   try {
     await c.query('BEGIN');
     const tenant = await tenantOf(c);
     const day = tuesday(tenant.timezone);
     const ten = day.set({ hour: 10 });
-
-    // Offered from the hours stored here, with no Google anywhere.
-    const { days } = await availableSlots(c, tenant, {
+    const online = () => availableSlots(c, tenant, {
       serviceSlug: 'haircuts', stylistSlug: 'micah', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
     });
-    assert.ok(hasAt(days, ten), '10:00 is offered from Micah\'s own hours');
+
+    // The salon's rule: nobody is shown to guests until their Google
+    // Calendar is connected, however their services and hours are set.
+    await assert.rejects(online(), (err) => err.status === 404);
+    await assert.rejects(createBooking(c, tenant, {
+      serviceSlug: 'haircuts', stylistSlug: 'micah', start: ten.toISO(),
+      guestName: 'ZZ Website', guestEmail: 'zz@example.com', channel: 'online',
+    }), (err) => err.status === 404);
+    // The desk is not limited by it.
+    const desk = await availableSlots(c, tenant, {
+      serviceSlug: 'haircuts', stylistSlug: 'micah', fromDate: day.toISODate(), toDate: day.toISODate(),
+    });
+    assert.ok(hasAt(desk.days, ten), 'the desk sees Micah\'s own hours');
+
+    // Connected, with nothing in Google: offered from the hours stored here.
+    await linkLogin(c, tenant, 'micah', { ics: 'https://calendar.google.com/calendar/ical/zz/private-x/basic.ics' });
+    setGoogleReaderForTests(async () => []);
+    assert.ok(hasAt((await online()).days, ten), '10:00 is offered from Micah\'s own hours');
 
     const web = await createBooking(c, tenant, {
       serviceSlug: 'haircuts', stylistSlug: 'micah', start: ten.toISO(),
@@ -82,16 +97,14 @@ test('a stylist with no Google Calendar is booked from the Synergy Calendar alon
     }), (err) => err.status === 409);
 
     // And the website stops offering it.
-    const after = await availableSlots(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'micah', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
-    });
-    assert.ok(!hasAt(after.days, ten), 'the booked hour is gone for guests too');
+    assert.ok(!hasAt((await online()).days, ten), 'the booked hour is gone for guests too');
 
     // CENTRO still gets its copy of the booking.
     const { rows } = await c.query(
       "SELECT 1 FROM sync_outbox WHERE appointment_id = $1 AND kind = 'appointment.booked'", [web.id]);
     assert.equal(rows.length, 1);
   } finally {
+    setGoogleReaderForTests(async () => []);
     await c.query('ROLLBACK');
     await c.end();
   }
@@ -164,6 +177,9 @@ test('several services are one appointment, long enough for all of them', { skip
     assert.ok(!hasAt(both.days, day.set({ hour: 13, minute: 15 })));
     assert.ok(hasAt((await ask([])).days, day.set({ hour: 14 })), 'a cut alone still fits at 2');
 
+    // Booked online, so Dina needs a Google Calendar connected (empty here).
+    await linkLogin(c, tenant, 'dina', { ics: 'https://calendar.google.com/calendar/ical/zz/private-x/basic.ics' });
+    setGoogleReaderForTests(async () => []);
     const appt = await createBooking(c, tenant, {
       serviceSlug: 'haircuts', extraServiceSlugs: ['blowouts'], stylistSlug: 'dina',
       start: day.set({ hour: 13 }).toISO(), guestName: 'ZZ Two services', guestPhone: '8135550100', guestEmail: 'zz@example.com', channel: 'online',

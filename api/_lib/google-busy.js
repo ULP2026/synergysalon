@@ -30,6 +30,19 @@ let reader = async (row, fromIso, toIso, zone) => {
 export function setGoogleReaderForTests(fn) { reader = fn; cache.clear(); }
 
 /**
+ * Whether a team login has a Google Calendar connected, as SQL on a
+ * staff_users row aliased `u`. Through to_jsonb, so it still runs before
+ * migrations 010 and 018.
+ *
+ * Online booking offers only stylists for whom this holds (the salon's rule):
+ * somebody added to the app who has not connected their calendar could be
+ * busy at any hour the salon cannot see, so a guest is not shown them at all.
+ * The desk still books anyone.
+ */
+export const GOOGLE_CONNECTED_SQL = `((to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL
+             OR (to_jsonb(u) ->> 'google_ics') IS NOT NULL)`;
+
+/**
  * Map of stylist id -> [[fromMs, toMs], ...] for each connected stylist, or
  * the string 'unreachable'. Stylists without a connected calendar are absent.
  */
@@ -42,9 +55,7 @@ export async function googleBusyFor(client, stylistIds, fromIso, toIso, zone) {
             (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL AS signed_in,
             to_jsonb(u) ->> 'google_ics' AS google_ics
        FROM stylists s JOIN staff_users u ON u.id = s.staff_user_id
-      WHERE s.id = ANY($1::uuid[])
-        AND ((to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL
-             OR (to_jsonb(u) ->> 'google_ics') IS NOT NULL)`,
+      WHERE s.id = ANY($1::uuid[]) AND ${GOOGLE_CONNECTED_SQL}`,
     [stylistIds],
   ).catch(() => ({ rows: [] }));
 
