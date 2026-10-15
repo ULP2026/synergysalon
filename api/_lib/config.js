@@ -13,19 +13,26 @@ export const DEFAULT_TZ = 'America/New_York';
 /**
  * Whether guests may book themselves in from the website.
  *
- * On since 2026-10-15. It was off from 30 September, because the public
- * calendar offered 9 AM with stylists who do not start then and guests took
- * it. Hours are owned and set from the console now, and the stylists who are
- * offered have them.
+ * Off. It was first turned off on 30 September because the public calendar
+ * offered 9 AM with stylists who do not start then and guests took it. It was
+ * opened on 15 October and closed again the same day: the booking side works
+ * end to end, but the only people bookable were Rj Cervantes and a test
+ * account, the four stylists the website shows had nothing set up, and the
+ * salon would rather guests called than met a team of two.
  *
- * This flag and the website's `ss-booking-paused` block move together. Turn
- * this off without putting that block back and a guest walks the whole survey
- * before the server refuses them at the end, which is worse than never
- * offering it; put the block back without this and a cached page could still
- * slip one through. Leads are saved as contacts either way, and staff
- * bookings in the console are unaffected by either.
+ * So this is now waiting on the salon, not on the code. The go-live checklist
+ * below says what is left; the short version is the four stylists' services
+ * and hours, set by the admin from Team.
+ *
+ * The site shows "Online appointments are coming soon" and a phone number
+ * instead, and the server refuses online bookings as well, so a page cached
+ * from before cannot slip one through. Leads are still saved as contacts and
+ * staff bookings in the console are unaffected. This flag and the website's
+ * `ss-booking-paused` block move together: one without the other either walks
+ * a guest through the whole survey before refusing them, or lets a cached
+ * page through.
  */
-export const ONLINE_BOOKING = true;
+export const ONLINE_BOOKING = false;
 
 /**
  * Stylists offered online without a Google Calendar connected, by salon.
