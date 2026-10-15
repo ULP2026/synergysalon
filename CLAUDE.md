@@ -325,14 +325,14 @@ made that way are real: name them ZZ and remove them.
   wide as the nav cluster (`--nav-w`, measured by `fitSettings()`), so its
   edges line up with the menu. There is no Calendars item: the shop's calendars are listed above
   the diary on Appt. Book, and `/staff/calendars` still works. Settings is
-  for everyone: Salon Profile, Team (Appearance, Team Members), and Billing for owners and managers. It has no Calendars tab:
+  for everyone: one Salon & Team tab (Appearance, Where do you want people to reply to, Team Members, then Salon Profile, merged into one page on request on 2026-10-15; the tab key is still `team`), and Billing for owners and managers. It has no Calendars tab:
   calendars are made from Appt. Book's "Create a calendar" note (shown only
   while there are none) or `/staff/calendars`, without choosing members for now
   (stylists are not on the app yet; calendar settings saves members back
   unchanged and no longer shows a picker), and the New calendar form offers the
   calendar apps (Google by sign-in, and any other app by subscribing
   to the person's private feed, links from `GET /api/staff/calendars`), Outlook is left out of the form on request (`calAppRows()`). The person chip
-  and `/staff/account` open Settings on Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
+  and `/staff/account` open Settings on Salon & Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM"; the API keeps its `centro`
   names, which nobody sees.
