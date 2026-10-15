@@ -524,6 +524,9 @@ made that way are real: name them ZZ and remove them.
   and it **must** be on the domain verified in Resend: the salon verified
   `noreply.synergysalon.com` while the code still defaulted to the root
   domain, and every send failed with a 403 that never reached the console.
+  The welcome (and any team email) comes from `noreply@` on that same domain
+  (`TEAM_SENDER` in `email.js`, `TEAM_FROM_EMAIL` overrides), not
+  `bookings@`, asked for 2026-10-15: it is not a booking.
   Replies go to `shopFrom().replyTo` (`hair@synergysalon.com`), which is a
   different address on purpose and not a Resend domain.
   Removing somebody deletes them (`action:"delete"` on `/api/staff/team`,
