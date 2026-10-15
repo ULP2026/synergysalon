@@ -72,7 +72,16 @@ handlers. This is not obvious locally, where it can appear to work.
 
 **Every export drops what is not in the design source.** GA4, canonical,
 description, Open Graph, favicons, real reviews, and every link fix. When a new
-export arrives, re-apply them. There are scripts for this pattern in the
+export arrives, re-apply them.
+
+**And it restores what was deleted from the design.** On 2026-10-15 the CENTRO
+booking iframe was removed from `index.html` and `hair-salon-riverview.html`,
+but it sat *inside* the template -- inside the design itself, not beside it in
+the static head. Unless it is also deleted in Claude Design, the next export
+brings it back, and silently: the template is one escaped line nobody diffs by
+eye, so the first sign would be guests booking into a calendar this app cannot
+see. After any new export, check with `grep -c leadconnectorhq *.html` and
+expect zero. There are scripts for this pattern in the
 scratchpad of whichever session wrote them; the shape is: unpack → re-apply →
 externalise assets → re-fix links.
 
@@ -602,8 +611,14 @@ must stay that way: anything committed here is served publicly.
   every page, untouched, behind the notice, and commit `ae6b0ab` on main
   is the site exactly as it was before the pause.
   To restore: delete the block between `ss-booking-paused:start` and
-  `ss-booking-paused:end` in the static head of `index.html` and the four
-  service pages, and set `ONLINE_BOOKING` back to `true`. Do it only once at
+  `ss-booking-paused:end` in the static head of **all six** pages --
+  `index.html`, the four service pages, **and `hair-salon-riverview.html`**
+  -- and set `ONLINE_BOOKING` back to `true`. This said "the four service
+  pages" until 2026-10-15, which is five files; Riverview was added after the
+  pause was written and carries the block too. Following the old list would
+  have left the geo landing page, the one with thirteen Book CTAs on it,
+  still saying "coming soon" after booking went live everywhere else.
+  Check with `grep -l ss-booking-paused *.html` rather than trusting a count. Do it only once at
   least one person is bookable and their hours are right.
   `ONLINE_BOOKING` being a hardcoded constant does not belong in a product
   sold to more than one salon; it wants to become "this tenant has a bookable

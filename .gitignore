@@ -21,3 +21,7 @@ node_modules/
 
 # Throwaway scripts from a working session.
 _scratch_*
+
+# Graphify's knowledge graph: a map of the whole codebase, including the
+# api internals. Local tooling, and nothing here is served to a guest.
+graphify-out/
