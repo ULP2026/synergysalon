@@ -6,13 +6,17 @@
  * diary, and a total the browser adds up from whatever it happened to fetch
  * is a total that is quietly wrong the day it fetches less.
  *
- *   clients30   everyone the salon dealt with in the last 30 days: added to
- *               Clients, or booked in for a visit that has started. One person
- *               who did both is one client.
+ *   clients30   clients served in the last 30 days: people with a kept
+ *               appointment (not cancelled, not a no-show) that has started,
+ *               each person once.
+ *   newClients30  of those, the ones whose first kept visit was in the
+ *               window: new to the salon, not just new to the database.
  *   today       today's appointments on the salon's clock, cancelled left out,
  *               and what they are worth. An appointment's own price first,
  *               then its service's list price; one with neither is counted
  *               and said, never guessed at.
+ *   appts30     appointments in the last 30 days that have started,
+ *               cancelled left out, for the line under today's figure.
  *   upcoming    the next appointments still to happen, soonest first.
  *   past        how many appointments are behind us, for the footer link.
  *   layout      the dashboard as the admin arranged it (home-layout.js), and
@@ -149,14 +153,19 @@ export default handler({
     const dayTo = now.endOf('day').toISO();
     const since = now.minus({ days: 30 }).toISO();
 
-    const [clients, today, upcoming, past, dash] = await Promise.all([
+    const [clients, today, upcoming, past, dash, appts30] = await Promise.all([
+      // Served is a visit that happened. Contacts the website saved for a
+      // booking never made used to count here too, which read as clients
+      // the salon had not actually seen.
       query(
-        `SELECT count(*)::int AS n FROM contacts c
-          WHERE c.tenant_id = $1::uuid
-            AND (c.created_at >= $2::timestamptz
-                 OR EXISTS (SELECT 1 FROM appointments a
-                             WHERE a.contact_id = c.id AND a.status <> 'cancelled'
-                               AND a.starts_at >= $2::timestamptz AND a.starts_at <= now()))`,
+        `SELECT count(*)::int AS n,
+                count(*) FILTER (WHERE NOT EXISTS (
+                  SELECT 1 FROM appointments p
+                   WHERE p.contact_id = c.contact_id AND p.status::text NOT IN ('cancelled', 'no_show')
+                     AND p.starts_at < $2::timestamptz))::int AS fresh
+           FROM (SELECT DISTINCT a.contact_id FROM appointments a
+                  WHERE a.tenant_id = $1::uuid AND a.contact_id IS NOT NULL AND ${KEPT}
+                    AND a.starts_at >= $2::timestamptz AND a.starts_at <= now()) c`,
         [tenant.id, since],
       ),
       query(
@@ -191,12 +200,20 @@ export default handler({
         [tenant.id],
       ),
       charts(tenant, now),
+      query(
+        `SELECT count(*)::int AS n FROM appointments
+          WHERE tenant_id = $1::uuid AND status::text <> 'cancelled'
+            AND starts_at >= $2::timestamptz AND starts_at <= now()`,
+        [tenant.id, since],
+      ),
     ]);
 
     const t = today.rows[0];
     return json(res, 200, {
       timezone: zone,
       clients30: clients.rows[0].n,
+      newClients30: clients.rows[0].fresh,
+      appts30: appts30.rows[0].n,
       today: { count: t.n, value: Number(t.cents) / 100, unpriced: t.unpriced },
       upcoming: upcoming.rows.map((r) => {
         const at = DateTime.fromJSDate(new Date(r.starts_at)).setZone(zone);

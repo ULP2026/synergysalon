@@ -3728,7 +3728,7 @@ function go(name, { push = true } = {}) {
   const view = p.view || name;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
 
-  $('pageTitle').textContent = p.title;
+  $('pageTitle').textContent = name === 'home' ? homeHello() : p.title;
   $('pageSub').textContent = name === 'home' ? greeting() : p.sub;
   // One primary action per view, and none where there is nothing to do yet.
   $('primaryBtn').classList.toggle('hidden', !p.action);
@@ -3854,10 +3854,33 @@ window.addEventListener('resize', hideMenu);
 // ───────────────────────────── home ─────────────────────────────
 
 /** Today's date on the salon's clock: Home's subtitle, now that it greets nobody. */
+/** The hour and weekday now, on the salon's clock rather than this device's. */
+function salonClock() {
+  const tz = me?.salon?.timezone;
+  const parts = new Intl.DateTimeFormat('en-US',
+    { hour: 'numeric', hourCycle: 'h23', weekday: 'long', ...(tz ? { timeZone: tz } : {}) }).formatToParts(new Date());
+  return { hour: Number(parts.find((x) => x.type === 'hour')?.value || 0), weekday: parts.find((x) => x.type === 'weekday')?.value || '' };
+}
+const partOfDay = (h) => (h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening');
+
+/** Home's heading: a hello by the time of day, with the person's first name. */
+function homeHello() {
+  const first = String(me?.user?.name || '').trim().split(/\s+/)[0];
+  const hi = `Good ${partOfDay(salonClock().hour)}`;
+  return first ? `${hi}, ${first}` : hi;
+}
+
+/** Home's line under it: a friendly word for the day, then the date. */
 function greeting() {
   const tz = me?.salon?.timezone;
-  return new Date().toLocaleDateString('en-US',
+  const { hour, weekday } = salonClock();
+  const cheer = weekday === 'Friday' ? 'Happy Friday!'
+    : weekday === 'Saturday' || weekday === 'Sunday' ? `Enjoy your ${weekday}!`
+      : weekday === 'Monday' ? 'Here’s to a great week!'
+        : `Have a great ${partOfDay(hour)} today!`;
+  const date = new Date().toLocaleDateString('en-US',
     { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', ...(tz ? { timeZone: tz } : {}) });
+  return `${cheer} ${date}.`;
 }
 
 function tile(num, label, href, icon) {
@@ -3889,6 +3912,7 @@ const VIEW_LABEL = { bar: 'Bars', bars: 'Bars', line: 'Line', table: 'Table', nu
 
 async function loadHome() {
   const seq = ++homeSeq;
+  $('pageTitle').textContent = homeHello();
   $('pageSub').textContent = greeting();
   if (!homeData) {
     $('hmGrid').innerHTML = [0, 1].map(() =>
@@ -3957,13 +3981,16 @@ function widgetHtml(item, i) {
     let num; let lbl; let href; let icon;
     if (item.id === 'today') {
       const n = h.today.count;
-      num = `${n} <span class="unit">Appt. Today</span>`;
-      lbl = `${dollars(h.today.value)} total value${h.today.unpriced ? ` · ${h.today.unpriced} without a price` : ''}`;
+      const m = h.appts30 ?? 0;
+      num = `${n} <span class="unit">Salon ${n === 1 ? 'Appt.' : 'Appts.'} Today</span>`;
+      lbl = `${m} Salon ${m === 1 ? 'Appt.' : 'Appts.'} in the last 30 days`;
       href = 'appointments'; icon = 'calendar';
     } else {
       const c = h.clients30;
-      num = `${c} <span class="unit">${c === 1 ? 'Client' : 'Clients'}</span>`;
-      lbl = 'Last 30 Days'; href = 'clients'; icon = 'contacts';
+      const f = h.newClients30 ?? 0;
+      num = `${c} <span class="unit">${c === 1 ? 'Client' : 'Clients'} Served</span>`;
+      lbl = `${f} new ${f === 1 ? 'client' : 'clients'} in the last 30 days`;
+      href = 'clients'; icon = 'contacts';
     }
     return `<div class="hm-w${size}" data-i="${i}">${strip}${tile(num, lbl, href, icon)}</div>`;
   }
@@ -4093,7 +4120,7 @@ function upcomingHtml(h) {
   // on the right when, with a way in.
   const tag = (a) => (a.firstVisit ? 'First visit' : a.online ? 'Online booking' : 'Booked');
   return `<ul class="coming">${h.upcoming.map((a) => `
-    <li><button type="button" data-date="${esc(a.date)}" aria-label="${esc(`${a.guestName}, ${a.when}`)}">
+    <li><button type="button" data-date="${esc(a.date)}" data-ref="${esc(a.ref)}" aria-label="${esc(`${a.guestName}, ${a.when}`)}">
       <span class="cu-main">
         <span class="cu-tag${a.firstVisit ? ' first' : ''}">${esc(tag(a))}</span>
         <b class="cu-name">${esc(a.guestName)}</b>
@@ -4127,7 +4154,16 @@ function editStrip(item, i, w) {
 
 $('hmGrid').addEventListener('click', (e) => {
   const up = e.target.closest('.coming button[data-date]');
-  if (up && !homeEditing) { day = up.dataset.date; go('appointments'); return; }
+  if (up && !homeEditing) {
+    // Opens the appointment itself on Appt. Book, on its day, not just the
+    // day: the Day view, because the window is opened from the day's data.
+    day = up.dataset.date;
+    diaryOpenRef = up.dataset.ref || null;
+    calView = 'day';
+    try { localStorage.setItem('ss-cal-view', 'day'); } catch { /* this tab only */ }
+    go('appointments');
+    return;
+  }
   const b = e.target.closest('[data-act]');
   if (!b || !homeEditing) return;
   const i = Number(b.closest('[data-i]').dataset.i);
@@ -4802,6 +4838,8 @@ let daySeq = 0;
 // quiet: a refresh in the background, which keeps the grid and its scroll
 // in place instead of flashing the loading skeleton, and says nothing on
 // failure (what is drawn stays).
+// An appointment to open once its day has loaded (Home's Coming up).
+let diaryOpenRef = null;
 async function loadDay(date, { quiet = false } = {}) {
   const seq = ++daySeq;
   day = date;
@@ -4816,10 +4854,16 @@ async function loadDay(date, { quiet = false } = {}) {
     if (noCals && !dgDemo) Object.assign(d, { appointments: [], blocks: [], booked: 0, arriving: 0 });
     if (seq === daySeq) {
       renderDiary(d);
+      if (diaryOpenRef && d.date === date) {
+        const a = d.appointments.find((x) => x.ref === diaryOpenRef);
+        diaryOpenRef = null;
+        if (a) openAppt(a);
+      }
       if (keep && $('dgWrap')) Object.assign($('dgWrap'), { scrollTop: keep.top ?? 0, scrollLeft: keep.left ?? 0 });
     }
   } catch (err) {
     if (quiet) return;
+    diaryOpenRef = null;
     if (seq === daySeq && err.message !== 'signed out') {
       $('diary').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this day', text: err.message });
     }

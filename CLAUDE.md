@@ -287,17 +287,24 @@ made that way are real: name them ZZ and remove them.
   an appointment with no price is left out of value and said, never
   guessed. Charts are plain HTML/SVG in the console's periwinkle (`--viz`,
   `#7d88d6` in dark mode, both run through the dataviz palette check), one
-  hover/focus tooltip, the peak or last value labelled. Home greets nobody
-  and has no primary button: its subtitle is
-  the date. Two tiles from `GET /api/staff/home` (`_routes/home.js`, counted
-  in SQL), two equal columns as wide as Coming up, each a figure on the left
-  and a periwinkle icon on the right: "N Appt. Today" with their value
-  (appointment price, else the service's list price; unpriced ones are
-  counted and said, never guessed), then "N Clients" over "Last 30 Days"
-  (contacts, the same table as the Clients list, added or with a kept
-  appointment that has started in the last 30 days, each person once).
+  hover/focus tooltip, the peak or last value labelled. Home greets the person (asked for 2026-10-15): the heading is "Good
+  morning/afternoon/evening, <first name>" on the salon's clock
+  (`homeHello()`), and the subtitle a word for the day ("Happy Friday!",
+  "Enjoy your Saturday!", "Have a great morning today!") then the date
+  (`greeting()`). No primary button. Two tiles from `GET /api/staff/home`
+  (`_routes/home.js`, counted in SQL), two equal columns as wide as Coming
+  up, each a figure on the left and a periwinkle icon on the right: "N Salon
+  Appts. Today" over "M Salon Appts. in the last 30 days" (started in the
+  window, cancelled left out, `appts30`), opening Appt. Book; then "N
+  Clients Served" (people with a kept appointment that started in the last
+  30 days, each once; a contact with no visit is not served) over "N new
+  clients in the last 30 days" (of those, the ones whose first kept visit
+  was in the window, `newClients30`), opening Clients. Today's value is
+  still counted (`today.value`) but no longer shown.
   Coming up lists the next six booked appointments in the reference's rows
-  (tag, guest, service with stylist, when on the salon's clock, Open), with
+  (tag, guest, service with stylist, when on the salon's clock, Open);
+  clicking one opens that appointment's window on Appt. Book's Day view
+  (`diaryOpenRef`, opened once its day loads), with
   "Past appointments (n)" underneath. The person chip (avatar and name) is
   on the right of the nav; it was hidden for a day and brought back on
   request. `.main` starts 116px down (108 and 100 on
