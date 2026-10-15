@@ -543,6 +543,20 @@ html.ss-soon-lock,html.ss-soon-lock body{overflow:hidden}
             }).replace(/\s+/g, ' ').toUpperCase();
           });
         });
+        // A clean answer with nothing in it still has to say something. The
+        // server only sends a note when it refuses; when it succeeds and the
+        // month is simply empty -- a stylist whose working hours are not set
+        // yet, or a month already booked out -- there was no note and the
+        // guest got a calendar greyed out end to end with no reason at all,
+        // which reads as broken rather than as full.
+        var open = Object.keys(avail.days).some(function (k) { return avail.days[k].length; });
+        if (!open && !avail.note) {
+          var who = (current() || {}).stylist || '';
+          avail.note = who && !/first available/i.test(who)
+            ? who + ' has no open times this month. Try another month or stylist, '
+              + 'or call 813.654.2055 and we will find you one.'
+            : 'No open times this month. Try another month, or call 813.654.2055.';
+        }
       })
       .catch(function () { /* the answer above already closed every day */ })
       .then(function () { avail.loading = false; done(); });
