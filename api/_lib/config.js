@@ -13,15 +13,19 @@ export const DEFAULT_TZ = 'America/New_York';
 /**
  * Whether guests may book themselves in from the website.
  *
- * Off while the stylists set their individual hours: the public calendar
- * offered 9 AM with stylists who do not start then, and guests took it. The
- * site shows "Online appointments are coming soon" and a phone number
- * instead (see CLAUDE.md), and the server refuses online bookings
- * as well, so a page cached from before cannot slip one through. Leads are
- * still saved as contacts. Staff bookings in the console are unaffected.
- * Turn back on together with restoring the website popup.
+ * On since 2026-10-15. It was off from 30 September, because the public
+ * calendar offered 9 AM with stylists who do not start then and guests took
+ * it. Hours are owned and set from the console now, and the stylists who are
+ * offered have them.
+ *
+ * This flag and the website's `ss-booking-paused` block move together. Turn
+ * this off without putting that block back and a guest walks the whole survey
+ * before the server refuses them at the end, which is worse than never
+ * offering it; put the block back without this and a cached page could still
+ * slip one through. Leads are saved as contacts either way, and staff
+ * bookings in the console are unaffected by either.
  */
-export const ONLINE_BOOKING = false;
+export const ONLINE_BOOKING = true;
 
 /**
  * Stylists offered online without a Google Calendar connected, by salon.
