@@ -11,29 +11,27 @@ import { Resend } from 'resend';
 
 import { shopFrom } from './config.js';
 
-/**
- * Who the message is from.
- *
- * One address for every shop, because the sending domain has to be one we
- * have verified with the provider -- a shop's own address in the From header
- * is what gets the whole platform marked as spam. The shop's name still leads
- * it, so a guest sees who is writing, and replies go to the shop itself.
- */
-const SENDER = process.env.BOOKING_FROM_EMAIL || 'bookings@synergysalon.com';
-
 const senderAddress = (v) => { const m = String(v).match(/<([^>]+)>/); return (m ? m[1] : String(v)).trim(); };
 
 /**
- * Who team email is from: the welcome a new member gets is not a booking,
- * and coming from bookings@ read as one. The salon asked for
- * noreply@synergysalon.com (2026-10-15). Resend only sends from a domain
- * verified with it, and the one verified is noreply.synergysalon.com, so
- * until synergysalon.com itself is verified there, a refusal is retried
- * from noreply@ on the booking sender's domain (TEAM_FALLBACK) rather than
- * losing the invite. TEAM_FROM_EMAIL overrides.
+ * Who the message is from: noreply@synergysalon.com, for every email the
+ * app sends, guests' and the team's alike (asked for 2026-10-15; it used to
+ * be bookings@). FROM_EMAIL overrides.
+ *
+ * One address for every shop, because the sending domain has to be one
+ * verified with the provider -- a shop's own address in the From header is
+ * what gets the whole platform marked as spam. The shop's name still leads
+ * it, so a guest sees who is writing, and replies go to the shop itself.
+ *
+ * Resend refuses any domain not verified with it, and the one verified is
+ * BOOKING_FROM_EMAIL's (noreply.synergysalon.com). Until synergysalon.com
+ * itself is verified there, a refusal is retried from noreply@ on that
+ * domain (FALLBACK) rather than the email being lost: a confirmation that
+ * never arrives is worse than one from the longer address.
  */
-const TEAM_SENDER = process.env.TEAM_FROM_EMAIL || 'noreply@synergysalon.com';
-const TEAM_FALLBACK = `noreply@${senderAddress(SENDER).split('@')[1] || 'synergysalon.com'}`;
+const SENDER = process.env.FROM_EMAIL || 'noreply@synergysalon.com';
+const VERIFIED = senderAddress(process.env.BOOKING_FROM_EMAIL || 'bookings@synergysalon.com');
+const FALLBACK = `noreply@${VERIFIED.split('@')[1] || 'synergysalon.com'}`;
 
 function fromFor(shop, sender = SENDER) {
   return `${shop.name} <${senderAddress(sender)}>`;
@@ -170,14 +168,14 @@ function plain({ heading, intro, rows, action, steps, footnote }, shop) {
   ].join('\n');
 }
 
-async function send(shop, to, subject, content, sender = SENDER) {
+async function send(shop, to, subject, content) {
   const resend = client();
   if (!resend) {
     console.warn('RESEND_API_KEY is not set; skipping email to', to);
     return { skipped: true };
   }
   const message = {
-    from: fromFor(shop, sender),
+    from: fromFor(shop),
     replyTo: shop.replyTo || undefined,
     to,
     subject,
@@ -185,9 +183,9 @@ async function send(shop, to, subject, content, sender = SENDER) {
     text: plain(content, shop),
   };
   let { error } = await resend.emails.send(message);
-  if (error && sender === TEAM_SENDER && senderAddress(TEAM_SENDER) !== TEAM_FALLBACK) {
-    console.warn(`Resend refused ${senderAddress(TEAM_SENDER)} (${error.message}); sending from ${TEAM_FALLBACK}`);
-    ({ error } = await resend.emails.send({ ...message, from: fromFor(shop, TEAM_FALLBACK) }));
+  if (error && senderAddress(SENDER) !== FALLBACK) {
+    console.warn(`Resend refused ${senderAddress(SENDER)} (${error.message}); sending from ${FALLBACK}`);
+    ({ error } = await resend.emails.send({ ...message, from: fromFor(shop, FALLBACK) }));
   }
   if (error) throw new Error(`Resend refused the message: ${error.message}`);
   return { sent: true };
@@ -271,7 +269,7 @@ export function welcomeContent({ name, email, link, appUrl, expiresDays }, shop)
 export function welcomeEmail(args, tenant = {}) {
   const shop = shopFrom(tenant);
   const { subject, content } = welcomeContent(args, shop);
-  return { from: fromFor(shop, TEAM_SENDER), subject, html: layout(content, shop), text: plain(content, shop) };
+  return { from: fromFor(shop), subject, html: layout(content, shop), text: plain(content, shop) };
 }
 
 export function sendInvite({ name, email, link, appUrl, expiresDays }, tenant = {}) {
@@ -281,7 +279,7 @@ export function sendInvite({ name, email, link, appUrl, expiresDays }, tenant = 
   const u = new URL(link);
   const app = appUrl || (u.hostname.startsWith('app.') ? u.origin : `${u.origin}/staff`);
   const { subject, content } = welcomeContent({ name, email, link, appUrl: app, expiresDays }, shop);
-  return send(shop, email, subject, content, TEAM_SENDER);
+  return send(shop, email, subject, content);
 }
 
 /**

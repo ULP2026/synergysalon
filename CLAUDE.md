@@ -520,16 +520,19 @@ made that way are real: name them ZZ and remove them.
   It is skipped without `RESEND_API_KEY`. Since 2026-10-14 the key is set,
   so the dialog says only that they have been emailed; the link is shown
   just when sending failed or no provider is connected (`invite.emailed`
-  from `team.js`, commit `7cb18b4`). The sender is `BOOKING_FROM_EMAIL`
-  and it **must** be on the domain verified in Resend: the salon verified
+  from `team.js`, commit `7cb18b4`). The sender used to be `BOOKING_FROM_EMAIL`,
+  which **must** be on the domain verified in Resend: the salon verified
   `noreply.synergysalon.com` while the code still defaulted to the root
   domain, and every send failed with a 403 that never reached the console.
-  The welcome (and any team email) comes from `noreply@synergysalon.com`
-  (`TEAM_SENDER` in `email.js`, `TEAM_FROM_EMAIL` overrides), not
-  `bookings@`, asked for 2026-10-15. The root domain is **not** verified in
-  Resend, so until it is, Resend refuses that sender and `send()` retries
-  from `noreply@noreply.synergysalon.com` (`TEAM_FALLBACK`), logging why.
-  Verify synergysalon.com in Resend and the fallback stops being used.
+  **Every email the app sends** (booking confirmation, reminder, reschedule,
+  cancellation and the team welcome) comes from `noreply@synergysalon.com`
+  (`SENDER` in `email.js`, `FROM_EMAIL` overrides), asked for 2026-10-15.
+  The root domain is **not** verified in Resend, so until it is, Resend
+  refuses that sender and `send()` retries from `noreply@` on
+  `BOOKING_FROM_EMAIL`'s domain (`FALLBACK`, today
+  `noreply@noreply.synergysalon.com`), logging why. `BOOKING_FROM_EMAIL` now
+  only says which domain is verified. Verify synergysalon.com in Resend and
+  the fallback stops being used.
   Replies go to `shopFrom().replyTo` (`hair@synergysalon.com`), which is a
   different address on purpose and not a Resend domain.
   Removing somebody deletes them (`action:"delete"` on `/api/staff/team`,
