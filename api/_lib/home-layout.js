@@ -16,12 +16,12 @@ import { HttpError } from './http.js';
 
 export const WIDGETS = {
   today: {
-    title: 'Appointments today', views: ['number'],
-    about: 'How many are booked today and what they are worth.',
+    title: 'Salon Appointments', views: ['number'],
+    about: 'Booked today, and how many in the last 30 days.',
   },
   clients30: {
-    title: 'Clients, last 30 days', views: ['number'],
-    about: 'Everyone added or seen in the last 30 days, each person once.',
+    title: 'Clients Served', views: ['number'],
+    about: 'Clients seen in the last 30 days, and how many were new.',
   },
   upcoming: {
     title: 'Coming up', views: ['list'],

@@ -287,17 +287,24 @@ made that way are real: name them ZZ and remove them.
   an appointment with no price is left out of value and said, never
   guessed. Charts are plain HTML/SVG in the console's periwinkle (`--viz`,
   `#7d88d6` in dark mode, both run through the dataviz palette check), one
-  hover/focus tooltip, the peak or last value labelled. Home greets nobody
-  and has no primary button: its subtitle is
-  the date. Two tiles from `GET /api/staff/home` (`_routes/home.js`, counted
-  in SQL), two equal columns as wide as Coming up, each a figure on the left
-  and a periwinkle icon on the right: "N Appt. Today" with their value
-  (appointment price, else the service's list price; unpriced ones are
-  counted and said, never guessed), then "N Clients" over "Last 30 Days"
-  (contacts, the same table as the Clients list, added or with a kept
-  appointment that has started in the last 30 days, each person once).
+  hover/focus tooltip, the peak or last value labelled. Home greets the person (asked for 2026-10-15): the heading is "Good
+  morning/afternoon/evening, <first name>" on the salon's clock
+  (`homeHello()`), and the subtitle a word for the day ("Happy Friday!",
+  "Enjoy your Saturday!", "Have a great morning today!") then the date
+  (`greeting()`). No primary button. Two tiles from `GET /api/staff/home`
+  (`_routes/home.js`, counted in SQL), two equal columns as wide as Coming
+  up, each a figure on the left and a periwinkle icon on the right: "N Salon
+  Appts. Today" over "M Salon Appts. in the last 30 days" (started in the
+  window, cancelled left out, `appts30`), opening Appt. Book; then "N
+  Clients Served" (people with a kept appointment that started in the last
+  30 days, each once; a contact with no visit is not served) over "N new
+  clients in the last 30 days" (of those, the ones whose first kept visit
+  was in the window, `newClients30`), opening Clients. Today's value is
+  still counted (`today.value`) but no longer shown.
   Coming up lists the next six booked appointments in the reference's rows
-  (tag, guest, service with stylist, when on the salon's clock, Open), with
+  (tag, guest, service with stylist, when on the salon's clock, Open);
+  clicking one opens that appointment's window on Appt. Book's Day view
+  (`diaryOpenRef`, opened once its day loads), with
   "Past appointments (n)" underneath. The person chip (avatar and name) is
   on the right of the nav; it was hidden for a day and brought back on
   request. `.main` starts 116px down (108 and 100 on
@@ -325,14 +332,14 @@ made that way are real: name them ZZ and remove them.
   wide as the nav cluster (`--nav-w`, measured by `fitSettings()`), so its
   edges line up with the menu. There is no Calendars item: the shop's calendars are listed above
   the diary on Appt. Book, and `/staff/calendars` still works. Settings is
-  for everyone: Salon Profile, Team (Appearance, Team Members), and Billing for owners and managers. It has no Calendars tab:
+  for everyone: one Salon & Team tab (Appearance, Where do you want people to reply to, Team Members, then Salon Profile, merged into one page on request on 2026-10-15; the tab key is still `team`), and Billing for owners and managers. It has no Calendars tab:
   calendars are made from Appt. Book's "Create a calendar" note (shown only
   while there are none) or `/staff/calendars`, without choosing members for now
   (stylists are not on the app yet; calendar settings saves members back
   unchanged and no longer shows a picker), and the New calendar form offers the
   calendar apps (Google by sign-in, and any other app by subscribing
   to the person's private feed, links from `GET /api/staff/calendars`), Outlook is left out of the form on request (`calAppRows()`). The person chip
-  and `/staff/account` open Settings on Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
+  and `/staff/account` open Settings on Salon & Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM"; the API keeps its `centro`
   names, which nobody sees.
@@ -422,21 +429,21 @@ made that way are real: name them ZZ and remove them.
   address) and the calendar dialog. `GET /api/staff/profile` carries the
   status, so your own window opens right instead of offering Connect until a
   second request answered; it says "Checking…" if the status is missing.
-- Appt. Book's day is the salon's calendar (at least three shared lanes
-  under one "<salon> Calendar" heading, more when bookings overlap) plus a
-  fourth column for the team, asked for in place of adding stylists to the
-  grid by hand. Nobody is put in it: whoever has connected their Google
-  Calendar (signed in or by the pasted address) is in it, one column each
-  ("Team member" with the Google mark), because `diary.js` lists the
-  connected people with every day it sends. Connecting or disconnecting shows
-  up on the next load; the day reloads quietly when the tab regains focus and
-  every two minutes while it is open (no dialog over it). While nobody is
-  connected the fourth column is one empty "Team members" column saying how
-  to get in. A person's column holds their Google busy times, their own
-  bookings and their own blocks, and clicking an empty time books with them;
-  everything nobody in the team column owns stays in the lanes, so a booked
-  client never vanishes. A lane is a column nobody is assigned to: an
-  appointment takes the first one free at its time. The shop's extra booking
+- Appt. Book's day is the team, one column per person: the shared
+  "<salon> Calendar" lanes that used to sit on the left were removed on
+  request (2026-10-15). Nobody is put in it: whoever has connected their
+  Google Calendar (signed in or by the pasted address) is in it, one column
+  each ("Team member" with the Google mark), because `diary.js` lists the
+  connected people with every day it sends, so connecting makes a stylist a
+  booking option on the grid at the next load; the day reloads quietly when
+  the tab regains focus and every two minutes while it is open (no dialog
+  over it). A person's column holds their Google busy times, their own
+  bookings and their own blocks, and clicking an empty time books with them.
+  So a booked client never vanishes, a stylist who has not connected gets a
+  column ("Not connected") on any day they have a booking or block, and
+  bookings with no stylist share an "Unassigned" column, a lane per overlap.
+  Salon-wide blocks are drawn in every column. While there is nothing to
+  show, one empty column says how to get in. The shop's extra booking
   calendars no longer gate the page: the diary and New appointment always
   work, because every appointment is in the Synergy Calendar. It has no
   "+ New calendar" chip (removed on request). LUNCH and BLOCK are rows in
