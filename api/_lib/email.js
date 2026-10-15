@@ -21,10 +21,19 @@ import { shopFrom } from './config.js';
  */
 const SENDER = process.env.BOOKING_FROM_EMAIL || 'bookings@synergysalon.com';
 
-function fromFor(shop) {
-  const match = String(SENDER).match(/<([^>]+)>/);
-  const address = match ? match[1] : SENDER;
-  return `${shop.name} <${address}>`;
+const senderAddress = (v) => { const m = String(v).match(/<([^>]+)>/); return (m ? m[1] : String(v)).trim(); };
+
+/**
+ * Who team email is from: the welcome a new member gets is not a booking,
+ * and coming from bookings@ read as one (asked for 2026-10-15). noreply@ on
+ * the booking sender's own domain, because that is the domain verified with
+ * Resend; any other domain is refused with a 403. TEAM_FROM_EMAIL overrides.
+ */
+const TEAM_SENDER = process.env.TEAM_FROM_EMAIL
+  || `noreply@${senderAddress(SENDER).split('@')[1] || 'synergysalon.com'}`;
+
+function fromFor(shop, sender = SENDER) {
+  return `${shop.name} <${senderAddress(sender)}>`;
 }
 
 function client() {
@@ -158,14 +167,14 @@ function plain({ heading, intro, rows, action, steps, footnote }, shop) {
   ].join('\n');
 }
 
-async function send(shop, to, subject, content) {
+async function send(shop, to, subject, content, sender = SENDER) {
   const resend = client();
   if (!resend) {
     console.warn('RESEND_API_KEY is not set; skipping email to', to);
     return { skipped: true };
   }
   const { error } = await resend.emails.send({
-    from: fromFor(shop),
+    from: fromFor(shop, sender),
     replyTo: shop.replyTo || undefined,
     to,
     subject,
@@ -254,7 +263,7 @@ export function welcomeContent({ name, email, link, appUrl, expiresDays }, shop)
 export function welcomeEmail(args, tenant = {}) {
   const shop = shopFrom(tenant);
   const { subject, content } = welcomeContent(args, shop);
-  return { subject, html: layout(content, shop), text: plain(content, shop) };
+  return { from: fromFor(shop, TEAM_SENDER), subject, html: layout(content, shop), text: plain(content, shop) };
 }
 
 export function sendInvite({ name, email, link, appUrl, expiresDays }, tenant = {}) {
@@ -264,7 +273,7 @@ export function sendInvite({ name, email, link, appUrl, expiresDays }, tenant = 
   const u = new URL(link);
   const app = appUrl || (u.hostname.startsWith('app.') ? u.origin : `${u.origin}/staff`);
   const { subject, content } = welcomeContent({ name, email, link, appUrl: app, expiresDays }, shop);
-  return send(shop, email, subject, content);
+  return send(shop, email, subject, content, TEAM_SENDER);
 }
 
 /**
