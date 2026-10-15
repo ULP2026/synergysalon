@@ -1095,8 +1095,7 @@
   .dg-gcol { cursor: default; }
   .dg-gcol:hover { background-color: transparent; }
   .dg-head.dg-group { gap: 12px; }
-  /* The team column starts with a firmer edge, so the salon's lanes and the
-     people beside them read as two parts of one day. */
+  /* The first person's column starts with a firmer edge, against the hours. */
   .dg-tfirst { border-left: 2px solid var(--line) !important; }
   .dg-teamwait p { position: sticky; top: 72px; margin: 24px 16px; font-size: var(--fs-xs); color: var(--muted); line-height: 1.5; }
   .dg-head .dg-hic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none;
@@ -4397,37 +4396,17 @@ function renderDiary(d) {
     return n >= from && n <= to ? `<div class="dg-now" style="top:${px(n)}px" aria-hidden="true"></div>` : '';
   })() : '';
 
-  // The day is the salon's calendar (three shared lanes) and, beside it, a
-  // fourth column for the team. Nobody is added to it by hand: whoever has
-  // connected their Google Calendar is on it, because the server lists the
-  // connected people with every day it sends (diary.js), so connecting or
-  // disconnecting changes the grid the next time the day loads. One column
-  // per connected person, holding their Google busy times, their own bookings
-  // and their own blocks; while nobody is connected, the fourth column is
-  // one empty column saying how to get onto it.
-  //
-  // A lane is a column nobody is assigned to: an appointment takes the first
-  // one free at its time, and two at 10 o'clock sit side by side.
+  // The day is the team: one column per person who has connected their
+  // Google Calendar (signed in or by the pasted address). Nobody is added by
+  // hand: the server lists the connected people with every day it sends
+  // (diary.js), so connecting puts a stylist on the grid, and a booking
+  // option there, the next time the day loads. Each column holds their
+  // Google busy times, their own bookings and their own blocks, and clicking
+  // an empty time books with them. The shared "<salon> Calendar" lanes that
+  // used to sit to the left were removed on request (2026-10-15).
   const team = (d.team || []).map((g) => ({ ...g, google: true }));
   const mineSlugs = new Set(team.map((t) => t.stylistSlug).filter(Boolean));
-  // The lanes hold what belongs to nobody in the team column: a booking with
-  // a stylist who has not connected, or one with nobody. Hiding those would
-  // be a booked client silently vanishing from the day. A block on the whole
-  // salon (no stylist) is drawn in the lanes and in every person's column.
   const owned = (slug) => slug && mineSlugs.has(slug);
-  const items = [
-    ...live.filter((a) => !owned(a.stylistSlug))
-      .map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin })),
-    ...blocks.filter((b) => !owned(b.stylistSlug))
-      .map((b) => ({ b, s: Math.max(from, salonMinutes(b.startsAt)), e: Math.min(to, salonMinutes(b.endsAt) || 24 * 60) })),
-  ].sort((x, y) => x.s - y.s || y.e - x.e);
-  const lanesEnd = [];
-  for (const it of items) {
-    let lane = lanesEnd.findIndex((end) => end <= it.s);
-    if (lane < 0) { lane = lanesEnd.length; lanesEnd.push(it.e); } else lanesEnd[lane] = it.e;
-    it.lane = lane;
-  }
-  const cols = Array.from({ length: Math.max(3, lanesEnd.length) }, (_, i) => i);
   const blockHtml = (b, s, e) => {
     const label = b.kind === 'lunch' ? 'Lunch' : 'Block';
     const sub = b.kind === 'block' && b.reason && !/^blocked$/i.test(b.reason) ? `<small>${esc(b.reason)}</small>` : '';
@@ -4435,26 +4414,45 @@ function renderDiary(d) {
       style="top:${px(s) + 1}px;height:${Math.max(20, px(e) - px(s) - 3)}px"
       title="${esc(`${label}${b.stylist ? ` · ${b.stylist}` : ''} · ${clock(s)} to ${clock(e)}${b.reason ? ` · ${b.reason}` : ''}`)}"><span>${label}${sub}</span></button>`;
   };
+  const blkSpan = (b) => [Math.max(from, salonMinutes(b.startsAt)), Math.min(to, salonMinutes(b.endsAt) || 24 * 60)];
+  const apptCard = (a) => dayCard(a, px(salonMinutes(a.startsAt)) + 1, Math.max(22, (a.durationMin / 60) * DG_HOUR - 3));
+  // A block on the whole salon (no stylist) is drawn in every column.
+  const salonBlocks = blocks.filter((b) => !b.stylistSlug);
 
-  const colHtml = cols.map((i) => {
-    const mine = items.filter((it) => it.lane === i);
-    const cards = mine.filter((it) => it.a).map((it) => dayCard(it.a, px(it.s) + 1,
-      Math.max(22, (it.a.durationMin / 60) * DG_HOUR - 3))).join('');
-    const offs = mine.filter((it) => it.b).map((it) => blockHtml(it.b, it.s, it.e)).join('');
-    return `<div class="dg-col dg-c0" style="height:${height}px">
-      <span class="ghost" aria-hidden="true"></span>${offs}${cards}${nowLine}</div>`;
-  }).join('');
+  // Without the lanes, what belongs to nobody connected still has to show:
+  // a booking with a stylist who has not connected (Dina, Micah, Tami and
+  // Kim have no sign-in yet), or one with nobody. Hiding those would be a
+  // booked client silently vanishing from the day. So such a stylist gets a
+  // column for the day they have something on, marked as not connected, and
+  // bookings with nobody share an "Unassigned" column, a lane per overlap.
+  const byStylist = new Map((me?.stylists || []).map((x) => [x.slug, x]));
+  const extra = new Map();
+  for (const x of [...live, ...blocks]) {
+    if (!x.stylistSlug || owned(x.stylistSlug) || extra.has(x.stylistSlug)) continue;
+    const st = byStylist.get(x.stylistSlug);
+    extra.set(x.stylistSlug, { slug: x.stylistSlug, name: st?.name || x.stylist || x.stylistSlug, photo: st?.photo || null });
+  }
+  const loose = live.filter((a) => !a.stylistSlug)
+    .map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin }))
+    .sort((x, y) => x.s - y.s || y.e - x.e);
+  const lanesEnd = [];
+  for (const it of loose) {
+    let lane = lanesEnd.findIndex((end) => end <= it.s);
+    if (lane < 0) { lane = lanesEnd.length; lanesEnd.push(it.e); } else lanesEnd[lane] = it.e;
+    it.lane = lane;
+  }
 
-  // The lanes share one heading, the salon's calendar. Each person in the
-  // team column has their own, marked as coming from their Google Calendar.
-  const heads = `<div class="dg-head dg-group" style="grid-column:span ${cols.length}">
+  const personHead = (p, sub, first) => `<div class="dg-head dg-team${first ? ' dg-tfirst' : ''}" title="${esc(p.account ? `${p.name} · ${p.account}` : p.name)}">
+      <img class="avatar" src="${esc(personPhoto(p))}" alt="">
+      <div style="min-width:0"><b>${esc(p.name)}</b><span class="sub">${sub}</span></div></div>`;
+  const heads = [
+    ...team.map((t, i) => personHead(t, `${GOOGLE_LOGO.replace('class="conn-logo"', '')}Team member`, !i)),
+    ...[...extra.values()].map((x) => personHead(x, 'Not connected', false)),
+    ...(lanesEnd.length ? [`<div class="dg-head dg-group" style="grid-column:span ${lanesEnd.length}">
       <span class="dg-hic">${ic('calendar')}</span>
-      <div style="min-width:0"><b>${esc(me?.salon?.name || 'Salon')} Calendar</b><span class="sub">Every appointment</span></div></div>`
-    + (team.length ? team.map((t, i) => `<div class="dg-head dg-team${i ? '' : ' dg-tfirst'}" title="${esc(t.account ? `${t.name} · ${t.account}` : t.name)}">
-      <img class="avatar" src="${esc(personPhoto(t))}" alt="">
-      <div style="min-width:0"><b>${esc(t.name)}</b><span class="sub">${GOOGLE_LOGO.replace('class="conn-logo"', '')}Team member</span></div></div>`).join('')
-      : `<div class="dg-head dg-team dg-tfirst"><span class="dg-hic">${ic('contacts')}</span>
-      <div style="min-width:0"><b>Team members</b><span class="sub">Connected calendars</span></div></div>`);
+      <div style="min-width:0"><b>Unassigned</b><span class="sub">No stylist yet</span></div></div>`] : []),
+  ].join('') || `<div class="dg-head dg-team dg-tfirst"><span class="dg-hic">${ic('contacts')}</span>
+      <div style="min-width:0"><b>Team members</b><span class="sub">Connected calendars</span></div></div>`;
 
   const teamHtml = team.map((t, i) => {
     // Their own salon bookings sit in their column too, so the column is
@@ -4468,25 +4466,38 @@ function renderDiary(d) {
       return `<div class="dg-busy" style="top:${px(s0) + 1}px;height:${Math.max(20, px(e0) - px(s0) - 3)}px"
         title="${esc(`${t.name} is busy · ${when}`)}">Busy<small>${esc(when)}</small></div>`;
     }).join('');
-    const cards = own.map((a) => dayCard(a, px(salonMinutes(a.startsAt)) + 1,
-      Math.max(22, (a.durationMin / 60) * DG_HOUR - 3))).join('');
     const offs = blocks.filter((b) => !b.stylistSlug || (t.stylistSlug && b.stylistSlug === t.stylistSlug))
-      .map((b) => blockHtml(b, Math.max(from, salonMinutes(b.startsAt)), Math.min(to, salonMinutes(b.endsAt) || 24 * 60))).join('');
-    // Clicking an empty time books with them, now that their column is the
-    // only place their day is drawn. Somebody who takes no appointments has
-    // no stylist row, so their column books with whoever is free.
+      .map((b) => blockHtml(b, ...blkSpan(b))).join('');
+    // Somebody who takes no appointments has no stylist row, so their
+    // column books with whoever is free.
     return `<div class="dg-col dg-c1${i ? '' : ' dg-tfirst'}" data-stylist="${esc(t.stylistSlug || '')}" style="height:${height}px">
       <span class="ghost" aria-hidden="true"></span>
-      ${t.error ? `<div class="dg-gerr">${esc(t.error)}</div>` : ''}${busy}${offs}${cards}${nowLine}</div>`;
-  }).join('') || `<div class="dg-col dg-c1 dg-gcol dg-teamwait dg-tfirst" style="height:${height}px">
-      <p>Team members appear here once they connect their Google Calendar in Settings, Team.</p>${nowLine}</div>`;
+      ${t.error ? `<div class="dg-gerr">${esc(t.error)}</div>` : ''}${busy}${offs}${own.map(apptCard).join('')}${nowLine}</div>`;
+  }).join('');
+  const extraHtml = [...extra.values()].map((x) => {
+    const offs = [...salonBlocks, ...blocks.filter((b) => b.stylistSlug === x.slug)]
+      .map((b) => blockHtml(b, ...blkSpan(b))).join('');
+    const own = live.filter((a) => a.stylistSlug === x.slug).map(apptCard).join('');
+    return `<div class="dg-col dg-c0" data-stylist="${esc(x.slug)}" style="height:${height}px">
+      <span class="ghost" aria-hidden="true"></span>${offs}${own}${nowLine}</div>`;
+  }).join('');
+  const looseHtml = lanesEnd.map((_, i) => {
+    const offs = salonBlocks.map((b) => blockHtml(b, ...blkSpan(b))).join('');
+    const own = loose.filter((it) => it.lane === i).map((it) => apptCard(it.a)).join('');
+    return `<div class="dg-col dg-c0" style="height:${height}px">
+      <span class="ghost" aria-hidden="true"></span>${offs}${own}${nowLine}</div>`;
+  }).join('');
+  const colCount = team.length + extra.size + lanesEnd.length;
+  const colHtml = teamHtml + extraHtml + looseHtml
+    || `<div class="dg-col dg-c1 dg-gcol dg-teamwait dg-tfirst" style="height:${height}px">
+      <p>Stylists appear here once they connect their Google Calendar in Settings, Salon &amp; Team.</p>${nowLine}</div>`;
 
   $('diary').innerHTML = `
     ${dgDemo ? `<div class="note dg-demo">${ic('info')}<span>Sample day for a walkthrough. Nothing here is real, and nothing you do here is saved.</span></div>` : ''}
     <div class="dg-wrap" id="dgWrap">
-      <div class="dg" style="--dg-n:${cols.length + Math.max(1, team.length)};--dg-hour:${DG_HOUR}px${team.length > 1 ? ';--dg-col:minmax(140px,1fr);--dg-min:140px' : ''}">
+      <div class="dg" style="--dg-n:${Math.max(1, colCount)};--dg-hour:${DG_HOUR}px${colCount > 3 ? ';--dg-col:minmax(140px,1fr);--dg-min:140px' : ''}">
         <div class="dg-corner"></div>${heads}
-        <div class="dg-axis" style="height:${height}px;position:sticky">${hours.join('')}</div>${colHtml}${teamHtml}
+        <div class="dg-axis" style="height:${height}px;position:sticky">${hours.join('')}</div>${colHtml}
       </div>
     </div>
     <div class="dg-legend">
@@ -4778,6 +4789,12 @@ function demoDay(date) {
     date, today, heading: new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
     booked: appointments.length, arriving: appointments.filter((a) => !a.checkedInAt && a.status === 'booked').length,
     appointments, blocks,
+    // The first two as if they had connected Google, so the sample shows
+    // both kinds of column: connected, and not yet.
+    team: stylists.slice(0, 2).map((s, i) => ({
+      id: `demo-${s.slug}`, name: s.name, photo: s.photo, stylistSlug: s.slug, error: null,
+      busy: i ? [] : [{ startsAt: at(16, 0), endsAt: at(17, 0), allDay: false }],
+    })),
   };
 }
 

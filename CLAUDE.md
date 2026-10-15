@@ -422,21 +422,21 @@ made that way are real: name them ZZ and remove them.
   address) and the calendar dialog. `GET /api/staff/profile` carries the
   status, so your own window opens right instead of offering Connect until a
   second request answered; it says "Checking…" if the status is missing.
-- Appt. Book's day is the salon's calendar (at least three shared lanes
-  under one "<salon> Calendar" heading, more when bookings overlap) plus a
-  fourth column for the team, asked for in place of adding stylists to the
-  grid by hand. Nobody is put in it: whoever has connected their Google
-  Calendar (signed in or by the pasted address) is in it, one column each
-  ("Team member" with the Google mark), because `diary.js` lists the
-  connected people with every day it sends. Connecting or disconnecting shows
-  up on the next load; the day reloads quietly when the tab regains focus and
-  every two minutes while it is open (no dialog over it). While nobody is
-  connected the fourth column is one empty "Team members" column saying how
-  to get in. A person's column holds their Google busy times, their own
-  bookings and their own blocks, and clicking an empty time books with them;
-  everything nobody in the team column owns stays in the lanes, so a booked
-  client never vanishes. A lane is a column nobody is assigned to: an
-  appointment takes the first one free at its time. The shop's extra booking
+- Appt. Book's day is the team, one column per person: the shared
+  "<salon> Calendar" lanes that used to sit on the left were removed on
+  request (2026-10-15). Nobody is put in it: whoever has connected their
+  Google Calendar (signed in or by the pasted address) is in it, one column
+  each ("Team member" with the Google mark), because `diary.js` lists the
+  connected people with every day it sends, so connecting makes a stylist a
+  booking option on the grid at the next load; the day reloads quietly when
+  the tab regains focus and every two minutes while it is open (no dialog
+  over it). A person's column holds their Google busy times, their own
+  bookings and their own blocks, and clicking an empty time books with them.
+  So a booked client never vanishes, a stylist who has not connected gets a
+  column ("Not connected") on any day they have a booking or block, and
+  bookings with no stylist share an "Unassigned" column, a lane per overlap.
+  Salon-wide blocks are drawn in every column. While there is nothing to
+  show, one empty column says how to get in. The shop's extra booking
   calendars no longer gate the page: the diary and New appointment always
   work, because every appointment is in the Synergy Calendar. It has no
   "+ New calendar" chip (removed on request). LUNCH and BLOCK are rows in
