@@ -39,3 +39,14 @@ test('every guest message can be previewed', () => {
 test('an unknown message is not previewed', () => {
   assert.equal(previewMessage('nope', appt, tenant), null);
 });
+
+test('every email is from noreply@synergysalon.com, guests\' as well as the team\'s', () => {
+  const appt = {
+    starts_at: '2026-11-03T15:00:00Z', duration_min: 60, guest_name: 'ZZ Guest', guest_email: 'zz@example.com',
+    service: 'Haircut', stylist: 'Dina Lara', ref: 'ZZ1', manage_token: 'x',
+  };
+  for (const kind of MESSAGE_KINDS) {
+    const m = previewMessage(kind, appt, { name: 'Synergy Salon' }, appt.starts_at);
+    assert.equal(m.from, 'Synergy Salon <noreply@synergysalon.com>', kind);
+  }
+});
