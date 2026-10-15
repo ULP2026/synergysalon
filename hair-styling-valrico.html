@@ -378,7 +378,14 @@
       if (!(avail.days[iso] || []).length) {
         b.disabled = true;
         b.setAttribute('data-ss-full', '1');
-      } else if (b.getAttribute('data-ss-full')) {
+      } else {
+        // Not "else if we were the ones who disabled it". The survey renders
+        // its own invented availability first and greys days out by itself;
+        // undoing only our own disabling left those dead with real times
+        // behind them, which reads as a broken site rather than a full diary.
+        // Safe to open unconditionally: a date only reaches here with slots
+        // the server offered, and the server has already taken out the past,
+        // the lead time, time off and Google busy time.
         b.disabled = false;
         b.removeAttribute('data-ss-full');
       }
