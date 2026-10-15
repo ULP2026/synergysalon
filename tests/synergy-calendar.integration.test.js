@@ -295,3 +295,42 @@ test('a booking and its cancellation reach the stylist\'s Google Calendar', { sk
     await c.end();
   }
 });
+
+test('every booking is as long as its own service, from the website and the desk', { skip }, async () => {
+  // A booking calendar carries a length of its own (30 minutes unless set),
+  // shown on its chip, which read as the length of every appointment. It is
+  // never used: the service decides, whichever way the booking comes in.
+  const c = await connect();
+  try {
+    await c.query('BEGIN');
+    const tenant = await tenantOf(c);
+    const day = tuesday(tenant.timezone);
+    await linkLogin(c, tenant, 'dina', { ics: 'https://calendar.google.com/calendar/ical/zz/private-y/basic.ics' });
+    setGoogleReaderForTests(async () => []);
+    const { rows: svc } = await c.query(
+      `SELECT v.slug, v.duration_min FROM services v
+        WHERE v.tenant_id = $1 AND v.slug = ANY($2::text[])`,
+      [tenant.id, ['bang-trim', 'gloss-or-toner', 'balayage']],
+    );
+    assert.equal(svc.length, 3);
+    for (const [i, s] of svc.entries()) {
+      for (const channel of ['online', 'staff']) {
+        const { days } = await availableSlots(c, tenant, {
+          serviceSlug: s.slug, stylistSlug: channel === 'online' ? 'dina' : null,
+          google: channel === 'online', fromDate: day.toISODate(), toDate: day.plus({ days: 6 }).toISODate(),
+        });
+        const slot = days.flatMap((d) => d.slots)[0];
+        assert.ok(slot, `a time for ${s.slug}`);
+        const appt = await createBooking(c, tenant, {
+          serviceSlug: s.slug, stylistSlug: channel === 'online' ? 'dina' : slot.stylists?.[0] || null,
+          start: slot.start, guestName: `ZZ Length ${i} ${channel}`, guestPhone: '8135550101',
+          guestEmail: 'zz@example.com', channel,
+        });
+        assert.equal(appt.duration_min, s.duration_min, `${s.slug} booked ${channel}`);
+      }
+    }
+  } finally {
+    await c.query('ROLLBACK');
+    await c.end();
+  }
+});

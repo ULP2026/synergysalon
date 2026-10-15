@@ -330,8 +330,14 @@ made that way are real: name them ZZ and remove them.
   also in ensure-schema) with front desk's access. A Leads page
   held the stages for a while; `/staff/leads` now lands on Clients. Settings is as
   wide as the nav cluster (`--nav-w`, measured by `fitSettings()`), so its
-  edges line up with the menu. There is no Calendars item: the shop's calendars are listed above
-  the diary on Appt. Book, and `/staff/calendars` still works. Settings is
+  edges line up with the menu. There is no Calendars item, and since 2026-10-15 the shop's calendar
+  chips are gone from Appt. Book too (on request: "Synergy Salon Calendar ·
+  30 min" read as the length of every booking); `/staff/calendars` still
+  lists them. A booking calendar's own length (`duration_min`, 30 unless
+  set) is never used to book: every appointment is as long as its service
+  (`combineServices`), online and at the desk, which
+  `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
+  show and ask for a length only for a class or an event (`calSeats`). Settings is
   for everyone: one Salon & Team tab (Appearance, Where do you want people to reply to, Team Members, then Salon Profile, merged into one page on request on 2026-10-15; the tab key is still `team`), and Billing for owners and managers. It has no Calendars tab:
   calendars are made from Appt. Book's "Create a calendar" note (shown only
   while there are none) or `/staff/calendars`, without choosing members for now
