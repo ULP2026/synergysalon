@@ -598,6 +598,29 @@ must stay that way: anything committed here is served publicly.
 
 ## Still outstanding
 
+- **Stylists are to set their own availability (salon's decision, 2026-10-15).**
+  Today they cannot: `hoursOpen()` in the console opens Working hours only to
+  an admin editing somebody else, and `/api/staff/profile` throws away any
+  hours sent from your own window (`const hours = null`). Both say in their
+  comments that this is what the salon asked for, and both now say the
+  opposite of what the salon wants, so read them with this note beside them.
+
+  That rule was not arbitrary. Online booking was paused on 2026-09-30 because
+  "the public calendar offered 9 AM with stylists who do not start then, and
+  guests took it" (config.js): hours are not a personal preference here, they
+  are what the website sells. The fix made one person own the rota.
+
+  Whoever implements this should keep that failure in mind rather than simply
+  deleting the check. The shape that keeps both: a stylist edits their own
+  hours, and the admin still sees and can change everyone's, so a mistake is
+  visible and correctable rather than silently sold. Changing only the console
+  is not enough -- the server discards the values, which is deliberate, because
+  hiding a control never stopped anyone posting to the API.
+
+  Not scheduled. Doing it before the roster is filled would mix a new rule in
+  with the first real bookings, which is how the 30 September problem started.
+
+
 - **Online booking is paused, and the reason has changed.** It is no longer
   about hours: those are owned and editable now. It is that the salon has no
   bookable stylist. All four `stylists` rows are deactivated and tied to no
