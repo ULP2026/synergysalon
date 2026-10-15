@@ -115,9 +115,12 @@ the fake availability with the real diary.
 
 The survey (same code in all six pages, Riverview included) is: 1 the kinds of service (Color,
 Cuts, Treatments, Styling, AI Scalp Analysis, "Select all that apply" as a
-pill), 2 who it is for, 3 service details (one question per kind picked; the
-scalp analysis is a details card), 4 stylist, 5 availability, 6 name, email,
-phone and optional notes with "Book Me Now!", then a confirmation with
+pill), 2 stylist, 3 who it is for, 4 service details (one question per kind
+picked; the scalp analysis is a details card), 5 availability, 6 name, email,
+phone and optional notes with "Book Me Now!" (stylist moved to step 2 on
+request, 2026-10-15, by remapping `bkS2`..`bkS4` and `bkCan` in the
+template's logic; the design source still has the old order, so a new export
+undoes it until it is changed in Claude Design too), then a confirmation with
 confetti, a six-second "Appointment booked!" toast, and an optional "How did you hear about us?". The popup publishes its
 answers on `window.__ssBk`; the adapter reads them there (not from headings),
 answers `ss-bk-confirm` with `ss-bk-result`, and the popup says "booked" and
@@ -134,6 +137,14 @@ local) address opens the real popup despite the pause, shows a yellow
 without posting anything. It exists because preview deployments have their
 own `DATABASE_URL` that points at the live data, so a real test booking there
 is a real appointment. The flag is ignored on the salon's own domain.
+**The test link to send** is the production deployment's own address
+(`synergysalon-<hash>-support-2531s-projects.vercel.app/?booking-demo=1`,
+with a Vercel share token since the project's `*.vercel.app` addresses are
+behind Vercel login), not a preview: only Production has `TOKEN_KEY` and
+the Google client, so on a preview every stylist who signed in with Google
+is offered no times (fail closed), which read as "this stylist has no open
+times this month". `DEFAULT_TENANT=synergy` was added for Production on
+2026-10-15 so that address finds the salon.
 Previews also need `DEFAULT_TENANT=synergy` (set for Preview on 2026-10-14):
 a `*.vercel.app` host matches no salon, so before it every `/api/` call there
 answered "No salon is configured for this address" and the popup listed nobody.
