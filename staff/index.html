@@ -2140,9 +2140,6 @@
     <section class="view hidden" id="view-appointments">
       <!-- Shown while the shop has no calendars at all. -->
       <div id="needCal" class="hidden"></div>
-      <!-- The shop's calendars, where the work happens rather than only on
-           their own page. -->
-      <div id="apptCals"></div>
       <div class="card fill" id="diaryCard">
         <div class="toolbar">
           <button class="iconbtn lg" id="prevDay" aria-label="Previous"><svg class="ic"><use href="#i-left"/></svg></button>
@@ -2157,7 +2154,7 @@
           <span class="summary" id="dayHeading"></span>
         </div>
         <!-- Kept for renderCalBar(), which stays hidden: the shop's calendars
-             already sit above the diary (apptCals), and one list is enough. -->
+             are on /staff/calendars, and one list is enough. -->
         <div class="calbar hidden" id="calBar" role="group" aria-label="Calendars"></div>
         <div id="calendar" class="hidden" style="flex:1;display:flex;flex-direction:column"></div>
         <div id="diary" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
@@ -2503,8 +2500,8 @@
       <span class="small muted" id="cnewSlugNote">Left blank, this follows the name.</span></label>
 
     <div class="fields">
-      <label><span id="cnewDurLabel">Meeting duration</span>
-        <div class="urlrow"><input name="durationMin" id="cnewDur" type="number" min="5" max="600" value="30" required>
+      <label id="cnewDurWrap"><span id="cnewDurLabel">Session length</span>
+        <div class="urlrow"><input name="durationMin" id="cnewDur" type="number" min="5" max="600" value="30">
           <span class="suffix">minutes</span></div></label>
       <label class="hidden" id="cnewCapWrap"><span>Places per session</span>
         <input name="capacity" type="number" min="1" max="200" value="10"></label>
@@ -3013,35 +3010,13 @@ async function loadAppointments() {
   $('needCal').classList.add('hidden');
 
   renderCalBar();
-  renderApptCalendars();
+  // The shop's calendar chips ("Synergy Salon Calendar · 30 min") used to sit
+  // above the diary. Removed on request (2026-10-15): the 30 minutes read as
+  // the length of every booking, when each appointment is as long as its
+  // service. /staff/calendars still lists them.
   // Through setView, so the Day/Month switch and the visible grid match the
   // remembered view, not just the data.
   return setView(calView);
-}
-
-/**
- * The shop's calendars, across the top of the diary.
- *
- * They were only on their own page, so somebody who made one had no sign of
- * it where they actually work. Each is a way in: open it, or jump to its
- * settings.
- */
-function renderApptCalendars() {
-  const host = $('apptCals');
-  if (!host) return;
-  const list = calData?.calendars ?? [];
-  if (!list.length) { host.innerHTML = ''; return; }
-
-  host.innerHTML = `<div class="calchips">
-    ${list.map((c) => `<button type="button" class="calchip ${c.active ? '' : 'off'}"
-        data-appt-cal="${esc(c.slug)}" title="${esc(c.kindLabel)} · ${c.durationMin} min">
-        ${esc(c.name)}<span>${c.upcoming}</span></button>`).join('')}
-  </div>`;
-
-  host.onclick = (e) => {
-    const b = e.target.closest('button[data-appt-cal]');
-    if (b) goCalendarSettings(b.dataset.apptCal);
-  };
 }
 
 // ───────────────────────── calendars ─────────────────────────
@@ -3051,6 +3026,11 @@ function renderApptCalendars() {
 // same stylist cannot both sell the same hour.
 
 let calData = null;
+
+// A class or an event runs for a set time; an appointment runs as long as
+// its service, so its calendar's own length is never shown as if it ruled.
+const calSeats = (kind) => kind === 'class' || kind === 'event';
+const calLen = (c) => (calSeats(c.kind) ? ` · ${c.durationMin} min` : '');
 let calDraft = null;          // the type chosen in step one, waiting for step two
 
 const CAL_KINDS = [
@@ -3100,7 +3080,7 @@ function renderCalendars(d) {
     <div class="calrow ${c.active ? '' : 'off'}">
       <div class="who">
         <b>${esc(c.name)}</b>
-        <span class="small">${esc(c.kindLabel)} · ${c.durationMin} min${
+        <span class="small">${esc(c.kindLabel)}${calLen(c)}${
           c.capacity > 1 ? ` · ${c.capacity} places` : ''}</span>
         ${c.description ? `<div class="small muted" style="margin-top:4px">${esc(c.description)}</div>` : ''}
       </div>
@@ -3213,7 +3193,11 @@ function openCalNew(kind) {
   // No "who it books" yet: stylists are not on the app, so a list of names
   // to pick from would be names nobody can log in as. Calendars are made
   // without members and get them once the team is added.
-  $('cnewDurLabel').textContent = seats ? 'Session length' : 'Appointment length';
+  // Only a class or an event has a length of its own. An appointment is as
+  // long as the service the guest picks (Balayage 3 hours, a bang trim 15
+  // minutes), so asking for one length here only invited a wrong answer.
+  $('cnewDurWrap').classList.toggle('hidden', !seats);
+  $('cnewDur').required = seats;
 
 
   $('cnewDlg').showModal();
@@ -3261,7 +3245,7 @@ async function submitCalNew() {
         name,
         slug: String(f.get('slug') || '').trim(),
         description: String(f.get('description') || '').trim(),
-        durationMin: Number(f.get('durationMin')) || 30,
+        ...(calSeats(calDraft.kind) ? { durationMin: Number(f.get('durationMin')) || 30 } : {}),
         capacity: Number(f.get('capacity')) || 1,
         acceptPayments: f.get('acceptPayments') === 'on',
         members: calDraft.members,
@@ -3296,7 +3280,7 @@ let cokSlug = null;
 function showCalendarMade(c) {
   cokSlug = c.slug;
   const url = c.url || `${location.origin}/s/${c.slug}`;
-  $('cokSub').textContent = `${c.name} · ${c.kindLabel} · ${c.durationMin} min`;
+  $('cokSub').textContent = `${c.name} · ${c.kindLabel}${calLen(c)}`;
   $('cokLink').value = url;
   $('cokEmbed').value = embedCodeFor(url);
   $('cokPreview').href = url;
@@ -3334,7 +3318,7 @@ function renderCalendarSettings(c) {
   // two different shops.
   const base = c.url || `${location.origin}/s/${c.slug}`;
   const st = c.settings || {};
-  $('pageSub').textContent = `${c.kindLabel} · ${c.durationMin} min`;
+  $('pageSub').textContent = `${c.kindLabel}${calLen(c)}`;
   $('pageTitle').textContent = c.name;
 
   $('calSettings').innerHTML = `
@@ -3353,13 +3337,15 @@ function renderCalendarSettings(c) {
       <p class="small muted" style="margin:0 0 16px">How far ahead, how late, and how much
         room to leave between appointments.</p>
       <div class="fields">
-        <label><span>Appointment length</span>
+        ${calSeats(c.kind) ? `<label><span>Session length</span>
           <div class="urlrow"><input id="setDur" type="number" min="5" max="600" value="${c.durationMin}">
             <span class="suffix">minutes</span></div></label>
         <label><span>Clean-down after</span>
           <div class="urlrow"><input id="setBuf" type="number" min="0" max="240" value="${c.bufferMin}">
             <span class="suffix">minutes</span></div>
-          <span class="small muted">Blocks the diary. Never sold, and not shown to the guest.</span></label>
+          <span class="small muted">Blocks the diary. Never sold, and not shown to the guest.</span></label>`
+          : `<p class="small muted" style="margin:0 0 6px;grid-column:1/-1">Each appointment is as long as the service booked,
+            with that service&rsquo;s clean-down after it.</p>`}
         <label><span>Shortest notice</span>
           <div class="urlrow"><input id="setLead" type="number" min="0" max="168" value="${Number(st.minNoticeHours ?? 2)}">
             <span class="suffix">hours</span></div></label>
@@ -3408,8 +3394,7 @@ function renderCalendarSettings(c) {
         body: JSON.stringify({
           id: c.id,
           slug: $('setSlug').value.trim(),
-          durationMin: Number($('setDur').value),
-          bufferMin: Number($('setBuf').value),
+          ...($('setDur') ? { durationMin: Number($('setDur').value), bufferMin: Number($('setBuf').value) } : {}),
           capacity: $('setCap') ? Number($('setCap').value) : undefined,
           description: $('setDesc').value,
           acceptPayments: $('setPay').checked,
@@ -4614,7 +4599,7 @@ function calendarList() {
 
 /**
  * The old Salon Calendar bar. Hidden on request: the shop's own calendars are
- * listed above the diary (renderApptCalendars), and two rows of calendars
+ * on /staff/calendars, and two rows of calendars
  * read as two systems. Left callable so nothing that refreshes it breaks.
  */
 function renderCalBar() {}
