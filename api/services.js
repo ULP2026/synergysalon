@@ -17,8 +17,17 @@ export default handler({
       ),
       query(
         // The photo through to_jsonb, so this still runs before migration 012.
-        `SELECT slug, name, title, to_jsonb(stylists) ->> 'photo' AS photo FROM stylists
-          WHERE tenant_id = $1 AND active ORDER BY sort_order`,
+        // `uploaded` is a short digest of the picture somebody set in the
+        // console, never the picture itself: it is a data: URL on the row and
+        // several stylists' worth of base64 would be most of this response,
+        // sent to every visitor before they have chosen anything. The digest
+        // goes in the /api/photo URL so a new picture is a new URL.
+        `SELECT s.slug, s.name, s.title, to_jsonb(s) ->> 'photo' AS photo,
+                CASE WHEN u.avatar IS NULL OR u.avatar = '' THEN NULL
+                     ELSE left(md5(u.avatar), 8) END AS uploaded
+           FROM stylists s
+           LEFT JOIN staff_users u ON u.id = s.staff_user_id
+          WHERE s.tenant_id = $1 AND s.active ORDER BY s.sort_order`,
         [tenant.id],
       ),
       query(
@@ -86,9 +95,16 @@ export default handler({
           name: s.name,
           title: s.title,
           bookable: bookableBy.get(s.slug),
-          // The salon's portrait first; an uploaded photo is a data: URL and
-          // too heavy to hand to every visitor, so it is left out here.
-          photo: stylistPhoto(tenant.slug, s.slug) || (s.photo && !s.photo.startsWith('data:') ? s.photo : null),
+          // The salon's own portrait first, because it is a real file and the
+          // one the website's team cards use. Then a plain URL on the row.
+          // Then whatever they set in the console, served by /api/photo rather
+          // than inlined: a data: URL here would be sent to every visitor on
+          // every page, where a URL is fetched once, cached for good, and only
+          // for the stylists a guest actually looks at. Before this, somebody
+          // who set their picture in the app had none on the booking page.
+          photo: stylistPhoto(tenant.slug, s.slug)
+            || (s.photo && !s.photo.startsWith('data:') ? s.photo : null)
+            || (s.uploaded ? `/api/photo?stylist=${encodeURIComponent(s.slug)}&v=${s.uploaded}` : null),
         })),
     });
   },
