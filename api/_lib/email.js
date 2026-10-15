@@ -25,12 +25,15 @@ const senderAddress = (v) => { const m = String(v).match(/<([^>]+)>/); return (m
 
 /**
  * Who team email is from: the welcome a new member gets is not a booking,
- * and coming from bookings@ read as one (asked for 2026-10-15). noreply@ on
- * the booking sender's own domain, because that is the domain verified with
- * Resend; any other domain is refused with a 403. TEAM_FROM_EMAIL overrides.
+ * and coming from bookings@ read as one. The salon asked for
+ * noreply@synergysalon.com (2026-10-15). Resend only sends from a domain
+ * verified with it, and the one verified is noreply.synergysalon.com, so
+ * until synergysalon.com itself is verified there, a refusal is retried
+ * from noreply@ on the booking sender's domain (TEAM_FALLBACK) rather than
+ * losing the invite. TEAM_FROM_EMAIL overrides.
  */
-const TEAM_SENDER = process.env.TEAM_FROM_EMAIL
-  || `noreply@${senderAddress(SENDER).split('@')[1] || 'synergysalon.com'}`;
+const TEAM_SENDER = process.env.TEAM_FROM_EMAIL || 'noreply@synergysalon.com';
+const TEAM_FALLBACK = `noreply@${senderAddress(SENDER).split('@')[1] || 'synergysalon.com'}`;
 
 function fromFor(shop, sender = SENDER) {
   return `${shop.name} <${senderAddress(sender)}>`;
@@ -173,14 +176,19 @@ async function send(shop, to, subject, content, sender = SENDER) {
     console.warn('RESEND_API_KEY is not set; skipping email to', to);
     return { skipped: true };
   }
-  const { error } = await resend.emails.send({
+  const message = {
     from: fromFor(shop, sender),
     replyTo: shop.replyTo || undefined,
     to,
     subject,
     html: layout(content, shop),
     text: plain(content, shop),
-  });
+  };
+  let { error } = await resend.emails.send(message);
+  if (error && sender === TEAM_SENDER && senderAddress(TEAM_SENDER) !== TEAM_FALLBACK) {
+    console.warn(`Resend refused ${senderAddress(TEAM_SENDER)} (${error.message}); sending from ${TEAM_FALLBACK}`);
+    ({ error } = await resend.emails.send({ ...message, from: fromFor(shop, TEAM_FALLBACK) }));
+  }
   if (error) throw new Error(`Resend refused the message: ${error.message}`);
   return { sent: true };
 }

@@ -27,7 +27,7 @@ test('the welcome email carries the link, the app and the setup steps', () => {
     { name: 'Synergy Salon' });
   assert.match(e.subject, /Welcome to the Synergy Salon team/);
   // From noreply@, not bookings@: it is not a booking.
-  assert.match(e.from, /^Synergy Salon <noreply@[^>]+>$/);
+  assert.equal(e.from, 'Synergy Salon <noreply@synergysalon.com>');
   for (const part of [link, 'https://app.synergysalon.com', 'zz@example.com',
     'Complete your Team Settings', 'Connect your calendar', 'Secret address in iCal format', '7 days']) {
     assert.ok(e.text.includes(part), `text is missing ${part}`);
