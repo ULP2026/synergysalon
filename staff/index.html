@@ -2326,6 +2326,7 @@
           <option value="stylist">Stylist</option>
           <option value="front_desk">Front desk</option>
           <option value="manager">Manager</option>
+          <option value="admin">Admin</option>
           <option value="owner">Owner</option>
         </select></label>
       <p class="small muted hidden" id="memberRoleNote" style="margin:-8px 0 12px"></p>
@@ -2690,7 +2691,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
 const mail = (e) => esc(e).replace(/@/g, '<wbr>@').replace(/\./g, '.<wbr>');
 const ic = (name) => `<svg class="ic" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
-const ROLE_LABEL = { owner: 'Owner', manager: 'Manager', front_desk: 'Front desk', stylist: 'Stylist' };
+const ROLE_LABEL = { owner: 'Owner', admin: 'Admin', manager: 'Manager', front_desk: 'Front desk', stylist: 'Stylist' };
 const STATUS_LABEL = { new: 'New', contacted: 'Contacted', booked: 'Booked', won: 'Client', lost: 'Lost' };
 
 let me = null;
@@ -4716,7 +4717,7 @@ function openAppt(a) {
     acts.push(a.checkedInAt ? b('complete', 'Done', '') : b('check_in', 'Check in', ''));
   }
   // Last, not first: it is the one action here that cannot be undone.
-  if (me?.user?.role === 'owner' || me?.user?.role === 'manager') acts.push(b('delete', 'Delete for good', 'danger'));
+  if (me?.user?.canAdmin) acts.push(b('delete', 'Delete for good', 'danger'));
   $('adActs').innerHTML = acts.join('');
   openDialog($('apptDlg'));
 }
@@ -5767,7 +5768,7 @@ function hoursOpen() {
  * while editing, so making somebody Owner takes the sections away before
  * saving. An admin by email stays one whatever the role says.
  */
-const ADMIN_ROLES = ['owner'];
+const ADMIN_ROLES = ['owner', 'admin'];
 function memberIsAdmin(m) {
   const role = $('memberForm').elements.role.value;
   const byEmail = Boolean(m && m.admin && !ADMIN_ROLES.includes(m.role));
@@ -6024,8 +6025,9 @@ $('memberDanger').onclick = async () => {
   if (act === 'delete' && !confirm(`Remove ${m.name} from the team for good?
 
 `
-    + 'Their login, profile and calendar connection are deleted and they are signed out '
-    + 'straight away. Their past and booked appointments stay on Appt. Book under their name, '
+    + (m.noLogin ? '' : 'Their login, profile and calendar connection are deleted and they are signed out '
+    + 'straight away. ')
+    + 'Their past and booked appointments stay on Appt. Book under their name, '
     + 'and nobody can book them online any more. This cannot be undone: to have them back, '
     + 'add them again.')) return;
   if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
@@ -6209,8 +6211,8 @@ function renderTeam(current, others = [], pending = []) {
 function roleControl(m) {
   const iAmOwner = Boolean(me?.user?.canManageTeam);
   return `<select class="role" data-role="${esc(m.id)}" aria-label="Role for ${esc(m.name)}">
-    ${['front_desk', 'stylist', 'manager', 'owner'].map((r) =>
-      `<option value="${r}" ${r === 'front_desk' ? 'selected' : ''} ${r === 'owner' && !iAmOwner ? 'disabled' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
+    ${['front_desk', 'stylist', 'manager', 'admin', 'owner'].map((r) =>
+      `<option value="${r}" ${r === 'front_desk' ? 'selected' : ''} ${ADMIN_ROLES.includes(r) && !iAmOwner ? 'disabled' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
   </select>`;
 }
 

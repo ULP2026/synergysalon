@@ -15,11 +15,12 @@
  * non-admin's copy.
  */
 import {
-  assertSameOrigin, canManageTeam, requireStaff, requireTeamAdmin,
+  assertSameOrigin, canManageTeam, requireStaff, requireTeamAdmin, TEAM_ADMIN_ROLES,
 } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
 import { query, transaction } from '../../_lib/db.js';
+import { ensureSchema } from '../../_lib/ensure-schema.js';
 import {
   hoursFor, listStandalone, readHours, syncStandalone, syncStylist,
 } from '../../_lib/roster.js';
@@ -35,7 +36,7 @@ import {
   assertUsernameFree, avatarFrom, avatarStyleFrom, phoneFrom, servicesFrom, usernameFrom,
 } from './profile.js';
 
-const ROLES = ['owner', 'manager', 'front_desk', 'stylist'];
+const ROLES = ['owner', 'admin', 'manager', 'front_desk', 'stylist'];
 
 /** How long an invite is good for. Long enough for a day off, short enough
  * that a forwarded link does not sit live for a month. */
@@ -66,6 +67,9 @@ async function mintInvite(req, userId) {
 
 export default handler({
   async GET(req, res) {
+    // The Team list and removals read stylists.removed_at (022); the live
+    // database gets its columns here rather than from db:migrate.
+    await ensureSchema();
     const user = await requireStaff(req);
     const admin = canManageTeam(user);
     const tenant = await tenantForUser(user);
@@ -168,6 +172,7 @@ export default handler({
 
   async POST(req, res) {
     assertSameOrigin(req);
+    await ensureSchema();
     const user = await requireTeamAdmin(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
@@ -181,7 +186,7 @@ export default handler({
       const name = requireString(body.name, 'Name', { max: 120 });
       const email = requireEmail(body.email);
       const role = ROLES.includes(body.role) ? body.role : 'front_desk';
-      if (role === 'owner' && !canManageTeam(user)) {
+      if (TEAM_ADMIN_ROLES.includes(role) && !canManageTeam(user)) {
         throw new HttpError(403, 'Only an owner can make someone else an owner.');
       }
 
@@ -251,6 +256,18 @@ export default handler({
     // and no session, so none of the access rules below apply to them -- only
     // what they do and when.
     if (id.startsWith('st_')) {
+      if (action === 'delete') {
+        // Removed for good, like anybody else: off the team and the website.
+        // The row itself stays, switched off and marked removed, because
+        // appointments point at it and past work keeps its name.
+        const { rowCount } = await query(
+          `UPDATE stylists SET active = false, removed_at = now()
+            WHERE id = $1::uuid AND tenant_id = $2::uuid AND staff_user_id IS NULL`,
+          [id.slice(3), tenant.id],
+        );
+        if (!rowCount) throw new HttpError(404, 'That stylist is not on this team.');
+        return json(res, 200, { ok: true, id, action });
+      }
       if (action !== 'update') throw new HttpError(400, 'That cannot be done to a stylist without a login.');
       const saved = await transaction((client) => syncStandalone(
         client, tenant.id, id.slice(3),
@@ -329,8 +346,13 @@ export default handler({
         }
         try {
           await transaction(async (client) => {
+            // Marked removed as well as switched off: with the login gone the
+            // row has no staff_user_id, and without the mark the Team list
+            // took it for a stylist who never signs in and showed the person
+            // just removed again on the next load.
             await client.query(
-              'UPDATE stylists SET active = false WHERE staff_user_id = $1::uuid AND tenant_id = $2::uuid',
+              `UPDATE stylists SET active = false, removed_at = now()
+                WHERE staff_user_id = $1::uuid AND tenant_id = $2::uuid`,
               [target.id, tenant.id],
             );
             await client.query(
@@ -372,7 +394,7 @@ export default handler({
         const role = requireString(body.role, 'Role', { max: 20 });
         if (!ROLES.includes(role)) throw new HttpError(400, 'That is not a role.');
         // Only an owner can make another owner.
-        if (role === 'owner' && !canManageTeam(user)) {
+        if (TEAM_ADMIN_ROLES.includes(role) && !canManageTeam(user)) {
           throw new HttpError(403, 'Only an owner can make someone else an owner.');
         }
         await query('UPDATE staff_users SET role = $2 WHERE id = $1', [target.id, role]);
@@ -418,7 +440,7 @@ export default handler({
         if (style !== undefined) add('avatar_style', style);
         if (body.role !== undefined) {
           if (!ROLES.includes(body.role)) throw new HttpError(400, 'That is not a role.');
-          if (body.role === 'owner' && !canManageTeam(user)) {
+          if (TEAM_ADMIN_ROLES.includes(body.role) && !canManageTeam(user)) {
             throw new HttpError(403, 'Only an owner can make someone else an owner.');
           }
           add('role', body.role);

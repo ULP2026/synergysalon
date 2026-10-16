@@ -11,6 +11,7 @@
  * console must load whatever state the database is in.
  */
 import { query } from './db.js';
+import { GOOGLE_OPTIONAL_STYLISTS } from './config.js';
 
 const STATEMENTS = [
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS username text',
@@ -30,6 +31,8 @@ const STATEMENTS = [
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_connected_at timestamptz',
   // 016: Stylist as a role, so Clients can offer a filter per stylist.
   "ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'stylist'",
+  // 021: Admin as a role, the owner's rights over the team without the title.
+  "ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'admin'",
   // 017: the inbox guests' replies go to, set in Team Settings.
   'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS reply_to text',
   // 018: a Google Calendar by its private iCal address (google-ics.js).
@@ -39,6 +42,18 @@ const STATEMENTS = [
   // 020: which Google calendar each booking copy is in (the salon's own, or
   // the main one for copies made before it existed).
   "ALTER TABLE google_events ADD COLUMN IF NOT EXISTS calendar_id text NOT NULL DEFAULT 'primary'",
+  // 022: a removed team member's stylist row is history, not a member, so it
+  // stops reappearing on the Team list as a stylist without a sign-in.
+  'ALTER TABLE stylists ADD COLUMN IF NOT EXISTS removed_at timestamptz',
+  // And the people removed before the column existed. Each salon's stylists
+  // who were never given a login are named in config.js; any other
+  // switched-off row with no login is somebody who was removed. Harmless to
+  // repeat: from now on a removal sets removed_at itself.
+  ...Object.entries(GOOGLE_OPTIONAL_STYLISTS).map(([tenantSlug, slugs]) => `
+    UPDATE stylists SET removed_at = now()
+     WHERE removed_at IS NULL AND staff_user_id IS NULL AND NOT active
+       AND tenant_id IN (SELECT id FROM tenants WHERE slug = '${tenantSlug}')
+       AND slug <> ALL (ARRAY[${slugs.map((x) => `'${x}'`).join(', ')}]::text[])`),
 ];
 
 let done = null;

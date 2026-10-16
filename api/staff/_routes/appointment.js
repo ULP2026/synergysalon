@@ -23,7 +23,7 @@ import { tenantForUser } from '../../_lib/tenant.js';
 import { drain } from '../../cron/sync.js';
 
 /** Same bar as deleting a contact: this removes history outright. */
-const CAN_DELETE = ['owner', 'manager'];
+const CAN_DELETE = ['owner', 'admin', 'manager'];
 
 export default handler({
   async POST(req, res) {

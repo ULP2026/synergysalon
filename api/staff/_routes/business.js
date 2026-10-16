@@ -23,7 +23,7 @@ import { tenantForUser } from '../../_lib/tenant.js';
  * looking at a form they could not type in, while the address and phone
  * customers see needed fixing; front desk still only reads it.
  */
-const CAN_EDIT = ['owner', 'manager'];
+const CAN_EDIT = ['owner', 'admin', 'manager'];
 
 const MAX_LOGO = 400 * 1024;
 

@@ -27,8 +27,23 @@ export function mintPreview(tenantId, now = Date.now()) {
   return `${body}.${sign(body)}`;
 }
 
-/** True when the request carries a valid, unexpired pass for this salon. */
+/**
+ * True when the request carries a valid, unexpired pass for this salon, or
+ * comes in on one of this project's own *.vercel.app addresses.
+ *
+ * Those addresses are behind Vercel's login (deployment protection), so only
+ * the team can open them, and the test link sent to the salon is one of them.
+ * Without this its bookings were refused while the pause is on, and a test
+ * booking never reached the app. Only this project's deployments receive
+ * requests for its addresses, and Vercel sets the host header itself, so the
+ * salon's own domain can never pass this way. If deployment protection is ever
+ * switched off, these addresses become as open as the live site would be.
+ */
 export function previewAllowed(req, tenant, now = Date.now()) {
+  // The Host header alone: Vercel routes on it, so it cannot name another
+  // address than the one the request reached, unlike a forwarded header.
+  const host = String(req.headers?.host || '').split(':')[0].toLowerCase();
+  if (host.endsWith('.vercel.app')) return true;
   const raw = String(req.headers?.['x-booking-preview'] || '');
   const [body, sig] = raw.split('.');
   if (!body || !sig) return false;

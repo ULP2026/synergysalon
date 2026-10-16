@@ -59,6 +59,11 @@ test('a staff test pass works for its salon, and only until it expires', () => {
     assert.equal(previewAllowed(req(pass), { id: 'tenant-a' }, now + 13 * 3600 * 1000), false);
     assert.equal(previewAllowed(req(`${pass.split('.')[0]}.forged`), { id: 'tenant-a' }, now), false);
     assert.equal(previewAllowed({ headers: {} }, { id: 'tenant-a' }, now), false);
+    // The project's own Vercel addresses (behind Vercel's login) are the test
+    // link; the salon's domain never passes on its host alone.
+    assert.equal(previewAllowed({ headers: { host: 'synergysalon-abc123-support-2531s-projects.vercel.app' } }, { id: 'tenant-a' }, now), true);
+    assert.equal(previewAllowed({ headers: { host: 'synergysalon.com' } }, { id: 'tenant-a' }, now), false);
+    assert.equal(previewAllowed({ headers: { host: 'synergysalon.com.evil.app' } }, { id: 'tenant-a' }, now), false);
   } finally {
     if (saved === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = saved;
   }

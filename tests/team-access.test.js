@@ -11,8 +11,9 @@ import { test } from 'node:test';
 import { canManageTeam } from '../api/_lib/auth.js';
 import { welcomeEmail } from '../api/_lib/email.js';
 
-test('only the owner and the support login manage the team', () => {
+test('only the owner, an admin and the support login manage the team', () => {
   assert.equal(canManageTeam({ role: 'owner', email: 'dina@example.com' }), true);
+  assert.equal(canManageTeam({ role: 'admin', email: 'luis@example.com' }), true);
   assert.equal(canManageTeam({ role: 'front_desk', email: 'support@unclelouieproductions.com' }), true);
   assert.equal(canManageTeam({ role: 'stylist', email: ' Support@UncleLouieProductions.com ' }), true);
   assert.equal(canManageTeam({ role: 'manager', email: 'manager@example.com' }), false);

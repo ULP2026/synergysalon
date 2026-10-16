@@ -18,7 +18,7 @@ import { mintPreview } from '../../_lib/preview.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { centroStatus } from '../../cron/sync.js';
 
-const ADMIN = ['owner', 'manager'];
+const ADMIN = ['owner', 'admin', 'manager'];
 
 export default handler({
   async GET(req, res) {

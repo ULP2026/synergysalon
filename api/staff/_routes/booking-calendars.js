@@ -19,7 +19,7 @@ import {
 import { tenantForUser } from '../../_lib/tenant.js';
 
 /** Creating and deleting a way to be booked is not a front-desk job. */
-const CAN_MANAGE = ['owner', 'manager'];
+const CAN_MANAGE = ['owner', 'admin', 'manager'];
 
 /**
  * The kinds, and what each one actually does differently.

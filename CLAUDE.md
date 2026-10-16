@@ -131,12 +131,21 @@ the typed name): looking a profile up by name on a public page would expose
 any client's email and phone. Color's "Other" has no service, so it saves a
 lead for the salon to call, as "Not sure yet" did.
 
-**Demo mode for preview links.** `?booking-demo=1` on a `*.vercel.app` (or
-local) address opens the real popup despite the pause, shows a yellow
-"nothing is saved" bar, and answers "Book Me Now!" with a made-up booking
-without posting anything. It exists because preview deployments have their
-own `DATABASE_URL` that points at the live data, so a real test booking there
-is a real appointment. The flag is ignored on the salon's own domain.
+**Test mode on the Vercel addresses.** `?booking-demo=1` on a `*.vercel.app`
+(or local) address opens the real popup despite the pause, with a yellow
+"Test booking mode: bookings are real and show in the app" bar. Since
+2026-10-16 it **saves for real**: it used to answer "Book Me Now!" with a
+made-up booking, and the salon tested a booking and then could not find it in
+the app. The server lets it through because `previewAllowed` (preview.js) also
+accepts any request whose Host is `*.vercel.app`: those addresses are behind
+Vercel's login, and only this project's deployments receive them. If
+deployment protection is ever switched off they are as open as a live site.
+Preview deployments share the live `DATABASE_URL`, so a test there is a real
+appointment too: name test guests ZZ and delete them. The flag is ignored on
+the salon's own domain. The survey offers dates from tomorrow; the adapter now
+leaves closed any date the survey marks "unavailable" (today, the past, past
+six weeks) even when the server has times on it, because it showed today as
+live and then could never list a time.
 **The test link to send** is the production deployment's own address
 (`synergysalon-<hash>-support-2531s-projects.vercel.app/?booking-demo=1`,
 with a Vercel share token since the project's `*.vercel.app` addresses are
@@ -374,9 +383,12 @@ made that way are real: name them ZZ and remove them.
   adding somebody); a stylist sees their own grey and disabled, and
   `/profile` ignores hours sent to it, so the stored ones are kept; the steps card
   that used to say what opens it was removed on request. The admin
-  (`canManageTeam`, the app's one admin rule: role owner or a
-  `TEAM_ADMIN_EMAILS` login; managers are not admins; Luis Lara is the
-  admin, so his account needs the Owner role) gets neither Services & pricing nor Working hours (`#memberWork`
+  (`canManageTeam`, the app's one admin rule: role owner, role **admin**
+  (`TEAM_ADMIN_ROLES` in `auth.js`, migration 021, also in ensure-schema,
+  added 2026-10-16 so the person running the app need not be titled Owner),
+  or a `TEAM_ADMIN_EMAILS` login; managers are not admins; Luis Lara is the
+  admin, so his account needs the Owner or Admin role). An Admin also gets
+  everything a manager has (billing, deleting clients and appointments) gets neither Services & pricing nor Working hours (`#memberWork`
   hidden, `admin` flag from `/profile` and `/team`, and the server ignores
   services sent for an admin), and admin rows on the Team list show no
   service chips. Dina Lara is the owner AND a stylist: if she is given a
@@ -539,7 +551,15 @@ made that way are real: name them ZZ and remove them.
   "Remove from team" in their window), asked for in place of turning the
   account off. Their `stylists` row is switched off first, not deleted:
   appointments keep their name, and a stylist with no login would otherwise
-  count as bookable. Sessions and calendar tokens go with the login; booked-by
+  count as bookable. It is also marked `removed_at` (022, also in
+  ensure-schema): with the login gone the row has no `staff_user_id`, which is
+  what a stylist without a sign-in looks like, so until 2026-10-16 the person
+  just removed came back on the next load of the Team list. `listStandalone`
+  leaves removed rows out. A stylist without a sign-in can be removed the
+  same way (`st_<id>`, which used to be refused). ensure-schema also marks
+  members removed before the column existed: any switched-off row with no
+  login whose slug is not one of the salon's own (`GOOGLE_OPTIONAL_STYLISTS`).
+  `tests/team-remove.integration.test.js` drives the real handler. Sessions and calendar tokens go with the login; booked-by
   and approved-by links become empty. Only an owner can remove an owner, and
   nobody can remove themselves.
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
@@ -612,7 +632,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 95 tests; the database ones skip without DATABASE_URL
+npm test                    # 98 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and
