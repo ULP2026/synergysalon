@@ -98,3 +98,48 @@ test('a removed member stays removed, with or without a sign-in', { skip }, asyn
     await cleanup();
   }
 });
+
+test('price, duration and notes are kept, with or without a sign-in', { skip }, async () => {
+  await ensureSchema();
+  await cleanup();
+  try {
+    const { rows: [t] } = await query("SELECT id FROM tenants WHERE slug = 'synergy'");
+    const owner = (await query(
+      `INSERT INTO staff_users (tenant_id, email, password_hash, name, role)
+       VALUES ($1, 'zz-remove-owner@example.com', 'x', 'ZZ Remove Owner', 'owner') RETURNING *`, [t.id],
+    )).rows[0];
+    const res = { headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; } };
+    await createSession(res, owner);
+    const cookie = String(res.headers['set-cookie']).split(';')[0];
+    const member = (await query(
+      `INSERT INTO staff_users (tenant_id, email, password_hash, name, role)
+       VALUES ($1, 'zz-remove-stylist@example.com', 'x', 'ZZ Remove Stylist', 'stylist') RETURNING id`, [t.id],
+    )).rows[0];
+    const solo = (await query(
+      `INSERT INTO stylists (tenant_id, slug, name, active)
+       VALUES ($1, 'zz-remove-solo', 'ZZ Remove Solo', false) RETURNING id`, [t.id],
+    )).rows[0];
+
+    const services = {
+      color: { on: true, price: 85.5, duration: 120, notes: '  Patch test 48 hours before.  ' },
+      cuts: { on: false, price: null, duration: 45, notes: 'Kept while off.' },
+    };
+    for (const id of [member.id, `st_${solo.id}`]) {
+      assert.equal((await call('POST', cookie, { id, action: 'update', services })).status, 200);
+    }
+    const list = await call('GET', cookie);
+    const all = [...list.body.members, ...list.body.standalone];
+    for (const name of ['ZZ Remove Stylist', 'ZZ Remove Solo']) {
+      const s = all.find((m) => m.name === name).services;
+      assert.deepEqual(s.color, { on: true, price: 85.5, duration: 120, notes: 'Patch test 48 hours before.' }, name);
+      assert.equal(s.cuts.duration, 45);
+      assert.equal(s.cuts.notes, 'Kept while off.');
+    }
+
+    // A length that is not whole minutes in range is refused, not stored.
+    const bad = await call('POST', cookie, { id: member.id, action: 'update', services: { color: { on: true, duration: 2 } } });
+    assert.equal(bad.status, 400);
+  } finally {
+    await cleanup();
+  }
+});

@@ -107,9 +107,13 @@ export const SERVICE_KINDS = ['cuts', 'treatments', 'color', 'styling'];
 
 /**
  * A stylist's services and prices, cleaned: only the four known kinds, each
- * on or off, with a price in dollars when one was typed. Anything else is
- * dropped rather than stored, so the column only ever holds what the form can
- * show back.
+ * on or off, with a price in dollars, a length in minutes and their notes for
+ * clients when typed. Anything else is dropped rather than stored, so the
+ * column only ever holds what the form can show back.
+ *
+ * The length is the stylist's own, shown and kept with their prices. It does
+ * not set how long a guest is booked for: that is each service's length in
+ * the services table, one per service, where a kind holds several.
  */
 export function servicesFrom(value) {
   if (value === undefined) return undefined;
@@ -123,7 +127,12 @@ export function servicesFrom(value) {
       throw new HttpError(400, 'A price is a number of dollars, up to 10,000.');
     }
     if (price != null) price = Math.round(price * 100) / 100;
-    out[k] = { on, price };
+    let duration = v.duration === '' || v.duration == null ? null : Number(v.duration);
+    if (duration != null && (!Number.isInteger(duration) || duration < 5 || duration > 720)) {
+      throw new HttpError(400, 'A duration is a whole number of minutes, from 5 to 720.');
+    }
+    const notes = typeof v.notes === 'string' ? v.notes.trim().slice(0, 1000) : '';
+    out[k] = { on, price, duration, notes };
   }
   return out;
 }

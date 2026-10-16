@@ -45,6 +45,9 @@ const STATEMENTS = [
   // 022: a removed team member's stylist row is history, not a member, so it
   // stops reappearing on the Team list as a stylist without a sign-in.
   'ALTER TABLE stylists ADD COLUMN IF NOT EXISTS removed_at timestamptz',
+  // 023: prices, lengths and notes for a stylist without a sign-in, who has
+  // no staff_users.services to keep them in.
+  "ALTER TABLE stylists ADD COLUMN IF NOT EXISTS service_details jsonb NOT NULL DEFAULT '{}'::jsonb",
   // And the people removed before the column existed. Each salon's stylists
   // who were never given a login are named in config.js; any other
   // switched-off row with no login is somebody who was removed. Harmless to
