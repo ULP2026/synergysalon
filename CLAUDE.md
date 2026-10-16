@@ -419,10 +419,12 @@ made that way are real: name them ZZ and remove them.
   keeps it, and the Clients filters still label people by it. Connect your
   tools has a Stripe card under Google's reading "Coming Soon"
   (`.gcard.soon`, nothing to press). Services & pricing has Price and
-  Duration (minutes, 5 to 720) on each service, and a "Customize
-  Instructions & Rules" box with a "Notes / Special Instructions" field per
-  service that is on, placed directly under the section's description line
-  and above the service rows (moved there on request, 2026-10-16). All three live in the same `services` object
+  Duration (minutes, 5 to 720) on each service, and inside each service's
+  card, directly under its description, a "Notes / Special Instructions for
+  Clients" field, shown once the service is switched on (hidden, not
+  cleared, when it is switched off). It was a separate "Customize
+  Instructions & Rules" box until it moved into the cards on request,
+  2026-10-16. All three live in the same `services` object
   (`{on, price, duration, notes}`, cleaned by `servicesFrom` in
   `profile.js`): `staff_users.services` for a team member,
   `stylists.service_details` (023, also in ensure-schema) for a stylist

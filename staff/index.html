@@ -1458,17 +1458,12 @@
     .svc .price { grid-column: 2; }
     .svc .dur { grid-column: 3; }
   }
-  /* Customize Instructions & Rules: under the services, a box per service on. */
-  .svc-rules { margin: 0 0 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
-  .svc-rules-h { margin-bottom: 10px; }
-  .svc-rules-h b { display: block; font-size: .92rem; font-weight: 600; }
-  /* A gap, not margins: the boxes for services that are off are hidden, so
-     the last one shown is rarely the last in the list. */
-  #memberNotes { display: grid; gap: 10px; }
-  .svc-note { display: block; margin: 0; }
-  .svc-note > span { display: block; font-size: .78rem; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
-  .svc-note textarea { width: 100%; min-height: 60px; resize: vertical; font: inherit; font-size: .88rem; }
-  .svc-note-empty { margin: 0; }
+  /* Each service's notes for clients, in its own card on a second row that
+     starts under the service's description and runs to the card's edge.
+     Shown only while the service is on. */
+  .svc .svc-note { grid-column: 2 / -1; display: block; margin: 0; }
+  .svc .svc-note > span { display: block; font-size: .68rem; font-weight: 600; color: var(--muted); margin: 0 0 2px 2px; }
+  .svc .svc-note textarea { width: 100%; min-height: 54px; resize: vertical; font: inherit; font-size: .85rem; line-height: 1.4; }
   .md-pw { margin: 4px 0 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
   .md-pw summary { cursor: pointer; font-weight: 600; color: var(--link); }
 
@@ -2395,14 +2390,7 @@
       <div id="memberWork">
         <!-- Services and prices: four switches, a price beside each one that is on. -->
         <div class="md-sec">Services &amp; pricing</div>
-        <p class="small muted" style="margin:-6px 0 10px">Turn on what is offered, then type the starting price and how long it takes.</p>
-        <!-- One notes box per service that is on: what clients should know
-             or do before that service (asked for 2026-10-16). -->
-        <div class="svc-rules" id="memberRules">
-          <div class="svc-rules-h"><b>Customize Instructions &amp; Rules</b>
-            <span class="small muted">Notes and special instructions for clients, per service.</span></div>
-          <div id="memberNotes"></div>
-        </div>
+        <p class="small muted" style="margin:-6px 0 10px">Turn on what is offered, then type the starting price, how long it takes and any notes for clients.</p>
         <div class="svcs" id="memberSvcs"></div>
 
         <!-- Shown, grey and disabled, for everyone for now: the salon sets
@@ -5716,30 +5704,11 @@ function paintServices(services = {}) {
         data-f="price" aria-label="${esc(label)} starting price" value="${v.price != null ? Number(v.price).toFixed(2) : ''}" ${v.on ? '' : 'disabled'}></label>
       <label class="svc-f dur"><span>Duration</span><input type="number" min="5" max="720" step="5" inputmode="numeric" placeholder="60"
         data-f="duration" aria-label="${esc(label)} duration in minutes" value="${v.duration ?? ''}" ${v.on ? '' : 'disabled'}></label>
+      <label class="svc-note${v.on ? '' : ' hidden'}"><span>Notes / Special Instructions for Clients</span>
+        <textarea rows="2" maxlength="1000" placeholder="For example: arrive with dry hair, a patch test 48 hours before."
+          aria-label="${esc(label)} notes and special instructions for clients">${esc(v.notes || '')}</textarea></label>
     </div>`;
   }).join('');
-  // Kept for the services that are off too, so switching one off and back
-  // on in the same visit does not lose what was typed.
-  $('memberNotes').innerHTML = SERVICE_KINDS.map(([key, label]) => {
-    const v = services[key] || {};
-    return `<label class="svc-note${v.on ? '' : ' hidden'}" data-note="${key}"><span>${esc(label)}: Notes / Special Instructions</span>
-      <textarea rows="2" maxlength="1000" placeholder="For example: arrive with dry hair, a patch test 48 hours before, a deposit to book."
-        aria-label="${esc(label)} notes and special instructions">${esc(v.notes || '')}</textarea></label>`;
-  }).join('');
-  paintRulesState();
-}
-/** The rules section shows a box per service that is on, or says to turn one on. */
-function paintRulesState() {
-  const on = new Set([...$('memberSvcs').querySelectorAll('.svc:not(.off)')].map((r) => r.dataset.svc));
-  for (const box of $('memberNotes').querySelectorAll('.svc-note')) box.classList.toggle('hidden', !on.has(box.dataset.note));
-  let empty = $('memberNotes').querySelector('.svc-note-empty');
-  if (!empty) {
-    empty = document.createElement('p');
-    empty.className = 'small muted svc-note-empty';
-    empty.textContent = 'Turn on a service below to add its instructions.';
-    $('memberNotes').append(empty);
-  }
-  empty.classList.toggle('hidden', on.size > 0);
 }
 $('memberSvcs').onclick = (e) => {
   const sw = e.target.closest('.switch');
@@ -5750,10 +5719,12 @@ $('memberSvcs').onclick = (e) => {
   row.classList.toggle('off', !on);
   const inputs = row.querySelectorAll('input');
   for (const i of inputs) i.disabled = !on;
+  // Hidden, not cleared, while the service is off, so turning it back on in
+  // the same visit brings back what was typed.
+  row.querySelector('.svc-note').classList.toggle('hidden', !on);
   const kind = SERVICE_KINDS.find(([k]) => k === row.dataset.svc);
   row.querySelector('small').textContent = on ? kind[2] : 'Not offered';
   paintHoursState();
-  paintRulesState();
   if (on) inputs[0].focus();
 };
 /** Sunday first, the way a rota is written and the way the schema counts. */
@@ -5939,7 +5910,7 @@ function readServices() {
     const on = row.querySelector('.switch').getAttribute('aria-checked') === 'true';
     const raw = row.querySelector('[data-f=price]').value.trim();
     const dur = row.querySelector('[data-f=duration]').value.trim();
-    const notes = $('memberNotes').querySelector(`[data-note="${row.dataset.svc}"] textarea`).value.trim();
+    const notes = row.querySelector('.svc-note textarea').value.trim();
     out[row.dataset.svc] = { on, price: raw === '' ? null : Number(raw), duration: dur === '' ? null : Number(dur), notes };
   }
   return out;
@@ -6025,7 +5996,7 @@ async function openMember(who) {
   for (const sw of $('memberSvcs').querySelectorAll('.switch, input')) {
     if (viewOnly) sw.disabled = true;
   }
-  for (const t of $('memberNotes').querySelectorAll('textarea')) t.disabled = Boolean(viewOnly);
+  for (const t of $('memberSvcs').querySelectorAll('textarea')) t.disabled = Boolean(viewOnly);
   $('memberPic').disabled = Boolean(viewOnly || noLogin);
   $('memberPicPick').classList.toggle('hidden', Boolean(viewOnly || noLogin));
 
