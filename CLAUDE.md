@@ -368,7 +368,8 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: one Salon & Team tab (Appearance, Where do you want people to reply to, Team Members, then Salon Profile, merged into one page on request on 2026-10-15; the tab key is still `team`), and Billing for owners and managers. It has no Calendars tab:
+  for everyone: one Salon & Team tab (Appearance, Where do you want people to reply to, Team Members, then Salon Profile, merged into one page on request on 2026-10-15; the tab key is still `team`), and Billing and Payroll for owners, admins and managers (Payroll, right
+  of Billing, is a "Coming soon" card like Billing's, added 2026-10-16). It has no Calendars tab:
   calendars are made from Appt. Book's "Create a calendar" note (shown only
   while there are none) or `/staff/calendars`, without choosing members for now
   (stylists are not on the app yet; calendar settings saves members back
@@ -418,9 +419,10 @@ made that way are real: name them ZZ and remove them.
   keeps it, and the Clients filters still label people by it. Connect your
   tools has a Stripe card under Google's reading "Coming Soon"
   (`.gcard.soon`, nothing to press). Services & pricing has Price and
-  Duration (minutes, 5 to 720) on each service, then a "Customize
+  Duration (minutes, 5 to 720) on each service, and a "Customize
   Instructions & Rules" box with a "Notes / Special Instructions" field per
-  service that is on. All three live in the same `services` object
+  service that is on, placed directly under the section's description line
+  and above the service rows (moved there on request, 2026-10-16). All three live in the same `services` object
   (`{on, price, duration, notes}`, cleaned by `servicesFrom` in
   `profile.js`): `staff_users.services` for a team member,
   `stylists.service_details` (023, also in ensure-schema) for a stylist
