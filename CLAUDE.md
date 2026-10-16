@@ -117,7 +117,17 @@ The survey (same code in all six pages, Riverview included) is: 1 the kinds of s
 Cuts, Treatments, Styling, AI Scalp Analysis, "Select all that apply" as a
 pill), 2 stylist, 3 who it is for, 4 service details (one question per kind
 picked; the scalp analysis is a details card), 5 availability, 6 name, email,
-phone and optional notes with "Book Me Now!" (stylist moved to step 2 on
+phone and optional notes with "Book Me Now!" (the confirmation, redesigned
+2026-10-16: "You're booked, <first name>!" over "Your appointment is set for
+**<day>** at **<time>**", then the details on the left (`bkSummary`: service,
+For, which reads as the guest's own name for "Myself", date and time, phone,
+location) beside a card for the stylist on the right (`bkWho*`: their portrait
+from `bkTeam`, else initials), the one the server actually booked
+(`stylist` in `/api/enquiry`'s reply, passed through `ss-bk-result` as
+`bookedWith`) so "First available" shows a real person. It fits without
+scrolling down to 375x667: short screens drop the date row, which repeats the
+line under the title (`bk-dup`), and phones keep the "How did you hear" chips
+on one sideways-scrolling row; stylist moved to step 2 on
 request, 2026-10-15, by remapping `bkS2`..`bkS4` and `bkCan` in the
 template's logic; the design source still has the old order, so a new export
 undoes it until it is changed in Claude Design too), then a confirmation with
