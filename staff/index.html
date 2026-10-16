@@ -1616,6 +1616,12 @@
   .tm-who i { font-style: normal; font-weight: 500; font-size: .78rem; color: var(--muted); }
   .tm-who i.tm-you { margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
   .tm-svc { margin-top: 3px; }
+  .tm-who .tm-line { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; overflow: visible; white-space: normal; }
+  .tm-who .tm-line b { display: inline; }
+  .tm-who .tm-line .chip { display: inline-flex; font-size: .72rem; padding: 2px 8px; }
+  .tm-who .tm-line .tm-you { margin-left: 0; }
+  .tm-who .tm-phone { margin-top: 2px; font-size: .82rem; font-variant-numeric: tabular-nums; }
+  .tm-who .tm-phone .muted { display: inline; }
   .tm-addrow { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 12px; border-radius: 12px;
                border: 1px dashed var(--line-2); background: var(--raise); }
   .tm-addic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--peri-pale); color: var(--periwinkle); flex: none; }
@@ -6159,27 +6165,25 @@ $('memberForm').onsubmit = async (e) => {
 
 let teamCurrent = null;     // the signed-in person, as the list shows them
 
-function svcSummary(services = {}) {
-  return SERVICE_KINDS.map(([key, label]) => {
-    const v = services[key] || {};
-    const text = v.on ? (v.price != null ? `${label} $${v.price}` : label) : label;
-    return `<i class="${v.on ? 'on' : ''}" title="${esc(v.on ? 'Offered' : 'Not offered')}">${esc(text)}</i>`;
-  }).join('');
-}
-
 let teamOthers = [];        // everyone else on the team, visible to everybody, editable by the admin
 
 function memberRow(m, self) {
-  const status = m.noLogin
-    ? (m.bookable ? '<span class="chip ok">Bookable</span>' : '<span class="chip">Not bookable</span>')
-    : m.status === 'disabled' ? '<span class="chip">Turned off</span>' : '<span class="chip ok">Active</span>';
+  // Asked for 2026-10-16: the name with the role beside it, the phone under
+  // it (not the email, not the services), and on the right one thing only:
+  // whether their calendar is connected. That is what decides whether a guest
+  // can book them online, so it is the status worth a glance. A stylist
+  // without a sign in cannot connect one, so they read as not connected.
+  const connected = Boolean(m.google && m.google.connected);
+  const cal = connected
+    ? '<span class="chip ok">Calendar connected</span>'
+    : '<span class="chip warn">Calendar not connected</span>';
+  const role = m.noLogin ? 'Stylist' : (ROLE_LABEL[m.role] || m.role);
   return `<button type="button" class="tm-row${self ? ' me' : ''}${m.status === 'disabled' ? ' off' : ''}" data-member="${self ? 'me' : esc(m.id)}"
       aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
     <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""><span class="pen">${ic('edit')}</span></span>
-    <span class="tm-who"><b>${esc(m.name)}${m.username ? ` <i class="tm-handle">@${esc(m.username)}</i>` : ''}${self ? ' <i class="tm-you">You</i>' : ''}</b>
-      <span>${esc(m.noLogin ? (m.title || 'Stylist, no sign in') : m.email)}${!m.noLogin && m.phone ? ` · ${esc(m.phone)}` : ''}</span>
-      ${m.admin ? '' : `<span class="tm-svc">${svcSummary(m.services)}</span>`}</span>
-    <span class="tm-badges"><span class="chip role">${esc(ROLE_LABEL[m.role] || m.role)}</span>${status}</span>
+    <span class="tm-who"><span class="tm-line"><b>${esc(m.name)}</b><span class="chip role">${esc(role)}</span>${self ? '<i class="tm-you">You</i>' : ''}</span>
+      <span class="tm-phone">${m.phone ? esc(m.phone) : '<span class="muted">No phone number</span>'}</span></span>
+    <span class="tm-badges">${cal}</span>
   </button>`;
 }
 
