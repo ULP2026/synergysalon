@@ -411,6 +411,23 @@ made that way are real: name them ZZ and remove them.
   and Google status from `GET /api/staff/profile`, and `PATCH` saves hours
   and syncs the stylist row as `team.js` does; before, your own hours opened
   empty and were thrown away on save.
+- **The team member window's header** is the picture, the name (edited in
+  place) and the phone under it (`#memberPhoneLine`, kept in step with the
+  Phone field by `paintPhoneLine()`), asked for 2026-10-16. The username is
+  no longer shown there: its row is hidden but stays in the form, so saving
+  keeps it, and the Clients filters still label people by it. Connect your
+  tools has a Stripe card under Google's reading "Coming Soon"
+  (`.gcard.soon`, nothing to press). Services & pricing has Price and
+  Duration (minutes, 5 to 720) on each service, then a "Customize
+  Instructions & Rules" box with a "Notes / Special Instructions" field per
+  service that is on. All three live in the same `services` object
+  (`{on, price, duration, notes}`, cleaned by `servicesFrom` in
+  `profile.js`): `staff_users.services` for a team member,
+  `stylists.service_details` (023, also in ensure-schema) for a stylist
+  without a sign-in, who until then lost their prices on save. The
+  duration is the stylist's own figure, shown and kept; it does **not**
+  set how long a guest is booked for, which is still each service's
+  `duration_min`, and the notes are not shown to guests yet.
 - **Connect your tools** is one "Connect Google Calendar" button in the team
   member window (yours, or anyone's for the owner and the support login). It opens an
   account chooser laid out like Google's (`#gDlg`), listing the accounts the
@@ -648,7 +665,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 98 tests; the database ones skip without DATABASE_URL
+npm test                    # 99 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and

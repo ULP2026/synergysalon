@@ -212,7 +212,9 @@ export async function listStandalone(client, tenantId) {
                  FROM stylist_hours h WHERE h.stylist_id = s.id), '[]'::jsonb) AS hours,
             COALESCE((SELECT jsonb_agg(DISTINCT v.category)
                  FROM stylist_services ss JOIN services v ON v.id = ss.service_id
-                WHERE ss.stylist_id = s.id), '[]'::jsonb) AS categories
+                WHERE ss.stylist_id = s.id), '[]'::jsonb) AS categories,
+            -- Through to_jsonb so this still runs before migration 023.
+            to_jsonb(s) -> 'service_details' AS details
        FROM stylists s
       WHERE s.tenant_id = $1 AND s.staff_user_id IS NULL
         -- A removed member's row has no login either, but it is history
@@ -229,8 +231,12 @@ export async function listStandalone(client, tenantId) {
     title: r.title || '',
     bookable: r.active,
     hours: r.hours ?? [],
-    // Back into the shape the team dialog's switches speak.
-    services: Object.fromEntries(SERVICE_KINDS.map((k) => [k, { on: (r.categories ?? []).includes(k) }])),
+    // Back into the shape the team dialog's switches speak. Whether a kind is
+    // on is what the booking engine reads (stylist_services); the price,
+    // length and notes beside it are kept in service_details.
+    services: Object.fromEntries(SERVICE_KINDS.map((k) => [k, {
+      ...(r.details?.[k] || {}), on: (r.categories ?? []).includes(k),
+    }])),
     stylistSlug: r.slug,
   }));
 }
@@ -250,6 +256,17 @@ export async function syncStandalone(client, tenantId, stylistId, { services, ho
 
   const kinds = SERVICE_KINDS.filter((k) => services?.[k]?.on);
   await client.query('UPDATE stylists SET active = $2 WHERE id = $1', [stylistId, kinds.length > 0]);
+  if (services) {
+    // Its own statement, so turning a stylist on still works on a database
+    // that has not had migration 023 yet.
+    await client.query('SAVEPOINT details');
+    try {
+      await client.query('UPDATE stylists SET service_details = $2::jsonb WHERE id = $1', [stylistId, JSON.stringify(services)]);
+      await client.query('RELEASE SAVEPOINT details');
+    } catch {
+      await client.query('ROLLBACK TO SAVEPOINT details');
+    }
+  }
 
   const ids = await serviceIdsFor(client, tenantId, kinds);
   await client.query('DELETE FROM stylist_services WHERE stylist_id = $1', [stylistId]);
