@@ -689,6 +689,18 @@ must stay that way: anything committed here is served publicly.
 
 ## Still outstanding
 
+- **The Brandon and FishHawk pages are on hold until about 2026-10-20**
+  (salon's instruction, 2026-10-16). Do not create, publish or link
+  `hair-salon-brandon.html` or `hair-salon-fishhawk.html` before that date,
+  and do not treat the Riverview page as a template to fan out from yet.
+
+  Both towns are already served on the site and that stays as it is: they are
+  in the `areaServed` city list in every page's schema, in the home page's
+  "Valrico, Brandon, Lithia and FishHawk" lede, and in the hero line "Serving
+  Valrico, Brandon, Lithia, and FishHawk since 2004." The hold is on the two
+  dedicated geo landing pages, nothing else. Taking the towns out of the copy
+  or the schema would be the opposite of what was asked.
+
 - **Stylists are to set their own availability (salon's decision, 2026-10-15).**
   Today they cannot: `hoursOpen()` in the console opens Working hours only to
   an admin editing somebody else, and `/api/staff/profile` throws away any
