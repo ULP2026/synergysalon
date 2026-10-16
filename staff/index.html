@@ -1756,8 +1756,19 @@
   .md-handle input { border: 0; background: none; padding: 3px 0 3px 1px; font: inherit; color: inherit; width: 18ch;
                      min-width: 0; height: auto; box-shadow: none; outline: none; }
   .md-sec.first { border-top: 0; padding-top: 0; margin-top: 0; }
-  .md-phone { margin: 0 0 6px; font-size: var(--fs-sm); color: var(--muted); }
-  .md-phone:not(.muted) { color: var(--ink); opacity: .8; }
+  /* The phone under the name: plain text until clicked, then a field, the
+     same treatment as the name above it. */
+  .md-phone-row { margin: 0 0 6px; }
+  .md-phone { display: flex; align-items: center; margin: 0 0 0 -8px; padding: 0 8px; border: 1.5px solid transparent;
+              border-radius: 9px; max-width: 100%; color: var(--ink); font-size: var(--fs-sm); }
+  .md-phone:hover:has(input:not(:disabled)) { border-color: rgba(85, 96, 166, .25); }
+  .md-phone:focus-within { border-color: var(--periwinkle); background: var(--card); }
+  .md-phone input { border: 0; background: none; padding: 3px 0; font: inherit; color: inherit; height: auto;
+                    box-shadow: none; outline: none; min-width: 12ch; max-width: 24ch; width: auto; field-sizing: content; opacity: .85; }
+  .md-phone input::placeholder { color: var(--faint); }
+  .md-phone input:disabled { color: inherit; -webkit-text-fill-color: currentColor; }
+  .md-phone-row .md-pen { width: 26px; height: 26px; }
+  .md-phone-row .md-pen .ic { width: 14px; height: 14px; }
   :root[data-theme="dark"] .md-head h2.md-eyebrow { color: var(--ink); }
 
   /* Change picture: two choices over the team window */
@@ -2351,10 +2362,16 @@
           <input class="md-name" name="name" required autocomplete="off" placeholder="Full name" aria-label="Name" maxlength="120">
           <button type="button" class="md-pen" data-edit="name" aria-label="Edit name" title="Edit name"><svg class="ic"><use href="#i-edit"/></svg></button>
         </div>
-        <!-- Their phone, under the name (asked for 2026-10-16), kept in step
-             with the Phone field below. The username is no longer shown in
-             this window; the field stays, hidden, so saving keeps it. -->
-        <p class="md-phone hidden" id="memberPhoneLine"></p>
+        <!-- Their phone, under the name (asked for 2026-10-16), and the only
+             place it is asked for: edited here like the name, so Personal
+             information below does not ask for it again. The username is no
+             longer shown in this window; its field stays, hidden, so saving
+             keeps it. -->
+        <div class="md-editrow md-phone-row" id="memberPhoneRow">
+          <div class="md-phone"><input type="tel" name="phone" autocomplete="off" placeholder="Phone number"
+            aria-label="Phone" maxlength="40"></div>
+          <button type="button" class="md-pen" data-edit="phone" aria-label="Edit phone" title="Edit phone"><svg class="ic"><use href="#i-edit"/></svg></button>
+        </div>
         <div class="md-editrow md-handle-row hidden" aria-hidden="true">
           <div class="md-handle"><span aria-hidden="true">@</span><input name="username" placeholder="username" autocomplete="off"
             aria-label="Username" pattern="@?[A-Za-z0-9._\-]{3,32}" title="3 to 32 letters, numbers, dots, dashes or underscores"></div>
@@ -2369,16 +2386,15 @@
       <div class="md-sec first" id="memberPersonal">Personal information</div>
       <div class="two">
         <label><span>Email</span><input type="email" name="email" required autocomplete="off"></label>
-        <label><span>Phone</span><input type="tel" name="phone" autocomplete="off" placeholder="(813) 555-0123" maxlength="40"></label>
+        <label><span>Role</span>
+          <select name="role">
+            <option value="stylist">Stylist</option>
+            <option value="front_desk">Front desk</option>
+            <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
+            <option value="owner">Owner</option>
+          </select></label>
       </div>
-      <label><span>Role</span>
-        <select name="role">
-          <option value="stylist">Stylist</option>
-          <option value="front_desk">Front desk</option>
-          <option value="manager">Manager</option>
-          <option value="admin">Admin</option>
-          <option value="owner">Owner</option>
-        </select></label>
       <p class="small muted hidden" id="memberRoleNote" style="margin:-8px 0 12px"></p>
 
       <!-- One button; the account is chosen in its own window (gDlg). -->
@@ -5893,17 +5909,6 @@ function readHoursUI() {
   return out;
 }
 
-/** The phone under the name: what the Phone field says, or nothing. */
-function paintPhoneLine() {
-  const f = $('memberForm');
-  const noLogin = Boolean(memberEdit && memberEdit.noLogin);
-  const phone = noLogin ? '' : String(f.elements.phone.value || '').trim();
-  $('memberPhoneLine').textContent = phone || (memberEdit && !noLogin ? 'No phone number' : '');
-  $('memberPhoneLine').classList.toggle('muted', !phone);
-  $('memberPhoneLine').classList.toggle('hidden', !phone && !(memberEdit && !noLogin));
-}
-$('memberForm').elements.phone.addEventListener('input', paintPhoneLine);
-
 function readServices() {
   const out = {};
   for (const row of $('memberSvcs').querySelectorAll('.svc')) {
@@ -5966,9 +5971,10 @@ async function openMember(who) {
   // their services and hours are kept (team.js, syncStandalone), so the parts
   // of this window about access, and the name and picture, are read-only.
   const noLogin = Boolean(m && m.noLogin);
-  for (const k of ['email', 'phone', 'role']) f.elements[k].closest('label').classList.toggle('hidden', noLogin);
+  for (const k of ['email', 'role']) f.elements[k].closest('label').classList.toggle('hidden', noLogin);
+  // A stylist without a sign-in has no phone kept for them, so none is offered.
+  $('memberPhoneRow').classList.toggle('hidden', noLogin);
   $('memberPersonal').classList.toggle('hidden', noLogin);
-  paintPhoneLine();
   f.elements.email.required = !noLogin;
   f.elements.name.readOnly = noLogin;
   if (noLogin) $('memberCreate').classList.add('hidden');
