@@ -122,7 +122,7 @@ phone and optional notes with "Book Me Now!" (the confirmation, redesigned
 **<day>** at **<time>**", then the details on the left (`bkSummary`: service,
 For, which reads as the guest's own name for "Myself", date and time, phone,
 location) beside a card for the stylist on the right (`bkWho*`: their portrait
-from `bkTeam`, else initials), the one the server actually booked
+from `bkTeam`, else initials; the service row is set larger, `bk-svc`), the one the server actually booked
 (`stylist` in `/api/enquiry`'s reply, passed through `ss-bk-result` as
 `bookedWith`) so "First available" shows a real person. It fits without
 scrolling down to 375x667: short screens drop the date row, which repeats the
@@ -517,7 +517,13 @@ made that way are real: name them ZZ and remove them.
   `/api/staff/me` of each warm function, because production ran ahead of
   `db:migrate`. Idempotent; `db:migrate` remains the record.
 - Team Members lists you, then everyone else on the team, each card opening
-  the same modal, then an "Add a team member" row. Everybody can read the
+  the same modal, then an "Add a team member" row. A card (`memberRow`,
+  redesigned on request 2026-10-16) is the picture, the name with the role
+  chip beside it, the phone under it (not the email, not the services), and
+  on the right one status only: "Calendar connected" (green, `chip ok`) or
+  "Calendar not connected" (red, `chip warn`) from `m.google.connected`,
+  which is what decides whether a guest can book them online. A stylist
+  without a sign in reads as not connected. Everybody can read the
   team (name, picture, email, phone, role, services, hours: `GET
   /api/staff/team` is `requireStaff`), as the salon asked, but only the admin
   changes anybody else: POST is `requireTeamAdmin`, and a non-admin opening a
