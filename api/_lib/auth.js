@@ -113,11 +113,15 @@ export async function requireStaff(req, roles = null) {
  *
  * Everybody else sees and changes their own account only. Managers used to
  * be able to as well; the salon asked for that to be the owner alone, plus
- * the agency's support login (TEAM_ADMIN_EMAILS), which sets people up.
+ * the agency's support login (TEAM_ADMIN_EMAILS), which sets people up, and
+ * then (2026-10-16) an Admin role with the same rights, so whoever runs the
+ * app need not be made an owner to do it.
  */
+export const TEAM_ADMIN_ROLES = ['owner', 'admin'];
+
 export function canManageTeam(user) {
   if (!user) return false;
-  return user.role === 'owner'
+  return TEAM_ADMIN_ROLES.includes(user.role)
     || TEAM_ADMIN_EMAILS.includes(String(user.email || '').trim().toLowerCase());
 }
 
@@ -125,7 +129,7 @@ export function canManageTeam(user) {
 export async function requireTeamAdmin(req) {
   const user = await requireStaff(req);
   if (!canManageTeam(user)) {
-    throw new HttpError(403, 'Only the owner can open other team members’ accounts.');
+    throw new HttpError(403, 'Only an owner or admin can open other team members’ accounts.');
   }
   return user;
 }

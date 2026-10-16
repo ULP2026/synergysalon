@@ -374,9 +374,12 @@ made that way are real: name them ZZ and remove them.
   adding somebody); a stylist sees their own grey and disabled, and
   `/profile` ignores hours sent to it, so the stored ones are kept; the steps card
   that used to say what opens it was removed on request. The admin
-  (`canManageTeam`, the app's one admin rule: role owner or a
-  `TEAM_ADMIN_EMAILS` login; managers are not admins; Luis Lara is the
-  admin, so his account needs the Owner role) gets neither Services & pricing nor Working hours (`#memberWork`
+  (`canManageTeam`, the app's one admin rule: role owner, role **admin**
+  (`TEAM_ADMIN_ROLES` in `auth.js`, migration 021, also in ensure-schema,
+  added 2026-10-16 so the person running the app need not be titled Owner),
+  or a `TEAM_ADMIN_EMAILS` login; managers are not admins; Luis Lara is the
+  admin, so his account needs the Owner or Admin role). An Admin also gets
+  everything a manager has (billing, deleting clients and appointments) gets neither Services & pricing nor Working hours (`#memberWork`
   hidden, `admin` flag from `/profile` and `/team`, and the server ignores
   services sent for an admin), and admin rows on the Team list show no
   service chips. Dina Lara is the owner AND a stylist: if she is given a

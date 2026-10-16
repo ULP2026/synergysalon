@@ -30,6 +30,8 @@ const STATEMENTS = [
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_connected_at timestamptz',
   // 016: Stylist as a role, so Clients can offer a filter per stylist.
   "ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'stylist'",
+  // 021: Admin as a role, the owner's rights over the team without the title.
+  "ALTER TYPE staff_role ADD VALUE IF NOT EXISTS 'admin'",
   // 017: the inbox guests' replies go to, set in Team Settings.
   'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS reply_to text',
   // 018: a Google Calendar by its private iCal address (google-ics.js).

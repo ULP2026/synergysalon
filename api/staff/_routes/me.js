@@ -22,7 +22,7 @@ export default handler({
     // columns get made if db:migrate has not been run (see ensure-schema.js).
     await ensureSchema();
 
-    const canAdmin = ['owner', 'manager'].includes(user.role);
+    const canAdmin = ['owner', 'admin', 'manager'].includes(user.role);
     // Other people's accounts: the owner and the support login only. Managers
     // keep everything else canAdmin gives them (billing, deleting clients).
     const canManage = canManageTeam(user);

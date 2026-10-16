@@ -100,7 +100,7 @@ export function avatarStyleFrom(value) {
 }
 
 /** Pricing describes how a stylist charges; owners and managers set it. */
-const CAN_PRICE = ['owner', 'manager'];
+const CAN_PRICE = ['owner', 'admin', 'manager'];
 
 /** The four kinds of work, in the order the salon lists them. */
 export const SERVICE_KINDS = ['cuts', 'treatments', 'color', 'styling'];

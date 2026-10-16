@@ -26,7 +26,7 @@ const STATUSES = ['new', 'contacted', 'booked', 'won', 'lost'];
  * Deleting takes a salon's client out of both systems and cannot be undone,
  * so it is kept to the people who already decide who works there.
  */
-const CAN_DELETE = ['owner', 'manager'];
+const CAN_DELETE = ['owner', 'admin', 'manager'];
 
 /**
  * Remove a contact inside the caller's transaction.

@@ -15,7 +15,7 @@
  * non-admin's copy.
  */
 import {
-  assertSameOrigin, canManageTeam, requireStaff, requireTeamAdmin,
+  assertSameOrigin, canManageTeam, requireStaff, requireTeamAdmin, TEAM_ADMIN_ROLES,
 } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
@@ -35,7 +35,7 @@ import {
   assertUsernameFree, avatarFrom, avatarStyleFrom, phoneFrom, servicesFrom, usernameFrom,
 } from './profile.js';
 
-const ROLES = ['owner', 'manager', 'front_desk', 'stylist'];
+const ROLES = ['owner', 'admin', 'manager', 'front_desk', 'stylist'];
 
 /** How long an invite is good for. Long enough for a day off, short enough
  * that a forwarded link does not sit live for a month. */
@@ -181,7 +181,7 @@ export default handler({
       const name = requireString(body.name, 'Name', { max: 120 });
       const email = requireEmail(body.email);
       const role = ROLES.includes(body.role) ? body.role : 'front_desk';
-      if (role === 'owner' && !canManageTeam(user)) {
+      if (TEAM_ADMIN_ROLES.includes(role) && !canManageTeam(user)) {
         throw new HttpError(403, 'Only an owner can make someone else an owner.');
       }
 
@@ -372,7 +372,7 @@ export default handler({
         const role = requireString(body.role, 'Role', { max: 20 });
         if (!ROLES.includes(role)) throw new HttpError(400, 'That is not a role.');
         // Only an owner can make another owner.
-        if (role === 'owner' && !canManageTeam(user)) {
+        if (TEAM_ADMIN_ROLES.includes(role) && !canManageTeam(user)) {
           throw new HttpError(403, 'Only an owner can make someone else an owner.');
         }
         await query('UPDATE staff_users SET role = $2 WHERE id = $1', [target.id, role]);
@@ -418,7 +418,7 @@ export default handler({
         if (style !== undefined) add('avatar_style', style);
         if (body.role !== undefined) {
           if (!ROLES.includes(body.role)) throw new HttpError(400, 'That is not a role.');
-          if (body.role === 'owner' && !canManageTeam(user)) {
+          if (TEAM_ADMIN_ROLES.includes(body.role) && !canManageTeam(user)) {
             throw new HttpError(403, 'Only an owner can make someone else an owner.');
           }
           add('role', body.role);
