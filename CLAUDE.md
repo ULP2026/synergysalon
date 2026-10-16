@@ -386,7 +386,7 @@ made that way are real: name them ZZ and remove them.
   edited in place (it is the Name field), and @username under it, each
   with a pencil that puts the cursor in the field (hidden where it cannot be
   edited). Then
-  Personal information (Email, Phone, Role; phone is `staff_users.phone`,
+  Personal information (Email, Role; phone is `staff_users.phone`, edited under the name,
   007, now read and written by `team.js` as well as `profile.js`), Connect
   your tools, Services & pricing, Working hours. A stylist without a sign-in shows only
   services and hours (name and picture read-only). Working hours are set
@@ -413,8 +413,9 @@ made that way are real: name them ZZ and remove them.
   and syncs the stylist row as `team.js` does; before, your own hours opened
   empty and were thrown away on save.
 - **The team member window's header** is the picture, the name (edited in
-  place) and the phone under it (`#memberPhoneLine`, kept in step with the
-  Phone field by `paintPhoneLine()`), asked for 2026-10-16. The username is
+  place) and the phone under it (`#memberPhoneRow`, asked for 2026-10-16).
+  The phone is edited there in place with its own pencil, like the name, and
+  Personal information no longer has a Phone field (Email and Role only). The username is
   no longer shown there: its row is hidden but stays in the form, so saving
   keeps it, and the Clients filters still label people by it. Connect your
   tools has a Stripe card under Google's reading "Coming Soon"
