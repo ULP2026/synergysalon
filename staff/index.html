@@ -1459,11 +1459,13 @@
     .svc .dur { grid-column: 3; }
   }
   /* Customize Instructions & Rules: under the services, a box per service on. */
-  .svc-rules { margin: 4px 0 16px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
+  .svc-rules { margin: 0 0 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
   .svc-rules-h { margin-bottom: 10px; }
   .svc-rules-h b { display: block; font-size: .92rem; font-weight: 600; }
-  .svc-note { display: block; margin: 0 0 10px; }
-  .svc-note:last-of-type { margin-bottom: 0; }
+  /* A gap, not margins: the boxes for services that are off are hidden, so
+     the last one shown is rarely the last in the list. */
+  #memberNotes { display: grid; gap: 10px; }
+  .svc-note { display: block; margin: 0; }
   .svc-note > span { display: block; font-size: .78rem; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
   .svc-note textarea { width: 100%; min-height: 60px; resize: vertical; font: inherit; font-size: .88rem; }
   .svc-note-empty { margin: 0; }
@@ -2246,6 +2248,7 @@
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
         <button type="button" data-set="team" aria-pressed="true">Salon &amp; Team</button>
         <button type="button" data-set="billing" aria-pressed="false" data-admin>Billing</button>
+        <button type="button" data-set="payroll" aria-pressed="false" data-admin>Payroll</button>
       </div>
 
       <!-- Salon & Team: how the app looks, where replies go, the team and the
@@ -2289,6 +2292,19 @@
           <p class="small muted" style="margin:12px 0 0;max-width:46ch">
             Plans, invoices and payment details will live here. Nothing is being
             charged today.
+          </p>
+        </div>
+      </div>
+
+      <!-- Payroll: a placeholder beside Billing (asked for 2026-10-16), for
+           the same people, until it is built. -->
+      <div class="card setpane hidden" id="set-payroll">
+        <div class="card-head" style="margin-bottom:4px"><h2>Payroll</h2></div>
+        <div class="soon">
+          <span class="chip">Coming soon</span>
+          <p class="small muted" style="margin:12px 0 0;max-width:46ch">
+            Pay for each team member, worked out from their appointments, will
+            live here. Nothing is being paid from the app today.
           </p>
         </div>
       </div>
@@ -2380,7 +2396,6 @@
         <!-- Services and prices: four switches, a price beside each one that is on. -->
         <div class="md-sec">Services &amp; pricing</div>
         <p class="small muted" style="margin:-6px 0 10px">Turn on what is offered, then type the starting price and how long it takes.</p>
-        <div class="svcs" id="memberSvcs"></div>
         <!-- One notes box per service that is on: what clients should know
              or do before that service (asked for 2026-10-16). -->
         <div class="svc-rules" id="memberRules">
@@ -2388,6 +2403,7 @@
             <span class="small muted">Notes and special instructions for clients, per service.</span></div>
           <div id="memberNotes"></div>
         </div>
+        <div class="svcs" id="memberSvcs"></div>
 
         <!-- Shown, grey and disabled, for everyone for now: the salon sets
              schedules: only the admin sets a stylist's hours (hoursOpen()). -->
@@ -5720,7 +5736,7 @@ function paintRulesState() {
   if (!empty) {
     empty = document.createElement('p');
     empty.className = 'small muted svc-note-empty';
-    empty.textContent = 'Turn on a service above to add its instructions.';
+    empty.textContent = 'Turn on a service below to add its instructions.';
     $('memberNotes').append(empty);
   }
   empty.classList.toggle('hidden', on.size > 0);
@@ -6465,11 +6481,11 @@ function loadAccount() {
 // ─────────────────────── settings sections ───────────────────────
 
 let setTab = 'team';
-const SET_TABS = ['team', 'billing'];
+const SET_TABS = ['team', 'billing', 'payroll'];
 
 function showSetting(name) {
   if (!SET_TABS.includes(name)) name = 'team';
-  if (name === 'billing' && !me?.user?.canAdmin) name = 'team';
+  if ((name === 'billing' || name === 'payroll') && !me?.user?.canAdmin) name = 'team';
   setTab = name;
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
@@ -7113,8 +7129,8 @@ async function start(landing) {
   $('app').classList.remove('hidden');
 
   paintMe();
-  // Settings is everyone's now (Team Settings lives there); Billing is the
-  // one tab only owners and managers see.
+  // Settings is everyone's now (Team Settings lives there); Billing and
+  // Payroll are the tabs only owners, admins and managers see.
   for (const b of document.querySelectorAll('#setSeg [data-admin]')) b.classList.toggle('hidden', !me.user.canAdmin);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
