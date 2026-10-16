@@ -215,6 +215,10 @@ export async function listStandalone(client, tenantId) {
                 WHERE ss.stylist_id = s.id), '[]'::jsonb) AS categories
        FROM stylists s
       WHERE s.tenant_id = $1 AND s.staff_user_id IS NULL
+        -- A removed member's row has no login either, but it is history
+        -- (kept for its appointments), not somebody on the team. Through
+        -- to_jsonb so this still runs before migration 022.
+        AND (to_jsonb(s) ->> 'removed_at') IS NULL
       ORDER BY s.active DESC, s.sort_order, s.name`,
     [tenantId],
   );
@@ -238,7 +242,8 @@ export async function listStandalone(client, tenantId) {
  */
 export async function syncStandalone(client, tenantId, stylistId, { services, hours } = {}) {
   const { rows } = await client.query(
-    'SELECT id, slug FROM stylists WHERE id = $1 AND tenant_id = $2 AND staff_user_id IS NULL',
+    `SELECT id, slug FROM stylists s WHERE id = $1 AND tenant_id = $2 AND staff_user_id IS NULL
+        AND (to_jsonb(s) ->> 'removed_at') IS NULL`,
     [stylistId, tenantId],
   );
   if (!rows[0]) throw new HttpError(404, 'That stylist is not on this team.');

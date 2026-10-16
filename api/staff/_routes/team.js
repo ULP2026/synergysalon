@@ -20,6 +20,7 @@ import {
 import { randomBytes, createHash } from 'node:crypto';
 
 import { query, transaction } from '../../_lib/db.js';
+import { ensureSchema } from '../../_lib/ensure-schema.js';
 import {
   hoursFor, listStandalone, readHours, syncStandalone, syncStylist,
 } from '../../_lib/roster.js';
@@ -66,6 +67,9 @@ async function mintInvite(req, userId) {
 
 export default handler({
   async GET(req, res) {
+    // The Team list and removals read stylists.removed_at (022); the live
+    // database gets its columns here rather than from db:migrate.
+    await ensureSchema();
     const user = await requireStaff(req);
     const admin = canManageTeam(user);
     const tenant = await tenantForUser(user);
@@ -168,6 +172,7 @@ export default handler({
 
   async POST(req, res) {
     assertSameOrigin(req);
+    await ensureSchema();
     const user = await requireTeamAdmin(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
@@ -251,6 +256,18 @@ export default handler({
     // and no session, so none of the access rules below apply to them -- only
     // what they do and when.
     if (id.startsWith('st_')) {
+      if (action === 'delete') {
+        // Removed for good, like anybody else: off the team and the website.
+        // The row itself stays, switched off and marked removed, because
+        // appointments point at it and past work keeps its name.
+        const { rowCount } = await query(
+          `UPDATE stylists SET active = false, removed_at = now()
+            WHERE id = $1::uuid AND tenant_id = $2::uuid AND staff_user_id IS NULL`,
+          [id.slice(3), tenant.id],
+        );
+        if (!rowCount) throw new HttpError(404, 'That stylist is not on this team.');
+        return json(res, 200, { ok: true, id, action });
+      }
       if (action !== 'update') throw new HttpError(400, 'That cannot be done to a stylist without a login.');
       const saved = await transaction((client) => syncStandalone(
         client, tenant.id, id.slice(3),
@@ -329,8 +346,13 @@ export default handler({
         }
         try {
           await transaction(async (client) => {
+            // Marked removed as well as switched off: with the login gone the
+            // row has no staff_user_id, and without the mark the Team list
+            // took it for a stylist who never signs in and showed the person
+            // just removed again on the next load.
             await client.query(
-              'UPDATE stylists SET active = false WHERE staff_user_id = $1::uuid AND tenant_id = $2::uuid',
+              `UPDATE stylists SET active = false, removed_at = now()
+                WHERE staff_user_id = $1::uuid AND tenant_id = $2::uuid`,
               [target.id, tenant.id],
             );
             await client.query(

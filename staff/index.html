@@ -6025,8 +6025,9 @@ $('memberDanger').onclick = async () => {
   if (act === 'delete' && !confirm(`Remove ${m.name} from the team for good?
 
 `
-    + 'Their login, profile and calendar connection are deleted and they are signed out '
-    + 'straight away. Their past and booked appointments stay on Appt. Book under their name, '
+    + (m.noLogin ? '' : 'Their login, profile and calendar connection are deleted and they are signed out '
+    + 'straight away. ')
+    + 'Their past and booked appointments stay on Appt. Book under their name, '
     + 'and nobody can book them online any more. This cannot be undone: to have them back, '
     + 'add them again.')) return;
   if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
