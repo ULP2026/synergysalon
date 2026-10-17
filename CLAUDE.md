@@ -463,7 +463,7 @@ made that way are real: name them ZZ and remove them.
   Duration (minutes, 5 to 720) on each service, and inside each service's
   card, directly under its description, a "Notes / Special Instructions for
   Clients" field. Since 2026-10-17 (on request) that is **one shared box
-  under all the services**, shown while any service is on, instead of one
+  under all the services** (the last card), always shown, instead of one
   per card; notes saved per service are carried into it, labelled. Color
   has no single Duration: it has Start, Break (processing) and Finish, once
   for Color and once for Highlights, with the total beside each. All of it
