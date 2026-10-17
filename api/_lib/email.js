@@ -9,7 +9,7 @@
 import { DateTime } from 'luxon';
 import { Resend } from 'resend';
 
-import { shopFrom } from './config.js';
+import { DEFAULT_TZ, shopFrom } from './config.js';
 
 const senderAddress = (v) => { const m = String(v).match(/<([^>]+)>/); return (m ? m[1] : String(v)).trim(); };
 
@@ -66,6 +66,52 @@ export function prettyWhen(startsAt, zone = DEFAULT_TZ) {
     .toFormat("cccc d LLLL yyyy 'at' h:mm a");
 }
 
+/**
+ * "1 hour 30 minutes", "45 minutes" -- how long to set aside.
+ *
+ * Returns an empty string for anything that is not a positive number of
+ * minutes, and every caller checks, because a row reading "Plan for about
+ * undefined" is worse than no row at all.
+ */
+export function prettyDuration(min) {
+  const m = Number(min);
+  if (!Number.isFinite(m) || m <= 0) return '';
+  const hours = Math.floor(m / 60);
+  const rest = Math.round(m % 60);
+  const parts = [];
+  if (hours) parts.push(`${hours} hour${hours === 1 ? '' : 's'}`);
+  if (rest) parts.push(`${rest} minutes`);
+  return parts.join(' ');
+}
+
+/**
+ * "Add to my calendar", as a Google Calendar link.
+ *
+ * A link, not an .ics attachment: an attachment needs somewhere to serve the
+ * file from and a twelfth serverless function to do it, and Vercel's Hobby
+ * plan allows twelve in total. This costs nothing, works on a phone, and the
+ * guest's own calendar app takes it from there.
+ *
+ * Google wants both ends in UTC basic format. The end is the start plus the
+ * service's own duration; without one there is nothing honest to put, so the
+ * caller leaves the link out rather than inventing an hour.
+ */
+export function calendarUrl(appt, shop, zone = DEFAULT_TZ) {
+  const minutes = Number(appt.duration_min);
+  if (!Number.isFinite(minutes) || minutes <= 0) return '';
+  const start = DateTime.fromJSDate(new Date(appt.starts_at)).toUTC();
+  const stamp = (d) => d.toFormat("yyyyLLdd'T'HHmmss'Z'");
+  const p = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `${appt.service_name} at ${shop.name}`,
+    dates: `${stamp(start)}/${stamp(start.plus({ minutes }))}`,
+    details: `With ${appt.stylist_name}. Reference ${appt.ref}.`,
+    location: shop.addressLines.join(', '),
+    ctz: zone,
+  });
+  return `https://calendar.google.com/calendar/render?${p}`;
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -85,7 +131,7 @@ const TINT = '#E6E8F7';
 const MUTED = '#6E6E85';
 const PAPER = '#F4F5FA';
 
-function layout({ heading, intro, rows, action, steps, footnote }, shop) {
+function layout({ heading, intro, rows, action, secondary, steps, footnote }, shop) {
   const cells = rows
     .map(([label, value]) => `
       <tr>
@@ -99,6 +145,17 @@ function layout({ heading, intro, rows, action, steps, footnote }, shop) {
          <a href="${action.href}" style="background:${BRAND};color:#ffffff;text-decoration:none;
             padding:13px 24px;border-radius:999px;font-weight:600;font-size:15px;display:inline-block;">
            ${escapeHtml(action.label)}
+         </a>
+       </p>`
+    : '';
+
+  // A quieter second link under the button -- "Add to my calendar" today.
+  // A plain link, not a second pill: two buttons of equal weight make a
+  // guest choose, and the one that matters is the first.
+  const extra = secondary
+    ? `<p style="margin:14px 0 0;">
+         <a href="${escapeHtml(secondary.href)}" style="color:${BRAND};font-size:14px;">
+           ${escapeHtml(secondary.label)}
          </a>
        </p>`
     : '';
@@ -136,6 +193,7 @@ function layout({ heading, intro, rows, action, steps, footnote }, shop) {
       <p style="margin:0 0 24px;color:#4A4A57;font-size:15px;line-height:1.55;">${escapeHtml(intro)}</p>
       <table style="border-collapse:collapse;">${cells}</table>
       ${button}
+      ${extra}
       ${list}
       ${footnote ? `<p style="margin:28px 0 0;color:${MUTED};font-size:13px;line-height:1.55;">${escapeHtml(footnote)}</p>` : ''}
       <hr style="border:none;border-top:1px solid ${TINT};margin:28px 0 16px;">
@@ -149,7 +207,7 @@ function layout({ heading, intro, rows, action, steps, footnote }, shop) {
 </body></html>`;
 }
 
-function plain({ heading, intro, rows, action, steps, footnote }, shop) {
+function plain({ heading, intro, rows, action, secondary, steps, footnote }, shop) {
   return [
     heading,
     '',
@@ -157,6 +215,7 @@ function plain({ heading, intro, rows, action, steps, footnote }, shop) {
     '',
     ...rows.map(([label, value]) => `${label}: ${value}`),
     ...(action ? ['', `${action.label}: ${action.href}`] : []),
+    ...(secondary ? [`${secondary.label}: ${secondary.href}`] : []),
     ...(steps && steps.items && steps.items.length
       ? ['', steps.title || 'What to do next', ...steps.items.map((it, i) => `${i + 1}. ${it.title}: ${it.text}`)]
       : []),
@@ -201,7 +260,20 @@ function detailRows(appt, zone) {
   if (appt.price_cents != null) {
     rows.splice(1, 0, ['Price', `$${(appt.price_cents / 100).toFixed(2)}`]);
   }
+  // How long to set aside, under the time, because "2:30 PM" alone has sent
+  // more than one guest back to work before their colour was finished. Left
+  // out entirely when the service has no duration on it.
+  const howLong = prettyDuration(appt.duration_min);
+  if (howLong) {
+    rows.splice(rows.findIndex(([label]) => label === 'When') + 1, 0, ['How long', howLong]);
+  }
   return rows;
+}
+
+/** The "add to my calendar" link as a secondary action, or nothing at all. */
+function calUrl(appt, shop, zone) {
+  const href = calendarUrl(appt, shop, zone);
+  return href ? { label: 'Add to my calendar', href } : undefined;
 }
 
 /**
@@ -294,11 +366,14 @@ const MESSAGES = {
     subject: `You are booked in: ${prettyWhen(appt.starts_at, zone)}`,
     content: {
       heading: `See you soon, ${appt.guest_name.split(' ')[0]}`,
-      intro: `Your appointment at ${shop.name} is confirmed. Here are the details.`,
+      intro: `You are all set. Here are your details${
+        shop.addressLines.length ? `, and we are at ${shop.addressLines.join(', ')}` : ''}.`,
       rows: detailRows(appt, zone),
       action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
-      footnote: 'If you need to change anything, use the link above or call us. '
-        + 'Please let us know at least 24 hours ahead so we can offer the slot to someone else.',
+      secondary: calUrl(appt, shop, zone),
+      footnote: 'Need to change something? Use the link above, '
+        + `${shop.phone ? `or call us on ${shop.phone}` : 'or give us a call'}. `
+        + 'We just ask for at least 24 hours notice so we can offer the time to another guest.',
     },
   }),
   reschedule: (appt, shop, zone, previousStart) => ({
@@ -309,6 +384,9 @@ const MESSAGES = {
         + 'you are booked in at the new time below.',
       rows: detailRows(appt, zone),
       action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
+      // The old time is already in their calendar, so the new one has to be
+      // offered here or they keep the wrong entry.
+      secondary: calUrl(appt, shop, zone),
     },
   }),
   cancellation: (appt, shop, zone) => ({
@@ -325,7 +403,10 @@ const MESSAGES = {
     subject: `Tomorrow: ${prettyWhen(appt.starts_at, zone)}`,
     content: {
       heading: 'See you tomorrow',
-      intro: `A quick reminder about your appointment at ${shop.name}.`,
+      intro: `A quick reminder about your appointment at ${shop.name}. `
+        + 'Want to add a treatment while you are here? Olaplex, K18 and deep conditioning '
+        + 'pair beautifully with colour, and there is usually time if you mention it when '
+        + 'you arrive.',
       rows: detailRows(appt, zone),
       action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
       footnote: 'If you cannot make it, please tell us as soon as you can so we can offer '
