@@ -30,6 +30,7 @@ async function bySlug(slug) {
             -- automation is on", which is what a salon that has never touched
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
+            to_jsonb(tenants) ->> 'review_url' AS review_url,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE slug = $1 AND active`,
     [slug],
@@ -52,6 +53,7 @@ async function byHost(host) {
             -- automation is on", which is what a salon that has never touched
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
+            to_jsonb(tenants) ->> 'review_url' AS review_url,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE (host = $1 OR app_host = $1) AND active`,
     [host],
@@ -99,6 +101,7 @@ export async function tenantForUser(user) {
             -- automation is on", which is what a salon that has never touched
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
+            to_jsonb(tenants) ->> 'review_url' AS review_url,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE id = $1 AND active`,
     [user.tenant_id],

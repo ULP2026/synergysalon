@@ -12,8 +12,9 @@
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { createBooking } from '../../_lib/booking.js';
-import { transaction } from '../../_lib/db.js';
+import { query, transaction } from '../../_lib/db.js';
 import { sendConfirmation } from '../../_lib/email.js';
+import { at, enqueue } from '../../_lib/scheduled.js';
 import {
   HttpError, handler, json, optionalPhone, readJson, requireId, requireString,
 } from '../../_lib/http.js';
@@ -89,6 +90,8 @@ export default handler({
       }
     }
 
+    await queueWelcome(appointment, tenant);
+
     // Not drain(1): the queue may already hold older jobs, and draining a
     // single one would push somebody else's contact while this appointment sat
     // waiting for a cron that runs once a day. Bounded so a large backlog
@@ -109,3 +112,36 @@ export default handler({
     });
   },
 });
+
+/**
+ * Queue the new guest welcome, if this really is their first booking.
+ *
+ * Asked of the database rather than the request: the contact row is the only
+ * thing that knows whether this person has been here before, and two bookings
+ * for the same new guest (one online, one at the desk) must not both count as
+ * the first. The unique index on the queue would catch the duplicate anyway;
+ * this keeps the second one from ever being written.
+ */
+async function queueWelcome(appointment, tenant) {
+  if (!appointment.guest_email || !appointment.contact_id) return;
+  try {
+    const { rows } = await query(
+      `SELECT count(*)::int AS n FROM appointments
+        WHERE contact_id = $1 AND id <> $2 AND status <> 'cancelled'`,
+      [appointment.contact_id, appointment.id],
+    );
+    if (rows[0].n > 0) return;
+    await enqueue('welcome_new', {
+      tenantId: tenant.id,
+      appointmentId: appointment.id,
+      contactId: appointment.contact_id,
+      toName: appointment.guest_name,
+      toEmail: appointment.guest_email,
+      // Far enough behind the confirmation that the two do not land together
+      // and read as one message sent twice.
+      sendAfter: at({ hours: 1 }),
+    });
+  } catch (err) {
+    console.warn('welcome not queued for', appointment.ref, err.message);
+  }
+}

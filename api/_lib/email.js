@@ -253,6 +253,11 @@ async function send(shop, to, subject, content) {
   return { sent: true };
 }
 
+/** "Maria" out of "Maria Lopez", and "there" out of nothing at all. */
+function first(name) {
+  return String(name || '').trim().split(/\s+/)[0] || 'there';
+}
+
 function detailRows(appt, zone) {
   const rows = [
     ['Service', appt.service_name],
@@ -416,6 +421,179 @@ const MESSAGES = {
         + 'the slot to someone else.',
     },
   }),
+
+  // ---- M4 to M11: queued rather than immediate (see scheduled.js) --------
+  //
+  // Each takes the same (appt, shop, zone) as the four above, so the queue can
+  // render any of them without knowing which it holds. Where a module has
+  // several touches they are separate kinds -- no_show_1, no_show_2 -- rather
+  // than one template with a counter, because the queue stores the kind and
+  // Marketing should count them apart.
+
+  /** M4 New Guest Welcome: their first ever booking, shortly after it. */
+  welcome_new: (appt, shop, zone) => ({
+    subject: `Your first visit to ${shop.name}`,
+    content: {
+      heading: `Welcome, ${first(appt.guest_name)}`,
+      intro: 'We are looking forward to meeting you. Here is what to expect on your first visit, '
+        + 'so none of it is a surprise.',
+      rows: detailRows(appt, zone),
+      action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
+      secondary: calUrl(appt, shop, zone),
+      steps: {
+        title: 'Before you come',
+        items: [
+          {
+            title: 'Arrive a few minutes early',
+            text: 'There is free parking outside, and it gives us time to talk properly before we start.',
+          },
+          {
+            title: 'Bring photos if you have them',
+            text: 'Pictures of what you like, and of colour you have had before, tell us more than words do.',
+          },
+          {
+            title: 'Tell us your hair history',
+            text: 'Box colour, bleach, keratin, anything in the last year. It changes what is safe to '
+              + 'do, and we would rather know before anything is mixed.',
+          },
+        ],
+      },
+      footnote: `Any questions before you come, call us${shop.phone ? ` on ${shop.phone}` : ''}.`,
+    },
+  }),
+
+  /** M5 No-Show Recovery, first touch. */
+  no_show_1: (appt, shop, zone) => ({
+    subject: 'We missed you today',
+    content: {
+      heading: `We missed you, ${first(appt.guest_name)}`,
+      intro: 'You were booked in with us today and we did not see you. No hard feelings, things '
+        + 'come up. Would you like to find another time?',
+      rows: detailRows(appt, zone),
+      action: shop.site ? { label: 'Book another time', href: shop.site } : undefined,
+      footnote: 'If something went wrong at our end we would genuinely like to know. '
+        + `Call us${shop.phone ? ` on ${shop.phone}` : ''} and tell us.`,
+    },
+  }),
+
+  /** M5 second touch, a few days later. */
+  no_show_2: (appt, shop) => ({
+    subject: 'Still happy to see you',
+    content: {
+      heading: 'Your chair is still here',
+      intro: `We had ${appt.service_name} held for you with ${appt.stylist_name}. Whenever you are `
+        + 'ready, we will find you another time.',
+      rows: [],
+      action: shop.site ? { label: 'Pick a new time', href: shop.site } : undefined,
+    },
+  }),
+
+  /** M6 Late Cancellation: inside 24 hours, so the slot could not be refilled. */
+  late_cancel: (appt, shop, zone) => ({
+    subject: 'Your appointment is cancelled',
+    content: {
+      heading: `Thanks for letting us know, ${first(appt.guest_name)}`,
+      intro: 'We have cancelled the appointment below. Cancellations this close to the time are '
+        + 'hard for us to fill, so as much notice as you can give really helps. No charge either way.',
+      rows: detailRows(appt, zone),
+      action: shop.site ? { label: 'Book another time', href: shop.site } : undefined,
+    },
+  }),
+
+  /** M7 Post-Visit Check-In, the same day. */
+  post_visit: (appt, shop) => ({
+    subject: 'How do you love it?',
+    content: {
+      heading: `How is it looking, ${first(appt.guest_name)}?`,
+      intro: `You were in with ${appt.stylist_name}. We would love to know how you are getting on `
+        + 'with it now you have lived in it a little.',
+      rows: [],
+      action: shop.phone ? { label: 'Tell us', href: shop.phoneHref } : undefined,
+      footnote: 'If anything is not right, say so and we will put it right. We would much rather '
+        + 'hear it from you than not hear it at all.',
+    },
+  }),
+
+  /** M7 second touch: aftercare. */
+  aftercare: (appt, shop) => ({
+    subject: 'Making it last',
+    content: {
+      heading: 'Looking after it',
+      intro: 'A few things that keep colour and condition looking the way they did when you left.',
+      rows: [],
+      steps: {
+        title: 'The short version',
+        items: [
+          {
+            title: 'Wait 48 hours before washing',
+            text: 'Colour is still settling. Washing it too soon is the quickest way to lose it.',
+          },
+          {
+            title: 'Cooler water, gentler shampoo',
+            text: 'Hot water opens the cuticle and lifts colour out. Sulphate-free keeps it in.',
+          },
+          {
+            title: 'Heat protection every time',
+            text: 'Before straighteners or a dryer, without exception. It is the difference between '
+              + 'hair that lasts and hair that snaps.',
+          },
+        ],
+      },
+      footnote: 'Ask us next time about Olaplex, K18 or deep conditioning if you would like it to '
+        + 'hold longer between visits.',
+    },
+  }),
+
+  /** M8 Review Request, after a visit with no open issue. */
+  review_ask: (appt, shop) => ({
+    subject: `How did we do, ${first(appt.guest_name)}?`,
+    content: {
+      heading: 'Would you tell someone else?',
+      intro: `If you were happy with ${appt.stylist_name}, a short review helps other people in `
+        + 'Valrico find us. It takes about a minute and it makes a real difference to a salon our size.',
+      rows: [],
+      action: shop.reviewUrl ? { label: 'Leave a review', href: shop.reviewUrl } : undefined,
+      footnote: 'If anything was less than you hoped for, reply to this instead and we will sort it.',
+    },
+  }),
+
+  /** M9 Rebook: the service is about due and nothing is in the diary. */
+  rebook_due: (appt, shop) => ({
+    subject: 'Time for a refresh?',
+    content: {
+      heading: `Due about now, ${first(appt.guest_name)}`,
+      intro: `It has been a while since your ${appt.service_name} with ${appt.stylist_name}. To keep `
+        + 'it looking the way it did, now is about the right time.',
+      rows: [],
+      action: shop.site ? { label: 'Book your next visit', href: shop.site } : undefined,
+    },
+  }),
+
+  /** M10 New Guest Second Visit: first visit done, nothing booked since. */
+  second_visit: (appt, shop) => ({
+    subject: 'Come back and see us',
+    content: {
+      heading: `Thanks for trying us, ${first(appt.guest_name)}`,
+      intro: `We hope you liked what ${appt.stylist_name} did. The second visit is when a stylist `
+        + 'really starts to know your hair, so we would love to see you again.',
+      rows: [],
+      action: shop.site ? { label: 'Book again', href: shop.site } : undefined,
+    },
+  }),
+
+  /** M11 Lapsed Guest Win-Back: nobody has seen them in a long time. */
+  win_back: (appt, shop) => ({
+    subject: 'It has been a while',
+    content: {
+      heading: `We have missed you, ${first(appt.guest_name)}`,
+      intro: 'It has been a while since we saw you at the salon. Nothing to read into it, we just '
+        + 'wanted to say the chair is still here whenever you want it.',
+      rows: [],
+      action: shop.site ? { label: 'Book a time', href: shop.site } : undefined,
+      footnote: 'If you have found somewhere you like better that is completely fine and you can '
+        + 'ignore this. If something put you off, we would really like to know what.',
+    },
+  }),
 };
 
 export const MESSAGE_KINDS = Object.keys(MESSAGES);
@@ -463,6 +641,18 @@ async function sendMessage(kind, appt, tenant, extra) {
   const out = await send(shop, appt.guest_email, subject, content);
   if (out.sent) await record(kind, appt, tenant);
   return out;
+}
+
+/**
+ * Send any message kind by name, for the queue (scheduled.js), which holds
+ * the kind as data and cannot call a named helper per module.
+ *
+ * Goes through sendMessage like everything else, so a queued message obeys
+ * the same switch and is logged the same way as an immediate one.
+ */
+export function sendKind(kind, appt, tenant = {}, extra) {
+  if (!MESSAGES[kind]) return Promise.resolve({ skipped: true, unknown: true });
+  return sendMessage(kind, appt, tenant, extra);
 }
 
 export function sendConfirmation(appt, tenant = {}) { return sendMessage('confirmation', appt, tenant); }

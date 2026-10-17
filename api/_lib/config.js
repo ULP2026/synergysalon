@@ -113,6 +113,10 @@ export function shopFrom(tenant = {}) {
     // src is a data: URI, and a shop that uploaded one gets a broken image
     // rather than none, which looks worse than a plain wordmark.
     logo: /^https?:\/\//i.test(String(tenant.logo || '')) ? tenant.logo : '',
+    // Where a review request sends people. Empty until the salon sets it, and
+    // the review email is not queued at all while it is empty: asking for a
+    // review with nowhere to leave one wastes the one ask you get.
+    reviewUrl: /^https?:\/\//i.test(String(tenant.review_url || '')) ? tenant.review_url : '',
     site,
     timezone: tenant.timezone || DEFAULT_TZ,
   };

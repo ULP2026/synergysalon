@@ -3694,6 +3694,77 @@ function automations() {
         { msg: 'cancellation', title: 'Cancellation email', text: 'What was cancelled, and a link to book again.' },
       ],
     },
+
+    // M4 to M11. These do not send at the moment they are triggered: a row
+    // goes into the queue and the daily follow-ups job sends it when it is
+    // due. The timings below are what is asked for; on a once-a-day cron a
+    // message can go out later than that, and the modal says so.
+    {
+      id: 'welcome_new', name: 'New guest welcome', icon: 'user-check',
+      sub: 'Tells a first-time client what to expect before they come in.',
+      when: ['user-check', 'Somebody books for the first time', 'Their first ever appointment, online or at the desk.'],
+      steps: [
+        { msg: 'welcome_new', title: 'Welcome email', text: 'What to bring, what to expect, and why we ask about colour history.' },
+      ],
+    },
+    {
+      id: 'no_show_1', name: 'No-show recovery', icon: 'bell',
+      sub: 'Invites a client back after a missed appointment.',
+      when: ['bell', 'Staff mark an appointment as a no-show', 'From the appointment window in Appt. Book.'],
+      steps: [
+        { msg: 'no_show_1', title: 'First note', text: 'Sent about an hour after. No blame, just an offer of another time.' },
+        { msg: 'no_show_2', title: 'A few days later', text: 'One more invitation, then nothing. Stops if they book.' },
+      ],
+    },
+    {
+      id: 'late_cancel', name: 'Late cancellation', icon: 'ban',
+      sub: 'Confirms a cancellation made inside 24 hours.',
+      when: ['ban', 'A client cancels close to the time', 'Less than 24 hours before, when the slot cannot be refilled.'],
+      steps: [
+        { msg: 'late_cancel', title: 'Cancellation note', text: 'Thanks them for telling us, asks for more notice next time. No charge.' },
+      ],
+    },
+    {
+      id: 'post_visit', name: 'Post-visit check-in', icon: 'thumbs',
+      sub: 'Asks how it turned out, and offers to put anything right.',
+      when: ['thumbs', 'An appointment is marked complete', 'From the appointment window, when they check out.'],
+      steps: [
+        { msg: 'post_visit', title: 'How do you love it?', text: 'Sent the same day, with a way to tell us if it is not right.' },
+        { msg: 'aftercare', title: 'Aftercare', text: 'The next day: washing, heat, and what makes colour last.' },
+      ],
+    },
+    {
+      id: 'review_ask', name: 'Review request', icon: 'megaphone',
+      sub: 'Asks happy clients for a review a couple of days later.',
+      when: ['megaphone', 'An appointment is marked complete', 'Sent after the check-in, so an unhappy client has already had their say.'],
+      steps: [
+        { msg: 'review_ask', title: 'Review email', text: 'Goes nowhere until a review link is set in Settings.' },
+      ],
+    },
+    {
+      id: 'rebook_due', name: 'Rebook reminder', icon: 'calendar-plus',
+      sub: 'Nudges a client when their service is about due again.',
+      when: ['calendar-plus', 'A service is due and nothing is booked', 'Worked out from the length set against each service.'],
+      steps: [
+        { msg: 'rebook_due', title: 'Due about now', text: 'Only if they have nothing in the diary. Stops the moment they book.' },
+      ],
+    },
+    {
+      id: 'second_visit', name: 'New guest second visit', icon: 'users-plus',
+      sub: 'Invites a first-time client back before they drift.',
+      when: ['users-plus', 'A first visit finished and nothing is booked', 'About five days after their only appointment.'],
+      steps: [
+        { msg: 'second_visit', title: 'Come back and see us', text: 'The one email that turns a trial into a regular.' },
+      ],
+    },
+    {
+      id: 'win_back', name: 'Lapsed client win-back', icon: 'swap',
+      sub: 'Reaches out to clients nobody has seen in months.',
+      when: ['swap', 'Ninety days since their last visit', 'And nothing booked. Sent once per client, never on a loop.'],
+      steps: [
+        { msg: 'win_back', title: 'It has been a while', text: 'Warm, no pressure, and asks what put them off if anything did.' },
+      ],
+    },
   ];
 }
 

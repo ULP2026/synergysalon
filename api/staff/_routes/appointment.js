@@ -18,6 +18,7 @@ import { enqueueSync } from '../../_lib/booking.js';
 import { EXCLUSION_VIOLATION, transaction } from '../../_lib/db.js';
 import { removeGoogleCopies } from '../../_lib/google-mirror.js';
 import { sendCancellation } from '../../_lib/email.js';
+import { at, cancelFor, enqueue } from '../../_lib/scheduled.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { drain } from '../../cron/sync.js';
@@ -146,6 +147,11 @@ export default handler({
       }
     }
 
+    // The follow-ups this action starts or stops (M5 to M8). After the
+    // transaction, never inside it: a queued email is not worth rolling a
+    // status change back for, and scheduled.js swallows its own failures.
+    await followUps(action, result.appt, tenant);
+
     // Inline, for every action, so CENTRO matches by the time the diary
     // reloads. Leaving it to the cron meant a cancellation took up to a day
     // to reach CENTRO's calendar, which kept showing the slot as taken. If
@@ -168,3 +174,55 @@ export default handler({
     });
   },
 });
+
+/**
+ * What each status change sets in motion, and what it calls off.
+ *
+ * Kept here rather than inside the transaction because none of it is worth
+ * failing the status change for: an email that is not queued is a missed
+ * follow-up, an aborted transaction is a diary that disagrees with itself.
+ */
+async function followUps(action, appt, tenant) {
+  const who = {
+    tenantId: tenant.id,
+    appointmentId: appt.id,
+    contactId: appt.contact_id || null,
+    toName: appt.guest_name,
+    toEmail: appt.guest_email,
+  };
+  if (!appt.guest_email) return;
+
+  if (action === 'no_show') {
+    // M5. An hour, then three days: long enough not to read as automated,
+    // soon enough that the visit is still in mind.
+    await enqueue('no_show_1', { ...who, sendAfter: at({ hours: 1 }) });
+    await enqueue('no_show_2', { ...who, sendAfter: at({ days: 3 }) });
+    return;
+  }
+
+  if (action === 'complete') {
+    // M7 and M8. The review ask goes last, so a guest who was unhappy has
+    // already had somewhere to say so.
+    await enqueue('post_visit', { ...who, sendAfter: at({ hours: 3 }) });
+    await enqueue('aftercare', { ...who, sendAfter: at({ days: 1 }) });
+    await enqueue('review_ask', { ...who, sendAfter: at({ days: 2 }) });
+    return;
+  }
+
+  if (action === 'cancel') {
+    // M6, but only when it is late enough to matter. Earlier than that the
+    // ordinary cancellation email has already said everything.
+    const hoursAhead = (new Date(appt.starts_at) - Date.now()) / 3600000;
+    if (hoursAhead < 24) {
+      await enqueue('late_cancel', { ...who, sendAfter: at({ hours: 1 }) });
+    }
+    // Nothing else queued about this booking still makes sense.
+    await cancelFor({ appointmentId: appt.id }, 'appointment cancelled',
+      ['welcome_new', 'post_visit', 'aftercare', 'review_ask']);
+    return;
+  }
+
+  if (action === 'reopen') {
+    await cancelFor({ appointmentId: appt.id }, 'appointment reopened', ['late_cancel']);
+  }
+}

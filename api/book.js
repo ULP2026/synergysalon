@@ -9,8 +9,9 @@ import { drain } from './cron/sync.js';
 import { createBooking } from './_lib/booking.js';
 import { ONLINE_BOOKING } from './_lib/config.js';
 import { previewAllowed } from './_lib/preview.js';
-import { transaction } from './_lib/db.js';
+import { query, transaction } from './_lib/db.js';
 import { sendConfirmation } from './_lib/email.js';
+import { at, enqueue } from './_lib/scheduled.js';
 import {
   handler, json, optionalPhone, readJson, requireEmail, requireId, requireString,
 } from './_lib/http.js';
@@ -49,6 +50,8 @@ export default handler({
       console.error('confirmation email failed for', appointment.ref, err);
     }
 
+    await queueWelcome(appointment, tenant);
+
     // Push this booking to CENTRO now rather than waiting for the nightly
     // sweep. The Hobby plan allows one cron run a day, so a queue that only
     // drains on a schedule would leave the salon's CRM a day behind. The
@@ -74,3 +77,36 @@ export default handler({
     });
   },
 });
+
+/**
+ * Queue the new guest welcome, if this really is their first booking.
+ *
+ * Asked of the database rather than the request: the contact row is the only
+ * thing that knows whether this person has been here before, and two bookings
+ * for the same new guest (one online, one at the desk) must not both count as
+ * the first. The unique index on the queue would catch the duplicate anyway;
+ * this keeps the second one from ever being written.
+ */
+async function queueWelcome(appointment, tenant) {
+  if (!appointment.guest_email || !appointment.contact_id) return;
+  try {
+    const { rows } = await query(
+      `SELECT count(*)::int AS n FROM appointments
+        WHERE contact_id = $1 AND id <> $2 AND status <> 'cancelled'`,
+      [appointment.contact_id, appointment.id],
+    );
+    if (rows[0].n > 0) return;
+    await enqueue('welcome_new', {
+      tenantId: tenant.id,
+      appointmentId: appointment.id,
+      contactId: appointment.contact_id,
+      toName: appointment.guest_name,
+      toEmail: appointment.guest_email,
+      // Far enough behind the confirmation that the two do not land together
+      // and read as one message sent twice.
+      sendAfter: at({ hours: 1 }),
+    });
+  } catch (err) {
+    console.warn('welcome not queued for', appointment.ref, err.message);
+  }
+}

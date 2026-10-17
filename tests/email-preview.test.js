@@ -22,8 +22,23 @@ const appt = {
 };
 const tenant = { name: 'ZZ Test Shop', timezone: 'America/New_York', address: '1 Main St', phone: '555 0100', email: 'hi@example.com' };
 
+/**
+ * Every kind, in two groups, because they reach a guest by different roads.
+ *
+ * The first four send the moment something happens. The rest go into
+ * scheduled_messages and are sent later by the follow-ups cron, so a kind
+ * added to MESSAGES without a card in Marketing, or queued by a trigger but
+ * never written as a template, is caught here rather than by a guest
+ * receiving nothing.
+ */
+const IMMEDIATE = ['cancellation', 'confirmation', 'reminder', 'reschedule'];
+const QUEUED = [
+  'aftercare', 'late_cancel', 'no_show_1', 'no_show_2', 'post_visit',
+  'rebook_due', 'review_ask', 'second_visit', 'welcome_new', 'win_back',
+];
+
 test('every guest message can be previewed', () => {
-  assert.deepEqual([...MESSAGE_KINDS].sort(), ['cancellation', 'confirmation', 'reminder', 'reschedule']);
+  assert.deepEqual([...MESSAGE_KINDS].sort(), [...IMMEDIATE, ...QUEUED].sort());
   for (const kind of MESSAGE_KINDS) {
     const m = previewMessage(kind, appt, tenant, new Date('2026-10-04T14:00:00Z'));
     assert.ok(m.subject, `${kind} has a subject`);
