@@ -26,12 +26,13 @@ export default handler({
 
     const client = await pool().connect();
     try {
-      const { service, stylists, days } = await availableSlots(client, tenant, {
+      const { service, visit, stylists, days } = await availableSlots(client, tenant, {
         serviceSlug, stylistSlug, fromDate: date, toDate: date, minLeadMin: 0,
       });
       return json(res, 200, {
         timezone: tenant.timezone,
-        service: { slug: service.slug, name: service.name, durationMin: service.duration_min },
+        // The visit as the stylist would do it (timing.js), not the table's estimate.
+        service: { slug: service.slug, name: service.name, durationMin: visit.durationMin },
         stylists: stylists.map(({ slug, name }) => ({ slug, name })),
         days: days.map((d) => ({
           date: d.date,

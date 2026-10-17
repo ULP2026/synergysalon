@@ -33,6 +33,7 @@ import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import { cleanBreaks } from '../../_lib/timing.js';
 
 export default handler({
   async GET(req, res) {
@@ -59,7 +60,7 @@ export default handler({
     const to = month ? month.endOf('month') : day.endOf('day');
 
     const { rows } = await query(
-      `SELECT a.ref, a.starts_at, a.duration_min, a.status, a.channel, a.checked_in_at,
+      `SELECT a.ref, a.starts_at, a.duration_min, a.status, to_jsonb(a) -> 'breaks' AS breaks, a.channel, a.checked_in_at,
               a.guest_name, a.guest_email, a.guest_phone, a.notes,
               a.price_cents, a.ghl_appointment_id, a.created_at,
               -- The guest's next visit after this one, for the day card.
@@ -93,6 +94,9 @@ export default handler({
         time: starts.toFormat('h:mm a'),
         endTime: starts.plus({ minutes: r.duration_min }).toFormat('h:mm a'),
         durationMin: r.duration_min,
+        // Processing breaks, [minutes from the start, minutes long]: the
+        // stylist is free in them, so the day draws them open and bookable.
+        breaks: cleanBreaks(r.breaks, r.duration_min),
         status: r.status,
         channel: r.channel,
         checkedInAt: r.checked_in_at,

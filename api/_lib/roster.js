@@ -234,9 +234,13 @@ export async function listStandalone(client, tenantId) {
     // Back into the shape the team dialog's switches speak. Whether a kind is
     // on is what the booking engine reads (stylist_services); the price,
     // length and notes beside it are kept in service_details.
-    services: Object.fromEntries(SERVICE_KINDS.map((k) => [k, {
-      ...(r.details?.[k] || {}), on: (r.categories ?? []).includes(k),
-    }])),
+    services: {
+      ...Object.fromEntries(SERVICE_KINDS.map((k) => [k, {
+        ...(r.details?.[k] || {}), on: (r.categories ?? []).includes(k),
+      }])),
+      // The one set of notes for clients, shared by every service.
+      notes: typeof r.details?.notes === 'string' ? r.details.notes : undefined,
+    },
     stylistSlug: r.slug,
   }));
 }

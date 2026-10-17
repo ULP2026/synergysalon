@@ -105,15 +105,44 @@ const CAN_PRICE = ['owner', 'admin', 'manager'];
 /** The four kinds of work, in the order the salon lists them. */
 export const SERVICE_KINDS = ['cuts', 'treatments', 'color', 'styling'];
 
+const minutesFrom = (v, lo, hi, what) => {
+  if (v === '' || v == null) return null;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < lo || n > hi) {
+    throw new HttpError(400, `${what} is a whole number of minutes, from ${lo} to ${hi}.`);
+  }
+  return n;
+};
+
+/** Start, Break and Finish, or nulls; a Break needs a Start and a Finish around it. */
+function partsFrom(p, label) {
+  const src = p && typeof p === 'object' ? p : {};
+  const start = minutesFrom(src.start, 5, 480, `${label} Start`);
+  const pause = minutesFrom(src.break, 0, 240, `${label} Break`);
+  const finish = minutesFrom(src.finish, 5, 480, `${label} Finish`);
+  if (pause && (start == null || finish == null)) {
+    throw new HttpError(400, `${label} needs a Start and a Finish around its Break.`);
+  }
+  return { start, break: pause, finish };
+}
+
+const total = (p) => (p.start != null && p.finish != null ? p.start + (p.break || 0) + p.finish : null);
+
 /**
  * A stylist's services and prices, cleaned: only the four known kinds, each
- * on or off, with a price in dollars, a length in minutes and their notes for
- * clients when typed. Anything else is dropped rather than stored, so the
- * column only ever holds what the form can show back.
+ * on or off, with a price in dollars and a length in minutes, and one set of
+ * notes for clients shared by them all. Anything else is dropped rather than
+ * stored, so the column only ever holds what the form can show back.
  *
- * The length is the stylist's own, shown and kept with their prices. It does
- * not set how long a guest is booked for: that is each service's length in
- * the services table, one per service, where a kind holds several.
+ * Color is timed in three parts, Start, Break and Finish, once for color and
+ * once for highlights, because the stylist is free for somebody else while
+ * it processes; its length is then the three added up. These lengths are the
+ * stylist's own and decide how long a guest is booked with them for
+ * (timing.js); a kind left blank falls back to each service's own length in
+ * the services table.
+ *
+ * Notes used to be typed per service. They are one box now, asked for on
+ * 2026-10-17; notes saved the old way are carried into it rather than lost.
  */
 export function servicesFrom(value) {
   if (value === undefined) return undefined;
@@ -127,13 +156,30 @@ export function servicesFrom(value) {
       throw new HttpError(400, 'A price is a number of dollars, up to 10,000.');
     }
     if (price != null) price = Math.round(price * 100) / 100;
-    let duration = v.duration === '' || v.duration == null ? null : Number(v.duration);
-    if (duration != null && (!Number.isInteger(duration) || duration < 5 || duration > 720)) {
-      throw new HttpError(400, 'A duration is a whole number of minutes, from 5 to 720.');
+    let duration = minutesFrom(v.duration, 5, 720, 'A duration');
+    if (k === 'color') {
+      const color = partsFrom(v, 'Color');
+      const highlights = partsFrom(v.highlights, 'Highlights');
+      // The three parts are the length; a total typed beside them is not a
+      // second opinion.
+      duration = total(color) ?? duration;
+      out[k] = {
+        on, price, duration, ...color,
+        highlights: { ...highlights, duration: total(highlights) },
+      };
+    } else {
+      out[k] = { on, price, duration };
     }
-    const notes = typeof v.notes === 'string' ? v.notes.trim().slice(0, 1000) : '';
-    out[k] = { on, price, duration, notes };
   }
+  let notes = typeof src.notes === 'string' ? src.notes : null;
+  if (notes == null) {
+    // Saved before the shared box: each service's own notes, labelled.
+    notes = SERVICE_KINDS
+      .map((k) => (typeof src[k]?.notes === 'string' && src[k].notes.trim()
+        ? `${k[0].toUpperCase()}${k.slice(1)}: ${src[k].notes.trim()}` : ''))
+      .filter(Boolean).join('\n');
+  }
+  out.notes = notes.trim().slice(0, 2000);
   return out;
 }
 

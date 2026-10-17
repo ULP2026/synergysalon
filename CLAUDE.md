@@ -99,9 +99,13 @@ are protected and double-booking returns.
 **Double-booking is prevented by the database, not by code:**
 
 ```sql
-EXCLUDE USING gist (stylist_id WITH =, during WITH &&)
+EXCLUDE USING gist (stylist_id WITH =,
+  appointment_blocks(starts_at, upper(during), breaks) WITH &&)
 WHERE (status <> 'cancelled')
 ```
+
+(Until 2026-10-17 it compared `during` whole; it now leaves out a color's
+processing breaks, below.)
 
 Checking availability before inserting cannot work on its own: two requests
 both read "free" before either writes. `tests/booking.integration.test.js`
@@ -242,8 +246,44 @@ the server (`body.services` on `/api/enquiry`, `&with=` on
 `/api/availability`) and are booked as one appointment with one stylist who
 offers every one: the guest's time is all of them end to end with the
 clean-downs between, the last clean-down after (`combineServices`), priced
-only when every part has a price. Moving it keeps its own length (`length`
-on `availableSlots`).
+only when every part has a price. Moving it keeps its own length and breaks
+(`length` on `availableSlots`).
+
+**A booking is as long as the stylist says the work takes** (asked for
+2026-10-17). Each stylist's own figures in their team window (Duration per
+kind; for Color, Start, Break and Finish, once for Color and once for
+Highlights) decide the length of what is booked with them
+(`api/_lib/timing.js`, `timedService`); the services table's
+`duration_min` (industry estimates, still owed by Dina) is used only where
+the stylist typed nothing. One figure covers the whole kind, so a stylist's
+Cuts time is also their bang trim's. Highlights times every color service
+whose slug or name says highlight, balayage or foil; Color & Cut is the
+Color parts plus their Cuts time. Lengths differ per stylist, so
+`availableSlots` returns `visits` (stylist id to visit) and `createBooking`
+books each stylist tried at their own length.
+
+**Processing breaks free the stylist** (2026-10-17). A color's Break is
+stored on the appointment as `breaks` (`[[minutes from start, minutes
+long]]`, relative, so every `UPDATE ... starts_at` carries it along), and
+the no-overlap rule is now `appointments_no_overlap_blocks`:
+
+```sql
+EXCLUDE USING gist (stylist_id WITH =,
+  appointment_blocks(starts_at, upper(during), breaks) WITH &&)
+WHERE (status <> 'cancelled')
+```
+
+`appointment_blocks()` is the appointment's range with its breaks cut out
+(migration 025, also in ensure-schema, which adds the new constraint before
+dropping the old so there is never a moment without one; needs Postgres 14+
+for multiranges). Availability subtracts only the working parts of existing
+bookings (`workSpans`), a salon closure still stops the whole visit, and
+Google busy time must miss only the parts the stylist works. Appt. Book
+draws such an appointment as its Start card, a dashed "Processing · free"
+band the pointer passes through (click it to book into the break), and a
+Finish card; the appointment window lists the processing times.
+`tests/processing-breaks.integration.test.js` proves both the offer and the
+constraint.
 
 **The website survey reads the Synergy Calendar, for real now.** Three bugs
 meant it never had: the adapter's MutationObserver watched
@@ -422,17 +462,18 @@ made that way are real: name them ZZ and remove them.
   (`.gcard.soon`, nothing to press). Services & pricing has Price and
   Duration (minutes, 5 to 720) on each service, and inside each service's
   card, directly under its description, a "Notes / Special Instructions for
-  Clients" field, shown once the service is switched on (hidden, not
-  cleared, when it is switched off). It was a separate "Customize
-  Instructions & Rules" box until it moved into the cards on request,
-  2026-10-16. All three live in the same `services` object
-  (`{on, price, duration, notes}`, cleaned by `servicesFrom` in
-  `profile.js`): `staff_users.services` for a team member,
-  `stylists.service_details` (023, also in ensure-schema) for a stylist
-  without a sign-in, who until then lost their prices on save. The
-  duration is the stylist's own figure, shown and kept; it does **not**
-  set how long a guest is booked for, which is still each service's
-  `duration_min`, and the notes are not shown to guests yet.
+  Clients" field. Since 2026-10-17 (on request) that is **one shared box
+  under all the services**, shown while any service is on, instead of one
+  per card; notes saved per service are carried into it, labelled. Color
+  has no single Duration: it has Start, Break (processing) and Finish, once
+  for Color and once for Highlights, with the total beside each. All of it
+  lives in the same `services` object (`{cuts: {on, price, duration},
+  color: {on, price, duration, start, break, finish, highlights: {...}},
+  ..., notes}`, cleaned by `servicesFrom` in `profile.js`):
+  `staff_users.services` for a team member, `stylists.service_details`
+  (023, also in ensure-schema) for a stylist without a sign-in. These
+  lengths **do** set how long a guest is booked with that stylist (see
+  Booking); the notes are not shown to guests yet.
 - **Connect your tools** is one "Connect Google Calendar" button in the team
   member window (yours, or anyone's for the owner and the support login). It opens an
   account chooser laid out like Google's (`#gDlg`), listing the accounts the
@@ -670,7 +711,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 99 tests; the database ones skip without DATABASE_URL
+npm test                    # 107 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and

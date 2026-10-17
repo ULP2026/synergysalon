@@ -2,7 +2,7 @@
  * The columns the staff console's profile features write to, added if they
  * are missing.
  *
- * Migrations 010 to 013 and 016 to 019 were shipped with "run npm run db:migrate" and the
+ * Migrations 010 to 013 and 016 to 025 were shipped with "run npm run db:migrate" and the
  * console went live before anyone did, so every save of a username, price
  * or avatar choice failed in production. These are the same statements, all
  * idempotent (IF NOT EXISTS), run once per warm function. db:migrate still
@@ -48,6 +48,30 @@ const STATEMENTS = [
   // 023: prices, lengths and notes for a stylist without a sign-in, who has
   // no staff_users.services to keep them in.
   "ALTER TABLE stylists ADD COLUMN IF NOT EXISTS service_details jsonb NOT NULL DEFAULT '{}'::jsonb",
+  // 025: processing breaks. A color appointment's Break frees its stylist, so
+  // the no-overlap rule compares only the parts they are working. The new
+  // constraint is added before the old one is dropped, so there is never a
+  // moment without one, and it is built once, not on every cold start.
+  "ALTER TABLE appointments ADD COLUMN IF NOT EXISTS breaks jsonb NOT NULL DEFAULT '[]'::jsonb",
+  `CREATE OR REPLACE FUNCTION appointment_blocks(starts timestamptz, ends timestamptz, breaks jsonb)
+   RETURNS tstzmultirange LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+     SELECT tstzmultirange(tstzrange(starts, ends, '[)'))
+            - COALESCE((SELECT range_agg(tstzrange(starts + make_interval(mins => (b->>0)::int),
+                                                  starts + make_interval(mins => (b->>0)::int + (b->>1)::int), '[)'))
+                          FROM jsonb_array_elements(CASE WHEN jsonb_typeof(breaks) = 'array' THEN breaks ELSE '[]'::jsonb END) b),
+                       '{}'::tstzmultirange)
+   $$`,
+  `DO $$ BEGIN
+     PERFORM set_config('search_path', 'public, extensions', true);
+     IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                     WHERE conname = 'appointments_no_overlap_blocks'
+                       AND conrelid = 'appointments'::regclass) THEN
+       ALTER TABLE appointments ADD CONSTRAINT appointments_no_overlap_blocks
+         EXCLUDE USING gist (stylist_id WITH =, appointment_blocks(starts_at, upper(during), breaks) WITH &&)
+         WHERE (status <> 'cancelled');
+     END IF;
+     ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_no_overlap;
+   END $$`,
   // And the people removed before the column existed. Each salon's stylists
   // who were never given a login are named in config.js; any other
   // switched-off row with no login is somebody who was removed. Harmless to

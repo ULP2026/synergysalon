@@ -116,7 +116,7 @@ export default handler({
             excludeAppointmentId: appt.id,
             centro: false,
             google: true,
-            length: { durationMin: appt.duration_min, bufferMin: appt.buffer_min },
+            length: { durationMin: appt.duration_min, bufferMin: appt.buffer_min, breaks: appt.breaks },
           });
           out.timezone = tenant.timezone;
           out.days = days.map((d) => ({ date: d.date, slots: d.slots.map((x) => x.start) }));
@@ -160,7 +160,7 @@ export default handler({
         excludeAppointmentId: current.id,
         centro: false,   // our own hours, not a third party's
         google: true,    // a guest is not offered time a stylist is busy in Google
-        length: { durationMin: current.duration_min, bufferMin: current.buffer_min },
+        length: { durationMin: current.duration_min, bufferMin: current.buffer_min, breaks: current.breaks },
       });
 
       const wanted = startsAt.toMillis();

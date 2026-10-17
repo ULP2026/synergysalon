@@ -99,7 +99,7 @@ test('a removed member stays removed, with or without a sign-in', { skip }, asyn
   }
 });
 
-test('price, duration and notes are kept, with or without a sign-in', { skip }, async () => {
+test('price, timing and the shared notes are kept, with or without a sign-in', { skip }, async () => {
   await ensureSchema();
   await cleanup();
   try {
@@ -121,8 +121,9 @@ test('price, duration and notes are kept, with or without a sign-in', { skip }, 
     )).rows[0];
 
     const services = {
-      color: { on: true, price: 85.5, duration: 120, notes: '  Patch test 48 hours before.  ' },
-      cuts: { on: false, price: null, duration: 45, notes: 'Kept while off.' },
+      color: { on: true, price: 85.5, start: 45, break: 30, finish: 45, highlights: { start: 60, break: 40, finish: 50 } },
+      cuts: { on: false, price: null, duration: 45 },
+      notes: '  Patch test 48 hours before.  ',
     };
     for (const id of [member.id, `st_${solo.id}`]) {
       assert.equal((await call('POST', cookie, { id, action: 'update', services })).status, 200);
@@ -131,10 +132,27 @@ test('price, duration and notes are kept, with or without a sign-in', { skip }, 
     const all = [...list.body.members, ...list.body.standalone];
     for (const name of ['ZZ Remove Stylist', 'ZZ Remove Solo']) {
       const s = all.find((m) => m.name === name).services;
-      assert.deepEqual(s.color, { on: true, price: 85.5, duration: 120, notes: 'Patch test 48 hours before.' }, name);
+      assert.deepEqual(s.color, {
+        on: true, price: 85.5, duration: 120, start: 45, break: 30, finish: 45,
+        highlights: { start: 60, break: 40, finish: 50, duration: 150 },
+      }, name);
       assert.equal(s.cuts.duration, 45);
-      assert.equal(s.cuts.notes, 'Kept while off.');
+      // One set of notes for every service, not one per service.
+      assert.equal(s.notes, 'Patch test 48 hours before.', name);
     }
+
+    // Notes saved the old way, one per service, are carried into the one box.
+    const old = await call('POST', cookie, {
+      id: member.id, action: 'update',
+      services: { color: { on: true, notes: 'Patch test.' }, cuts: { on: true, notes: 'Dry hair.' } },
+    });
+    assert.equal(old.status, 200);
+    const after = (await call('GET', cookie)).body.members.find((m) => m.name === 'ZZ Remove Stylist').services;
+    assert.equal(after.notes, 'Cuts: Dry hair.\nColor: Patch test.');
+
+    // A Break with nothing around it is refused.
+    const lonely = await call('POST', cookie, { id: member.id, action: 'update', services: { color: { on: true, break: 30 } } });
+    assert.equal(lonely.status, 400);
 
     // A length that is not whole minutes in range is refused, not stored.
     const bad = await call('POST', cookie, { id: member.id, action: 'update', services: { color: { on: true, duration: 2 } } });
