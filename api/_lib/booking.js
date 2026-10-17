@@ -36,10 +36,13 @@ export async function enqueueSync(client, tenantId, kind, { appointmentId = null
  */
 async function insertFor(client, stylistId, ctx) {
   const {
-    tenant, service, visit, startsAt, guestName, guestEmail, guestPhone, notes,
+    tenant, service, visits, startsAt, guestName, guestEmail, guestPhone, notes,
     channel, bookedBy, contactId,
   } = ctx;
 
+  // How long it is depends on who does it (timing.js), so each stylist tried
+  // is booked at their own length, with their own processing breaks.
+  const visit = visits.get(stylistId);
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await client.query('SAVEPOINT try_slot');
     try {
@@ -48,17 +51,17 @@ async function insertFor(client, stylistId, ctx) {
            tenant_id, ref, stylist_id, service_id, contact_id, starts_at,
            duration_min, buffer_min, price_cents, during,
            status, channel, booked_by,
-           guest_name, guest_email, guest_phone, notes, manage_token
+           guest_name, guest_email, guest_phone, notes, manage_token, breaks
          ) VALUES (
            $1, $2, $3, $4, $5, $6,
            $7, $8, $9,
            tstzrange($6::timestamptz,
                      $6::timestamptz + make_interval(mins => $7::int + $8::int), '[)'),
            'booked', $10, $11,
-           $12, $13, $14, $15, $16
+           $12, $13, $14, $15, $16, $17::jsonb
          )
          RETURNING id, ref, starts_at, duration_min, price_cents,
-                   guest_name, guest_email, guest_phone, manage_token, channel`,
+                   guest_name, guest_email, guest_phone, manage_token, channel, breaks`,
         [
           // The visit's length and price: one service's own, or several
           // services end to end (combineServices in availability.js).
@@ -66,6 +69,9 @@ async function insertFor(client, stylistId, ctx) {
           visit.durationMin, visit.bufferMin, visit.priceCents,
           channel, bookedBy,
           guestName, guestEmail, guestPhone, notes, newToken(),
+          // Where the stylist is free inside it: the constraint leaves these
+          // out (appointment_blocks, migration 025).
+          JSON.stringify(visit.breaks || []),
         ],
       );
       await client.query('RELEASE SAVEPOINT try_slot');
@@ -104,7 +110,7 @@ export async function createBooking(client, tenant, {
   const startsAt = DateTime.fromISO(start, { setZone: true }).setZone(tenant.timezone);
   if (!startsAt.isValid) throw new HttpError(400, 'That appointment time is not valid.');
 
-  const { service, visit, days } = await availableSlots(client, tenant, {
+  const { service, visits, days } = await availableSlots(client, tenant, {
     serviceSlug,
     stylistSlug,
     extraServiceSlugs,
@@ -133,7 +139,7 @@ export async function createBooking(client, tenant, {
   const order = [preferred, ...slot.stylistIds.filter((id) => id !== preferred)];
 
   const ctx = {
-    tenant, service, visit, startsAt, guestName, guestEmail, guestPhone, notes,
+    tenant, service, visits, startsAt, guestName, guestEmail, guestPhone, notes,
     channel, bookedBy, contactId,
   };
 

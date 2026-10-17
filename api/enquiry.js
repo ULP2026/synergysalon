@@ -279,9 +279,9 @@ export default handler({
         // saved above, so it counts as "not available" instead.
         await client.query('SAVEPOINT check_move');
         let days = [];
-        let visit = null;
+        let visits = new Map();
         try {
-          ({ days, visit } = await availableSlots(client, tenant, {
+          ({ days, visits } = await availableSlots(client, tenant, {
             serviceSlug,
             extraServiceSlugs,
             google: true,
@@ -300,6 +300,8 @@ export default handler({
         if (!slot) return { contactId, booked: null, already: live[0].ref, unavailable: true };
         const stylistId = slot.stylistIds.includes(live[0].stylist_id)
           ? live[0].stylist_id : slot.stylistIds[0];
+        // As that stylist would do it: their length and processing breaks.
+        const visit = visits.get(stylistId);
         try {
           // The length follows what they picked this time, so changing the
           // services mid-flow is not left booked at the old length.
@@ -307,12 +309,13 @@ export default handler({
             `UPDATE appointments
                 SET starts_at = $2::timestamptz, stylist_id = $3::uuid,
                     duration_min = $4::int, buffer_min = $5::int,
-                    price_cents = $6::int,
+                    price_cents = $6::int, breaks = $7::jsonb,
                     during = tstzrange($2::timestamptz,
                              $2::timestamptz + make_interval(mins => $4::int + $5::int), '[)'),
                     updated_at = now()
               WHERE id = $1`,
-            [live[0].id, start.toISO(), stylistId, visit.durationMin, visit.bufferMin, visit.priceCents],
+            [live[0].id, start.toISO(), stylistId, visit.durationMin, visit.bufferMin, visit.priceCents,
+             JSON.stringify(visit.breaks || [])],
           );
           await enqueueSync(client, tenant.id, 'appointment.rescheduled',
                             { appointmentId: live[0].id });

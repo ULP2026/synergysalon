@@ -17,6 +17,7 @@ import { centroWindows, fitsIn } from './centro-hours.js';
 import { MAX_ADVANCE_DAYS, MIN_LEAD_MIN, SLOT_STEP_MIN } from './config.js';
 import { googleBusyFor, googleOptional } from './google-busy.js';
 import { HttpError } from './http.js';
+import { cleanBreaks, timedService, workSpans } from './timing.js';
 
 /** Luxon counts Monday as 1 and Sunday as 7; the schema counts Sunday as 0. */
 function weekdayOf(dt) {
@@ -39,18 +40,27 @@ export async function loadService(client, tenantId, slug) {
  * stylist: the guest's time is every service end to end, with each one's
  * clean-down between them, and the last clean-down after. Priced only when
  * every part has a price, because a total with a hole in it is a guess.
+ *
+ * A service's processing breaks (timedService in timing.js) keep their place
+ * inside it, moved along by whatever came before, so a color booked after a
+ * cut still frees its stylist while it develops.
  */
 export function combineServices(primary, extras = []) {
   const all = [primary, ...extras];
   const last = all[all.length - 1];
-  const durationMin = all.reduce((t, v) => t + v.duration_min, 0)
-    + all.slice(0, -1).reduce((t, v) => t + (v.buffer_min || 0), 0);
+  const breaks = [];
+  let t = 0;
+  all.forEach((v, i) => {
+    for (const [at, len] of v.breaks || []) breaks.push([t + at, len]);
+    t += v.duration_min + (i < all.length - 1 ? v.buffer_min || 0 : 0);
+  });
   const priced = all.every((v) => v.price_cents != null);
   return {
-    durationMin,
+    durationMin: t,
     bufferMin: last.buffer_min || 0,
     priceCents: priced ? all.reduce((t, v) => t + v.price_cents, 0) : null,
     names: all.map((v) => v.name),
+    breaks: cleanBreaks(breaks, t),
   };
 }
 
@@ -59,10 +69,16 @@ export function combineServices(primary, extras = []) {
  * asked for) are that person.
  */
 async function loadStylists(client, tenantId, serviceId, stylistSlug) {
+  // Their own figures for how long each kind of work takes (timing.js): a
+  // team member's are in staff_users.services, a stylist without a sign-in's
+  // in stylists.service_details. Through to_jsonb, so this still runs on a
+  // database without either column.
   const { rows } = await client.query(
-    `SELECT s.id, s.slug, s.name, s.title, s.sort_order, s.ghl_user_id
+    `SELECT s.id, s.slug, s.name, s.title, s.sort_order, s.ghl_user_id,
+            COALESCE(to_jsonb(u) -> 'services', to_jsonb(s) -> 'service_details', '{}'::jsonb) AS details
        FROM stylists s
        JOIN stylist_services ss ON ss.stylist_id = s.id
+       LEFT JOIN staff_users u ON u.id = s.staff_user_id
       WHERE s.tenant_id = $1 AND s.active AND ss.service_id = $2
         AND ($3::text IS NULL OR s.slug = $3)
       ORDER BY s.sort_order`,
@@ -89,9 +105,12 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
          FROM stylist_hours WHERE stylist_id = ANY($1)`,
       [stylistIds],
     ),
+    // Its breaks too, through to_jsonb so this reads a database that has
+    // not had migration 025: the stylist is free while a color processes.
     client.query(
-      `SELECT stylist_id, lower(during) AS from_ts, upper(during) AS to_ts
-         FROM appointments
+      `SELECT stylist_id, lower(during) AS from_ts, upper(during) AS to_ts,
+              to_jsonb(a) -> 'breaks' AS breaks
+         FROM appointments a
         WHERE status = 'booked' AND stylist_id = ANY($1) AND during && $2::tstzrange
           AND ($3::uuid IS NULL OR id <> $3)`,
       [stylistIds, range, excludeId ?? null],
@@ -108,7 +127,12 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
   const busy = new Map(stylistIds.map((id) => [id, []]));
   const closed = [];   // salon-wide, applies to everyone
 
-  for (const row of booked.rows) busy.get(row.stylist_id)?.push([+row.from_ts, +row.to_ts]);
+  for (const row of booked.rows) {
+    const from = +row.from_ts;
+    const lengthMin = (+row.to_ts - from) / 60_000;
+    const spans = workSpans({ durationMin: lengthMin, bufferMin: 0, breaks: cleanBreaks(row.breaks, lengthMin) });
+    for (const [a, b] of spans) busy.get(row.stylist_id)?.push([from + a * 60_000, from + b * 60_000]);
+  }
   for (const row of off.rows) {
     const span = [+row.from_ts, +row.to_ts];
     if (row.stylist_id === null) closed.push(span);
@@ -152,8 +176,12 @@ function overlapsAny(startMs, endMs, spans) {
  * (google-busy.js), and offers nothing for one whose calendar cannot be read.
  * Guests get it; the desk does not, for the same reason as above.
  *
- * `length` ({ durationMin, bufferMin }) is an existing appointment's own,
- * for moving it.
+ * `length` ({ durationMin, bufferMin, breaks }) is an existing appointment's
+ * own, for moving it.
+ *
+ * `visits` maps each stylist's id to the visit as they would do it
+ * (timing.js): its length, clean-down, price and processing breaks. A slot is
+ * offered with a stylist only where the parts they would be working are free.
  *
  * `extraServiceSlugs` are the visit's other services: the slot must fit all
  * of them end to end (combineServices) with one stylist who offers each.
@@ -187,11 +215,19 @@ export async function availableSlots(client, tenant, {
         : 'No stylist currently offers all of these services together.');
     }
   }
-  // Moving an appointment that already exists keeps its own length, which
-  // for a visit of several services is longer than its first service.
-  const visit = length
-    ? { ...combineServices(service, extras), durationMin: length.durationMin, bufferMin: length.bufferMin }
-    : combineServices(service, extras);
+  // How long the visit is depends on who does it: each stylist's own
+  // figures for the work, where they have typed them (timing.js), else the
+  // services table's. Moving an appointment that already exists keeps its
+  // own length and breaks, which for a visit of several services is longer
+  // than its first service.
+  const visitFor = (stylist) => (length
+    ? {
+      ...combineServices(service, extras),
+      durationMin: length.durationMin,
+      bufferMin: length.bufferMin,
+      breaks: cleanBreaks(length.breaks, length.durationMin),
+    }
+    : combineServices(timedService(service, stylist.details), extras.map((x) => timedService(x, stylist.details))));
   const stylistIds = stylists.map((s) => s.id);
   const slugOf = new Map(stylists.map((s) => [s.id, s.slug]));
 
@@ -235,7 +271,10 @@ export async function availableSlots(client, tenant, {
   const { shifts, busy, closed } = await loadWindow(
     client, tenant.id, stylists.map((s) => s.id), from, to, excludeAppointmentId,
   );
-  const blockMin = visit.durationMin + visit.bufferMin;
+  const visits = new Map(stylists.map((s) => [s.id, visitFor(s)]));
+  // What a caller showing one length shows: the stylist asked for, else the
+  // first of those who could take it.
+  const visit = visits.get(stylists[0].id);
   const windows = centro
     ? await centroWindows(client, tenant, stylists, from.toMillis(), to.toMillis())
     : null;
@@ -258,6 +297,15 @@ export async function availableSlots(client, tenant, {
         ? [{ starts_at: '00:00', ends_at: '23:59' }]
         : (shifts.get(stylist.id) ?? []).filter((sh) => sh.weekday === weekday);
 
+      const own = visits.get(stylist.id);
+      // The parts of the visit the stylist is working, with and without the
+      // clean-down: the diary blocks the one, a Google event must miss the other.
+      const working = workSpans(own);
+      const guestWork = workSpans(own, false);
+      const blockMin = own.durationMin + own.bufferMin;
+      const clash = (startMs, spans, against) => spans.some(([a, b]) => overlapsAny(
+        startMs + a * 60_000, startMs + b * 60_000, against));
+
       for (const shift of dayShifts) {
         const [oh, om] = String(shift.starts_at).split(':').map(Number);
         const [ch, cm] = String(shift.ends_at).split(':').map(Number);
@@ -269,18 +317,23 @@ export async function availableSlots(client, tenant, {
           // The guest must be finished by closing. Clean-down may run over,
           // which is how a salon actually works and gives back the last
           // appointment of the day.
-          if (start.plus({ minutes: visit.durationMin }) > closes) break;
+          if (start.plus({ minutes: own.durationMin }) > closes) break;
           if (start < earliest) continue;
 
           const startMs = start.toMillis();
           const blockEndMs = start.plus({ minutes: blockMin }).toMillis();
           // CENTRO has to have the guest's own time free; the clean-down
           // after it is ours to schedule.
-          if (free && !fitsIn(free, startMs, start.plus({ minutes: visit.durationMin }).toMillis())) continue;
+          if (free && !fitsIn(free, startMs, start.plus({ minutes: own.durationMin }).toMillis())) continue;
+          // A salon closure stops the whole visit: the guest is in the chair
+          // through a processing break too.
           if (overlapsAny(startMs, blockEndMs, closed)) continue;
-          if (overlapsAny(startMs, blockEndMs, busy.get(stylist.id) ?? [])) continue;
-          // Google: the guest's own time must be clear; clean-down is ours.
-          if (gb && overlapsAny(startMs, start.plus({ minutes: visit.durationMin }).toMillis(), gb)) continue;
+          // Their own bookings and blocks: only where they would be working.
+          // A color's Break is free time, and so is another color's.
+          if (clash(startMs, working, busy.get(stylist.id) ?? [])) continue;
+          // Google: the guest's own time must be clear where the stylist is
+          // working; clean-down is ours.
+          if (gb && clash(startMs, guestWork, gb)) continue;
 
           const who = found.get(startMs);
           if (who) who.push(stylist.id);
@@ -303,7 +356,7 @@ export async function availableSlots(client, tenant, {
     }
   }
 
-  return { service, extras, visit, stylists, days };
+  return { service, extras, visit, visits, stylists, days };
 }
 
 /**

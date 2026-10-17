@@ -1091,6 +1091,15 @@
   .dg-ev.short b { display: inline; font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dg-ev.here { box-shadow: 0 0 0 2px var(--ok) inset, 0 1px 2px rgba(30, 31, 92, .08); }
   .dg-ev.done, .dg-ev.noshow { opacity: .62; }
+  /* A color's processing break: open, because the stylist is free for
+     somebody else. pointer-events: none lets a click reach the column
+     underneath, which offers a new appointment at that time. */
+  .dg-proc { position: absolute; left: 6px; right: 6px; z-index: 0; pointer-events: none; overflow: hidden;
+             border: 1.5px dashed var(--dg-edge); border-radius: 10px; padding: 4px 10px;
+             font-size: var(--fs-xs); line-height: 1.3; color: var(--dg-ink);
+             background: color-mix(in srgb, var(--dg-bg) 35%, transparent); }
+  .dg-proc span { font-weight: 650; }
+  .dg-proc small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .dg-blk { position: absolute; left: 6px; right: 6px; z-index: 1; border-radius: 10px; border: 0; cursor: pointer;
             display: grid; place-items: center; font: inherit; font-size: var(--fs-xs); font-weight: 750;
@@ -1476,12 +1485,33 @@
     .svc .price { grid-column: 2; }
     .svc .dur { grid-column: 3; }
   }
-  /* Each service's notes for clients, in its own card on a second row that
-     starts under the service's description and runs to the card's edge.
-     Shown only while the service is on. */
-  .svc .svc-note { grid-column: 2 / -1; display: block; margin: 0; }
-  .svc .svc-note > span { display: block; font-size: .68rem; font-weight: 600; color: var(--muted); margin: 0 0 2px 2px; }
-  .svc .svc-note textarea { width: 100%; min-height: 54px; resize: vertical; font: inherit; font-size: .85rem; line-height: 1.4; }
+  /* Color's timing, on a second row under its description: Start, Break and
+     Finish, once for color and once for highlights, each with its total. The
+     Break is processing time, when the stylist is free for somebody else. */
+  .svc .svc-time { grid-column: 2 / -1; display: grid; gap: 6px; margin: 0; }
+  .svc .svc-time .tr { display: grid; grid-template-columns: 76px repeat(3, minmax(0, 1fr)) 64px; gap: 8px; align-items: end; }
+  .svc .svc-time .tr > b { font-size: .78rem; font-weight: 600; padding-bottom: 9px; }
+  .svc .svc-time .tot { font-size: .78rem; color: var(--muted); padding-bottom: 9px; text-align: right; white-space: nowrap; }
+  .svc .svc-time .svc-f input { padding-right: 34px; }
+  .svc .svc-time .svc-f::after { content: "min"; position: absolute; right: 8px; bottom: 9px; color: var(--muted); font-size: .75rem; pointer-events: none; }
+  .svc .svc-time .svc-f.brk > span { color: var(--link); }
+  .svc .tot-f::after { content: none; }
+  .svc .tot-f input { padding-right: 10px; }
+  .svc .svc-time .hint { font-size: .72rem; color: var(--muted); margin: 0; }
+  .svc.off .svc-time { opacity: .5; }
+  @media (max-width: 520px) {
+    .svc .svc-time .tr { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .svc .svc-time .tr > b { grid-column: 1 / -1; padding-bottom: 0; }
+    .svc .svc-time .tot { grid-column: 1 / -1; text-align: left; padding-bottom: 0; }
+    /* Three to a row is too narrow for "min" and the spinner beside a number. */
+    .svc .svc-time .svc-f::after { content: none; }
+    .svc .svc-time .svc-f input { padding-right: 6px; }
+  }
+  /* One set of notes for clients, under every service that is on, rather than
+     a box in each (asked for 2026-10-17). Shown while any service is on. */
+  .svc-notes { display: block; margin: -6px 0 14px; }
+  .svc-notes > span { display: block; font-size: .68rem; font-weight: 600; color: var(--muted); margin: 0 0 2px 2px; }
+  .svc-notes textarea { width: 100%; min-height: 64px; resize: vertical; font: inherit; font-size: .85rem; line-height: 1.4; }
   .md-pw { margin: 4px 0 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
   .md-pw summary { cursor: pointer; font-weight: 600; color: var(--link); }
 
@@ -2424,8 +2454,12 @@
       <div id="memberWork">
         <!-- Services and prices: four switches, a price beside each one that is on. -->
         <div class="md-sec">Services &amp; pricing</div>
-        <p class="small muted" style="margin:-6px 0 10px">Turn on what is offered, then type the starting price, how long it takes and any notes for clients.</p>
+        <p class="small muted" style="margin:-6px 0 10px">Turn on what is offered, then type the starting price and how long it takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
         <div class="svcs" id="memberSvcs"></div>
+        <label class="svc-notes hidden" id="memberNotesWrap"><span>Notes / Special Instructions for Clients</span>
+          <textarea id="memberNotes" rows="3" maxlength="2000"
+            placeholder="For example: arrive with dry hair, a patch test 48 hours before color."
+            aria-label="Notes and special instructions for clients, for all of these services"></textarea></label>
 
         <!-- Shown, grey and disabled, for everyone for now: the salon sets
              schedules: only the admin sets a stylist's hours (hoursOpen()). -->
@@ -4588,6 +4622,14 @@ function dayCard(a, top, height) {
   </button>`;
 }
 
+/** The Finish of a color after its processing break: the same appointment. */
+function partCard(a, top, height, label) {
+  const cls = [a.checkedInAt && a.status === 'booked' ? 'here' : '',
+    a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : ''].join(' ');
+  return `<button type="button" class="dg-ev short dg-part ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
+      title="${esc(`${label} · ${a.guestName} · ${a.service}`)}"><b>${esc(label)} · ${esc(a.guestName)}</b></button>`;
+}
+
 function renderDiary(d) {
   diaryData = d;
   $('dayHeading').textContent = `${d.heading} · ${d.booked} appointment${d.booked === 1 ? '' : 's'}`
@@ -4636,7 +4678,25 @@ function renderDiary(d) {
       title="${esc(`${label}${b.stylist ? ` · ${b.stylist}` : ''} · ${clock(s)} to ${clock(e)}${b.reason ? ` · ${b.reason}` : ''}`)}"><span>${label}${sub}</span></button>`;
   };
   const blkSpan = (b) => [Math.max(from, salonMinutes(b.startsAt)), Math.min(to, salonMinutes(b.endsAt) || 24 * 60)];
-  const apptCard = (a) => dayCard(a, px(salonMinutes(a.startsAt)) + 1, Math.max(22, (a.durationMin / 60) * DG_HOUR - 3));
+  const cardH = (m) => Math.max(22, (m / 60) * DG_HOUR - 3);
+  // A color with a processing break is drawn as its parts: the card for the
+  // Start, the Break open (dashed, and the pointer passes through it, so the
+  // time can be clicked and booked: the stylist is free), then the Finish.
+  const apptCard = (a) => {
+    const s0 = salonMinutes(a.startsAt);
+    const breaks = a.breaks || [];
+    if (!breaks.length) return dayCard(a, px(s0) + 1, cardH(a.durationMin));
+    let out = '';
+    let t = 0;
+    for (const [at, len] of breaks) {
+      out += t ? partCard(a, px(s0 + t) + 1, cardH(at - t), 'Continues') : dayCard(a, px(s0) + 1, cardH(at));
+      out += `<div class="dg-proc" style="top:${px(s0 + at) + 1}px;height:${Math.max(18, px(s0 + at + len) - px(s0 + at) - 3)}px"
+        title="${esc(`${a.guestName} processing · ${clock(s0 + at)} to ${clock(s0 + at + len)} · ${a.stylist || 'stylist'} free`)}">
+        <span>Processing · free</span><small>${esc(a.guestName)} · ${esc(clock(s0 + at))} to ${esc(clock(s0 + at + len))}</small></div>`;
+      t = at + len;
+    }
+    return out + partCard(a, px(s0 + t) + 1, cardH(a.durationMin - t), 'Finish');
+  };
   // A block on the whole salon (no stylist) is drawn in every column.
   const salonBlocks = blocks.filter((b) => !b.stylistSlug);
 
@@ -4886,6 +4946,11 @@ function openAppt(a) {
     row('When', esc(`${dayLabel(a.date || day)}, ${a.time} to ${a.endTime}`)),
     row('Service', esc(a.service)),
     row('Stylist', esc(a.stylist)),
+    // Processing time inside it: the stylist is free for somebody else then.
+    (a.breaks || []).length ? row('Processing', esc((a.breaks || []).map(([at, len]) => {
+      const s0 = salonMinutes(a.startsAt) + at;
+      return `${clock(s0)} to ${clock(s0 + len)}`;
+    }).join(', ') + ' (stylist free)')) : '',
     a.room ? row('Room', esc(a.room)) : '',
     row('Phone', a.guestPhone ? `<a href="tel:${esc(a.guestPhone)}">${esc(a.guestPhone)}</a>` : ''),
     row('Email', a.guestEmail ? `<a href="mailto:${esc(a.guestEmail)}">${mail(a.guestEmail)}</a>` : ''),
@@ -4991,7 +5056,9 @@ function demoDay(date) {
     };
   };
   const appointments = [
-    mk(0, 9, 0, 180, 'Stacey Morgan', 'Balayage', { room: 'Room 2', guestPhone: '(813) 555-0142', guestEmail: 'stacey.m@example.com', notes: 'Stacey has very thick hair', checkedInAt: new Date().toISOString(), nextStartsAt: new Date(Date.now() + 42 * 86400000).toISOString() }),
+    mk(0, 9, 0, 180, 'Stacey Morgan', 'Balayage', { room: 'Room 2', guestPhone: '(813) 555-0142', guestEmail: 'stacey.m@example.com', notes: 'Stacey has very thick hair', checkedInAt: new Date().toISOString(), nextStartsAt: new Date(Date.now() + 42 * 86400000).toISOString(), breaks: [[60, 45]] }),
+    // Booked into Stacey's processing break: the stylist is free then.
+    mk(0, 10, 0, 30, 'Leo Grant', 'Men\u2019s Cut', { guestPhone: '(813) 555-0150' }),
     mk(0, 13, 0, 60, 'Priya Shah', 'Haircut', { room: 'Room 1', guestPhone: '(813) 555-0188', guestEmail: 'priya@example.com' }),
     mk(1, 9, 30, 30, 'Marcus Lee', 'AI Scalp Analysis', { room: 'Room 3', guestPhone: '(813) 555-0110', price: 40, channel: 'online', guestEmail: 'marcus.lee@example.com' }),
     mk(1, 10, 15, 150, 'Hannah Ortiz', 'Highlights & Foils', { room: 'Room 1', guestPhone: '(813) 555-0177', guestEmail: 'hannah.o@example.com', status: 'completed' }),
@@ -5837,22 +5904,74 @@ function memberPicPaint(src, fallback) {
   $('memberPicDrop').classList.toggle('hidden', !src);
 }
 
+/** "1h 45m" for a total of minutes, or a dash while it cannot be added up. */
+const minsLabel = (n) => (n ? `${Math.floor(n / 60) ? `${Math.floor(n / 60)}h` : ''}${n % 60 ? ` ${n % 60}m` : ''}`.trim() : '–');
+
+/**
+ * Color's three parts, once for color and once for highlights. Start and
+ * Finish are the stylist working; the Break is processing, when they can take
+ * somebody else, and the diary leaves it open (timing.js on the server).
+ */
+function timeRow(group, label, p = {}, on) {
+  const field = (f, name, min, max, ph) => `<label class="svc-f${f === 'break' ? ' brk' : ''}"><span>${name}</span>
+      <input type="number" min="${min}" max="${max}" step="5" inputmode="numeric" placeholder="${ph}"
+        data-t="${group}.${f}" aria-label="${esc(`${label} ${name.toLowerCase()} in minutes`)}" value="${p[f] ?? ''}" ${on ? '' : 'disabled'}></label>`;
+  return `<div class="tr" data-group="${group}"><b>${esc(label)}</b>
+      ${field('start', 'Start', 5, 480, '30')}${field('break', 'Break', 0, 240, '30')}${field('finish', 'Finish', 5, 480, '30')}
+      <span class="tot" data-tot="${group}">${minsLabel(timeTotal(p))}</span></div>`;
+}
+const timeTotal = (p) => {
+  const n = (v) => (v === '' || v == null ? null : Number(v));
+  const [a, b, c] = [n(p.start), n(p.break), n(p.finish)];
+  return a && c ? a + (b || 0) + c : null;
+};
+
 function paintServices(services = {}) {
   $('memberSvcs').innerHTML = SERVICE_KINDS.map(([key, label, hint]) => {
     const v = services[key] || {};
+    const length = key === 'color'
+      ? `<span class="svc-f dur tot-f" aria-hidden="true"><span>Total</span><input type="text" data-f="total" tabindex="-1" readonly
+          data-legacy="${v.duration ?? ''}" value="${esc(minsLabel(timeTotal(v) || v.duration || 0).replace('–', ''))}" placeholder="–" disabled></span>
+        <div class="svc-time">
+          ${timeRow('color', 'Color', v, v.on)}
+          ${timeRow('highlights', 'Highlights', v.highlights || {}, v.on)}
+          <p class="hint">In minutes. Highlights also times balayage and foils. Color &amp; Cut adds your Cuts time after Finish.</p>
+        </div>`
+      : `<label class="svc-f dur"><span>Duration</span><input type="number" min="5" max="720" step="5" inputmode="numeric" placeholder="60"
+        data-f="duration" aria-label="${esc(label)} duration in minutes" value="${v.duration ?? ''}" ${v.on ? '' : 'disabled'}></label>`;
     return `<div class="svc ${v.on ? '' : 'off'}" data-svc="${key}">
       <button type="button" class="switch" role="switch" aria-checked="${Boolean(v.on)}" aria-label="${esc(label)} offered"><span></span></button>
       <div><b>${esc(label)}</b><small>${esc(v.on ? hint : 'Not offered')}</small></div>
       <label class="svc-f price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
         data-f="price" aria-label="${esc(label)} starting price" value="${v.price != null ? Number(v.price).toFixed(2) : ''}" ${v.on ? '' : 'disabled'}></label>
-      <label class="svc-f dur"><span>Duration</span><input type="number" min="5" max="720" step="5" inputmode="numeric" placeholder="60"
-        data-f="duration" aria-label="${esc(label)} duration in minutes" value="${v.duration ?? ''}" ${v.on ? '' : 'disabled'}></label>
-      <label class="svc-note${v.on ? '' : ' hidden'}"><span>Notes / Special Instructions for Clients</span>
-        <textarea rows="2" maxlength="1000" placeholder="For example: arrive with dry hair, a patch test 48 hours before."
-          aria-label="${esc(label)} notes and special instructions for clients">${esc(v.notes || '')}</textarea></label>
+      ${length}
     </div>`;
   }).join('');
+  // One box of notes for all of them. Notes saved the old way, one per
+  // service, are brought into it labelled, so nothing typed is lost.
+  const legacy = SERVICE_KINDS
+    .map(([key, label]) => (services[key]?.notes ? `${label}: ${services[key].notes}` : ''))
+    .filter(Boolean).join('\n');
+  $('memberNotes').value = typeof services.notes === 'string' ? services.notes : legacy;
+  paintNotesBox();
 }
+
+/** The shared notes are shown while any service is on: they are about those. */
+function paintNotesBox() {
+  const anyOn = [...$('memberSvcs').querySelectorAll('.switch')].some((sw) => sw.getAttribute('aria-checked') === 'true');
+  $('memberNotesWrap').classList.toggle('hidden', !anyOn);
+}
+
+$('memberSvcs').oninput = (e) => {
+  const group = e.target.dataset.t?.split('.')[0];
+  if (!group) return;
+  const row = e.target.closest('.tr');
+  const p = Object.fromEntries([...row.querySelectorAll('input')].map((i) => [i.dataset.t.split('.')[1], i.value]));
+  row.querySelector('.tot').textContent = minsLabel(timeTotal(p));
+  if (group === 'color') {
+    e.target.closest('.svc').querySelector('[data-f=total]').value = timeTotal(p) ? minsLabel(timeTotal(p)) : '';
+  }
+};
 $('memberSvcs').onclick = (e) => {
   const sw = e.target.closest('.switch');
   if (!sw || sw.disabled) return;
@@ -5860,11 +5979,11 @@ $('memberSvcs').onclick = (e) => {
   const on = sw.getAttribute('aria-checked') !== 'true';
   sw.setAttribute('aria-checked', String(on));
   row.classList.toggle('off', !on);
-  const inputs = row.querySelectorAll('input');
+  const inputs = row.querySelectorAll('input:not([readonly])');
   for (const i of inputs) i.disabled = !on;
-  // Hidden, not cleared, while the service is off, so turning it back on in
-  // the same visit brings back what was typed.
-  row.querySelector('.svc-note').classList.toggle('hidden', !on);
+  // Hidden, not cleared, while every service is off, so turning one back on
+  // in the same visit brings back what was typed.
+  paintNotesBox();
   const kind = SERVICE_KINDS.find(([k]) => k === row.dataset.svc);
   row.querySelector('small').textContent = on ? kind[2] : 'Not offered';
   paintHoursState();
@@ -6038,13 +6157,27 @@ function readHoursUI() {
 
 function readServices() {
   const out = {};
+  const num = (v) => (String(v).trim() === '' ? null : Number(v));
   for (const row of $('memberSvcs').querySelectorAll('.svc')) {
     const on = row.querySelector('.switch').getAttribute('aria-checked') === 'true';
     const raw = row.querySelector('[data-f=price]').value.trim();
-    const dur = row.querySelector('[data-f=duration]').value.trim();
-    const notes = row.querySelector('.svc-note textarea').value.trim();
-    out[row.dataset.svc] = { on, price: raw === '' ? null : Number(raw), duration: dur === '' ? null : Number(dur), notes };
+    const v = { on, price: raw === '' ? null : Number(raw) };
+    const dur = row.querySelector('[data-f=duration]');
+    if (dur) v.duration = num(dur.value);
+    // A color length saved before it was split into parts is kept until the
+    // parts are typed, rather than wiped by the first save.
+    const legacy = row.querySelector('[data-f=total]')?.dataset.legacy;
+    if (legacy) v.duration = num(legacy);
+    // Color: Start, Break and Finish for color, and again for highlights.
+    for (const tr of row.querySelectorAll('.svc-time .tr')) {
+      const p = {};
+      for (const i of tr.querySelectorAll('input')) p[i.dataset.t.split('.')[1]] = num(i.value);
+      if (tr.dataset.group === 'color') Object.assign(v, p);
+      else v[tr.dataset.group] = p;
+    }
+    out[row.dataset.svc] = v;
   }
+  out.notes = $('memberNotes').value.trim();
   return out;
 }
 
@@ -6129,7 +6262,7 @@ async function openMember(who) {
   for (const sw of $('memberSvcs').querySelectorAll('.switch, input')) {
     if (viewOnly) sw.disabled = true;
   }
-  for (const t of $('memberSvcs').querySelectorAll('textarea')) t.disabled = Boolean(viewOnly);
+  $('memberNotes').disabled = Boolean(viewOnly);
   $('memberPic').disabled = Boolean(viewOnly || noLogin);
   $('memberPicPick').classList.toggle('hidden', Boolean(viewOnly || noLogin));
 
@@ -6308,6 +6441,14 @@ $('memberForm').onsubmit = async (e) => {
       if (v.on && v.price != null && !(v.price >= 0)) { note($('memberNote'), `The ${label} price needs to be a number.`); return; }
       if (v.on && v.duration != null && !(Number.isInteger(v.duration) && v.duration >= 5 && v.duration <= 720)) {
         note($('memberNote'), `The ${label} duration is a number of minutes, from 5 to 720.`); return;
+      }
+      for (const [p, name] of key === 'color' ? [[v, 'Color'], [v.highlights || {}, 'Highlights']] : []) {
+        if (!v.on) break;
+        const bad = ['start', 'break', 'finish'].find((x) => p[x] != null && !(Number.isInteger(p[x]) && p[x] >= 0));
+        if (bad) { note($('memberNote'), `${name} ${bad} is a whole number of minutes.`); return; }
+        if (p.break && (p.start == null || p.finish == null)) {
+          note($('memberNote'), `${name} needs a Start and a Finish around its Break.`); return;
+        }
       }
     }
     // Sent only when it changed, so saving a name works before migration 012,

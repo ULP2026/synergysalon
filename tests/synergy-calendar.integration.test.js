@@ -244,7 +244,7 @@ test('several services are one appointment, long enough for all of them', { skip
 test('combineServices prices a visit only when every part has a price', () => {
   const a = { name: 'A', duration_min: 30, buffer_min: 10, price_cents: 4000 };
   const b = { name: 'B', duration_min: 60, buffer_min: 15, price_cents: 5000 };
-  assert.deepEqual(combineServices(a, [b]), { durationMin: 100, bufferMin: 15, priceCents: 9000, names: ['A', 'B'] });
+  assert.deepEqual(combineServices(a, [b]), { durationMin: 100, bufferMin: 15, priceCents: 9000, names: ['A', 'B'], breaks: [] });
   assert.equal(combineServices(a, [{ ...b, price_cents: null }]).priceCents, null);
   assert.equal(combineServices(a).durationMin, 30);
 });
