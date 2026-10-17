@@ -2,7 +2,7 @@
  * The columns the staff console's profile features write to, added if they
  * are missing.
  *
- * Migrations 010 to 013 and 016 to 025 were shipped with "run npm run db:migrate" and the
+ * Migrations 010 to 013 and 016 to 026 were shipped with "run npm run db:migrate" and the
  * console went live before anyone did, so every save of a username, price
  * or avatar choice failed in production. These are the same statements, all
  * idempotent (IF NOT EXISTS), run once per warm function. db:migrate still
@@ -72,6 +72,48 @@ const STATEMENTS = [
      END IF;
      ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_no_overlap;
    END $$`,
+  // 024: the send log and the automation switches, behind Marketing's count
+  // and its toggles. Both degrade to "nothing sent, everything on" when they
+  // are missing, so this only decides whether the numbers are real.
+  `CREATE TABLE IF NOT EXISTS message_sends (
+     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     tenant_id      uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+     kind           text NOT NULL,
+     appointment_id uuid REFERENCES appointments(id) ON DELETE SET NULL,
+     to_name        text,
+     to_email       text NOT NULL,
+     sent_at        timestamptz NOT NULL DEFAULT now())`,
+  `CREATE INDEX IF NOT EXISTS message_sends_tenant_kind
+     ON message_sends (tenant_id, kind, sent_at DESC)`,
+  "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS automations_off text[] NOT NULL DEFAULT '{}'",
+  // 026: the follow-up queue behind M4 to M11. Without it every enqueue is a
+  // logged warning and no follow-up is ever sent -- the bookings themselves
+  // are unaffected, which is why it is safe to leave to this.
+  `CREATE TABLE IF NOT EXISTS scheduled_messages (
+     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     tenant_id      uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+     kind           text NOT NULL,
+     appointment_id uuid REFERENCES appointments(id) ON DELETE CASCADE,
+     contact_id     uuid REFERENCES contacts(id) ON DELETE CASCADE,
+     to_name        text,
+     to_email       text NOT NULL,
+     send_after     timestamptz NOT NULL,
+     sent_at        timestamptz,
+     cancelled_at   timestamptz,
+     cancel_reason  text,
+     created_at     timestamptz NOT NULL DEFAULT now())`,
+  `CREATE INDEX IF NOT EXISTS scheduled_messages_due
+     ON scheduled_messages (tenant_id, send_after)
+     WHERE sent_at IS NULL AND cancelled_at IS NULL`,
+  `CREATE INDEX IF NOT EXISTS scheduled_messages_contact
+     ON scheduled_messages (contact_id)
+     WHERE sent_at IS NULL AND cancelled_at IS NULL`,
+  // The index that makes a trigger running twice queue one message, not two.
+  `CREATE UNIQUE INDEX IF NOT EXISTS scheduled_messages_once
+     ON scheduled_messages (appointment_id, kind)
+     WHERE appointment_id IS NOT NULL AND cancelled_at IS NULL`,
+  'ALTER TABLE services ADD COLUMN IF NOT EXISTS rebook_days integer',
+  'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS review_url text',
   // And the people removed before the column existed. Each salon's stylists
   // who were never given a login are named in config.js; any other
   // switched-off row with no login is somebody who was removed. Harmless to
