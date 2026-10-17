@@ -10,6 +10,9 @@ import { DateTime } from 'luxon';
 import { Resend } from 'resend';
 
 import { DEFAULT_TZ, shopFrom } from './config.js';
+// Safe to import without a database: db.js builds its pool lazily, so the
+// template functions and previewMessage still work with no DATABASE_URL.
+import { query } from './db.js';
 
 const senderAddress = (v) => { const m = String(v).match(/<([^>]+)>/); return (m ? m[1] : String(v)).trim(); };
 
@@ -417,10 +420,49 @@ const MESSAGES = {
 
 export const MESSAGE_KINDS = Object.keys(MESSAGES);
 
-function sendMessage(kind, appt, tenant, extra) {
+/**
+ * Whether this salon has switched an automation off, from Marketing.
+ *
+ * Off rather than on, so a salon that has never touched the switches has
+ * everything running, and a message kind added later is on by default rather
+ * than silently dark. A tenant row loaded before migration 024 has no column
+ * at all, which reads as undefined and therefore as on.
+ */
+export function automationOn(kind, tenant = {}) {
+  const off = tenant.automations_off;
+  return !(Array.isArray(off) && off.includes(kind));
+}
+
+/**
+ * Write down that a guest was emailed.
+ *
+ * Best-effort, like the sending itself: the message has already left, and
+ * failing the caller because a log row would not insert would turn a
+ * delivered confirmation into a 500 and, upstream, a lost booking. A missing
+ * table (migration 024 not yet run against this database) lands here too,
+ * which is deliberate -- the feature is a count on a page, and it is not
+ * worth taking the booking path down for.
+ */
+async function record(kind, appt, tenant) {
+  if (!tenant?.id) return;
+  try {
+    await query(
+      `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [tenant.id, kind, appt.id ?? null, appt.guest_name ?? null, appt.guest_email],
+    );
+  } catch (err) {
+    console.warn('message_sends insert failed', kind, err.message);
+  }
+}
+
+async function sendMessage(kind, appt, tenant, extra) {
   const shop = shopFrom(tenant);
+  if (!automationOn(kind, tenant)) return { skipped: true, off: true };
   const { subject, content } = MESSAGES[kind](appt, shop, shop.timezone, extra);
-  return send(shop, appt.guest_email, subject, content);
+  const out = await send(shop, appt.guest_email, subject, content);
+  if (out.sent) await record(kind, appt, tenant);
+  return out;
 }
 
 export function sendConfirmation(appt, tenant = {}) { return sendMessage('confirmation', appt, tenant); }

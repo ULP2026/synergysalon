@@ -12,7 +12,7 @@ import { DateTime } from 'luxon';
 
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
-import { MESSAGE_KINDS, previewMessage } from '../../_lib/email.js';
+import { MESSAGE_KINDS, automationOn, previewMessage } from '../../_lib/email.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
@@ -52,8 +52,11 @@ function logoFrom(value) {
 async function preview(kind, tenant) {
   if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such message.');
   const [svc, sty] = await Promise.all([
-    query(`SELECT name, price_cents FROM services WHERE tenant_id = $1 AND active
-            ORDER BY sort_order LIMIT 1`, [tenant.id]),
+    // duration_min as well as the price: without it the sample has no length,
+    // so the preview drops the "How long" row and the add-to-calendar link,
+    // and staff read a message missing two things a guest actually receives.
+    query(`SELECT name, price_cents, duration_min FROM services
+            WHERE tenant_id = $1 AND active ORDER BY sort_order LIMIT 1`, [tenant.id]),
     query(`SELECT name FROM stylists WHERE tenant_id = $1 AND active
             ORDER BY sort_order LIMIT 1`, [tenant.id]),
   ]);
@@ -65,6 +68,7 @@ async function preview(kind, tenant) {
     service_name: svc.rows[0]?.name || 'Your service',
     stylist_name: sty.rows[0]?.name || 'Your stylist',
     price_cents: svc.rows[0]?.price_cents ?? null,
+    duration_min: svc.rows[0]?.duration_min ?? 60,
     starts_at: start.toJSDate(),
     ref: 'SAMPLE',
     manage_token: 'preview',
@@ -73,12 +77,71 @@ async function preview(kind, tenant) {
   return { kind, to: `${appt.guest_name} <${appt.guest_email}>`, ...out };
 }
 
+/**
+ * How many of each message have gone out, and whether the automation is on.
+ *
+ * Counts start the day migration 024 ran: nothing recorded a send before it,
+ * so there is nothing honest to backfill from. The whole thing degrades to
+ * zeroes when that migration has not run yet, because this is a number on a
+ * screen and not worth taking Marketing down over.
+ */
+async function automations(tenant) {
+  const counts = await query(
+    `SELECT kind, count(*)::int AS sent, max(sent_at) AS last_sent
+       FROM message_sends WHERE tenant_id = $1 GROUP BY kind`,
+    [tenant.id],
+  ).catch(() => ({ rows: [] }));
+
+  const by = new Map(counts.rows.map((r) => [r.kind, r]));
+  return {
+    kinds: MESSAGE_KINDS.map((kind) => ({
+      kind,
+      on: automationOn(kind, tenant),
+      sent: by.get(kind)?.sent ?? 0,
+      lastSent: by.get(kind)?.last_sent ?? null,
+    })),
+  };
+}
+
+/**
+ * Who received one of them, newest first.
+ *
+ * The name and address come off the log row rather than a join back to the
+ * contact, because this answers "who did we email", which is a fact about the
+ * past: a guest who has since changed their address, or been deleted, still
+ * received it.
+ */
+async function recipients(kind, tenant) {
+  if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such message.');
+  const { rows } = await query(
+    `SELECT m.to_name, m.to_email, m.sent_at, a.ref
+       FROM message_sends m
+       LEFT JOIN appointments a ON a.id = m.appointment_id
+      WHERE m.tenant_id = $1 AND m.kind = $2
+      ORDER BY m.sent_at DESC LIMIT 200`,
+    [tenant.id, kind],
+  ).catch(() => ({ rows: [] }));
+  return {
+    kind,
+    people: rows.map((r) => ({
+      name: r.to_name || r.to_email,
+      email: r.to_email,
+      sentAt: r.sent_at,
+      ref: r.ref || null,
+    })),
+  };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
-    const kind = new URL(req.url, 'http://localhost').searchParams.get('preview');
+    const q = new URL(req.url, 'http://localhost').searchParams;
+    const kind = q.get('preview');
     if (kind) return json(res, 200, await preview(kind, tenant));
+    if (q.has('automations')) return json(res, 200, await automations(tenant));
+    const who = q.get('recipients');
+    if (who) return json(res, 200, await recipients(who, tenant));
     const { rows } = await query(
       `SELECT name, slug, logo, address, phone, email, website, about, timezone,
               host, app_host, to_jsonb(tenants) ->> 'reply_to' AS reply_to
@@ -110,6 +173,25 @@ export default handler({
     const user = await requireStaff(req, CAN_EDIT);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
+
+    // Switching an automation on or off, from Marketing. Its own branch and
+    // its own reply, because it has nothing to do with the shop's address and
+    // the caller is a different screen.
+    if (body.automation !== undefined) {
+      const kind = String(body.automation);
+      if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such automation.');
+      const on = body.on !== false;
+      await query(
+        on
+          ? `UPDATE tenants SET automations_off = array_remove(automations_off, $2) WHERE id = $1`
+          : `UPDATE tenants
+                SET automations_off = (
+                  SELECT array_agg(DISTINCT k) FROM unnest(automations_off || $2::text) AS k)
+              WHERE id = $1`,
+        [tenant.id, kind],
+      );
+      return json(res, 200, { automation: kind, on });
+    }
 
     const sets = [];
     const params = [tenant.id];

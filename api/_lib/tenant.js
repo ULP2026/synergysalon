@@ -26,6 +26,10 @@ async function bySlug(slug) {
             address, phone, email, website, logo,
             -- Through to_jsonb, so this still reads before migration 017.
             to_jsonb(tenants) ->> 'reply_to' AS reply_to,
+            -- Same again for 024: null before it runs, which reads as "every
+            -- automation is on", which is what a salon that has never touched
+            -- the switches should get.
+            to_jsonb(tenants) -> 'automations_off' AS automations_off,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE slug = $1 AND active`,
     [slug],
@@ -44,6 +48,10 @@ async function byHost(host) {
             address, phone, email, website, logo,
             -- Through to_jsonb, so this still reads before migration 017.
             to_jsonb(tenants) ->> 'reply_to' AS reply_to,
+            -- Same again for 024: null before it runs, which reads as "every
+            -- automation is on", which is what a salon that has never touched
+            -- the switches should get.
+            to_jsonb(tenants) -> 'automations_off' AS automations_off,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE (host = $1 OR app_host = $1) AND active`,
     [host],
@@ -87,6 +95,10 @@ export async function tenantForUser(user) {
             address, phone, email, website, logo,
             -- Through to_jsonb, so this still reads before migration 017.
             to_jsonb(tenants) ->> 'reply_to' AS reply_to,
+            -- Same again for 024: null before it runs, which reads as "every
+            -- automation is on", which is what a salon that has never touched
+            -- the switches should get.
+            to_jsonb(tenants) -> 'automations_off' AS automations_off,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE id = $1 AND active`,
     [user.tenant_id],

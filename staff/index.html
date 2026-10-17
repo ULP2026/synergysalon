@@ -1229,6 +1229,24 @@
   .au-row:hover { border-color: var(--line-2); box-shadow: 0 10px 24px -18px rgba(30, 31, 92, .55); transform: translateY(-1px); }
   .au-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .au-row .name { flex: 1; min-width: 0; font-weight: 600; font-size: .95rem; }
+  .au-sent { border: 0; background: none; font: inherit; font-size: var(--fs-sm); color: var(--muted);
+             padding: 4px 8px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .au-sent:hover { background: var(--peri-pale); color: var(--indigo); }
+  .au-sent[disabled] { cursor: default; color: var(--faint); background: none; }
+  .au-sw { position: relative; width: 40px; height: 23px; flex: none; border: 0; border-radius: 999px;
+           background: var(--line-2); cursor: pointer; transition: background var(--t) var(--ease); }
+  .au-sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 17px; height: 17px;
+                  border-radius: 50%; background: #fff; transition: transform var(--t) var(--ease); }
+  .au-sw[aria-checked="true"] { background: var(--indigo); }
+  .au-sw[aria-checked="true"]::after { transform: translateX(17px); }
+  .au-sw:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .au-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; border: 0; background: none;
+             font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0; }
+  .recv-list { display: grid; gap: 2px; }
+  .recv-row { display: flex; align-items: baseline; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  .recv-row .who { font-weight: 600; }
+  .recv-row .em { color: var(--muted); font-size: var(--fs-sm); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .recv-row .at { color: var(--faint); font-size: var(--fs-sm); white-space: nowrap; }
   .au-row .go { display: grid; color: var(--faint); transition: transform var(--t) var(--ease), color var(--t) var(--ease); }
   .au-row:hover .go { transform: translateX(3px); color: var(--indigo); }
   .au-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; flex: none; color: #fff;
@@ -2695,6 +2713,16 @@
   <p class="au-foot"><svg class="ic"><use href="#i-eye"/></svg>View only. This is what the app does on its own.</p>
 </dialog>
 
+<!-- Marketing, Automation: who an automation has actually emailed. -->
+<dialog id="recvDlg" class="au" aria-labelledby="recvTitle">
+  <header class="au-head">
+    <span class="au-ic" id="recvIc"></span>
+    <div class="grow"><h2 id="recvTitle"></h2><p id="recvSub"></p></div>
+    <button type="button" class="iconbtn lg" id="recvClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </header>
+  <div class="au-body" id="recvBody"></div>
+</dialog>
+
 <dialog id="msgDlg" class="au msg" aria-labelledby="msgTitle">
   <header class="au-head">
     <span class="au-ic"><svg class="ic"><use href="#i-mail"/></svg></span>
@@ -3636,6 +3664,19 @@ function automations() {
 }
 
 let autoQuery = '';
+// What the server says about each automation: whether it is on, how many have
+// gone out, and when the last one did. Empty until the first load, and left
+// empty if the call fails -- the list still paints, just without the numbers,
+// because the flows are worth reading on their own.
+let autoStats = {};
+
+async function loadAutoStats() {
+  try {
+    const d = await api('/api/staff/business?automations');
+    autoStats = Object.fromEntries((d.kinds || []).map((k) => [k.kind, k]));
+  } catch { autoStats = {}; }
+}
+
 function renderAutomations() {
   const all = automations();
   $('mktCard').innerHTML = `
@@ -3647,20 +3688,106 @@ function renderAutomations() {
     <div class="au-list" id="autoList"></div>`;
   paintAutomationList();
   $('autoSearch').oninput = (e) => { autoQuery = e.target.value; paintAutomationList(); };
+  loadAutoStats().then(paintAutomationList);
 }
 function paintAutomationList() {
   const q = autoQuery.trim().toLowerCase();
   const list = automations().filter((a) => !q || a.name.toLowerCase().includes(q));
-  $('autoList').innerHTML = list.length ? list.map((a) => `
-    <button type="button" class="au-row" data-auto="${a.id}">
-      <span class="au-ic">${ic(a.icon)}</span><span class="name">${esc(a.name)}</span>
+  // A row, not a button: it holds three controls now, and a button inside a
+  // button is invalid and stops responding to clicks in Safari.
+  $('autoList').innerHTML = list.length ? list.map((a) => {
+    const s = autoStats[a.id];
+    const sent = s ? s.sent : null;
+    const count = sent === null ? ''
+      : `<button type="button" class="au-sent" data-sent="${a.id}"${sent ? '' : ' disabled'}>${sent} sent</button>`;
+    const sw = s
+      ? `<button type="button" class="au-sw" role="switch" data-sw="${a.id}"
+                 aria-checked="${s.on ? 'true' : 'false'}"
+                 aria-label="${esc(a.name)} is ${s.on ? 'on' : 'off'}"></button>`
+      : '';
+    return `
+    <div class="au-row">
+      <button type="button" class="au-open" data-auto="${a.id}">
+        <span class="au-ic">${ic(a.icon)}</span><span class="name">${esc(a.name)}</span>
+      </button>
+      ${count}${sw}
       <span class="go">${ic('right')}</span>
-    </button>`).join('') : '<div class="au-empty">No automation matches that.</div>';
+    </div>`;
+  }).join('') : '<div class="au-empty">No automation matches that.</div>';
 }
-$('mktCard').addEventListener('click', (e) => {
+$('mktCard').addEventListener('click', async (e) => {
+  // The switch and the count sit inside the row, so they are checked first:
+  // otherwise every tap on either would also open the flow behind them.
+  const sw = e.target.closest('[data-sw]');
+  if (sw) return toggleAutomation(sw);
+  const sent = e.target.closest('[data-sent]');
+  if (sent) return openRecipients(sent.dataset.sent);
   const row = e.target.closest('[data-auto]');
   if (row) openAutomation(row.dataset.auto);
 });
+
+/**
+ * Switch one automation on or off.
+ *
+ * The switch moves first and is put back if the server refuses, because the
+ * round trip is long enough to feel broken otherwise. Disabled while in
+ * flight so an impatient double-tap cannot send two opposite changes.
+ */
+async function toggleAutomation(sw) {
+  const kind = sw.dataset.sw;
+  const on = sw.getAttribute('aria-checked') !== 'true';
+  sw.setAttribute('aria-checked', String(on));
+  sw.disabled = true;
+  try {
+    await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify({ automation: kind, on }) });
+    if (autoStats[kind]) autoStats[kind].on = on;
+    toast(on ? 'Automation on.' : 'Automation off. Clients stop receiving this.');
+  } catch (err) {
+    sw.setAttribute('aria-checked', String(!on));
+    toast(err.message || 'Could not change that.', 'bad');
+  } finally {
+    sw.disabled = false;
+  }
+}
+
+/** Who this automation has emailed, newest first. */
+async function openRecipients(kind) {
+  const a = automations().find((x) => x.id === kind);
+  if (!a) return;
+  $('recvIc').innerHTML = ic(a.icon);
+  $('recvTitle').textContent = a.name;
+  $('recvSub').textContent = 'Loading…';
+  $('recvBody').innerHTML = '';
+  openDialog($('recvDlg'));
+  try {
+    const d = await api(`/api/staff/business?recipients=${encodeURIComponent(kind)}`);
+    const people = d.people || [];
+    $('recvSub').textContent = people.length === 1
+      ? '1 client has received this' : `${people.length} clients have received this`;
+    $('recvBody').innerHTML = people.length
+      ? `<div class="recv-list">${people.map((p) => `
+          <div class="recv-row">
+            <span class="who">${esc(p.name)}</span>
+            <span class="em">${esc(p.email)}</span>
+            <span class="at">${esc(whenShort(p.sentAt))}</span>
+          </div>`).join('')}</div>`
+      : '<div class="au-empty">Nobody yet. Counts start from when this was switched on.</div>';
+  } catch (err) {
+    $('recvSub').textContent = '';
+    $('recvBody').innerHTML = `<div class="au-empty">${esc(err.message || 'Could not load that.')}</div>`;
+  }
+}
+
+/** "17 Oct, 2:30 PM" -- enough to find the message, short enough for a row. */
+function whenShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(undefined, {
+    day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
+  });
+}
+
+$('recvClose').onclick = () => closeDialog($('recvDlg'));
 
 function openAutomation(id) {
   const a = automations().find((x) => x.id === id);
