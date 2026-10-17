@@ -26,7 +26,14 @@ export default handler({
               -- The shop each guest is being reminded about, so one run can
               -- cover several and each email speaks for the right one.
               t.timezone, t.name AS shop_name, t.host, t.slug,
-              t.address, t.phone, t.email
+              t.address, t.phone, t.email,
+              -- The id, so the send is recorded against the salon, and the
+              -- switches, so a reminder turned off in Marketing actually
+              -- stops. Without these two the object below is not a tenant as
+              -- far as email.js is concerned: nothing is logged, and the
+              -- switch reads as on however it was left.
+              t.id AS tenant_id,
+              to_jsonb(t) -> 'automations_off' AS automations_off
          FROM appointments a
          JOIN stylists s ON s.id = a.stylist_id
          JOIN services v ON v.id = a.service_id
@@ -42,13 +49,19 @@ export default handler({
     );
 
     let sent = 0;
+    let off = 0;
     const failed = [];
     for (const appt of rows) {
       try {
-        await sendReminder(appt, {
+        const out = await sendReminder(appt, {
+          id: appt.tenant_id, automations_off: appt.automations_off,
           name: appt.shop_name, timezone: appt.timezone, host: appt.host,
           slug: appt.slug, address: appt.address, phone: appt.phone, email: appt.email,
         });
+        // Switched off in Marketing: leave reminder_sent_at alone so the
+        // appointment is picked up again if it is switched back on before
+        // the day arrives, rather than being marked done without a word.
+        if (out?.off) { off += 1; continue; }
         // Marked only after the provider accepted it, so a failure is retried
         // on the next run rather than silently dropped.
         await query('UPDATE appointments SET reminder_sent_at = now() WHERE id = $1', [appt.id]);
@@ -59,6 +72,6 @@ export default handler({
       }
     }
 
-    return json(res, 200, { considered: rows.length, sent, failed });
+    return json(res, 200, { considered: rows.length, sent, off, failed });
   },
 });
