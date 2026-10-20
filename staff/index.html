@@ -1508,7 +1508,8 @@
     .svc .svc-time .svc-f input { padding-right: 6px; }
   }
   /* One set of notes for clients, under every service that is on, rather than
-     a box in each (asked for 2026-10-17). Shown while any service is on. */
+     a box in each (asked for 2026-10-17). Always shown, under the last card:
+     hiding it until a service was on meant most stylists never saw it. */
   .svc-notes { display: block; margin: -6px 0 14px; }
   .svc-notes > span { display: block; font-size: .68rem; font-weight: 600; color: var(--muted); margin: 0 0 2px 2px; }
   .svc-notes textarea { width: 100%; min-height: 64px; resize: vertical; font: inherit; font-size: .85rem; line-height: 1.4; }
@@ -2456,7 +2457,7 @@
         <div class="md-sec">Services &amp; pricing</div>
         <p class="small muted" style="margin:-6px 0 10px">Turn on what is offered, then type the starting price and how long it takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
         <div class="svcs" id="memberSvcs"></div>
-        <label class="svc-notes hidden" id="memberNotesWrap"><span>Notes / Special Instructions for Clients</span>
+        <label class="svc-notes" id="memberNotesWrap"><span>Notes / Special Instructions for Clients</span>
           <textarea id="memberNotes" rows="3" maxlength="2000"
             placeholder="For example: arrive with dry hair, a patch test 48 hours before color."
             aria-label="Notes and special instructions for clients, for all of these services"></textarea></label>
@@ -6024,13 +6025,6 @@ function paintServices(services = {}) {
     .map(([key, label]) => (services[key]?.notes ? `${label}: ${services[key].notes}` : ''))
     .filter(Boolean).join('\n');
   $('memberNotes').value = typeof services.notes === 'string' ? services.notes : legacy;
-  paintNotesBox();
-}
-
-/** The shared notes are shown while any service is on: they are about those. */
-function paintNotesBox() {
-  const anyOn = [...$('memberSvcs').querySelectorAll('.switch')].some((sw) => sw.getAttribute('aria-checked') === 'true');
-  $('memberNotesWrap').classList.toggle('hidden', !anyOn);
 }
 
 $('memberSvcs').oninput = (e) => {
@@ -6052,9 +6046,6 @@ $('memberSvcs').onclick = (e) => {
   row.classList.toggle('off', !on);
   const inputs = row.querySelectorAll('input:not([readonly])');
   for (const i of inputs) i.disabled = !on;
-  // Hidden, not cleared, while every service is off, so turning one back on
-  // in the same visit brings back what was typed.
-  paintNotesBox();
   const kind = SERVICE_KINDS.find(([k]) => k === row.dataset.svc);
   row.querySelector('small').textContent = on ? kind[2] : 'Not offered';
   paintHoursState();
