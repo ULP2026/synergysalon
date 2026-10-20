@@ -34,6 +34,13 @@ const WITH_CUT = /\bcut\b/i;
  */
 export const COLOR_AND_CUT = { cut: 45, start: 45, break: 45, finish: 45 };
 
+/**
+ * Single Process Color the same way without the cut (asked for 2026-10-20):
+ * apply 45, process 45 with the stylist free, finish 45. Its table figure of
+ * 90 had no break and held the stylist the whole time.
+ */
+const SINGLE_PROCESS = /single[\s-]process/i;
+
 const mins = (v, lo, hi) => {
   const n = Number(v);
   return Number.isInteger(n) && n >= lo && n <= hi ? n : null;
@@ -70,6 +77,9 @@ export function ownTiming(details, service) {
   const key = timingKey(service);
   if (key === 'highlights') return parts(details?.color?.highlights);
   if (key === 'color' && WITH_CUT.test(service.name)) return colorAndCut(details);
+  if (key === 'color' && SINGLE_PROCESS.test(`${service.slug} ${service.name}`)) {
+    return parts(details?.color, COLOR_AND_CUT.break) ?? parts(COLOR_AND_CUT);
+  }
   const own = details?.[service.category];
   if (!own) return null;
   if (service.category === 'color') {

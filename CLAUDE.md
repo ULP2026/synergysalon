@@ -261,7 +261,8 @@ whose slug or name says highlight, balayage or foil. Color & Cut is the
 cut first, then the Color parts (asked for 2026-10-20: cut 45, apply 45,
 process at least 45 with the stylist free, finish 45, `COLOR_AND_CUT` in
 `timing.js`); those 45s stand in for any figure the stylist has not typed,
-and the break is never shorter than 45. A cut booked alongside a color as
+and the break is never shorter than 45. Single Process Color is the same
+without the cut (45/45/45, 135 minutes in place of the table's 90). A cut booked alongside a color as
 separate services also goes first (`combineServices`). Lengths differ per stylist, so
 `availableSlots` returns `visits` (stylist id to visit) and `createBooking`
 books each stylist tried at their own length.

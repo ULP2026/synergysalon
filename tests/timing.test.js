@@ -33,9 +33,10 @@ test("a stylist's Start, Break and Finish are the service's length, with the Bre
     [timedService(balayage, mine).duration_min, timedService(balayage, mine).breaks],
     [155, [[60, 45]]],
   );
+  // Single Process Color: their parts, the Break never under the salon's 45.
   assert.deepEqual(
     [timedService(single, mine).duration_min, timedService(single, mine).breaks],
-    [105, [[40, 35]]],
+    [40 + 45 + 30, [[40, 45]]],
   );
   // Color & Cut: their cut, then the color's parts; the Break is never
   // shorter than the salon's 45.
@@ -59,14 +60,24 @@ test('Color & Cut with nothing typed is the salon\'s 45/45/45/45, the stylist fr
   assert.deepEqual(timedService(colorCut, { cuts: { duration: 30 } }).breaks, [[75, 45]]);
 });
 
+test('Single Process Color with nothing typed is 45/45/45, the stylist free while it processes', () => {
+  for (const details of [{}, { color: { duration: 75 } }, { color: { start: 30, break: 20 } }]) {
+    const visit = timedService(single, details);
+    assert.equal(visit.duration_min, 135);
+    assert.deepEqual(visit.breaks, [[45, 45]]);
+  }
+  assert.deepEqual(workSpans({ durationMin: 135, bufferMin: 0, breaks: [[45, 45]] }), [[0, 45], [90, 135]]);
+});
+
 test('nothing typed, or half a timing, falls back to the services table', () => {
   assert.equal(timedService(balayage, {}).duration_min, 180);
   assert.equal(timedService(haircut, { cuts: { on: true, duration: null } }).duration_min, 60);
+  const gloss = svc('gloss-or-toner', 'Gloss or Toner', 'color', 45);
   // A Break with no Finish is not a timing: guessing its end would sell time.
-  assert.equal(timedService(single, { color: { start: 30, break: 20 } }).duration_min, 90);
+  assert.equal(timedService(gloss, { color: { start: 30, break: 20 } }).duration_min, 45);
   // A color length saved before the parts existed is still used.
-  assert.equal(timedService(single, { color: { duration: 75 } }).duration_min, 75);
-  assert.deepEqual(timedService(single, { color: { duration: 75 } }).breaks, []);
+  assert.equal(timedService(gloss, { color: { duration: 75 } }).duration_min, 75);
+  assert.deepEqual(timedService(gloss, { color: { duration: 75 } }).breaks, []);
 });
 
 test('several services: lengths, breaks and clean-downs add up end to end', () => {
