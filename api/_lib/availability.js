@@ -44,9 +44,16 @@ export async function loadService(client, tenantId, slug) {
  * A service's processing breaks (timedService in timing.js) keep their place
  * inside it, moved along by whatever came before, so a color booked after a
  * cut still frees its stylist while it develops.
+ *
+ * A cut booked with a color goes first, whichever was picked first: the
+ * color is rinsed and finished last (the salon's order, 2026-10-20), and a
+ * cut after it would undo the finish.
  */
 export function combineServices(primary, extras = []) {
-  const all = [primary, ...extras];
+  const given = [primary, ...extras];
+  const all = given.some((v) => v.category === 'color')
+    ? [...given.filter((v) => v.category === 'cuts'), ...given.filter((v) => v.category !== 'cuts')]
+    : given;
   const last = all[all.length - 1];
   const breaks = [];
   let t = 0;

@@ -37,14 +37,26 @@ test("a stylist's Start, Break and Finish are the service's length, with the Bre
     [timedService(single, mine).duration_min, timedService(single, mine).breaks],
     [105, [[40, 35]]],
   );
-  // Color & Cut: the color's parts, then their cut.
+  // Color & Cut: their cut, then the color's parts; the Break is never
+  // shorter than the salon's 45.
   assert.deepEqual(
     [timedService(colorCut, mine).duration_min, timedService(colorCut, mine).breaks],
-    [150, [[40, 35]]],
+    [45 + 40 + 45 + 30, [[85, 45]]],
   );
   // Any other kind: their own single figure.
   assert.equal(timedService(haircut, mine).duration_min, 45);
   assert.deepEqual(timedService(haircut, mine).breaks, []);
+});
+
+test('Color & Cut with nothing typed is the salon\'s 45/45/45/45, the stylist free while it processes', () => {
+  const visit = timedService(colorCut, {});
+  assert.equal(visit.duration_min, 180);
+  assert.deepEqual(visit.breaks, [[90, 45]]);
+  // Cut 0-45, apply 45-90, processing 90-135 (free), finish 135-180.
+  assert.deepEqual(workSpans({ durationMin: 180, bufferMin: 0, breaks: visit.breaks }), [[0, 90], [135, 180]]);
+  // A longer processing time is kept; only the cut typed, the color is the salon's.
+  assert.deepEqual(timedService(colorCut, { color: { start: 45, break: 60, finish: 45 } }).breaks, [[90, 60]]);
+  assert.deepEqual(timedService(colorCut, { cuts: { duration: 30 } }).breaks, [[75, 45]]);
 });
 
 test('nothing typed, or half a timing, falls back to the services table', () => {
@@ -64,10 +76,11 @@ test('several services: lengths, breaks and clean-downs add up end to end', () =
   assert.equal(visit.durationMin, 45 + 10 + 155);
   assert.equal(visit.bufferMin, 15);
   assert.deepEqual(visit.breaks, [[115, 45]]);
-  // The other way round, the Break is where the balayage puts it.
+  // Picked the other way round, the cut still goes first.
   const back = combineServices(timedService(balayage, mine), [timedService(haircut, mine)]);
-  assert.equal(back.durationMin, 155 + 15 + 45);
-  assert.deepEqual(back.breaks, [[60, 45]]);
+  assert.deepEqual(back.names, ['Haircut', 'Balayage']);
+  assert.equal(back.durationMin, 45 + 10 + 155);
+  assert.deepEqual(back.breaks, [[115, 45]]);
 });
 
 test('the stylist works the visit with its breaks cut out; the clean-down blocks the diary only', () => {
