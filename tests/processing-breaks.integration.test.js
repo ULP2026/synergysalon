@@ -17,6 +17,7 @@ import pg from 'pg';
 import { availableSlots } from '../api/_lib/availability.js';
 import { createBooking } from '../api/_lib/booking.js';
 import { EXCLUSION_VIOLATION } from '../api/_lib/db.js';
+import { makeBookable } from './bookable.js';
 
 const url = process.env.DATABASE_URL;
 const skip = url ? false : 'DATABASE_URL is not set';
@@ -44,6 +45,13 @@ const DINA = {
 async function setup(c, details = DINA) {
   const { rows } = await c.query("SELECT id, slug, name, timezone FROM tenants WHERE slug = 'synergy'");
   const tenant = rows[0];
+  // The live Dina is switched off with no services; the seed's is not. Make
+  // the fixture rather than depend on which database this is pointed at.
+  await makeBookable(c, tenant.id, 'dina');
+  // Micah too: one test books her to prove a stylist who has typed nothing
+  // is booked at the service table's own length. She keeps empty
+  // service_details, which is the point of her.
+  await makeBookable(c, tenant.id, 'micah');
   await c.query(
     "UPDATE stylists SET service_details = $2::jsonb WHERE tenant_id = $1 AND slug = 'dina'",
     [tenant.id, JSON.stringify(details)],

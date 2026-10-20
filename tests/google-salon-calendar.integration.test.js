@@ -13,6 +13,7 @@ import test from 'node:test';
 
 import { createBooking } from '../api/_lib/booking.js';
 import { pool, transaction } from '../api/_lib/db.js';
+import { anyBookable } from './bookable.js';
 
 const url = process.env.DATABASE_URL;
 const skip = url ? false : 'DATABASE_URL is not set';
@@ -67,12 +68,20 @@ async function setup(db) {
      RETURNING id`,
     [t.id, encryptSecret('zz-refresh'), encryptSecret('zz-access')],
   )).rows[0].id;
-  // Through the app's own booking path, a week out at 10 on Kim's hours.
+  // Through the app's own booking path, a week out at 10.
+  //
+  // Whoever is already bookable, rather than a named stylist. This test
+  // commits -- the salon calendar is created on a real booking -- so it
+  // must not switch anybody on to make itself work: a stylist left active
+  // outlives the run and is offered to guests. It used to name Kim, who is
+  // set up in db/seed.sql and switched off in the live database, so against
+  // production it only ever failed.
   const { DateTime } = await import('luxon');
   let day = DateTime.now().setZone(t.timezone).plus({ days: 7 }).startOf('day');
   while (day.weekday !== 2) day = day.plus({ days: 1 });
+  const stylistSlug = await anyBookable(db, t.id);
   const a = await transaction((c) => createBooking(c, { ...t, slug: 'synergy' }, {
-    serviceSlug: 'haircuts', stylistSlug: 'kim', start: day.set({ hour: 10 }).toISO(),
+    serviceSlug: 'haircuts', stylistSlug, start: day.set({ hour: 10 }).toISO(),
     guestName: 'ZZ Guest', guestPhone: '8135550100', channel: 'staff', minLeadMin: 0,
   }));
   return { tenant: t, userId: u, appt: { ...a, service_name: 'Haircut', salon_name: t.name } };

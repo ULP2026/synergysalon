@@ -137,16 +137,21 @@ test('a refused booking retried after it was cancelled is not put on the calenda
 test('draining one tenant leaves other tenants’ jobs alone', { skip }, async () => {
   await cleanup();
   const { t } = await setup();
+  // The jobs themselves, not how many there are. Test files run concurrently,
+  // so a booking made in another one lands a new pending job while this runs
+  // and a count comparison fails through no fault of the drain. These ids
+  // cannot be disturbed by an arrival.
   const before = (await pool().query(
-    "SELECT count(*)::int AS n FROM sync_outbox WHERE state = 'pending' AND tenant_id <> $1", [t],
-  )).rows[0].n;
+    "SELECT id FROM sync_outbox WHERE state = 'pending' AND tenant_id <> $1", [t],
+  )).rows.map((r) => r.id);
   const stub = stubCentro();
   try {
     await drain(10, { tenantId: t });
     const after = (await pool().query(
-      "SELECT count(*)::int AS n FROM sync_outbox WHERE state = 'pending' AND tenant_id <> $1", [t],
+      "SELECT count(*)::int AS n FROM sync_outbox WHERE state = 'pending' AND id = ANY($1::bigint[])",
+      [before],
     )).rows[0].n;
-    assert.equal(after, before);
+    assert.equal(after, before.length, 'the drain left another tenant\'s jobs alone');
   } finally {
     stub.restore();
     await cleanup();

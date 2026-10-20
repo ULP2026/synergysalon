@@ -144,7 +144,9 @@ export default handler({
     if (who) return json(res, 200, await recipients(who, tenant));
     const { rows } = await query(
       `SELECT name, slug, logo, address, phone, email, website, about, timezone,
-              host, app_host, to_jsonb(tenants) ->> 'reply_to' AS reply_to
+              host, app_host, to_jsonb(tenants) ->> 'reply_to' AS reply_to,
+              -- Through to_jsonb, so Settings still loads before migration 026.
+              to_jsonb(tenants) ->> 'review_url' AS review_url
          FROM tenants WHERE id = $1`,
       [tenant.id],
     );
@@ -157,6 +159,10 @@ export default handler({
       phone: t.phone,
       email: t.email,
       replyTo: t.reply_to || '',
+      // Where the review request email sends people. Empty until it is set,
+      // and that email is not queued at all while it is empty: asking for a
+      // review with nowhere to leave one wastes the one ask you get.
+      reviewUrl: t.review_url || '',
       website: t.website,
       about: t.about,
       // Shown, never edited here: an owner should be able to see what their
@@ -207,6 +213,15 @@ export default handler({
     if (body.replyTo !== undefined) {
       const to = text(body.replyTo, 254).toLowerCase();
       add('reply_to', to ? requireEmail(to, 'Reply-to email') : null);
+    }
+
+    // Emptying it is allowed, and switches the review request back off.
+    if (body.reviewUrl !== undefined) {
+      const link = text(body.reviewUrl, 400);
+      if (link && !/^https:\/\//i.test(link)) {
+        throw new HttpError(400, 'A review link must start with https://');
+      }
+      add('review_url', link || null);
     }
 
     if (body.website !== undefined) {

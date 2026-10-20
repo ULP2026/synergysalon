@@ -18,6 +18,7 @@ import { availableSlots, combineServices } from '../api/_lib/availability.js';
 import { createBooking } from '../api/_lib/booking.js';
 import { setGoogleReaderForTests } from '../api/_lib/google-busy.js';
 import { mirrorToGoogle, setGooglePushForTests } from '../api/_lib/google-mirror.js';
+import { makeBookable } from './bookable.js';
 
 const url = process.env.DATABASE_URL;
 const skip = url ? false : 'DATABASE_URL is not set';
@@ -38,6 +39,20 @@ function tuesday(zone) {
 async function tenantOf(c) {
   const { rows } = await c.query("SELECT id, slug, name, timezone FROM tenants WHERE slug = 'synergy'");
   return rows[0];
+}
+
+/**
+ * The salon's stylists, set up well enough to be booked.
+ *
+ * Called on its own line rather than folded into tenantOf, and always after
+ * BEGIN. It writes, and one test here reads the tenant before it opens its
+ * transaction: hidden inside tenantOf, that one committed the fixture to the
+ * live database and left four stylists switched on in production.
+ */
+async function seedStylists(c, tenant) {
+  for (const slug of ['dina', 'micah', 'tami', 'kim']) {
+    await makeBookable(c, tenant.id, slug).catch(() => {});
+  }
 }
 
 const times = (days) => days.flatMap((d) => d.slots).map((s) => DateTime.fromISO(s.start));
@@ -74,6 +89,7 @@ test('a new stylist with no Google Calendar is not offered online; the desk stil
   try {
     await c.query('BEGIN');
     const tenant = await tenantOf(c);
+    await seedStylists(c, tenant);
     const day = tuesday(tenant.timezone);
     const ten = day.set({ hour: 10 });
     await newStylist(c, tenant);
@@ -114,6 +130,7 @@ test('the salon\'s four stylists are booked from the Synergy Calendar alone unti
   try {
     await c.query('BEGIN');
     const tenant = await tenantOf(c);
+    await seedStylists(c, tenant);
     const day = tuesday(tenant.timezone);
     const ten = day.set({ hour: 10 });
     const online = () => availableSlots(c, tenant, {
@@ -153,6 +170,7 @@ test('Google busy time is taken out for guests; the desk can still book over it'
   try {
     await c.query('BEGIN');
     const tenant = await tenantOf(c);
+    await seedStylists(c, tenant);
     const day = tuesday(tenant.timezone);
     await linkLogin(c, tenant, 'tami', { ics: 'https://calendar.google.com/calendar/ical/zz/private-x/basic.ics' });
     setGoogleReaderForTests(async () => [{
@@ -198,6 +216,7 @@ test('several services are one appointment, long enough for all of them', { skip
   try {
     await c.query('BEGIN');
     const tenant = await tenantOf(c);
+    await seedStylists(c, tenant);
     const day = tuesday(tenant.timezone);
 
     // Cut (60 + 10 clean-down) then blowout (45 + 10): 115 minutes of the
@@ -249,13 +268,34 @@ test('combineServices prices a visit only when every part has a price', () => {
   assert.equal(combineServices(a).durationMin, 30);
 });
 
-test('a booking and its cancellation reach the stylist\'s Google Calendar', { skip }, async () => {
+test('a booking and its cancellation reach the stylist\'s Google Calendar', { skip }, async (t) => {
   const c = await connect();
   const pushed = [];
   let userId = null;
   let apptId = null;
   try {
     const tenant = await tenantOf(c);
+
+    // Alone among these, this test COMMITS: the Google mirror has to run
+    // across a commit, which is the thing being tested. So it cannot build
+    // its own fixture -- anything written here outlives the test. On
+    // 20 October a fixture placed in this transaction left four of the
+    // salon's stylists switched on and bookable in production.
+    //
+    // It therefore runs only where the stylist is already set up, which
+    // means a seeded database (db/seed.sql). Against the live one it skips
+    // and says why, rather than writing to it.
+    const { rows: ready } = await c.query(
+      `SELECT 1 FROM stylists s
+        WHERE s.tenant_id = $1 AND s.slug = 'dina' AND s.active
+          AND EXISTS (SELECT 1 FROM stylist_services x WHERE x.stylist_id = s.id)`,
+      [tenant.id],
+    );
+    if (!ready[0]) {
+      t.skip('needs a seeded database: Dina is not set up as a stylist in this one');
+      return;
+    }
+
     const day = tuesday(tenant.timezone);
     userId = await linkLogin(c, tenant, 'dina', { refresh: 'zz-token' });
     setGooglePushForTests(async (uid, appt) => {
@@ -304,6 +344,7 @@ test('every booking is as long as its own service, from the website and the desk
   try {
     await c.query('BEGIN');
     const tenant = await tenantOf(c);
+    await seedStylists(c, tenant);
     const day = tuesday(tenant.timezone);
     await linkLogin(c, tenant, 'dina', { ics: 'https://calendar.google.com/calendar/ical/zz/private-y/basic.ics' });
     setGoogleReaderForTests(async () => []);
