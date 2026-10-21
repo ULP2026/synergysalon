@@ -13,7 +13,11 @@
  * system created. It leaves nothing behind, which is why only an owner or a
  * manager may do it.
  */
+import { DateTime } from 'luxon';
+
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { availableSlots } from '../../_lib/availability.js';
+import { SLOT_TAKEN, SLOT_TAKEN_MESSAGE, lockStylist } from '../../_lib/booking.js';
 import { EXCLUSION_VIOLATION, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle, removeGoogleCopies } from '../../_lib/google-mirror.js';
 import { sendCancellation } from '../../_lib/email.js';
@@ -23,6 +27,38 @@ import { tenantForUser } from '../../_lib/tenant.js';
 
 /** Same bar as deleting a contact: this removes history outright. */
 const CAN_DELETE = ['owner', 'admin', 'manager'];
+
+/**
+ * Refuse to reopen a cancelled appointment into time that has gone since.
+ *
+ * Cancelling gave the slot back, and the exclusion constraint alone cannot
+ * guard the way back in: since migration 027 it compares guest time only, so
+ * a booking made in the turnaround after this one would not trip it. The
+ * same free-time question a new booking is asked, at this appointment's own
+ * length and breaks. A past appointment is not asked: reopening one corrects
+ * the record, it does not sell the time again.
+ *
+ * The caller holds the stylist's diary lock (lockStylist) before asking, so
+ * a booking arriving at the same moment waits and cannot slip in between
+ * this check and the reopen.
+ */
+export async function assertStillFree(client, tenant, appt, now = new Date()) {
+  if (new Date(appt.starts_at) <= now) return;
+  const start = DateTime.fromJSDate(new Date(appt.starts_at)).setZone(tenant.timezone);
+  const { days } = await availableSlots(client, tenant, {
+    serviceSlug: appt.service_slug,
+    stylistSlug: appt.stylist_slug,
+    fromDate: start.toISODate(),
+    toDate: start.toISODate(),
+    minLeadMin: 0,
+    // Its own length and breaks, which for a visit of several services is
+    // longer than its first service.
+    length: { durationMin: appt.duration_min, bufferMin: appt.buffer_min, breaks: appt.breaks },
+  });
+  const free = days.flatMap((d) => d.slots).some((s) => s.stylistIds.includes(appt.stylist_id)
+    && DateTime.fromISO(s.start).toMillis() === start.toMillis());
+  if (!free) throw new HttpError(409, SLOT_TAKEN_MESSAGE, SLOT_TAKEN);
+}
 
 export default handler({
   async POST(req, res) {
@@ -36,7 +72,8 @@ export default handler({
 
     const result = await transaction(async (client) => {
       const { rows } = await client.query(
-        `SELECT a.*, s.name AS stylist_name, v.name AS service_name
+        `SELECT a.*, s.name AS stylist_name, s.slug AS stylist_slug,
+                v.name AS service_name, v.slug AS service_slug
            FROM appointments a
            JOIN stylists s ON s.id = a.stylist_id
            JOIN services v ON v.id = a.service_id
@@ -85,14 +122,19 @@ export default handler({
           if (appt.status !== 'cancelled') {
             throw new HttpError(409, 'That appointment is not cancelled.');
           }
+          // Held from before the free-time question until this commits, the
+          // way every booking holds it (booking.js), so a guest booking the
+          // same moment waits and then sees this appointment back in place.
+          await lockStylist(client, appt.stylist_id);
+          await assertStillFree(client, tenant, appt);
           try {
-            // The slot was released when it was cancelled, so somebody else
-            // may have taken it in the meantime. The constraint says so.
+            // The constraint stays the backstop for anything the check above
+            // could not see.
             const updated = await set("status = 'booked', cancelled_at = NULL");
             return { appt: updated };
           } catch (err) {
             if (err.code === EXCLUSION_VIOLATION) {
-              throw new HttpError(409, 'That time has been taken by someone else since it was cancelled.');
+              throw new HttpError(409, SLOT_TAKEN_MESSAGE, SLOT_TAKEN);
             }
             throw err;
           }

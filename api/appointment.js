@@ -13,7 +13,7 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots } from './_lib/availability.js';
-import { lockDiaries } from './_lib/booking.js';
+import { SLOT_TAKEN, SLOT_TAKEN_MESSAGE, lockDiaries } from './_lib/booking.js';
 import { EXCLUSION_VIOLATION, transaction } from './_lib/db.js';
 import { sendCancellation, sendReschedule } from './_lib/email.js';
 import { mirrorToGoogle } from './_lib/google-mirror.js';
@@ -29,8 +29,6 @@ import { tenantForRequest } from './_lib/tenant.js';
 async function nudgeQueue(ref) {
   await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', ref, err));
 }
-
-const SLOT_TAKEN = 'SLOT_TAKEN';
 
 /**
  * Find the appointment and prove the caller owns it.
@@ -173,7 +171,7 @@ export default handler({
       const slot = days.flatMap((d) => d.slots)
         .find((s) => DateTime.fromISO(s.start).toMillis() === wanted);
       if (!slot) {
-        throw new HttpError(409, 'That time is no longer free. Please pick another.', SLOT_TAKEN);
+        throw new HttpError(409, SLOT_TAKEN_MESSAGE, SLOT_TAKEN);
       }
       const stylistId = slot.stylistIds[0];
 
@@ -203,7 +201,7 @@ export default handler({
         };
       } catch (err) {
         if (err.code === EXCLUSION_VIOLATION) {
-          throw new HttpError(409, 'That time has just been taken. Please pick another.', SLOT_TAKEN);
+          throw new HttpError(409, SLOT_TAKEN_MESSAGE, SLOT_TAKEN);
         }
         throw err;
       }

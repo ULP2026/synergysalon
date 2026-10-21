@@ -108,13 +108,13 @@ test('a booking outside those hours is refused', { skip }, async () => {
     await assert.rejects(createBooking(client, tenant, {
       serviceSlug: 'zz-cut', stylistSlug: 'zz-tami', start: at(8).toISO(),
       guestName: 'ZZ Guest', guestEmail: 'zz-hours@example.com', channel: 'online',
-    }), /not available/);
+    }), { status: 409, code: 'SLOT_TAKEN' });
 
     // And one that would run past closing: 14:15 plus an hour is 15:15.
     await assert.rejects(createBooking(client, tenant, {
       serviceSlug: 'zz-cut', stylistSlug: 'zz-tami', start: at(14, 15).toISO(),
       guestName: 'ZZ Guest', guestEmail: 'zz-hours@example.com', channel: 'online',
-    }), /not available/);
+    }), { status: 409, code: 'SLOT_TAKEN' });
 
     // Inside them, it goes through.
     const made = await createBooking(client, tenant, {

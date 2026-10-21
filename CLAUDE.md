@@ -134,10 +134,15 @@ for the same stylist at the same moment could both pass that check and leave
 no time to reset. `lockDiaries` (`api/_lib/booking.js`) takes a transaction-
 scoped advisory lock on every stylist a booking could land with, in id order,
 before the free-time check: the second request waits for the first to finish
-and then sees it. `createBooking`, the guest's reschedule and the enquiry's
-"move my booking" all take it; anything new that puts a guest in a chair must
-too. `tests/booking-lock.integration.test.js` runs the race and fails without
-it.
+and then sees it. `createBooking`, the guest's reschedule, the enquiry's
+"move my booking" and the front desk's reopen (`lockStylist`, then
+`assertStillFree` in `api/staff/_routes/appointment.js`) all take it; anything
+new that puts a guest in a chair must too. Whichever check refuses, the answer
+is a 409 with code `SLOT_TAKEN` and `SLOT_TAKEN_MESSAGE` ("Sorry, that time
+was just taken. Please pick another time."); `/api/enquiry` reports it as
+`slotTaken`, and the booking popup sends the guest back to the calendar with
+fresh times. `tests/booking-lock.integration.test.js` runs each race in a ZZ
+salon of its own and fails without the lock.
 
 The homepage wizard is a design-tool component with **no backend of its own**.
 As shipped it collected seven steps and discarded them, and its calendar was

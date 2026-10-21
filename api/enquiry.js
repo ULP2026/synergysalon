@@ -19,7 +19,7 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots } from './_lib/availability.js';
-import { createBooking, lockDiaries } from './_lib/booking.js';
+import { SLOT_TAKEN, createBooking, lockDiaries } from './_lib/booking.js';
 import { ONLINE_BOOKING } from './_lib/config.js';
 import { previewAllowed } from './_lib/preview.js';
 import { transaction } from './_lib/db.js';
@@ -334,8 +334,11 @@ export default handler({
       } catch (err) {
         // The lead is already saved and committed with this transaction. A slot
         // that has gone in the meantime is worth reporting, not worth losing
-        // the enquiry over.
-        return { contactId, booked: null, bookingError: err.message };
+        // the enquiry over. slotTaken lets the popup send the guest back to
+        // pick again rather than telling them their request was received.
+        return {
+          contactId, booked: null, bookingError: err.message, slotTaken: err.code === SLOT_TAKEN,
+        };
       }
     });
 
@@ -355,6 +358,7 @@ export default handler({
       stylist: result.booked?.stylist_name ?? null,
       startsAt: result.booked?.starts_at ?? null,
       bookingError: result.bookingError ?? null,
+      slotTaken: Boolean(result.slotTaken),
     });
   },
 });

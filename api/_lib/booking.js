@@ -14,6 +14,14 @@ import { HttpError, newRef, newToken } from './http.js';
 export const SLOT_TAKEN = 'SLOT_TAKEN';
 
 /**
+ * What a guest or the front desk is told when somebody else got there first,
+ * whichever check noticed: the free-time check under the diary lock, or the
+ * exclusion constraint behind it. One sentence everywhere, Luis's wording,
+ * so the wizards can rely on it.
+ */
+export const SLOT_TAKEN_MESSAGE = 'Sorry, that time was just taken. Please pick another time.';
+
+/**
  * Insert one appointment, returning null if this stylist turned out to be
  * busy. A savepoint keeps the outer transaction usable after the constraint
  * fires, so the caller can try the next stylist.
@@ -154,11 +162,18 @@ export async function lockDiaries(client, tenantId, { serviceSlug, stylistSlug =
       ORDER BY s.id`,
     [tenantId, serviceSlug, stylistSlug],
   );
-  for (const { id } of rows) {
-    await client.query(
-      "SELECT pg_advisory_xact_lock(hashtextextended('stylist-diary:' || $1::text, 0))", [id]);
-  }
+  for (const { id } of rows) await lockStylist(client, id);
   return rows.map((r) => r.id);
+}
+
+/**
+ * Hold one stylist's diary until the transaction ends: the same lock
+ * lockDiaries takes, for a path that already knows exactly whose diary it is
+ * writing to (the front desk reopening a cancelled appointment).
+ */
+export async function lockStylist(client, stylistId) {
+  await client.query(
+    "SELECT pg_advisory_xact_lock(hashtextextended('stylist-diary:' || $1::text, 0))", [stylistId]);
 }
 
 /**
@@ -198,7 +213,7 @@ export async function createBooking(client, tenant, {
   const slot = days.flatMap((d) => d.slots)
     .find((s) => DateTime.fromISO(s.start).toMillis() === wanted);
   if (!slot) {
-    throw new HttpError(409, 'That time is not available. Please pick another.', SLOT_TAKEN);
+    throw new HttpError(409, SLOT_TAKEN_MESSAGE, SLOT_TAKEN);
   }
 
   // Try the preferred stylist first, then the rest, so a race on one person
@@ -241,5 +256,5 @@ export async function createBooking(client, tenant, {
     // Someone took this stylist mid-request; fall through to the next.
   }
 
-  throw new HttpError(409, 'That time has just been taken. Please pick another.', SLOT_TAKEN);
+  throw new HttpError(409, SLOT_TAKEN_MESSAGE, SLOT_TAKEN);
 }
