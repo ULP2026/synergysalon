@@ -92,9 +92,24 @@ published. Repoint them at `/assets/<uuid>` or the real routes, and check every
 
 ## Booking
 
-Postgres owns the diary. CENTRO (GoHighLevel) is a mirror, never the source.
-If anyone books in CENTRO's own calendar as well, only half the appointments
-are protected and double-booking returns.
+Postgres owns the diary. **Nothing is sent to CENTRO (GoHighLevel) any more**
+(asked for 2026-10-21): no client records, and so no bookings, moves,
+cancellations or status changes either, since CENTRO only takes an
+appointment attached to a contact. `api/_lib/ghl.js` can only read (a
+stylist's free time, the calendar's slot length, whether the link works);
+every function that wrote was removed rather than switched off, and
+`tests/ghl.test.js` fails if one comes back or if anything in `api/` queues a
+`sync_outbox` job again. The table stays as the record of what was sent
+before the switch-off: the client timeline still shows "Synced to the CRM"
+for those, and nothing reads its pending rows. Bookings made before then
+that are in CENTRO stay there unchanged; a move or cancellation here no
+longer reaches them. If anyone books in CENTRO's own calendar, the two
+diaries do not know about each other and double-booking returns.
+
+The booth-rental page (`join/index.html`) is separate and still embeds a
+GoHighLevel form, so stylists applying for a chair go into CENTRO directly
+from the browser. Those are applicants, not salon clients, and the switch-off
+did not touch it.
 
 **Double-booking is prevented by the database, not by code:**
 
@@ -190,14 +205,10 @@ was then rejected by CENTRO with a permanent 422, which killed the appointment
 push attached to it. A detail is only stored or sent once it is whole: a
 half-typed address is not a worse email, it is not an email yet.
 
-**Every push to CENTRO sends the appointment as it stands now**, not the event
-the job describes: jobs run late and out of order after a failure, and an old
-"booked" must not undo a newer "cancelled". Check-in, done and no-show are
-mirrored as CENTRO's showed/noshow. Settings has no Integrations card any
-more (removed on request): nothing in the console shows the CRM link, and the
-refused list and its retry button were taken out before that. The cron still re-queues refused jobs from the last
-30 days whenever the link checks out, and logs why each failed, and
-`POST /api/staff/centro {action:"retry"}` still exists.
+The console says nothing about syncing: the "Not synced yet" and "Sync
+failed" chips, the Home note about today's bookings and the "here and in the
+CRM" wording on deletes all went with the push. `/api/cron/sync` keeps its
+path and schedule and now only catches up stylists' Google copies.
 
 **The Synergy Calendar is this database.** Availability is built from
 `stylist_hours`, `time_off` and `appointments` here (`api/_lib/availability.js`),
@@ -221,7 +232,7 @@ reschedule) a connected stylist's Google busy times are subtracted
 cannot be read is offered nothing online (fail closed, chosen by the salon).
 The desk is not limited by Google. Bookings are copied into the stylist's
 Google Calendar for stylists who signed in with Google (`google-mirror.js`,
-run after every `drain()` and so by the daily cron; a pasted address is
+run after every booking or change and again by the daily cron; a pasted address is
 read-only), and their copy is removed before an appointment is deleted.
 The copies go into **a calendar of the salon's own in their Google account**,
 named after the salon (asked for 2026-10-14): made on connect by
@@ -237,9 +248,8 @@ main calendar only, never the salon one, and the main calendar's own copies
 of bookings are skipped too: read back as busy, they stopped a guest moving
 their own appointment. Add `calendar.app.created` to the OAuth consent
 screen's scope list before submitting for Google's verification.
-CENTRO still gets a copy of every booking, move and cancellation through
-`sync_outbox`, unchanged; the guest's own reschedule and cancel now drain
-the queue at once (`api/appointment.js`) instead of waiting for the cron.
+The guest's own reschedule and cancel update the Google copy at once
+(`api/appointment.js`) instead of waiting for the cron.
 
 **Several services are one appointment.** The survey's other services go to
 the server (`body.services` on `/api/enquiry`, `&with=` on
@@ -728,8 +738,8 @@ must stay that way: anything committed here is served publicly.
   wrong until you know the reason; say the reason.
 - Verify against production rather than asserting. Most of the bugs here passed
   a local check first.
-- Test data is named `ZZ ...` so it can be found and removed from both this
-  database and CENTRO afterwards. Always remove it.
+- Test data is named `ZZ ...` so it can be found and removed afterwards.
+  Always remove it.
 - Never invent a price. The PMC blocks all pricing until Dina supplies the
   menu; AI scalp analysis at $40 is the single cleared figure.
 

@@ -14,22 +14,6 @@ import { HttpError, newRef, newToken } from './http.js';
 export const SLOT_TAKEN = 'SLOT_TAKEN';
 
 /**
- * Queue a push to CENTRO.
- *
- * Written in the same transaction as the appointment, sent afterwards by the
- * sync worker. If GoHighLevel is down or its token has expired, the salon
- * still has the booking and the push retries. Calling the CRM inline would
- * mean their outage turns guests away.
- */
-export async function enqueueSync(client, tenantId, kind, { appointmentId = null, contactId = null, payload = {} } = {}) {
-  await client.query(
-    `INSERT INTO sync_outbox (tenant_id, kind, appointment_id, contact_id, payload)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [tenantId, kind, appointmentId, contactId, JSON.stringify(payload)],
-  );
-}
-
-/**
  * Insert one appointment, returning null if this stylist turned out to be
  * busy. A savepoint keeps the outer transaction usable after the constraint
  * fires, so the caller can try the next stylist.
@@ -113,10 +97,6 @@ async function insertFor(client, stylistId, ctx) {
  * front desk often has only one, and somebody who rings twice must not
  * become two people. Oldest first, so a duplicate pair that already exists
  * keeps collecting history on the record it has been collecting it on.
- *
- * Nothing is enqueued to CENTRO here. The appointment.booked job already
- * upserts this guest there and writes the CENTRO id back onto this row
- * (cron/sync.js), so a second job would push the same person twice.
  */
 async function contactFor(client, tenant, { contactId, guestName, guestEmail, guestPhone, channel }) {
   if (contactId) return contactId;
@@ -201,10 +181,6 @@ export async function createBooking(client, tenant, {
   for (const stylistId of order) {
     const booked = await insertFor(client, stylistId, ctx);
     if (booked) {
-      await enqueueSync(client, tenant.id, 'appointment.booked', {
-        appointmentId: booked.id,
-        contactId: contact,
-      });
       if (contact) {
         // An enquiry who has now booked, and the date the salon first took
         // one from them. A won or lost contact keeps the status somebody

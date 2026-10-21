@@ -155,10 +155,10 @@ test('the salon\'s four stylists are booked from the Synergy Calendar alone unti
     // And the website stops offering it.
     assert.ok(!hasAt((await online()).days, ten), 'the booked hour is gone for guests too');
 
-    // CENTRO still gets its copy of the booking.
-    const { rows } = await c.query(
-      "SELECT 1 FROM sync_outbox WHERE appointment_id = $1 AND kind = 'appointment.booked'", [web.id]);
-    assert.equal(rows.length, 1);
+    // And none of it goes to CENTRO: pushes were switched off on 21 October
+    // 2026, so a booking is in the Synergy Calendar and nowhere else.
+    const { rows } = await c.query('SELECT 1 FROM sync_outbox WHERE appointment_id = $1', [web.id]);
+    assert.equal(rows.length, 0, 'nothing queued for CENTRO');
   } finally {
     await c.query('ROLLBACK');
     await c.end();

@@ -1,22 +1,21 @@
 /**
- * /api/staff/centro: is the diary reaching CENTRO?
+ * /api/staff/centro: the read-only link to CENTRO, and the booking preview.
  *
- *   GET    the link, what is queued, and anything CENTRO refused
- *   POST   { action: 'retry' } put refused jobs back in the queue and send
- *          { action: 'link', stylist, ghlUserId } say who a stylist is in CENTRO
+ *   GET    whether the stored link still reaches CENTRO's calendar
+ *   POST   { action: 'link', stylist, ghlUserId } say who a stylist is in CENTRO
  *          { action: 'preview' } a link to try the paused booking popup
  *   GET ?stylists=1   each stylist's CENTRO user and next free time there
  *
- * Owners and managers only. Before this existed, a booking CENTRO refused
- * looked exactly like one still on its way, and five sat failed unnoticed.
+ * Owners and managers only. Nothing here sends anything to CENTRO: pushes
+ * were switched off on 21 October 2026, and the queue and retry that used to
+ * live here went with them.
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
-import { stylistLinks } from '../../_lib/centro-hours.js';
+import { centroLink, stylistLinks } from '../../_lib/centro-hours.js';
 import { pool, query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson } from '../../_lib/http.js';
 import { mintPreview } from '../../_lib/preview.js';
 import { tenantForUser } from '../../_lib/tenant.js';
-import { centroStatus } from '../../cron/sync.js';
 
 const ADMIN = ['owner', 'admin', 'manager'];
 
@@ -24,15 +23,15 @@ export default handler({
   async GET(req, res) {
     const user = await requireStaff(req, ADMIN);
     const tenant = await tenantForUser(user);
-    if (new URL(req.url, 'http://localhost').searchParams.has('stylists')) {
-      const client = await pool().connect();
-      try {
+    const client = await pool().connect();
+    try {
+      if (new URL(req.url, 'http://localhost').searchParams.has('stylists')) {
         return json(res, 200, await stylistLinks(client, tenant));
-      } finally {
-        client.release();
       }
+      return json(res, 200, await centroLink(client, tenant.id));
+    } finally {
+      client.release();
     }
-    return json(res, 200, await centroStatus(tenant.id));
   },
 
   async POST(req, res) {
@@ -62,7 +61,6 @@ export default handler({
       });
     }
 
-    if (body.action !== 'retry') throw new HttpError(400, 'Nothing to do.');
-    return json(res, 200, await centroStatus(tenant.id, { retry: true }));
+    throw new HttpError(400, 'Nothing to do.');
   },
 });

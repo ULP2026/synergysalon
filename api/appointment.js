@@ -13,22 +13,20 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots } from './_lib/availability.js';
-import { enqueueSync } from './_lib/booking.js';
 import { EXCLUSION_VIOLATION, transaction } from './_lib/db.js';
 import { sendCancellation, sendReschedule } from './_lib/email.js';
+import { mirrorToGoogle } from './_lib/google-mirror.js';
 import {
   HttpError, handler, json, readJson, requireDate, requireId, requireString, tokenMatches,
 } from './_lib/http.js';
 import { tenantForRequest } from './_lib/tenant.js';
-import { drain } from './cron/sync.js';
 
 /**
- * CENTRO's copy (and the stylist's Google copy) follow at once rather than at
- * the daily cron. The job is already committed, so a failure here is only a
- * delay, never a loss.
+ * The stylist's Google copy follows at once rather than at the daily cron.
+ * The change is already committed, so a failure here is only a delay.
  */
 async function nudgeQueue(ref) {
-  try { await drain(10); } catch (err) { console.error('sync deferred for', ref, err); }
+  await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', ref, err));
 }
 
 const SLOT_TAKEN = 'SLOT_TAKEN';
@@ -183,9 +181,6 @@ export default handler({
             RETURNING *`,
           [current.id, startsAt.toISO(), stylistId],
         );
-        await enqueueSync(client, tenant.id, 'appointment.rescheduled', {
-          appointmentId: current.id,
-        });
 
         const stylist = stylists.find((s) => s.id === stylistId);
         return {
@@ -228,9 +223,6 @@ export default handler({
           RETURNING *`,
         [current.id],
       );
-      await enqueueSync(client, tenant.id, 'appointment.cancelled', {
-        appointmentId: current.id,
-      });
       return {
         ...rows[0],
         stylist_name: current.stylist_name,

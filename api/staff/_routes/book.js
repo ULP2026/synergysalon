@@ -14,12 +14,12 @@ import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { createBooking } from '../../_lib/booking.js';
 import { query, transaction } from '../../_lib/db.js';
 import { sendConfirmation } from '../../_lib/email.js';
+import { mirrorToGoogle } from '../../_lib/google-mirror.js';
 import { at, enqueue } from '../../_lib/scheduled.js';
 import {
   HttpError, handler, json, optionalPhone, readJson, requireId, requireString,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
-import { drain } from '../../cron/sync.js';
 
 export default handler({
   async POST(req, res) {
@@ -84,15 +84,9 @@ export default handler({
 
     await queueWelcome(appointment, tenant);
 
-    // Not drain(1): the queue may already hold older jobs, and draining a
-    // single one would push somebody else's contact while this appointment sat
-    // waiting for a cron that runs once a day. Bounded so a large backlog
-    // cannot hold up the reply.
-    try {
-      await drain(10);
-    } catch (err) {
-      console.error('CENTRO sync deferred for', appointment.ref, err);
-    }
+    // Onto the stylist's Google Calendar now rather than at the daily cron,
+    // which puts right anything that fails here.
+    await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', appointment.ref, err));
 
     return json(res, 201, {
       ref: appointment.ref,

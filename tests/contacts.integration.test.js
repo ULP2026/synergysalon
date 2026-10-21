@@ -1,5 +1,5 @@
 /**
- * Deleting a contact: what goes, what stays, and what CENTRO is told.
+ * Deleting a contact: what goes, what stays, and that CENTRO is told nothing.
  *
  *   DATABASE_URL=postgres://… node --test "tests/*.test.js"
  *
@@ -63,9 +63,6 @@ function addAppointment(client, contactId, { ref, start, status = 'booked', ghl 
 async function cleanup(client) {
   await client.query("DELETE FROM appointments WHERE ref LIKE 'ZZDEL%'");
   await client.query("DELETE FROM contacts WHERE name = 'ZZ Delete Me'");
-  await client.query(
-    "DELETE FROM sync_outbox WHERE kind = 'contact.deleted' AND payload->>'name' = 'ZZ Delete Me'",
-  );
 }
 
 async function inTransaction(client, fn) {
@@ -93,14 +90,8 @@ test('deleting a contact frees their future slots and keeps their history', { sk
     const { rows: [past] } = await addAppointment(client, id, {
       ref: 'ZZDELB', start: PAST, status: 'completed',
     });
-    // An unsent push would recreate them in CENTRO the next time the queue ran.
-    await client.query(
-      `INSERT INTO sync_outbox (tenant_id, kind, contact_id) VALUES ($1, 'contact.updated', $2)`,
-      [tenant, id],
-    );
-
     const removed = await inTransaction(client, () => removeContact(client, tenant, id));
-    assert.deepEqual(removed, { name: 'ZZ Delete Me', cancelled: 1, inCentro: true });
+    assert.deepEqual(removed, { name: 'ZZ Delete Me', cancelled: 1 });
 
     const { rows: gone } = await client.query('SELECT 1 FROM contacts WHERE id = $1', [id]);
     assert.equal(gone.length, 0);
@@ -117,40 +108,28 @@ test('deleting a contact frees their future slots and keeps their history', { sk
 
     // The slot is sellable again.
     await addAppointment(client, null, { ref: 'ZZDELC', start: FUTURE });
-
-    const { rows: jobs } = await client.query(
-      `SELECT kind, contact_id, payload FROM sync_outbox
-        WHERE state = 'pending'
-          AND (contact_id = $1 OR payload->>'name' = 'ZZ Delete Me')`,
-      [id],
-    );
-    assert.equal(jobs.length, 1);
-    assert.equal(jobs[0].kind, 'contact.deleted');
-    assert.equal(jobs[0].contact_id, null);
-    assert.deepEqual(jobs[0].payload, {
-      ghlContactId: 'ghl-zz-contact', ghlAppointmentIds: ['ghl-zz-event'], name: 'ZZ Delete Me',
-    });
   } finally {
     await cleanup(client).catch(() => {});
     await client.end();
   }
 });
 
-test('a contact who never reached CENTRO queues nothing for it', { skip }, async () => {
+test('deleting somebody who is in CENTRO sends CENTRO nothing', { skip }, async () => {
   const client = connect();
   await client.connect();
   try {
     await cleanup(client);
     const tenant = await tenantId(client);
-    const id = await addContact(client, tenant);
+    // Somebody synced before the switch-off: they have a CENTRO id, and so
+    // does their booking. Deleting them here leaves CENTRO exactly as it is.
+    const id = await addContact(client, tenant, { ghl: 'ghl-zz-contact' });
+    await addAppointment(client, id, { ref: 'ZZDELF', start: FUTURE, ghl: 'ghl-zz-event' });
+    const { rows: [{ n: before }] } = await client.query('SELECT count(*)::int AS n FROM sync_outbox');
 
-    const removed = await inTransaction(client, () => removeContact(client, tenant, id));
-    assert.equal(removed.inCentro, false);
+    await inTransaction(client, () => removeContact(client, tenant, id));
 
-    const { rows } = await client.query(
-      "SELECT 1 FROM sync_outbox WHERE payload->>'name' = 'ZZ Delete Me'",
-    );
-    assert.equal(rows.length, 0);
+    const { rows: [{ n: after }] } = await client.query('SELECT count(*)::int AS n FROM sync_outbox');
+    assert.equal(after, before, 'not one job queued');
   } finally {
     await cleanup(client).catch(() => {});
     await client.end();

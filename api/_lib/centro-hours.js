@@ -12,7 +12,9 @@
  * book online calls the salon, while a guest booked into a time the stylist
  * is not there turns up to an empty chair.
  */
-import { freeSlots, getCalendar, getUserName, slotMinutes } from './ghl.js';
+import {
+  checkConnection, freeSlots, getCalendar, getUserName, slotMinutes,
+} from './ghl.js';
 
 /** CENTRO will not answer for more than about a month at once. */
 const CHUNK_DAYS = 28;
@@ -65,6 +67,24 @@ async function linkFor(client, tenantId) {
   );
   const t = rows[0];
   return t?.ghl_token && t.ghl_calendar_id ? t : null;
+}
+
+/**
+ * Whether the stored link to CENTRO still works, for the staff console.
+ *
+ * Here rather than in the route so the token stays where it always has: read
+ * by this file, never selected by an endpoint.
+ */
+export async function centroLink(client, tenantId) {
+  const t = await linkFor(client, tenantId);
+  if (!t) return { linked: false, check: null };
+  const { rows } = await client.query(
+    `SELECT ghl_user_id FROM stylists
+      WHERE tenant_id = $1::uuid AND ghl_user_id IS NOT NULL`,
+    [tenantId],
+  );
+  const check = await checkConnection(t, [t.ghl_user_id, ...rows.map((r) => r.ghl_user_id)]);
+  return { linked: true, check };
 }
 
 /**

@@ -5,12 +5,12 @@
  * only differences here are that an email address is required, because that is
  * where the confirmation goes, and that the normal minimum lead time applies.
  */
-import { drain } from './cron/sync.js';
 import { createBooking } from './_lib/booking.js';
 import { ONLINE_BOOKING } from './_lib/config.js';
 import { previewAllowed } from './_lib/preview.js';
 import { query, transaction } from './_lib/db.js';
 import { sendConfirmation } from './_lib/email.js';
+import { mirrorToGoogle } from './_lib/google-mirror.js';
 import { at, enqueue } from './_lib/scheduled.js';
 import {
   handler, json, optionalPhone, readJson, requireEmail, requireId, requireString,
@@ -52,20 +52,9 @@ export default handler({
 
     await queueWelcome(appointment, tenant);
 
-    // Push this booking to CENTRO now rather than waiting for the nightly
-    // sweep. The Hobby plan allows one cron run a day, so a queue that only
-    // drains on a schedule would leave the salon's CRM a day behind. The
-    // outbox row is already committed, so a failure here is picked up by the
-    // cron rather than lost.
-    // Not drain(1): the queue may already hold older jobs, and draining a
-    // single one would push somebody else's contact while this appointment sat
-    // waiting for a cron that runs once a day. Bounded so a large backlog
-    // cannot hold up the reply.
-    try {
-      await drain(10);
-    } catch (err) {
-      console.error('CENTRO sync deferred for', appointment.ref, err);
-    }
+    // Onto the stylist's Google Calendar now rather than at the daily cron,
+    // which puts right anything that fails here.
+    await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', appointment.ref, err));
 
     return json(res, 201, {
       ref: appointment.ref,

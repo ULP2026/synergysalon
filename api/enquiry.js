@@ -19,16 +19,16 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots } from './_lib/availability.js';
-import { createBooking, enqueueSync } from './_lib/booking.js';
+import { createBooking } from './_lib/booking.js';
 import { ONLINE_BOOKING } from './_lib/config.js';
 import { previewAllowed } from './_lib/preview.js';
 import { transaction } from './_lib/db.js';
 import { sendConfirmation } from './_lib/email.js';
+import { mirrorToGoogle } from './_lib/google-mirror.js';
 import {
   handler, json, readJson, requireString,
 } from './_lib/http.js';
 import { tenantForRequest } from './_lib/tenant.js';
-import { drain } from './cron/sync.js';
 
 /**
  * What the wizard calls a service, and what it is in the database.
@@ -185,7 +185,7 @@ export default handler({
       // change while they type. Then email or phone, which is what matches a
       // guest who has booked before to the record they already have.
       const { rows: found } = await client.query(
-        `SELECT id, ghl_contact_id, email, phone FROM contacts
+        `SELECT id, email, phone FROM contacts
           WHERE tenant_id = $1
             AND (($2 <> '' AND session_id = $2)
               OR ($3 <> '' AND lower(email) = $3)
@@ -215,15 +215,6 @@ export default handler({
           [contactId, name, email, phone, notesFrom(body), sessionId, clean(body.heard, 60)],
         );
 
-        // Their details changed after CENTRO already had them — an address
-        // finished, a number added. Push the correction rather than leaving
-        // the mirror holding the older version.
-        const before = found[0];
-        const changed = (email && email !== (before.email || '').toLowerCase())
-          || (phone && phone !== (before.phone || ''));
-        if (before.ghl_contact_id && changed) {
-          await enqueueSync(client, tenant.id, 'contact.updated', { contactId });
-        }
       } else {
         // No record yet, and nothing to reach them on. Wait for one.
         if (!email && !phone) return { contactId: null, booked: null };
@@ -236,7 +227,6 @@ export default handler({
             clean(body.heard, 60) || 'Website booking form', notesFrom(body), sessionId],
         );
         contactId = rows[0].id;
-        await enqueueSync(client, tenant.id, 'contact.created', { contactId });
       }
 
       // Book as soon as there is enough to book with, rather than waiting for
@@ -317,8 +307,6 @@ export default handler({
             [live[0].id, start.toISO(), stylistId, visit.durationMin, visit.bufferMin, visit.priceCents,
              JSON.stringify(visit.breaks || [])],
           );
-          await enqueueSync(client, tenant.id, 'appointment.rescheduled',
-                            { appointmentId: live[0].id });
           return { contactId, booked: null, already: live[0].ref, moved: true };
         } catch {
           return { contactId, booked: null, already: live[0].ref };
@@ -354,11 +342,7 @@ export default handler({
         console.error('confirmation email failed for', result.booked.ref, err);
       }
     }
-    try {
-      await drain(10);
-    } catch (err) {
-      console.error('CENTRO sync deferred', err);
-    }
+    await mirrorToGoogle().catch((err) => console.error('google mirror deferred', err));
 
     return json(res, 200, {
       saved: Boolean(result.contactId),

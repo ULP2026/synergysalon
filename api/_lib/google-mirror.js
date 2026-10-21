@@ -5,12 +5,11 @@
  * stylists who signed in with Google, so a client booked on the website or at
  * the desk shows up on their phone. A pasted private address can only be
  * read, so those stylists are skipped (their salon bookings still reach them
- * through their own calendar feed, /calendar/<token>.ics). CENTRO is told
- * separately, through sync_outbox, and is never affected by this.
+ * through their own calendar feed, /calendar/<token>.ics).
  *
- * Nothing waits on it: it runs after the booking is saved, from the same
- * places that nudge the CENTRO queue (drain in cron/sync.js), and again from
- * the daily cron, so a copy that failed is put right later. An appointment
+ * Nothing waits on it: it runs after a booking or a change is saved, and
+ * again from the daily cron (cron/sync.js), so a copy that failed is put
+ * right later. An appointment
  * needs pushing when it has no copy yet, or changed after its copy did.
  */
 import { query } from './db.js';

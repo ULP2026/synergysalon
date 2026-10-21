@@ -563,9 +563,6 @@
             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cal-ev:hover { background:var(--indigo-deep); }
   .cal-ev b { font-weight:650; }
-  /* Not yet mirrored to the CRM: shown, but visibly provisional. */
-  .cal-ev.pending { background:var(--peri-pale); color:var(--indigo-deep); }
-  .cal-ev.pending:hover { background:var(--peri-soft); }
   .cal-ev.off { background:var(--raise); color:var(--muted); text-decoration:line-through; }
   .cal-more { border:0; background:none; font:inherit; font-size:var(--fs-xs);
               color:var(--muted); cursor:pointer; text-align:left; padding:1px 6px; }
@@ -2227,7 +2224,6 @@
           <button type="button" class="btn sm" id="hmSave">Save</button>
         </div>
       </div>
-      <div id="syncNote" class="note hidden" style="margin:0"></div>
       <div id="hmPending"></div>
       <!-- The widgets, in the admin's order (GET /api/staff/home: layout). -->
       <div class="hm-grid" id="hmGrid"></div>
@@ -4191,8 +4187,7 @@ const dollarsShort = (n) => (n >= 1000 ? `$${(n / 1000).toFixed(n >= 10000 ? 0 :
 //
 // A grid of widgets in the order the salon's admin chose (Customize), all
 // counted by /api/staff/home. Each widget is drawn from the same data in the
-// view picked for it: a chart, a table, a figure or a list. Today's diary is
-// still read for the CRM sync note, which is about today's bookings only.
+// view picked for it: a chart, a table, a figure or a list.
 
 let homeData = null;        // the last answer from /api/staff/home
 let homeLayout = [];        // what is drawn; while editing, the working copy
@@ -4210,13 +4205,8 @@ async function loadHome() {
       '<div class="tile"><span class="sk" style="height:32px;width:56px"></span><span class="sk" style="margin-top:10px;width:60%"></span></div>').join('')
       + `<div class="card w-full">${skeleton(4)}</div>`;
   }
-  $('syncNote').classList.add('hidden');
-
   try {
-    const [h, first] = await Promise.all([
-      api('/api/staff/home'),
-      api(`/api/staff/diary?date=${salonToday()}`).catch(() => null),
-    ]);
+    const h = await api('/api/staff/home');
     if (seq !== homeSeq) return;
     homeData = h;
     if (!homeEditing) homeLayout = h.layout.map((x) => ({ ...x }));
@@ -4226,19 +4216,6 @@ async function loadHome() {
     $('hmPending').innerHTML = pending
       ? `<div class="tiles one">${tile(pending, pending === 1 ? 'person waiting for approval' : 'people waiting for approval', 'account', 'users-plus')}</div>` : '';
 
-    const live = (first?.appointments || []).filter((x) => x.status !== 'cancelled');
-    const refused = live.filter((x) => x.syncFailed).length;
-    const unsynced = live.filter((x) => !x.syncedToCentro).length;
-    // "Nothing to do here" is only true while the bookings are on their way.
-    // One the CRM refused will not arrive on its own, so say so and say where.
-    if (refused) {
-      const who = refused === 1 ? '1 of today’s bookings' : `${refused} of today’s bookings`;
-      $('syncNote').innerHTML = `${ic('info')}<span>The CRM refused ${who}, so ${refused === 1 ? 'it is' : 'they are'} not on its calendar. It retries on its own every day; if it keeps refusing, ask your web team to check the CRM link.</span>`;
-      $('syncNote').className = 'note bad';
-    } else if (unsynced) {
-      $('syncNote').innerHTML = `${ic('info')}<span>${unsynced === 1 ? '1 of today’s bookings hasn’t' : `${unsynced} of today’s bookings haven’t`} synced yet. They are sent across automatically; nothing to do here.</span>`;
-      $('syncNote').className = 'note';
-    }
     renderHome();
   } catch (err) {
     if (seq !== homeSeq || err.message === 'signed out') return;
@@ -4578,13 +4555,6 @@ function statusChips(a) {
   if (a.status === 'completed') out.push('<span class="chip ok">Done</span>');
   if (a.checkedInAt && a.status === 'booked') out.push('<span class="chip ok">Here</span>');
   if (a.channel === 'staff') out.push('<span class="chip">Booked by staff</span>');
-  // Surfaced, calmly: the team should learn the CRM is behind from here,
-  // not from an empty CRM later. It is information, not an alarm.
-  if (a.status !== 'cancelled' && a.syncFailed) {
-    out.push('<span class="chip warn" title="The CRM refused this booking. It retries on its own every day.">Sync failed</span>');
-  } else if (a.status !== 'cancelled' && !a.syncedToCentro) {
-    out.push('<span class="chip pending" title="This booking will be synced automatically.">Not synced yet</span>');
-  }
   return out.join(' ') || '<span class="chip">Booked</span>';
 }
 
@@ -4668,7 +4638,6 @@ function cardMarks(a) {
   else m.push(['', 'check', 'Confirmed']);
   m.push(a.channel === 'staff' ? ['', 'user', `Booked by ${a.bookedBy || 'staff'}`] : ['', 'link', 'Booked online']);
   if (a.notes) m.push(['', 'doc', 'Has notes']);
-  if (a.syncFailed) m.push(['bad', 'sync', 'Sync failed: the CRM retries it every day']);
   return m.map(([cls, icon, title]) => `<i class="${cls}" title="${esc(title)}">${ic(icon)}</i>`).join('');
 }
 
@@ -4896,13 +4865,13 @@ async function apptAction(ref, act, btn) {
     `Delete appointment ${ref} for good?
 
 `
-    + 'It is removed here and from the CRM, and it will not appear anywhere '
-    + 'afterwards. To keep a record that it was called off, cancel it instead.'
+    + 'It is removed for good and will not appear anywhere afterwards. '
+    + 'To keep a record that it was called off, cancel it instead.'
   )) return;
   if (btn) btn.disabled = true;
   try {
     const r = await api('/api/staff/appointment', { method: 'POST', body: JSON.stringify({ ref, action: act }) });
-    if (r && r.deleted) toast(`Appointment ${ref} deleted${r.inCentro ? ' here and in the CRM' : ''}.`);
+    if (r && r.deleted) toast(`Appointment ${ref} deleted.`);
     await refreshDiary();
   } catch (err) {
     fail(err);
@@ -5124,7 +5093,7 @@ function demoDay(date) {
       ref: `DEMO${i}${h}${m}`, startsAt: at(h, m), date, durationMin: dur,
       time: clock(h * 60 + m), endTime: clock(h * 60 + m + dur), status: 'booked', channel: 'staff',
       service, stylist: s.name, stylistSlug: s.slug, guestName, bookedBy: me.user.name,
-      createdAt: new Date(Date.now() - 20 * 86400000).toISOString(), syncedToCentro: true, ...extra,
+      createdAt: new Date(Date.now() - 20 * 86400000).toISOString(), ...extra,
     };
   };
   const appointments = [
@@ -5256,10 +5225,9 @@ function renderMonth(d) {
   while (cells.length > 35 && cells.slice(35).every((c) => c.out)) cells.length = 35;
 
   const chip = (a) => {
-    const cls = a.status === 'cancelled' ? 'off' : (a.syncedToCentro ? '' : 'pending');
+    const cls = a.status === 'cancelled' ? 'off' : '';
     const title = `${a.time} · ${a.guestName} · ${a.service} with ${a.stylist}`
-      + (a.status === 'cancelled' ? ' (cancelled)' : '')
-      + (a.syncedToCentro ? '' : ' · not synced yet');
+      + (a.status === 'cancelled' ? ' (cancelled)' : '');
     return `<button class="cal-ev ${cls}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
               title="${esc(title)}"><b>${esc(a.time.replace(':00', ''))}</b> ${esc(a.guestName)}</button>`;
   };
@@ -5524,7 +5492,7 @@ $('contacts').onclick = (e) => {
 async function deleteContact(c) {
   const warning = [
     `Delete ${c.name}?`,
-    'They are removed from this app and from the CRM. This cannot be undone.',
+    'They are removed from this app. This cannot be undone.',
     c.nextVisit ? 'Their upcoming appointments are cancelled and the times go back on the booking page.' : '',
   ].filter(Boolean).join('\n\n');
   if (!confirm(warning)) return;
@@ -5592,9 +5560,6 @@ function personChips(c) {
   return [
     `<span class="chip">${esc(STATUS_LABEL[c.status] || c.status)}</span>`,
     c.source ? `<span class="chip">${esc(c.source)}</span>` : '',
-    c.inCentro
-      ? '<span class="chip ok">Synced</span>'
-      : '<span class="chip pending" title="They will be synced automatically.">Not synced yet</span>',
   ].join(' ');
 }
 

@@ -109,6 +109,14 @@ test('a guest who books is a client, and books again as the same one', { skip },
       [tenant.id],
     );
     assert.equal(count[0].n, 1, 'three bookings, one client');
+
+    // A client of the salon, and of nobody else's system.
+    const { rows: queued } = await c.query(
+      `SELECT 1 FROM sync_outbox
+        WHERE contact_id = $1 OR appointment_id = ANY($2::uuid[])`,
+      [first.contact_id, [first.id, again.id, third.id]],
+    );
+    assert.equal(queued.length, 0, 'nothing about them is queued for CENTRO');
   } finally {
     await c.query('ROLLBACK');
     await c.end();

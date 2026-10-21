@@ -62,7 +62,7 @@ export default handler({
     const { rows } = await query(
       `SELECT a.ref, a.starts_at, a.duration_min, a.status, to_jsonb(a) -> 'breaks' AS breaks, a.channel, a.checked_in_at,
               a.guest_name, a.guest_email, a.guest_phone, a.notes,
-              a.price_cents, a.ghl_appointment_id, a.created_at,
+              a.price_cents, a.created_at,
               -- The guest's next visit after this one, for the day card.
               (SELECT min(n.starts_at) FROM appointments n
                 WHERE n.contact_id = a.contact_id AND n.status = 'booked'
@@ -70,9 +70,7 @@ export default handler({
               s.slug AS stylist_slug, s.name AS stylist_name,
               v.name AS service_name,
               b.name AS booked_by_name,
-              ct.id AS contact_id,
-              EXISTS (SELECT 1 FROM sync_outbox o
-                       WHERE o.appointment_id = a.id AND o.state = 'failed') AS sync_failed
+              ct.id AS contact_id
          FROM appointments a
          JOIN stylists s ON s.id = a.stylist_id
          JOIN services v ON v.id = a.service_id
@@ -112,12 +110,6 @@ export default handler({
         contactId: r.contact_id,
         createdAt: r.created_at,
         nextStartsAt: r.next_starts_at,
-        // Lets the console show which bookings have not reached CENTRO yet,
-        // rather than the team discovering it from an empty CRM.
-        syncedToCentro: Boolean(r.ghl_appointment_id),
-        // Waiting and refused are different: one fixes itself, the other
-        // needs somebody to look at Settings.
-        syncFailed: !r.ghl_appointment_id && r.sync_failed,
       };
     });
 

@@ -5,26 +5,25 @@
  *   GET     ?id=                 one person, their appointments and activity
  *   POST                         add somebody
  *   PATCH                        edit somebody
- *   DELETE                       remove somebody, here and in CENTRO
+ *   DELETE                       remove somebody
  *
  * One list, not two. A person who enquires on Tuesday and books on Thursday
  * is the same person, and keeping leads and clients apart guarantees they end
  * up in both with somebody merging them by hand later.
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
-import { enqueueSync } from '../../_lib/booking.js';
 import { query, transaction } from '../../_lib/db.js';
+import { mirrorToGoogle } from '../../_lib/google-mirror.js';
 import {
   HttpError, handler, json, optionalPhone, readJson, requireId, requireString,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
-import { drain } from '../../cron/sync.js';
 
 const STATUSES = ['new', 'contacted', 'booked', 'won', 'lost'];
 
 /**
- * Deleting takes a salon's client out of both systems and cannot be undone,
- * so it is kept to the people who already decide who works there.
+ * Deleting a salon's client cannot be undone, so it is kept to the people who
+ * already decide who works there.
  */
 const CAN_DELETE = ['owner', 'admin', 'manager'];
 
@@ -36,23 +35,12 @@ const CAN_DELETE = ['owner', 'admin', 'manager'];
  * kept, because they are the salon's record of work done and money taken;
  * they keep the guest's name on the appointment itself and lose only the link.
  *
- * Returns what CENTRO needs to be told, or null if the contact is not there.
+ * Returns who was removed and how many bookings went with them, or null if
+ * the contact is not there.
  */
 export async function removeContact(client, tenantId, id) {
-  // Waits for any sync already pushing this person to finish, so the CENTRO
-  // id it is about to store is the one read below. Taken before the contact
-  // row, in the same order the sync takes them, so the two cannot deadlock.
-  await client.query(
-    `SELECT id FROM sync_outbox
-      WHERE state = 'pending'
-        AND (contact_id = $1
-             OR appointment_id IN (SELECT id FROM appointments WHERE contact_id = $1))
-      FOR UPDATE`,
-    [id],
-  );
-
   const { rows: found } = await client.query(
-    'SELECT id, name, ghl_contact_id FROM contacts WHERE id = $1 AND tenant_id = $2 FOR UPDATE',
+    'SELECT id, name FROM contacts WHERE id = $1 AND tenant_id = $2 FOR UPDATE',
     [id, tenantId],
   );
   const contact = found[0];
@@ -61,32 +49,13 @@ export async function removeContact(client, tenantId, id) {
   const { rows: cancelled } = await client.query(
     `UPDATE appointments SET status = 'cancelled', cancelled_at = now()
       WHERE contact_id = $1 AND status = 'booked' AND starts_at >= now()
-      RETURNING id, ghl_appointment_id`,
-    [id],
-  );
-
-  // Anything still waiting to go to CENTRO about this person would bring them
-  // straight back: an unsent booking upserts its guest as a new contact.
-  await client.query(
-    `DELETE FROM sync_outbox
-      WHERE state <> 'done'
-        AND (contact_id = $1
-             OR appointment_id IN (SELECT id FROM appointments WHERE contact_id = $1))`,
+      RETURNING id`,
     [id],
   );
 
   await client.query('DELETE FROM contacts WHERE id = $1', [id]);
 
-  const ghlAppointmentIds = cancelled.map((a) => a.ghl_appointment_id).filter(Boolean);
-  if (contact.ghl_contact_id || ghlAppointmentIds.length) {
-    // No contact_id on the job: that column cascades, and would delete the
-    // job along with the person it is about.
-    await enqueueSync(client, tenantId, 'contact.deleted', {
-      payload: { ghlContactId: contact.ghl_contact_id, ghlAppointmentIds, name: contact.name },
-    });
-  }
-
-  return { name: contact.name, cancelled: cancelled.length, inCentro: Boolean(contact.ghl_contact_id) };
+  return { name: contact.name, cancelled: cancelled.length };
 }
 
 /**
@@ -101,7 +70,7 @@ export async function removeContact(client, tenantId, id) {
 export async function contactDetail(tenantId, id) {
   const { rows: found } = await query(
     `SELECT id, name, email, phone, source, status, notes, created_at,
-            first_booked_at, last_visit_at, ghl_contact_id, session_id
+            first_booked_at, last_visit_at, session_id
        FROM contacts WHERE id = $1::uuid AND tenant_id = $2::uuid`,
     [id, tenantId],
   );
@@ -111,7 +80,7 @@ export async function contactDetail(tenantId, id) {
   const { rows: appts } = await query(
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.status, a.channel,
             a.created_at, a.updated_at, a.cancelled_at, a.checked_in_at,
-            a.reminder_sent_at, a.ghl_appointment_id,
+            a.reminder_sent_at,
             s.name AS stylist, v.name AS service
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
@@ -122,7 +91,9 @@ export async function contactDetail(tenantId, id) {
     [id, tenantId],
   );
 
-  // Pushes to CENTRO that went through, for this person or their bookings.
+  // Pushes to the CRM that went through, for this person or their bookings.
+  // History: nothing has been sent there since 21 October 2026, but what was
+  // sent before then really happened.
   const { rows: synced } = await query(
     `SELECT kind, done_at FROM sync_outbox
       WHERE tenant_id = $2::uuid AND state = 'done' AND done_at IS NOT NULL
@@ -172,7 +143,6 @@ export async function contactDetail(tenantId, id) {
       createdAt: c.created_at,
       firstBookedAt: c.first_booked_at,
       lastVisitAt: c.last_visit_at,
-      inCentro: Boolean(c.ghl_contact_id),
     },
     appointments: appts.map((a) => ({
       ref: a.ref,
@@ -183,7 +153,6 @@ export async function contactDetail(tenantId, id) {
       checkedInAt: a.checked_in_at,
       service: a.service,
       stylist: a.stylist,
-      syncedToCentro: Boolean(a.ghl_appointment_id),
     })),
     activity,
   };
@@ -221,7 +190,7 @@ export default handler({
 
     const { rows } = await query(
       `SELECT c.id, c.name, c.email, c.phone, c.source, c.status, c.notes,
-              c.first_booked_at, c.last_visit_at, c.created_at, c.ghl_contact_id,
+              c.first_booked_at, c.last_visit_at, c.created_at,
               count(a.id) FILTER (WHERE a.status <> 'cancelled') AS visits,
               max(a.starts_at) FILTER (WHERE a.status = 'booked'
                                         AND a.starts_at >= now()) AS next_visit
@@ -263,7 +232,6 @@ export default handler({
         firstBookedAt: c.first_booked_at,
         lastVisitAt: c.last_visit_at,
         createdAt: c.created_at,
-        inCentro: Boolean(c.ghl_contact_id),
       })),
     });
   },
@@ -306,7 +274,6 @@ export default handler({
           user.id,
         ],
       );
-      await enqueueSync(client, tenant.id, 'contact.created', { contactId: rows[0].id });
       return rows[0];
     });
 
@@ -319,13 +286,7 @@ export default handler({
     });
   },
 
-  /**
-   * PATCH: edit somebody's details.
-   *
-   * The change is pushed to CENTRO by id rather than by matching on email or
-   * phone. Correcting either of those is the most common edit there is, and
-   * matching would leave the salon with the same person twice.
-   */
+  /** PATCH: edit somebody's details. */
   async PATCH(req, res) {
     assertSameOrigin(req);
     const user = await requireStaff(req);
@@ -370,16 +331,8 @@ export default handler({
         ],
       );
       if (!rows[0]) throw new HttpError(404, 'That client no longer exists.');
-
-      await enqueueSync(client, tenant.id, 'contact.updated', { contactId: id });
       return rows[0];
     });
-
-    try {
-      await drain(10);
-    } catch (err) {
-      console.error('CENTRO sync deferred for contact', id, err);
-    }
 
     return json(res, 200, {
       id: contact.id,
@@ -401,13 +354,9 @@ export default handler({
     const removed = await transaction((client) => removeContact(client, tenant.id, id));
     if (!removed) throw new HttpError(404, 'That client no longer exists.');
 
-    // Inline, like an edit, so CENTRO matches by the time the list reloads.
-    // If CENTRO is down the job stays queued and the cron finishes it.
-    try {
-      await drain(10);
-    } catch (err) {
-      console.error('CENTRO delete deferred for contact', id, err);
-    }
+    // Their cancelled bookings come off the stylists' Google Calendars now
+    // rather than at the daily cron.
+    await mirrorToGoogle().catch((err) => console.error('google mirror deferred for contact', id, err));
 
     return json(res, 200, { id, ...removed });
   },
