@@ -117,27 +117,16 @@ export function timedService(service, details) {
 
 /**
  * The parts of a visit the stylist is working, as [from, to] in minutes from
- * its start: the guest's own time with the processing breaks cut out.
+ * its start: the guest's own time with the processing breaks cut out. This
+ * is what the diary draws -- the Start, the Break left open, then the Finish
+ * (apptCard in staff/index.html) -- and what the database's no-overlap
+ * constraint compares (migration 027).
  *
- * This is the single answer to "is this stylist free then", and everything
- * that asks the question uses it: the slot list on the website, the staff
- * console's New appointment, a guest moving their own booking from the link
- * in their email, the Google calendar check, and the database's own
- * no-overlap constraint (appointment_blocks over starts_at + duration_min,
- * migration 027). They have to agree. A time the first three offer and the
- * constraint then refuses is an error message in front of a guest who did
- * nothing wrong.
- *
- * It is also exactly what the diary draws: the Start, the Break left open,
- * then the Finish (apptCard in staff/index.html). What the salon can see is
- * what the salon can book.
- *
- * The clean-down is deliberately not part of it. That is time the salon
- * schedules, not time it sells: no screen draws it, it is already allowed to
- * run past closing, and it does not hold the next guest off. So a 45 minute
- * service offered in a 45 minute processing break fits exactly and ends
- * where the Finish begins -- which is the whole point of freeing a stylist
- * while a color develops.
+ * It is the guarantee, and a narrow one on purpose: two guests are never in
+ * the same chair at the same time, whatever races the code above it loses.
+ * The station turnaround between appointments is a different kind of claim
+ * and is answered by cleanDown() below, in availability.js, where it can
+ * take account of what the time is being taken out of.
  */
 export function workSpans(visit) {
   const end = visit.durationMin;
@@ -149,6 +138,25 @@ export function workSpans(visit) {
   }
   if (end > t) out.push([t, end]);
   return out.filter(([a, b]) => b > a);
+}
+
+/**
+ * The station turnaround after a visit: the one [from, to] span a caller can
+ * add to workSpans(), or nothing when the service has none.
+ *
+ * Kept apart from the working time because it is not the same kind of thing.
+ * The working time is a fact about a guest -- they are in that chair -- and
+ * the database enforces it. This is the salon's own scheduling, and whether
+ * it holds a slot depends on what the slot is cut out of: between two
+ * appointments it does, because the station really has to be turned round,
+ * and inside another appointment's processing break it does not, because the
+ * stylist is only borrowed and goes back to a guest who never left.
+ * availability.js draws that distinction. Nothing here can: it takes two
+ * appointments to know.
+ */
+export function cleanDown(visit) {
+  const len = visit.bufferMin || 0;
+  return len ? [[visit.durationMin, visit.durationMin + len]] : [];
 }
 
 /**

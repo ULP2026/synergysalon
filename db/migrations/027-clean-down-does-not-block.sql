@@ -21,6 +21,20 @@
 -- availability.js compares exactly this (workSpans in timing.js), so what
 -- the website, the staff console and a guest moving their own booking offer
 -- is what the database accepts.
+--
+-- Added later the same day, after Luis asked for the change to be narrowed:
+-- the salon does want its turnaround kept between two ordinary
+-- appointments, and only a processing break opened up. That cannot be said
+-- here. An EXCLUDE constraint compares two rows with one operator, and
+-- "this one may touch that one, because it is sitting inside its break" is
+-- not a fact about either row on its own.
+--
+-- So the two parted company on purpose, and the split is the honest one.
+-- This constraint is the guarantee -- no two guests in one chair, whatever
+-- races the code above it loses -- and it is what no amount of application
+-- logic can provide. The turnaround is the salon's scheduling policy, and
+-- it lives in availability.js (freeFor), which can see both appointments.
+-- Losing a race now costs a squeezed gap, not a double booking.
 SET search_path = public, extensions;
 
 -- By minutes rather than by an end instant, so the addition happens inside a

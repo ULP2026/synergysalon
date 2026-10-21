@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { combineServices } from '../api/_lib/availability.js';
-import { cleanBreaks, timedService, timingKey, workSpans } from '../api/_lib/timing.js';
+import { cleanBreaks, cleanDown, timedService, timingKey, workSpans } from '../api/_lib/timing.js';
 
 const svc = (slug, name, category, duration, buffer = 15) => ({
   slug, name, category, duration_min: duration, buffer_min: buffer, price_cents: null,
@@ -94,29 +94,33 @@ test('several services: lengths, breaks and clean-downs add up end to end', () =
   assert.deepEqual(back.breaks, [[115, 45]]);
 });
 
-test('a stylist works the guest time with its breaks cut out, clean-down aside', () => {
+test('a stylist works the guest time with its breaks cut out, turnaround apart', () => {
   const visit = { durationMin: 155, bufferMin: 15, breaks: [[60, 45]] };
   assert.deepEqual(workSpans(visit), [[0, 60], [105, 155]]);
-  // The 15-minute clean-down is no part of it, so nothing is held off after
-  // 155: that is where the diary draws the Finish ending, and a booking may
-  // start there.
+  assert.deepEqual(cleanDown(visit), [[155, 170]]);
+  // The two are asked for separately because availability.js counts the
+  // second one against some things and not others.
   assert.deepEqual(workSpans({ durationMin: 60, bufferMin: 10, breaks: [] }), [[0, 60]]);
+  assert.deepEqual(cleanDown({ durationMin: 60, bufferMin: 0 }), [], 'no turnaround, no span');
 });
 
 test('a service exactly as long as a processing break fits inside it', () => {
-  // The 21 October gap: a color's Break runs from 90 to 135 minutes in, and
-  // a 45-minute service with a 10-minute clean-down is offered at 90. What
-  // the two of them occupy has to not overlap, or the salon is looking at a
-  // 45 minute hole it cannot sell.
-  const color = workSpans({ durationMin: 225, bufferMin: 15, breaks: [[90, 45]] });
-  assert.deepEqual(color, [[0, 90], [135, 225]]);
+  // The 21 October gap: a colour Break running from 90 to 135 minutes in,
+  // and a 45-minute service offered at 90. Its own time has to fit the hole
+  // exactly, or the salon is looking at 45 free minutes it cannot sell.
+  const colour = workSpans({ durationMin: 225, bufferMin: 15, breaks: [[90, 45]] });
+  assert.deepEqual(colour, [[0, 90], [135, 225]]);
   const blowout = workSpans({ durationMin: 45, bufferMin: 10, breaks: [] });
   assert.deepEqual(blowout, [[0, 45]]);
-  // Shifted to 90 minutes in: 90 to 135, ending exactly where the Finish
-  // begins. Touching is not overlapping.
+  // Shifted to 90 minutes in: 90 to 135, ending where the Finish begins.
+  // Touching is not overlapping.
   const [from, to] = [90 + blowout[0][0], 90 + blowout[0][1]];
   assert.deepEqual([from, to], [90, 135]);
-  assert.ok(!color.some(([a, b]) => from < b && to > a), 'it sits in the Break');
+  assert.ok(!colour.some(([a, b]) => from < b && to > a), 'it sits in the Break');
+  // Its turnaround does run into the Finish, which is why the rule that
+  // ignores it is the narrow one in availability.js and not this file.
+  const [tail] = cleanDown({ durationMin: 45, bufferMin: 10 });
+  assert.deepEqual([90 + tail[0], 90 + tail[1]], [135, 145]);
 });
 
 test('breaks the database is given are whole minutes inside the visit', () => {

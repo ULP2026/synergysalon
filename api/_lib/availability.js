@@ -17,7 +17,7 @@ import { centroWindows, fitsIn } from './centro-hours.js';
 import { MAX_ADVANCE_DAYS, MIN_LEAD_MIN, SLOT_STEP_MIN } from './config.js';
 import { googleBusyFor, googleOptional } from './google-busy.js';
 import { HttpError } from './http.js';
-import { cleanBreaks, timedService, workSpans } from './timing.js';
+import { cleanBreaks, cleanDown, timedService, workSpans } from './timing.js';
 
 /** Luxon counts Monday as 1 and Sunday as 7; the schema counts Sunday as 0. */
 function weekdayOf(dt) {
@@ -112,14 +112,13 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
          FROM stylist_hours WHERE stylist_id = ANY($1)`,
       [stylistIds],
     ),
-    // duration_min, not upper(during): during runs to the end of the
-    // clean-down, which no screen draws and which holds nobody off. What
-    // blocks another booking is the time the guest is in the chair, and the
-    // breaks are cut out of that, so the stylist is free while a color
-    // processes. Through to_jsonb, so this still reads a database that has
-    // not had migration 025.
+    // The appointment in three pieces, because the slot check needs all
+    // three: how long the guest is there, the turnaround after them, and the
+    // processing breaks inside it that somebody else may have. Through
+    // to_jsonb for the breaks, so this still reads a database that has not
+    // had migration 025.
     client.query(
-      `SELECT stylist_id, starts_at AS from_ts, duration_min,
+      `SELECT stylist_id, starts_at AS from_ts, duration_min, buffer_min,
               to_jsonb(a) -> 'breaks' AS breaks
          FROM appointments a
         WHERE status = 'booked' AND stylist_id = ANY($1) AND during && $2::tstzrange
@@ -138,16 +137,25 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
   const busy = new Map(stylistIds.map((id) => [id, []]));
   const closed = [];   // salon-wide, applies to everyone
 
+  // Each entry is one thing in the stylist's day: what it occupies, and the
+  // holes inside it that somebody else may genuinely have. Kept whole rather
+  // than flattened into a list of spans, because whether a turnaround may run
+  // into something depends on which thing it is running into.
   for (const row of booked.rows) {
     const from = +row.from_ts;
-    const lengthMin = row.duration_min;
-    const spans = workSpans({ durationMin: lengthMin, breaks: cleanBreaks(row.breaks, lengthMin) });
-    for (const [a, b] of spans) busy.get(row.stylist_id)?.push([from + a * 60_000, from + b * 60_000]);
+    const ms = (min) => from + min * 60_000;
+    const breaks = cleanBreaks(row.breaks, row.duration_min);
+    const visit = { durationMin: row.duration_min, bufferMin: row.buffer_min, breaks };
+    busy.get(row.stylist_id)?.push({
+      spans: [...workSpans(visit), ...cleanDown(visit)].map(([a, b]) => [ms(a), ms(b)]),
+      breaks: breaks.map(([at, len]) => [ms(at), ms(at + len)]),
+    });
   }
   for (const row of off.rows) {
     const span = [+row.from_ts, +row.to_ts];
+    // Time off has no holes in it: lunch is not a processing break.
     if (row.stylist_id === null) closed.push(span);
-    else busy.get(row.stylist_id)?.push(span);
+    else busy.get(row.stylist_id)?.push({ spans: [span], breaks: [] });
   }
 
   const shifts = new Map(stylistIds.map((id) => [id, []]));
@@ -309,13 +317,37 @@ export async function availableSlots(client, tenant, {
         : (shifts.get(stylist.id) ?? []).filter((sh) => sh.weekday === weekday);
 
       const own = visits.get(stylist.id);
-      // The parts of the visit the stylist is working. One set of spans,
-      // compared against everything below: their diary, the salon's
-      // closures, CENTRO and Google all get the same answer, because a
-      // stylist is either free at a time or they are not.
+      // The time the guest is in the chair, and that plus the turnaround
+      // after them.
       const working = workSpans(own);
+      const turnaround = [...working, ...cleanDown(own)];
+      const blockMin = own.durationMin + (own.bufferMin || 0);
       const clash = (startMs, spans, against) => spans.some(([a, b]) => overlapsAny(
         startMs + a * 60_000, startMs + b * 60_000, against));
+
+      /**
+       * Is this stylist free for the visit, starting here?
+       *
+       * Asked of one thing in their day at a time, because the answer is not
+       * the same for all of them. Normally the visit takes its own time and
+       * the turnaround after it, so two appointments keep the salon's gap
+       * between them and the station can be reset.
+       *
+       * The exception is a visit that fits entirely inside somebody's
+       * processing break. The stylist is borrowed for it and goes straight
+       * back to a guest who is still sitting there with colour on: there is
+       * no station to turn round between the two, so the break can be filled
+       * to the minute, which is the whole point of freeing a stylist while a
+       * colour develops. The turnaround still counts against everything else
+       * in the day, that same guest's next appointment included.
+       */
+      const freeFor = (startMs) => {
+        const guestEnd = startMs + own.durationMin * 60_000;
+        return (busy.get(stylist.id) ?? []).every((entry) => {
+          const borrowed = entry.breaks.some(([a, b]) => startMs >= a && guestEnd <= b);
+          return !clash(startMs, borrowed ? working : turnaround, entry.spans);
+        });
+      };
 
       for (const shift of dayShifts) {
         const [oh, om] = String(shift.starts_at).split(':').map(Number);
@@ -332,18 +364,17 @@ export async function availableSlots(client, tenant, {
           if (start < earliest) continue;
 
           const startMs = start.toMillis();
-          const endMs = start.plus({ minutes: own.durationMin }).toMillis();
-          // CENTRO has to have the guest's own time free; the clean-down
+          // CENTRO has to have the guest's own time free; the turnaround
           // after it is ours to schedule.
-          if (free && !fitsIn(free, startMs, endMs)) continue;
-          // A salon closure stops the whole visit: the guest is in the chair
-          // through a processing break too.
-          if (overlapsAny(startMs, endMs, closed)) continue;
-          // Their own bookings and blocks: only where they would be working.
-          // A color's Break is free time, and so is another color's.
-          if (clash(startMs, working, busy.get(stylist.id) ?? [])) continue;
-          // Google, asked the same way: a guest's own event must not sit
-          // where this stylist would be working.
+          if (free && !fitsIn(free, startMs, start.plus({ minutes: own.durationMin }).toMillis())) continue;
+          // A salon closure stops the whole visit, turnaround and all: the
+          // guest is in the chair through a processing break too.
+          if (overlapsAny(startMs, start.plus({ minutes: blockMin }).toMillis(), closed)) continue;
+          // Their own bookings and blocks. A colour's Break is free time,
+          // and so is another colour's.
+          if (!freeFor(startMs)) continue;
+          // Google: the guest's own time must be clear where the stylist is
+          // working; the turnaround is ours.
           if (gb && clash(startMs, working, gb)) continue;
 
           const who = found.get(startMs);

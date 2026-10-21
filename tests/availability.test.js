@@ -94,7 +94,9 @@ test('a booked appointment removes every slot it overlaps', async () => {
   const date = futureDate();
   const from = DateTime.fromISO(`${date}T10:00`, { zone: SALON_TZ });
   const client = stubClient({
-    booked: [{ stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 60 }],
+    booked: [{
+      stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 60, buffer_min: 15,
+    }],
   });
 
   const { days } = await availableSlots(client, TENANT, {
@@ -102,20 +104,22 @@ test('a booked appointment removes every slot it overlaps', async () => {
   });
   const times = localTimes(days[0]);
 
-  // The guest is in the chair from 10:00 to 11:00, and that is what another
-  // booking cannot land in. The clean-down either side of it is time the
-  // salon schedules, not time it sells, so it holds no slot.
+  // The booking holds 10:00-11:15: the guest to 11:00, then the station
+  // turnaround. A new appointment needs 75 minutes of its own for the same
+  // reason, so the latest start that would clear it is 08:45 -- before the
+  // salon opens. The whole morning is therefore gone, which is correct and
+  // not obvious.
   assert.ok(!times.includes('10:00'), 'the booked time itself is not offered');
-  assert.ok(!times.includes('09:15'), '09:15 would run to 10:15 and collide');
-  assert.ok(!times.includes('10:45'), '10:45 is still inside it');
-  assert.ok(times.includes('09:00'), '09:00 ends at 10:00, as the guest arrives');
-  assert.ok(times.includes('11:00'), '11:00 starts as the chair comes free');
+  assert.ok(!times.includes('09:00'), '09:00 would run to 10:15 and collide');
+  assert.equal(times[0], '11:15', 'the first free start is the end of the turnaround');
 });
 
-test('the clean-down is drawn nowhere and holds nobody off', async () => {
+test('the turnaround keeps the gap between two appointments', async () => {
   const date = futureDate();
   const from = DateTime.fromISO(`${date}T12:00`, { zone: SALON_TZ });
-  const booked = [{ stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 60 }];
+  const booked = [{
+    stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 60, buffer_min: 0,
+  }];
 
   const withBuffer = await availableSlots(stubClient({ booked, duration: 60, buffer: 15 }), TENANT, {
     serviceSlug: 'haircuts', fromDate: date, toDate: date,
@@ -124,26 +128,30 @@ test('the clean-down is drawn nowhere and holds nobody off', async () => {
     serviceSlug: 'haircuts', fromDate: date, toDate: date,
   });
 
-  // 11:00 to 12:00, ending as the 12:00 guest arrives. Whether the service
-  // has a clean-down after it makes no difference to whether it is offered:
-  // the diary draws no clean-down, and nothing may be refused over time the
-  // salon cannot see.
-  assert.ok(localTimes(withBuffer.days[0]).includes('11:00'),
-    '11:00 finishes exactly as the next guest arrives');
+  // The station has to be turned round between one guest and the next, so a
+  // service with 15 minutes of it cannot start at 11:00 and hand straight
+  // over at 12:00. One with none can.
+  assert.ok(!localTimes(withBuffer.days[0]).includes('11:00'),
+    'with a turnaround, 11:00 would run into the 12:00 booking');
   assert.ok(localTimes(withoutBuffer.days[0]).includes('11:00'),
-    'and the same with no clean-down at all');
-  assert.ok(!localTimes(withBuffer.days[0]).includes('11:15'),
-    '11:15 would run into the booking itself');
+    'without one, 11:00 finishes exactly as the next guest arrives');
 });
 
-test('a service exactly as long as a processing break is offered inside it', async () => {
-  // The gap of 21 October. A color starts at 10:00 and runs 225 minutes with
-  // its Break 90 minutes in: the diary draws the Start to 11:30, Processing
-  // open to 12:15, then the Finish. A 45-minute blowout belongs in that hole.
+test('a processing break is the exception: it fills to the minute', async () => {
+  // The gap of 21 October, and the rule Luis asked for. A colour starts at
+  // 10:00 and runs 225 minutes with its Break 90 minutes in: the diary draws
+  // the Start to 11:30, Processing open to 12:15, then the Finish. A
+  // 45-minute blowout with a 10-minute turnaround belongs in that hole --
+  // the stylist is borrowed for it and goes back to a guest who never left,
+  // so there is no station to turn round in between.
   const date = futureDate();
   const from = DateTime.fromISO(`${date}T10:00`, { zone: SALON_TZ });
   const booked = [{
-    stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 225, breaks: [[90, 45]],
+    stylist_id: uuid(1),
+    from_ts: from.toJSDate(),
+    duration_min: 225,
+    buffer_min: 15,
+    breaks: [[90, 45]],
   }];
   const { days } = await availableSlots(stubClient({ booked, duration: 45, buffer: 10 }), TENANT, {
     serviceSlug: 'haircuts', fromDate: date, toDate: date,
@@ -154,6 +162,12 @@ test('a service exactly as long as a processing break is offered inside it', asy
   assert.ok(!times.includes('11:15'), '11:15 would run into the Start');
   assert.ok(!times.includes('11:45'), '11:45 would run into the Finish');
   assert.ok(!times.includes('12:15'), '12:15 is the Finish');
+
+  // And the exception is only the break. Before the colour, the ordinary
+  // rule still holds: 09:15 ends at 10:00 as the guest arrives, and its
+  // turnaround would run into their Start, so it is not offered.
+  assert.ok(!times.includes('09:15'), 'the gap before an appointment is kept');
+  assert.ok(times.includes('09:00'), '09:00 clears it with the turnaround to spare');
 });
 
 test('a salon-wide closure removes the day for everyone', async () => {
@@ -234,7 +248,9 @@ test('the past is never offered', async () => {
 test('rescheduling ignores the appointment being moved', async () => {
   const date = futureDate();
   const from = DateTime.fromISO(`${date}T10:00`, { zone: SALON_TZ });
-  const booked = [{ stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 60 }];
+  const booked = [{
+    stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 60, buffer_min: 15,
+  }];
 
   // The stub ignores the exclusion parameter, so emulate the real query by
   // handing back an empty busy set when an id is excluded.
