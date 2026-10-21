@@ -30,8 +30,7 @@ async function bySlug(slug) {
             -- automation is on", which is what a salon that has never touched
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
-            to_jsonb(tenants) ->> 'review_url' AS review_url,
-            ghl_location_id, ghl_calendar_id
+            to_jsonb(tenants) ->> 'review_url' AS review_url
        FROM tenants WHERE slug = $1 AND active`,
     [slug],
   );
@@ -53,8 +52,7 @@ async function byHost(host) {
             -- automation is on", which is what a salon that has never touched
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
-            to_jsonb(tenants) ->> 'review_url' AS review_url,
-            ghl_location_id, ghl_calendar_id
+            to_jsonb(tenants) ->> 'review_url' AS review_url
        FROM tenants WHERE (host = $1 OR app_host = $1) AND active`,
     [host],
   );
@@ -62,9 +60,9 @@ async function byHost(host) {
 }
 
 /**
- * Note what this never selects: ghl_token. The token lives in the row but is
- * only ever read by the sync worker, so it cannot leak through an endpoint
- * that happens to return its tenant.
+ * Note what this never selects: the ghl_* columns. The CENTRO link was removed
+ * on 21 October 2026, and the credentials still sitting in the row (until
+ * somebody with database access clears them) are read by nothing.
  */
 export async function tenantForRequest(req) {
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || '')
@@ -101,8 +99,7 @@ export async function tenantForUser(user) {
             -- automation is on", which is what a salon that has never touched
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
-            to_jsonb(tenants) ->> 'review_url' AS review_url,
-            ghl_location_id, ghl_calendar_id
+            to_jsonb(tenants) ->> 'review_url' AS review_url
        FROM tenants WHERE id = $1 AND active`,
     [user.tenant_id],
   );

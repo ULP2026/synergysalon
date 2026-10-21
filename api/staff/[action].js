@@ -18,7 +18,6 @@ import book from './_routes/book.js';
 import bookingCalendars from './_routes/booking-calendars.js';
 import business from './_routes/business.js';
 import calendars from './_routes/calendars.js';
-import centro from './_routes/centro.js';
 import contacts from './_routes/contacts.js';
 import diary from './_routes/diary.js';
 import home from './_routes/home.js';
@@ -26,6 +25,7 @@ import login from './_routes/login.js';
 import invite from './_routes/invite.js';
 import logout from './_routes/logout.js';
 import me from './_routes/me.js';
+import preview from './_routes/preview.js';
 import profile from './_routes/profile.js';
 import requestAccess from './_routes/request-access.js';
 import team from './_routes/team.js';
@@ -37,7 +37,6 @@ const ROUTES = {
   'booking-calendars': bookingCalendars,
   business,
   calendars,
-  centro,
   contacts,
   diary,
   home,
@@ -45,6 +44,7 @@ const ROUTES = {
   invite,
   logout,
   me,
+  preview,
   profile,
   'request-access': requestAccess,
   team,

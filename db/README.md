@@ -6,13 +6,14 @@ themselves on the website, and the team books leads in the staff console.
 ```
 guest   →  /api/book        ┐
 staff   →  /api/staff/…     ├→  Postgres  ─┬→ Resend  (guest email)
-                            ┘              └→ sync_outbox → CENTRO / GoHighLevel
+                            ┘              └→ stylists' Google Calendars (a copy)
 ```
 
-**Postgres owns the diary. CENTRO is a mirror.** That is the rule the whole
-design rests on: if anyone also books in GoHighLevel's own calendar, only half
-the appointments are protected and double-booking comes back. GHL's calendar
-must be read-only.
+**Postgres owns the diary, and nothing else holds a copy of it but the
+stylists' own Google Calendars.** There is no CRM link: Synergy was
+disconnected from CENTRO (GoHighLevel) on 21 October 2026, and anyone who
+books in another system's calendar is booking into one this database cannot
+see.
 
 Multi-tenant from the first commit. One salon is the first customer, not the
 only one, and retrofitting `tenant_id` later means touching every table and
@@ -159,17 +160,15 @@ Sessions are a random token in an HttpOnly cookie, with only its SHA-256
 stored, so a leaked database backup cannot be replayed as a login. No JWT: a
 session that cannot be revoked is the wrong shape for a shared salon computer.
 
-## Syncing to CENTRO
+## No CRM sync
 
-Writes to GoHighLevel go through `sync_outbox`, never inline with the booking.
-The outbox row is written in the same transaction as the appointment and sent
-afterwards. If GHL is down or its token has expired, the salon still has the
-booking and the push retries with a backoff. Calling the CRM inside the
-booking transaction would mean their outage turns guests away.
-
-Each tenant carries its own `ghl_location_id`, `ghl_token` and
-`ghl_calendar_id`. The token is never returned by any endpoint — the tenant
-loader does not even select it.
+Until 21 October 2026 every booking and client edit was pushed to CENTRO
+(GoHighLevel) through `sync_outbox`. That link is gone, in code. The table
+and the tenants' `ghl_*` columns are still in the database with what they
+held, because removing them is a database change that waits on a decision;
+nothing writes to them or reads them. The Google Calendar copy that used to
+ride along with each push now runs on its own after every change, and again
+from the daily cron (`api/cron/sync.js`).
 
 ## API
 

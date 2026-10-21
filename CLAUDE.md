@@ -92,16 +92,18 @@ published. Repoint them at `/assets/<uuid>` or the real routes, and check every
 
 ## Booking
 
-Postgres owns the diary. **Nothing is sent to CENTRO (GoHighLevel) any more**
-(asked for 2026-10-21): no client records, and so no bookings, moves,
-cancellations or status changes either, since CENTRO only takes an
-appointment attached to a contact. `api/_lib/ghl.js` can only read (a
-stylist's free time, the calendar's slot length, whether the link works);
-every function that wrote was removed rather than switched off, and
-`tests/ghl.test.js` fails if one comes back or if anything in `api/` queues a
-`sync_outbox` job again. The table stays as the record of what was sent
-before the switch-off: the client timeline still shows "Synced to the CRM"
-for those, and nothing reads its pending rows. Bookings made before then
+Postgres owns the diary. **Synergy has no connection to CENTRO (GoHighLevel)
+at all** (Luis, 2026-10-21): nothing is sent to it and nothing is read from
+it. The pushes went first (`9306d52`); the link itself went after (the
+`remove-centro-link` branch): `api/_lib/ghl.js`, `api/_lib/centro-hours.js`,
+`/api/staff/centro`, `db/link-ghl.js` and `npm run ghl:link` are deleted,
+`availableSlots` has no `centro` option, and the tenant loader selects no
+`ghl_*` column. `tests/no-centro.test.js` fails if anything in `api/` talks
+to GoHighLevel or queues a `sync_outbox` job again. The `ghl_*` columns and
+`sync_outbox` are still in the database, with what they held, because
+clearing them is a database change that waits on Luis; nothing reads them,
+except that a client's timeline still shows "Synced to the CRM" for pushes
+made before the switch-off. Bookings made before then
 that are in CENTRO stay there unchanged; a move or cancellation here no
 longer reaches them. If anyone books in CENTRO's own calendar, the two
 diaries do not know about each other and double-booking returns.
@@ -327,12 +329,8 @@ It used to be asked of CENTRO, which meant a stylist with no CENTRO user
 linked was offered nothing at all. All four were in exactly that state, which
 is why online booking was switched off: there was nobody left to offer. A
 salon that has never heard of CENTRO can now take bookings, which is the whole
-point of selling this to a second customer.
-
-`api/_lib/centro-hours.js`, `freeSlots` in `ghl.js` and the `centro` flag on
-`availableSlots` are dead as of `c8ed305`. Every caller passes `false`.
-Removing them is a tidy-up, not a behaviour change. Linking a stylist to a
-CENTRO user is no longer needed for anything.
+point of selling this to a second customer. The code that asked CENTRO was
+dead from `c8ed305` and has since been deleted with the rest of the link.
 
 **The team is the only list.** Anyone with one of the four service switches on
 is bookable: saving them creates or revives a `stylists` row linked by
@@ -348,7 +346,7 @@ The console used to show a team while the booking engine read a separate
 existed, which is how every stylist ended up deactivated.
 
 **Testing while online booking is paused.** The console button was removed on
-request; `POST /api/staff/centro {action:"preview"}` still mints a signed 12-hour pass (`api/_lib/preview.js`) and opens the public
+request; `POST /api/staff/preview` (owners and managers; it was `/api/staff/centro {action:"preview"}` until the CENTRO link was removed) still mints a signed 12-hour pass (`api/_lib/preview.js`) and opens the public
 site with `?booking-preview=`. The notice script keeps it for that tab, shows
 the real popup with a "test mode" badge, and adds `x-booking-preview` to its
 `/api/` calls, which the server accepts in place of `ONLINE_BOOKING`. Bookings
@@ -433,8 +431,7 @@ made that way are real: name them ZZ and remove them.
   to the person's private feed, links from `GET /api/staff/calendars`), Outlook is left out of the form on request (`calAppRows()`). The person chip
   and `/staff/account` open Settings on Salon & Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
-  Clients. The UI says "CRM"; the API keeps its `centro`
-  names, which nobody sees.
+  Clients.
 - **The team member window** asks for each fact once. The header is the
   person: their picture (the circle, or Change picture, opens its own small
   window: Upload a photo or Choose an avatar), their name as the heading,
@@ -724,7 +721,6 @@ npm install
 cp .env.example .env        # then fill it in; never commit it
 npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
-npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
 npm test                    # 107 tests; the database ones skip without DATABASE_URL
 ```
@@ -818,11 +814,10 @@ must stay that way: anything committed here is served publicly.
      verified sending domain. Confirmations, reminders and the manage link
      all send.
   3. Dina confirms service durations.
-  4. Remove the CENTRO booking widget (the leadconnectorhq iframe in the
-     contact section of `index.html` and `hair-salon-riverview.html`): it is
-     a second calendar the Synergy Calendar cannot see, so guests booking
-     there would double-book. It is left in place only because it is the
-     salon's live online booking until this goes live.
+  4. ~~Remove the CENTRO booking widget~~ **done 2026-10-15** (`721878f`),
+     from `index.html` and `hair-salon-riverview.html`, static head and
+     template both. No public page except `join/index.html` (the
+     rent-a-chair form, Luis's call) loads anything from GoHighLevel.
   5. Envision's appointments imported, or the first weeks double-book.
   6. Then lift the pause (below).
   Google sign-in (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_KEY`)

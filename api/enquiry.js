@@ -263,8 +263,9 @@ export default handler({
         if (same) return { contactId, booked: null, already: live[0].ref };
         // They have changed their mind mid-flow: move the appointment they
         // already have rather than leaving the salon holding both. The new
-        // time is held to the same rules as a new booking, stylists' CENTRO
-        // hours included; this path once moved people to any time at all.
+        // time is held to the same rules as a new booking, stylists' hours
+        // and Google busy time included; this path once moved people to any
+        // time at all.
         // A query error here would abort the transaction and lose the lead
         // saved above, so it counts as "not available" instead.
         await client.query('SAVEPOINT check_move');
@@ -279,7 +280,6 @@ export default handler({
             fromDate: start.toISODate(),
             toDate: start.toISODate(),
             excludeAppointmentId: live[0].id,
-            centro: false,   // our own hours, not a third party's
           }));
           await client.query('RELEASE SAVEPOINT check_move');
         } catch {

@@ -34,7 +34,6 @@ export default handler({
     try {
       const { service, visit, stylists, days } = await availableSlots(client, tenant, {
         serviceSlug, stylistSlug, extraServiceSlugs, fromDate: from, toDate: to,
-        centro: false,   // our own hours, not a third party's
         google: true,    // what a guest is offered leaves out Google busy time
       });
       return json(res, 200, {

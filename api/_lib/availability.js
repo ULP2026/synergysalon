@@ -13,7 +13,6 @@
  */
 import { DateTime, Interval } from 'luxon';
 
-import { centroWindows, fitsIn } from './centro-hours.js';
 import { MAX_ADVANCE_DAYS, MIN_LEAD_MIN, SLOT_STEP_MIN } from './config.js';
 import { googleBusyFor, googleOptional } from './google-busy.js';
 import { HttpError } from './http.js';
@@ -81,7 +80,7 @@ async function loadStylists(client, tenantId, serviceId, stylistSlug) {
   // in stylists.service_details. Through to_jsonb, so this still runs on a
   // database without either column.
   const { rows } = await client.query(
-    `SELECT s.id, s.slug, s.name, s.title, s.sort_order, s.ghl_user_id,
+    `SELECT s.id, s.slug, s.name, s.title, s.sort_order,
             COALESCE(to_jsonb(u) -> 'services', to_jsonb(s) -> 'service_details', '{}'::jsonb) AS details
        FROM stylists s
        JOIN stylist_services ss ON ss.stylist_id = s.id
@@ -186,11 +185,6 @@ function overlapsAny(startMs, endMs, spans) {
  * someone standing in reception may legitimately book them in now, while a
  * guest booking online at midnight may not.
  *
- * `centro` makes each stylist's CENTRO availability the hours they work:
- * only times CENTRO says that person is free are offered. Guests get it;
- * staff do not, because the person at the desk can see who is in and may
- * book outside the calendar on purpose.
- *
  * `google` takes a connected stylist's Google busy times out as well
  * (google-busy.js), and offers nothing for one whose calendar cannot be read.
  * Guests get it; the desk does not, for the same reason as above.
@@ -207,7 +201,7 @@ function overlapsAny(startMs, endMs, spans) {
  */
 export async function availableSlots(client, tenant, {
   serviceSlug, stylistSlug, fromDate, toDate, extraServiceSlugs = [],
-  excludeAppointmentId = null, minLeadMin = MIN_LEAD_MIN, centro = false,
+  excludeAppointmentId = null, minLeadMin = MIN_LEAD_MIN,
   google = false, length = null,
 }) {
   const zone = tenant.timezone;
@@ -294,9 +288,6 @@ export async function availableSlots(client, tenant, {
   // What a caller showing one length shows: the stylist asked for, else the
   // first of those who could take it.
   const visit = visits.get(stylists[0].id);
-  const windows = centro
-    ? await centroWindows(client, tenant, stylists, from.toMillis(), to.toMillis())
-    : null;
 
   const days = [];
   for (let day = from; day <= to; day = day.plus({ days: 1 })) {
@@ -307,14 +298,8 @@ export async function availableSlots(client, tenant, {
     for (const stylist of stylists) {
       const gb = gbusy.get(stylist.id);
       if (gb === 'unreachable') continue;
-      // With CENTRO in charge, its windows are the stylist's hours, so the
-      // whole day is a candidate and CENTRO decides. Without it, the shifts
-      // stored here do.
-      const free = windows ? windows.get(stylist.id) : undefined;
-      if (windows && !free) continue;
-      const dayShifts = windows
-        ? [{ starts_at: '00:00', ends_at: '23:59' }]
-        : (shifts.get(stylist.id) ?? []).filter((sh) => sh.weekday === weekday);
+      // The hours stored here, which are the Synergy Calendar's.
+      const dayShifts = (shifts.get(stylist.id) ?? []).filter((sh) => sh.weekday === weekday);
 
       const own = visits.get(stylist.id);
       // The time the guest is in the chair, and that plus the turnaround
@@ -364,9 +349,6 @@ export async function availableSlots(client, tenant, {
           if (start < earliest) continue;
 
           const startMs = start.toMillis();
-          // CENTRO has to have the guest's own time free; the turnaround
-          // after it is ours to schedule.
-          if (free && !fitsIn(free, startMs, start.plus({ minutes: own.durationMin }).toMillis())) continue;
           // A salon closure stops the whole visit, turnaround and all: the
           // guest is in the chair through a processing break too.
           if (overlapsAny(startMs, start.plus({ minutes: blockMin }).toMillis(), closed)) continue;

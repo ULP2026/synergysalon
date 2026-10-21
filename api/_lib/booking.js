@@ -149,8 +149,6 @@ export async function createBooking(client, tenant, {
     fromDate: startsAt.toISODate(),
     toDate: startsAt.toISODate(),
     minLeadMin,
-    // The salon's own hours, for guests and staff alike.
-    centro: false,   // our own hours, not a third party's
   });
 
   const wanted = startsAt.toMillis();
