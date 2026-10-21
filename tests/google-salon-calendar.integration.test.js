@@ -88,7 +88,18 @@ async function setup(db) {
 }
 
 async function cleanup(db) {
-  await db.query("DELETE FROM appointments WHERE guest_name LIKE 'ZZ Guest%' AND tenant_id = (SELECT id FROM tenants WHERE slug = 'synergy')");
+  // The client the booking made as well (createBooking has made one for
+  // every booking since 3bc53b6): this test commits, so leaving it would
+  // leave a ZZ client behind for good. Only ZZ ones, and only those its
+  // bookings point at.
+  const { rows } = await db.query(
+    `DELETE FROM appointments WHERE guest_name LIKE 'ZZ Guest%'
+        AND tenant_id = (SELECT id FROM tenants WHERE slug = 'synergy')
+     RETURNING contact_id`);
+  const contacts = rows.map((r) => r.contact_id).filter(Boolean);
+  if (contacts.length) {
+    await db.query("DELETE FROM contacts WHERE id = ANY($1::uuid[]) AND name LIKE 'ZZ%'", [contacts]);
+  }
   await db.query("DELETE FROM staff_users WHERE email = 'zz-salon-cal@example.com'");
 }
 

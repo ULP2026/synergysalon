@@ -329,7 +329,14 @@ test('a booking and its cancellation reach the stylist\'s Google Calendar', { sk
     // A failure inside the transaction leaves it aborted, and every cleanup
     // statement after it would be refused: end it first.
     await c.query('ROLLBACK').catch(() => {});
-    if (apptId) await c.query('DELETE FROM appointments WHERE id = $1', [apptId]);
+    if (apptId) {
+      // And the client it made: this test commits, so a ZZ client left here
+      // would outlive it (createBooking makes one per booking since 3bc53b6).
+      const { rows } = await c.query('DELETE FROM appointments WHERE id = $1 RETURNING contact_id', [apptId]);
+      if (rows[0]?.contact_id) {
+        await c.query("DELETE FROM contacts WHERE id = $1 AND name LIKE 'ZZ%'", [rows[0].contact_id]);
+      }
+    }
     await c.query("UPDATE stylists SET staff_user_id = NULL WHERE slug = 'dina'");
     if (userId) await c.query('DELETE FROM staff_users WHERE id = $1', [userId]);
     await c.end();
