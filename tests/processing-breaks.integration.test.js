@@ -156,10 +156,13 @@ test("bookings are as long as the stylist says the work takes, alone and togethe
     // Her own Cuts figure, not the table's 60.
     const cut = await book(c, tenant, 'haircuts', at(9), 'ZZ Cut');
     assert.equal(cut.duration_min, 30);
-    // Single process color: Color's 30 + 30 + 30.
+    // Single process color: her Color 30 and 30, and a 45-minute break, not
+    // the 30 she typed. A processing break is floored at the salon's 45
+    // (COLOR_AND_CUT in timing.js): colour left less than that is not
+    // finished, and a longer one only frees the stylist for longer.
     const single = await book(c, tenant, 'single-process-color', at(13), 'ZZ Single');
-    assert.equal(single.duration_min, 90);
-    assert.deepEqual(single.breaks, [[30, 30]]);
+    assert.equal(single.duration_min, 30 + 45 + 30);
+    assert.deepEqual(single.breaks, [[30, 45]]);
 
     // A cut then a balayage, one appointment: 30, the cut's 10-minute
     // clean-down, then 165, the processing 30 + 10 + 60 = 100 minutes in.

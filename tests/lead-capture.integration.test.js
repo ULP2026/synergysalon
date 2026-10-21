@@ -31,15 +31,23 @@ async function connect() {
   return c;
 }
 
-/** A Tuesday three weeks out: inside the horizon, and a day the salon opens. */
+/**
+ * A Tuesday five weeks out, and Tami rather than Dina.
+ *
+ * Both on purpose. Test files run concurrently, each inside its own open
+ * transaction, and an uncommitted appointment is still enough for the
+ * exclusion constraint to refuse the next one. Two other files book Dina on
+ * the Tuesday three weeks out, so sharing it bought a failure that had
+ * nothing to do with what is being tested here.
+ */
 function tuesday(zone) {
-  let d = DateTime.now().setZone(zone).plus({ days: 21 }).startOf('day');
+  let d = DateTime.now().setZone(zone).plus({ days: 35 }).startOf('day');
   while (d.weekday !== 2) d = d.plus({ days: 1 });
   return d;
 }
 
 const book = (c, tenant, start, who) => createBooking(c, tenant, {
-  serviceSlug: 'haircuts', stylistSlug: 'dina', start: start.toISO(),
+  serviceSlug: 'haircuts', stylistSlug: 'tami', start: start.toISO(),
   channel: 'online', minLeadMin: 0, ...who,
 });
 
@@ -54,9 +62,12 @@ test('a guest who books is a client, and books again as the same one', { skip },
     await c.query('BEGIN');
     const { rows } = await c.query("SELECT id, slug, name, timezone FROM tenants WHERE slug = 'synergy'");
     const tenant = rows[0];
-    await makeBookable(c, tenant.id, 'dina');
+    await makeBookable(c, tenant.id, 'tami');
     const day = tuesday(tenant.timezone);
-    const at = (h) => day.set({ hour: h });
+    // A haircut is 60 minutes with 10 to turn the station round, so these
+    // are spaced to clear it. An appointment that will not fit proves
+    // nothing about whether a guest became a client.
+    const at = (h, m = 0) => day.set({ hour: h, minute: m });
 
     const first = await book(c, tenant, at(10), {
       guestName: 'ZZ Lead', guestEmail: 'zz-lead@example.com', guestPhone: '8135550123',
@@ -82,13 +93,13 @@ test('a guest who books is a client, and books again as the same one', { skip },
     // Booking again is the same person, not a second one. This is the whole
     // reason to match rather than insert: a salon with every guest twice is
     // worse than one with none of them.
-    const again = await book(c, tenant, at(13), {
+    const again = await book(c, tenant, at(11, 30), {
       guestName: 'ZZ Lead', guestEmail: 'ZZ-Lead@Example.com', guestPhone: '',
     });
     assert.equal(again.contact_id, first.contact_id, 'matched on the address, whatever its case');
 
     // The phone alone finds them too: the front desk often has only one.
-    const third = await book(c, tenant, at(14), {
+    const third = await book(c, tenant, at(13), {
       guestName: 'ZZ Lead', guestEmail: '', guestPhone: '8135550123', channel: 'staff',
     });
     assert.equal(third.contact_id, first.contact_id, 'matched on the number');
@@ -110,7 +121,7 @@ test('an enquiry who books keeps the record they already had', { skip }, async (
     await c.query('BEGIN');
     const { rows } = await c.query("SELECT id, slug, name, timezone FROM tenants WHERE slug = 'synergy'");
     const tenant = rows[0];
-    await makeBookable(c, tenant.id, 'dina');
+    await makeBookable(c, tenant.id, 'tami');
     const day = tuesday(tenant.timezone);
 
     const { rows: made } = await c.query(
