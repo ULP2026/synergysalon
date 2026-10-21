@@ -125,6 +125,43 @@ async function contactFor(client, tenant, { contactId, guestName, guestEmail, gu
 }
 
 /**
+ * Hold the diary of every stylist this booking could land with, until the
+ * transaction ends.
+ *
+ * The free-time check (availableSlots) and the insert are two steps, and
+ * Postgres's default isolation lets two requests both run the first before
+ * either commits the second. The exclusion constraint still stops two guests
+ * sharing a chair, but it compares guest time only (migration 027), so it
+ * cannot see the turnaround between appointments: two bookings arriving
+ * together, 10:00 and 11:00 for a 60-minute haircut with 10 to turn the
+ * station round, could both pass and leave no time to reset. Accepted as a
+ * known risk on 21 October; closed here for the 23 October launch.
+ *
+ * With the lock, the second request waits for the first to commit or roll
+ * back, and its free-time check then runs on a diary that includes the first
+ * booking. Only bookings that could land with the same stylist wait for each
+ * other. Locks are taken in id order, so two requests that both ask for
+ * "first available" queue rather than deadlock. Advisory, transaction-scoped
+ * and keyed by stylist id: nothing to clean up, and a crash releases them.
+ */
+export async function lockDiaries(client, tenantId, { serviceSlug, stylistSlug = null }) {
+  const { rows } = await client.query(
+    `SELECT s.id FROM stylists s
+       JOIN stylist_services ss ON ss.stylist_id = s.id
+       JOIN services v ON v.id = ss.service_id
+      WHERE s.tenant_id = $1 AND v.tenant_id = $1 AND v.slug = $2 AND s.active
+        AND ($3::text IS NULL OR s.slug = $3)
+      ORDER BY s.id`,
+    [tenantId, serviceSlug, stylistSlug],
+  );
+  for (const { id } of rows) {
+    await client.query(
+      "SELECT pg_advisory_xact_lock(hashtextextended('stylist-diary:' || $1::text, 0))", [id]);
+  }
+  return rows.map((r) => r.id);
+}
+
+/**
  * Book an appointment inside an open transaction.
  *
  * Availability is re-derived here rather than trusted from the caller: the
@@ -138,6 +175,10 @@ export async function createBooking(client, tenant, {
 }) {
   const startsAt = DateTime.fromISO(start, { setZone: true }).setZone(tenant.timezone);
   if (!startsAt.isValid) throw new HttpError(400, 'That appointment time is not valid.');
+
+  // Before the free-time check, so it sees anything a booking that got here
+  // first has committed (lockDiaries says why).
+  await lockDiaries(client, tenant.id, { serviceSlug, stylistSlug });
 
   const { service, visits, days } = await availableSlots(client, tenant, {
     serviceSlug,

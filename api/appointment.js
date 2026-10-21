@@ -13,6 +13,7 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots } from './_lib/availability.js';
+import { lockDiaries } from './_lib/booking.js';
 import { EXCLUSION_VIOLATION, transaction } from './_lib/db.js';
 import { sendCancellation, sendReschedule } from './_lib/email.js';
 import { mirrorToGoogle } from './_lib/google-mirror.js';
@@ -147,6 +148,13 @@ export default handler({
     const { appt, previousStart } = await transaction(async (client) => {
       const current = await load(client, req, tenant, { forUpdate: true });
       assertChangeable(current);
+
+      // The diary it is moving into, held until this commits, so a booking
+      // made at the same moment cannot squeeze the turnaround (booking.js).
+      await lockDiaries(client, tenant.id, {
+        serviceSlug: current.service_slug,
+        stylistSlug: newStylist ?? current.stylist_slug,
+      });
 
       // Ignore this booking when checking what is free, or a guest cannot
       // move their own appointment by fifteen minutes.

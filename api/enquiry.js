@@ -19,7 +19,7 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots } from './_lib/availability.js';
-import { createBooking } from './_lib/booking.js';
+import { createBooking, lockDiaries } from './_lib/booking.js';
 import { ONLINE_BOOKING } from './_lib/config.js';
 import { previewAllowed } from './_lib/preview.js';
 import { transaction } from './_lib/db.js';
@@ -271,6 +271,10 @@ export default handler({
         let days = [];
         let visits = new Map();
         try {
+          // The diary it is moving into, held until this commits (booking.js).
+          await lockDiaries(client, tenant.id, {
+            serviceSlug, stylistSlug: clean(body.stylistSlug, 40) || null,
+          });
           ({ days, visits } = await availableSlots(client, tenant, {
             serviceSlug,
             extraServiceSlugs,

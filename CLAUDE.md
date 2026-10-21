@@ -115,16 +115,29 @@ did not touch it.
 
 ```sql
 EXCLUDE USING gist (stylist_id WITH =,
-  appointment_blocks(starts_at, upper(during), breaks) WITH &&)
+  appointment_blocks(starts_at, duration_min, breaks) WITH &&)
 WHERE (status <> 'cancelled')
 ```
 
-(Until 2026-10-17 it compared `during` whole; it now leaves out a color's
-processing breaks, below.)
+(Until 2026-10-17 it compared `during` whole; it then left out a color's
+processing breaks; since migration 027 it compares the guest's own time,
+`starts_at + duration_min`, without the turnaround after it.)
 
 Checking availability before inserting cannot work on its own: two requests
 both read "free" before either writes. `tests/booking.integration.test.js`
 proves the constraint by running the race.
+
+**The turnaround is protected by a lock, not the constraint.** The constraint
+compares guest time only, so it cannot see the 10 or 15 minutes kept between
+two ordinary appointments; that rule lives in `availableSlots`. Two requests
+for the same stylist at the same moment could both pass that check and leave
+no time to reset. `lockDiaries` (`api/_lib/booking.js`) takes a transaction-
+scoped advisory lock on every stylist a booking could land with, in id order,
+before the free-time check: the second request waits for the first to finish
+and then sees it. `createBooking`, the guest's reschedule and the enquiry's
+"move my booking" all take it; anything new that puts a guest in a chair must
+too. `tests/booking-lock.integration.test.js` runs the race and fails without
+it.
 
 The homepage wizard is a design-tool component with **no backend of its own**.
 As shipped it collected seven steps and discarded them, and its calendar was
