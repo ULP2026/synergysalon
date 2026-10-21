@@ -80,6 +80,13 @@ test('booking, moving and cancelling send CENTRO nothing, and Google every step'
     await c.query("UPDATE stylists SET staff_user_id = $1 WHERE tenant_id = $2 AND slug = 'kim'", [userId, tenant.id]);
     setGoogleReaderForTests(async () => []);
     setGooglePushForTests(async (uid, appt) => {
+      // Only this test's own booking. The mirror sweeps the whole salon,
+      // and other test files run at the same time: some with stubs of their
+      // own, some committing short-lived bookings on this same stylist.
+      // Copying theirs here would mark them done in google_events -- stealing
+      // another test's step -- or add a step to this one. Anything else is
+      // left for its owner.
+      if (uid !== userId || appt.guest_name !== 'ZZ No Centro') return null;
       pushed.push({ uid, status: appt.status, startsAt: new Date(appt.starts_at).toISOString() });
       await c.query(
         `INSERT INTO google_events (appointment_id, staff_user_id, event_id) VALUES ($1, $2, 'zz-event')

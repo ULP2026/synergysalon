@@ -299,6 +299,13 @@ test('a booking and its cancellation reach the stylist\'s Google Calendar', { sk
     const day = tuesday(tenant.timezone);
     userId = await linkLogin(c, tenant, 'dina', { refresh: 'zz-token' });
     setGooglePushForTests(async (uid, appt) => {
+      // Only this test's own booking. The mirror sweeps the whole salon,
+      // and other test files run at the same time: some with stubs of their
+      // own, some committing short-lived bookings on this same stylist.
+      // Copying theirs here would mark them done in google_events -- stealing
+      // another test's step -- or add a step to this one. Anything else is
+      // left for its owner.
+      if (uid !== userId || appt.guest_name !== 'ZZ Mirror') return null;
       pushed.push({ uid, ref: appt.ref, status: appt.status });
       await c.query(
         `INSERT INTO google_events (appointment_id, staff_user_id, event_id) VALUES ($1, $2, 'zz-event')
