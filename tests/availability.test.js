@@ -58,6 +58,8 @@ function stubClient({
           }))),
         };
       }
+      // starts_at and duration_min, as the engine now asks for them: what
+      // blocks another booking is the guest's own time, not upper(during).
       if (sql.includes('FROM appointments')) return { rows: booked };
       if (sql.includes('FROM time_off')) return { rows: timeOff };
       throw new Error(`stub has no answer for: ${sql.slice(0, 60)}`);
@@ -92,11 +94,7 @@ test('a booked appointment removes every slot it overlaps', async () => {
   const date = futureDate();
   const from = DateTime.fromISO(`${date}T10:00`, { zone: SALON_TZ });
   const client = stubClient({
-    booked: [{
-      stylist_id: uuid(1),
-      from_ts: from.toJSDate(),
-      to_ts: from.plus({ minutes: 75 }).toJSDate(),   // 60 service + 15 buffer
-    }],
+    booked: [{ stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 60 }],
   });
 
   const { days } = await availableSlots(client, TENANT, {
@@ -104,23 +102,20 @@ test('a booked appointment removes every slot it overlaps', async () => {
   });
   const times = localTimes(days[0]);
 
-  // The booking blocks 10:00-11:15. A new appointment needs 75 minutes of
-  // diary (60 in the chair, 15 to turn the station round), so the latest
-  // start that would clear it is 08:45 — before the salon opens. The whole
-  // morning is therefore gone, which is correct and not obvious.
+  // The guest is in the chair from 10:00 to 11:00, and that is what another
+  // booking cannot land in. The clean-down either side of it is time the
+  // salon schedules, not time it sells, so it holds no slot.
   assert.ok(!times.includes('10:00'), 'the booked time itself is not offered');
-  assert.ok(!times.includes('09:00'), '09:00 would run to 10:15 and collide');
-  assert.equal(times[0], '11:15', 'the first free start is the end of the buffer');
+  assert.ok(!times.includes('09:15'), '09:15 would run to 10:15 and collide');
+  assert.ok(!times.includes('10:45'), '10:45 is still inside it');
+  assert.ok(times.includes('09:00'), '09:00 ends at 10:00, as the guest arrives');
+  assert.ok(times.includes('11:00'), '11:00 starts as the chair comes free');
 });
 
-test('the buffer blocks the diary but is not part of the appointment', async () => {
+test('the clean-down is drawn nowhere and holds nobody off', async () => {
   const date = futureDate();
   const from = DateTime.fromISO(`${date}T12:00`, { zone: SALON_TZ });
-  const booked = [{
-    stylist_id: uuid(1),
-    from_ts: from.toJSDate(),
-    to_ts: from.plus({ minutes: 60 }).toJSDate(),
-  }];
+  const booked = [{ stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 60 }];
 
   const withBuffer = await availableSlots(stubClient({ booked, duration: 60, buffer: 15 }), TENANT, {
     serviceSlug: 'haircuts', fromDate: date, toDate: date,
@@ -129,10 +124,36 @@ test('the buffer blocks the diary but is not part of the appointment', async () 
     serviceSlug: 'haircuts', fromDate: date, toDate: date,
   });
 
-  assert.ok(!localTimes(withBuffer.days[0]).includes('11:00'),
-    'with clean-down, 11:00 would run into the 12:00 booking');
+  // 11:00 to 12:00, ending as the 12:00 guest arrives. Whether the service
+  // has a clean-down after it makes no difference to whether it is offered:
+  // the diary draws no clean-down, and nothing may be refused over time the
+  // salon cannot see.
+  assert.ok(localTimes(withBuffer.days[0]).includes('11:00'),
+    '11:00 finishes exactly as the next guest arrives');
   assert.ok(localTimes(withoutBuffer.days[0]).includes('11:00'),
-    'without clean-down, 11:00 finishes exactly as the next guest arrives');
+    'and the same with no clean-down at all');
+  assert.ok(!localTimes(withBuffer.days[0]).includes('11:15'),
+    '11:15 would run into the booking itself');
+});
+
+test('a service exactly as long as a processing break is offered inside it', async () => {
+  // The gap of 21 October. A color starts at 10:00 and runs 225 minutes with
+  // its Break 90 minutes in: the diary draws the Start to 11:30, Processing
+  // open to 12:15, then the Finish. A 45-minute blowout belongs in that hole.
+  const date = futureDate();
+  const from = DateTime.fromISO(`${date}T10:00`, { zone: SALON_TZ });
+  const booked = [{
+    stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 225, breaks: [[90, 45]],
+  }];
+  const { days } = await availableSlots(stubClient({ booked, duration: 45, buffer: 10 }), TENANT, {
+    serviceSlug: 'haircuts', fromDate: date, toDate: date,
+  });
+  const times = localTimes(days[0]);
+
+  assert.ok(times.includes('11:30'), '11:30 fills the Break and ends where the Finish starts');
+  assert.ok(!times.includes('11:15'), '11:15 would run into the Start');
+  assert.ok(!times.includes('11:45'), '11:45 would run into the Finish');
+  assert.ok(!times.includes('12:15'), '12:15 is the Finish');
 });
 
 test('a salon-wide closure removes the day for everyone', async () => {
@@ -213,11 +234,7 @@ test('the past is never offered', async () => {
 test('rescheduling ignores the appointment being moved', async () => {
   const date = futureDate();
   const from = DateTime.fromISO(`${date}T10:00`, { zone: SALON_TZ });
-  const booked = [{
-    stylist_id: uuid(1),
-    from_ts: from.toJSDate(),
-    to_ts: from.plus({ minutes: 75 }).toJSDate(),
-  }];
+  const booked = [{ stylist_id: uuid(1), from_ts: from.toJSDate(), duration_min: 60 }];
 
   // The stub ignores the exclusion parameter, so emulate the real query by
   // handing back an empty busy set when an id is excluded.

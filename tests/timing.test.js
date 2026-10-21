@@ -94,11 +94,29 @@ test('several services: lengths, breaks and clean-downs add up end to end', () =
   assert.deepEqual(back.breaks, [[115, 45]]);
 });
 
-test('the stylist works the visit with its breaks cut out; the clean-down blocks the diary only', () => {
+test('a stylist works the guest time with its breaks cut out, clean-down aside', () => {
   const visit = { durationMin: 155, bufferMin: 15, breaks: [[60, 45]] };
-  assert.deepEqual(workSpans(visit), [[0, 60], [105, 170]]);
-  assert.deepEqual(workSpans(visit, false), [[0, 60], [105, 155]]);
-  assert.deepEqual(workSpans({ durationMin: 60, bufferMin: 10, breaks: [] }), [[0, 70]]);
+  assert.deepEqual(workSpans(visit), [[0, 60], [105, 155]]);
+  // The 15-minute clean-down is no part of it, so nothing is held off after
+  // 155: that is where the diary draws the Finish ending, and a booking may
+  // start there.
+  assert.deepEqual(workSpans({ durationMin: 60, bufferMin: 10, breaks: [] }), [[0, 60]]);
+});
+
+test('a service exactly as long as a processing break fits inside it', () => {
+  // The 21 October gap: a color's Break runs from 90 to 135 minutes in, and
+  // a 45-minute service with a 10-minute clean-down is offered at 90. What
+  // the two of them occupy has to not overlap, or the salon is looking at a
+  // 45 minute hole it cannot sell.
+  const color = workSpans({ durationMin: 225, bufferMin: 15, breaks: [[90, 45]] });
+  assert.deepEqual(color, [[0, 90], [135, 225]]);
+  const blowout = workSpans({ durationMin: 45, bufferMin: 10, breaks: [] });
+  assert.deepEqual(blowout, [[0, 45]]);
+  // Shifted to 90 minutes in: 90 to 135, ending exactly where the Finish
+  // begins. Touching is not overlapping.
+  const [from, to] = [90 + blowout[0][0], 90 + blowout[0][1]];
+  assert.deepEqual([from, to], [90, 135]);
+  assert.ok(!color.some(([a, b]) => from < b && to > a), 'it sits in the Break');
 });
 
 test('breaks the database is given are whole minutes inside the visit', () => {

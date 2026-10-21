@@ -112,10 +112,14 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
          FROM stylist_hours WHERE stylist_id = ANY($1)`,
       [stylistIds],
     ),
-    // Its breaks too, through to_jsonb so this reads a database that has
-    // not had migration 025: the stylist is free while a color processes.
+    // duration_min, not upper(during): during runs to the end of the
+    // clean-down, which no screen draws and which holds nobody off. What
+    // blocks another booking is the time the guest is in the chair, and the
+    // breaks are cut out of that, so the stylist is free while a color
+    // processes. Through to_jsonb, so this still reads a database that has
+    // not had migration 025.
     client.query(
-      `SELECT stylist_id, lower(during) AS from_ts, upper(during) AS to_ts,
+      `SELECT stylist_id, starts_at AS from_ts, duration_min,
               to_jsonb(a) -> 'breaks' AS breaks
          FROM appointments a
         WHERE status = 'booked' AND stylist_id = ANY($1) AND during && $2::tstzrange
@@ -136,8 +140,8 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
 
   for (const row of booked.rows) {
     const from = +row.from_ts;
-    const lengthMin = (+row.to_ts - from) / 60_000;
-    const spans = workSpans({ durationMin: lengthMin, bufferMin: 0, breaks: cleanBreaks(row.breaks, lengthMin) });
+    const lengthMin = row.duration_min;
+    const spans = workSpans({ durationMin: lengthMin, breaks: cleanBreaks(row.breaks, lengthMin) });
     for (const [a, b] of spans) busy.get(row.stylist_id)?.push([from + a * 60_000, from + b * 60_000]);
   }
   for (const row of off.rows) {
@@ -305,11 +309,11 @@ export async function availableSlots(client, tenant, {
         : (shifts.get(stylist.id) ?? []).filter((sh) => sh.weekday === weekday);
 
       const own = visits.get(stylist.id);
-      // The parts of the visit the stylist is working, with and without the
-      // clean-down: the diary blocks the one, a Google event must miss the other.
+      // The parts of the visit the stylist is working. One set of spans,
+      // compared against everything below: their diary, the salon's
+      // closures, CENTRO and Google all get the same answer, because a
+      // stylist is either free at a time or they are not.
       const working = workSpans(own);
-      const guestWork = workSpans(own, false);
-      const blockMin = own.durationMin + own.bufferMin;
       const clash = (startMs, spans, against) => spans.some(([a, b]) => overlapsAny(
         startMs + a * 60_000, startMs + b * 60_000, against));
 
@@ -328,19 +332,19 @@ export async function availableSlots(client, tenant, {
           if (start < earliest) continue;
 
           const startMs = start.toMillis();
-          const blockEndMs = start.plus({ minutes: blockMin }).toMillis();
+          const endMs = start.plus({ minutes: own.durationMin }).toMillis();
           // CENTRO has to have the guest's own time free; the clean-down
           // after it is ours to schedule.
-          if (free && !fitsIn(free, startMs, start.plus({ minutes: own.durationMin }).toMillis())) continue;
+          if (free && !fitsIn(free, startMs, endMs)) continue;
           // A salon closure stops the whole visit: the guest is in the chair
           // through a processing break too.
-          if (overlapsAny(startMs, blockEndMs, closed)) continue;
+          if (overlapsAny(startMs, endMs, closed)) continue;
           // Their own bookings and blocks: only where they would be working.
           // A color's Break is free time, and so is another color's.
           if (clash(startMs, working, busy.get(stylist.id) ?? [])) continue;
-          // Google: the guest's own time must be clear where the stylist is
-          // working; clean-down is ours.
-          if (gb && clash(startMs, guestWork, gb)) continue;
+          // Google, asked the same way: a guest's own event must not sit
+          // where this stylist would be working.
+          if (gb && clash(startMs, working, gb)) continue;
 
           const who = found.get(startMs);
           if (who) who.push(stylist.id);

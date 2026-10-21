@@ -87,7 +87,11 @@ test("a color's Break is bookable with its stylist; its Start and Finish are not
     assert.ok(offered.has(at(11).toMillis()), '11:00 is in the Break');
     assert.ok(offered.has(at(11, 15).toMillis()), '11:15 ends at 11:35 with its clean-down');
     assert.ok(!offered.has(at(10, 45).toMillis()), '10:45 runs into the Start');
-    assert.ok(!offered.has(at(11, 30).toMillis()), '11:30 runs into the Finish');
+    // 11:30 ends at 11:45, where the Finish begins. Its clean-down runs on
+    // past that and does not hold the slot: the diary draws no clean-down,
+    // so a gap the salon can see is a gap the salon can sell.
+    assert.ok(offered.has(at(11, 30).toMillis()), '11:30 ends where the Finish starts');
+    assert.ok(!offered.has(at(11, 45).toMillis()), '11:45 is the Finish');
     assert.ok(!offered.has(at(12).toMillis()), '12:00 is the Finish');
     // A haircut (60 and 10) is longer than the Break, so it is not offered in it.
     assert.ok(!(await slotsFor(c, tenant, day, 'haircuts')).has(at(11).toMillis()));
@@ -110,6 +114,21 @@ test("a color's Break is bookable with its stylist; its Start and Finish are not
       [tenant.id, ids[0].stylist_id, ids[0].service_id, at(11, 40).toISO()],
     ), (err) => err.code === EXCLUSION_VIOLATION);
     await c.query('ROLLBACK TO SAVEPOINT clash');
+
+    // And a service exactly as long as the Break goes in and ends where the
+    // Finish starts. This is the 21 October gap: 45 free minutes the app drew
+    // and then refused to book, because both sides were being compared with
+    // an invisible clean-down added on (migration 027).
+    await c.query('SAVEPOINT exact');
+    await c.query('DELETE FROM appointments WHERE ref = $1', [trim.ref]);
+    const fits = await book(c, tenant, 'blowouts', at(11), 'ZZ Exact');
+    assert.equal(fits.duration_min, 45, 'the table figure, 45, which is the Break exactly');
+    assert.equal(
+      DateTime.fromJSDate(fits.starts_at).setZone(tenant.timezone).plus({ minutes: 45 }).toMillis(),
+      at(11, 45).toMillis(),
+      'it ends where the Finish begins',
+    );
+    await c.query('ROLLBACK TO SAVEPOINT exact');
 
     // Moving the color carries its Break with it: the trim is now in its Start.
     await c.query('SAVEPOINT move');

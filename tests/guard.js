@@ -16,7 +16,9 @@
  * HOW TO RUN THEM NOW. Put a separate database in TEST_DATABASE_URL -- a
  * branch, a local Postgres, anything that is not the salon's. Set it up with
  * `DATABASE_URL=<that> npm run db:setup`, which applies the schema and the
- * seed the tests were written against. Then `npm test` uses it.
+ * seed the tests were written against, and then `DATABASE_URL=<that> npm run
+ * db:migrate`: setup stops at the base schema, and the tests cover things
+ * added since, processing breaks among them. Then `npm test` uses it.
  *
  * Without it the tests refuse to run rather than quietly skipping, because a
  * suite that silently covers nothing is worse than one that stops and says
@@ -44,7 +46,8 @@ if (test) {
     '',
     'Set TEST_DATABASE_URL to a separate database and run:',
     '',
-    '  DATABASE_URL=<that database> npm run db:setup   # schema and seed, once',
+    '  DATABASE_URL=<that database> npm run db:setup     # schema and seed, once',
+    '  DATABASE_URL=<that database> npm run db:migrate   # and everything since',
     '  npm test',
     '',
     'To run against this database anyway, knowing what it is:',

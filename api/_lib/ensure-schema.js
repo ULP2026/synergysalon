@@ -72,6 +72,34 @@ const STATEMENTS = [
      END IF;
      ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_no_overlap;
    END $$`,
+  // 027: the clean-down after an appointment stops reserving time. What the
+  // rule compares is the guest's own time with the breaks cut out, which is
+  // what the diary draws and what availability.js offers. Matched on the
+  // constraint's text rather than its name, because the name is kept: an
+  // older instance's cold start then leaves it alone instead of adding the
+  // rule this replaces back beside it.
+  `CREATE OR REPLACE FUNCTION appointment_blocks(starts timestamptz, minutes integer, breaks jsonb)
+   RETURNS tstzmultirange LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+     SELECT tstzmultirange(tstzrange(starts, starts + make_interval(mins => minutes), '[)'))
+            - COALESCE((SELECT range_agg(tstzrange(starts + make_interval(mins => (b->>0)::int),
+                                                  starts + make_interval(mins => (b->>0)::int + (b->>1)::int), '[)'))
+                          FROM jsonb_array_elements(CASE WHEN jsonb_typeof(breaks) = 'array' THEN breaks ELSE '[]'::jsonb END) b),
+                       '{}'::tstzmultirange)
+   $$`,
+  `DO $$ BEGIN
+     PERFORM set_config('search_path', 'public, extensions', true);
+     IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                     WHERE conname = 'appointments_no_overlap_blocks'
+                       AND conrelid = 'appointments'::regclass
+                       AND pg_get_constraintdef(oid) LIKE '%duration_min%') THEN
+       ALTER TABLE appointments
+         DROP CONSTRAINT IF EXISTS appointments_no_overlap_blocks,
+         DROP CONSTRAINT IF EXISTS appointments_no_overlap,
+         ADD CONSTRAINT appointments_no_overlap_blocks
+         EXCLUDE USING gist (stylist_id WITH =, appointment_blocks(starts_at, duration_min, breaks) WITH &&)
+         WHERE (status <> 'cancelled');
+     END IF;
+   END $$`,
   // 024: the send log and the automation switches, behind Marketing's count
   // and its toggles. Both degrade to "nothing sent, everything on" when they
   // are missing, so this only decides whether the numbers are real.
