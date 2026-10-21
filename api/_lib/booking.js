@@ -96,6 +96,55 @@ async function insertFor(client, stylistId, ctx) {
 }
 
 /**
+ * The guest's own client record, found or made, inside the booking's
+ * transaction.
+ *
+ * Until now a booking only had one when the caller already knew it: the
+ * website wizard, which creates the contact before it books, or the front
+ * desk booking from somebody's card. A guest using the booking link, or a
+ * name typed straight into New appointment, left contact_id null. Their name,
+ * email and phone were on the appointment and the diary showed them
+ * perfectly, so nothing looked broken -- but Clients reads the contacts
+ * table, so the salon had no client, no history, and no second visit to
+ * recognise. The welcome, rebook, second-visit and win-back emails all
+ * select on contact_id, so none of them could ever fire for that person.
+ *
+ * Matched on either identifier, the same rule the Add client form uses: the
+ * front desk often has only one, and somebody who rings twice must not
+ * become two people. Oldest first, so a duplicate pair that already exists
+ * keeps collecting history on the record it has been collecting it on.
+ *
+ * Nothing is enqueued to CENTRO here. The appointment.booked job already
+ * upserts this guest there and writes the CENTRO id back onto this row
+ * (cron/sync.js), so a second job would push the same person twice.
+ */
+async function contactFor(client, tenant, { contactId, guestName, guestEmail, guestPhone, channel }) {
+  if (contactId) return contactId;
+  const email = String(guestEmail || '').trim().toLowerCase();
+  const phone = String(guestPhone || '').trim();
+  // A staff booking may have neither if it is a placeholder in the diary.
+  if (!email && !phone) return null;
+
+  const { rows: found } = await client.query(
+    `SELECT id FROM contacts
+      WHERE tenant_id = $1
+        AND (($2 <> '' AND lower(email) = $2) OR ($3 <> '' AND phone = $3))
+      ORDER BY created_at
+      LIMIT 1`,
+    [tenant.id, email, phone],
+  );
+  if (found[0]) return found[0].id;
+
+  const { rows } = await client.query(
+    `INSERT INTO contacts (tenant_id, name, email, phone, source, status)
+     VALUES ($1, $2, $3, $4, $5, 'booked')
+     RETURNING id`,
+    [tenant.id, guestName, email, phone, channel === 'staff' ? 'Front desk' : 'Online booking'],
+  );
+  return rows[0].id;
+}
+
+/**
  * Book an appointment inside an open transaction.
  *
  * Availability is re-derived here rather than trusted from the caller: the
@@ -138,9 +187,15 @@ export async function createBooking(client, tenant, {
     : await chooseStylist(client, slot.stylistIds);
   const order = [preferred, ...slot.stylistIds.filter((id) => id !== preferred)];
 
+  // Whoever this is booked for is a client of the salon from here on,
+  // however they booked.
+  const contact = await contactFor(client, tenant, {
+    contactId, guestName, guestEmail, guestPhone, channel,
+  });
+
   const ctx = {
     tenant, service, visits, startsAt, guestName, guestEmail, guestPhone, notes,
-    channel, bookedBy, contactId,
+    channel, bookedBy, contactId: contact,
   };
 
   for (const stylistId of order) {
@@ -148,16 +203,23 @@ export async function createBooking(client, tenant, {
     if (booked) {
       await enqueueSync(client, tenant.id, 'appointment.booked', {
         appointmentId: booked.id,
-        contactId,
+        contactId: contact,
       });
-      if (contactId) {
+      if (contact) {
+        // An enquiry who has now booked, and the date the salon first took
+        // one from them. A won or lost contact keeps the status somebody
+        // chose for them; booking again does not overrule a person.
         await client.query(
-          `UPDATE contacts SET status = 'booked', updated_at = now()
-            WHERE id = $1 AND tenant_id = $2 AND status IN ('new', 'contacted')`,
-          [contactId, tenant.id],
+          `UPDATE contacts
+              SET status = CASE WHEN status IN ('new', 'contacted')
+                                THEN 'booked'::contact_status ELSE status END,
+                  first_booked_at = COALESCE(first_booked_at, now()),
+                  updated_at = now()
+            WHERE id = $1 AND tenant_id = $2`,
+          [contact, tenant.id],
         );
       }
-      return booked;
+      return { ...booked, contact_id: contact };
     }
     // Someone took this stylist mid-request; fall through to the next.
   }

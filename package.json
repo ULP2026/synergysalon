@@ -10,7 +10,8 @@
     "test": "node --env-file-if-exists=.env --import ./tests/guard.js --test \"tests/*.test.js\"",
     "staff:create": "node --env-file-if-exists=.env db/create-staff.js",
     "ghl:link": "node --env-file-if-exists=.env db/link-ghl.js",
-    "db:migrate": "node --env-file-if-exists=.env db/migrate.js"
+    "db:migrate": "node --env-file-if-exists=.env db/migrate.js",
+    "db:backfill-contacts": "node --env-file-if-exists=.env db/backfill-contacts.js"
   },
   "dependencies": {
     "ical.js": "^2.2.1",

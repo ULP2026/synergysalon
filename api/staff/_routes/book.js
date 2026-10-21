@@ -69,14 +69,6 @@ export default handler({
         minLeadMin: 0,
       });
 
-      if (contactId) {
-        await client.query(
-          `UPDATE contacts
-              SET first_booked_at = COALESCE(first_booked_at, now()), updated_at = now()
-            WHERE id = $1`,
-          [contactId],
-        );
-      }
       return booked;
     });
 
