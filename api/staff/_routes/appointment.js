@@ -13,7 +13,10 @@
  * system created. It leaves nothing behind, which is why only an owner or a
  * manager may do it.
  */
+import { DateTime } from 'luxon';
+
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { availableSlots } from '../../_lib/availability.js';
 import { EXCLUSION_VIOLATION, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle, removeGoogleCopies } from '../../_lib/google-mirror.js';
 import { sendCancellation } from '../../_lib/email.js';
@@ -23,6 +26,43 @@ import { tenantForUser } from '../../_lib/tenant.js';
 
 /** Same bar as deleting a contact: this removes history outright. */
 const CAN_DELETE = ['owner', 'admin', 'manager'];
+
+/**
+ * Before a cancelled appointment is put back: is its time still free, by the
+ * same check every other way of booking uses?
+ *
+ * Reopening used to rely on the database alone. The constraint guarantees no
+ * two guests in one chair, but not the salon's turnaround between
+ * appointments, which lives in availableSlots: so a cancelled 10:00 haircut
+ * reopened after somebody else took 11:00 came back with no time to reset
+ * the station, a gap no other path would have sold. Now it is asked the same
+ * question as the website, the desk and the guest's own reschedule, as the
+ * desk: no lead time, and Google busy time does not count.
+ *
+ * Only for an appointment that has not started. A past one is history being
+ * corrected -- cancelled by mistake, then the guest came anyway -- and there
+ * is no free time to ask about in the past; the database still refuses a
+ * reopen that would put two guests in one chair.
+ */
+export async function assertStillFree(client, tenant, appt, now = new Date()) {
+  if (new Date(appt.starts_at) <= now) return;
+  const start = DateTime.fromJSDate(new Date(appt.starts_at)).setZone(tenant.timezone);
+  const { days } = await availableSlots(client, tenant, {
+    serviceSlug: appt.service_slug,
+    stylistSlug: appt.stylist_slug,
+    fromDate: start.toISODate(),
+    toDate: start.toISODate(),
+    minLeadMin: 0,
+    // Its own length and breaks, which for a visit of several services is
+    // longer than its first service.
+    length: { durationMin: appt.duration_min, bufferMin: appt.buffer_min, breaks: appt.breaks },
+  });
+  const free = days.flatMap((d) => d.slots).some((s) => s.stylistIds.includes(appt.stylist_id)
+    && DateTime.fromISO(s.start).toMillis() === start.toMillis());
+  if (!free) {
+    throw new HttpError(409, 'That time is not free any more, so the appointment cannot be reopened. Book it again at another time.');
+  }
+}
 
 export default handler({
   async POST(req, res) {
@@ -36,7 +76,8 @@ export default handler({
 
     const result = await transaction(async (client) => {
       const { rows } = await client.query(
-        `SELECT a.*, s.name AS stylist_name, v.name AS service_name
+        `SELECT a.*, s.name AS stylist_name, s.slug AS stylist_slug,
+                v.name AS service_name, v.slug AS service_slug
            FROM appointments a
            JOIN stylists s ON s.id = a.stylist_id
            JOIN services v ON v.id = a.service_id
@@ -85,6 +126,7 @@ export default handler({
           if (appt.status !== 'cancelled') {
             throw new HttpError(409, 'That appointment is not cancelled.');
           }
+          await assertStillFree(client, tenant, appt);
           try {
             // The slot was released when it was cancelled, so somebody else
             // may have taken it in the meantime. The constraint says so.

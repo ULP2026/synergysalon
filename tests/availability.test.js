@@ -33,6 +33,7 @@ const uuid = (n) => `00000000-0000-0000-0000-00000000${String(n).padStart(4, '0'
 function stubClient({
   duration = 60,
   buffer = 15,
+  service = {},
   stylists = [{ id: uuid(1), slug: 'dina', name: 'Dina Lara', title: 'Owner', sort_order: 10 }],
   weekdays = ALL_DAYS,
   opens = '09:00',
@@ -47,6 +48,7 @@ function stubClient({
           rows: [{
             id: uuid(99), slug: 'haircuts', name: 'Haircut', category: 'cuts', blurb: '',
             duration_min: duration, buffer_min: buffer, price_cents: null, consult_first: false,
+            ...service,
           }],
         };
       }
@@ -168,6 +170,58 @@ test('a processing break is the exception: it fills to the minute', async () => 
   // turnaround would run into their Start, so it is not offered.
   assert.ok(!times.includes('09:15'), 'the gap before an appointment is kept');
   assert.ok(times.includes('09:00'), '09:00 clears it with the turnaround to spare');
+});
+
+/**
+ * A colour with its Break 90 minutes in, timed by the stylist's own figures:
+ * Start 90, Break 45, Finish 45, so the diary draws the Start to 11:30,
+ * Processing open to 12:15 and the Finish to 13:00 for a 10:00 booking.
+ */
+const COLOUR = {
+  service: { slug: 'all-over-color', name: 'All Over Color', category: 'color' },
+  stylists: [{
+    id: uuid(1), slug: 'dina', name: 'Dina Lara', title: 'Owner', sort_order: 10,
+    details: { color: { start: 90, break: 45, finish: 45 } },
+  }],
+};
+/** A 45-minute blowout already booked at 11:30, with its 10 to turn round. */
+const filler = (date) => ({
+  stylist_id: uuid(1),
+  from_ts: DateTime.fromISO(`${date}T11:30`, { zone: SALON_TZ }).toJSDate(),
+  duration_min: 45,
+  buffer_min: 10,
+});
+
+test('the order does not matter: a colour is offered around a filler already in its break', async () => {
+  // Luis's order bug. The filler went in first, so when the colour asks for
+  // 10:00 the filler is the one inside a break -- the colour's. Its 10-minute
+  // turnaround runs into the colour's Finish at 12:15 exactly as it would
+  // if the colour had been booked first, and must not be held against it.
+  const date = futureDate();
+  const { days } = await availableSlots(stubClient({ ...COLOUR, buffer: 15, booked: [filler(date)] }), TENANT, {
+    serviceSlug: 'all-over-color', fromDate: date, toDate: date,
+  });
+  const times = localTimes(days[0]);
+
+  assert.ok(times.includes('10:00'), '10:00 puts the filler exactly inside the Break');
+  // Only when it is inside. A quarter of an hour either way and the filler is
+  // in the Start or the Finish, which is the stylist working.
+  assert.ok(!times.includes('09:45'), '09:45: the filler would run into the Finish');
+  assert.ok(!times.includes('10:15'), '10:15: the filler would sit in the Start');
+});
+
+test('the order does not matter: a colour whose break is filled can still be moved', async () => {
+  // The other half of the bug: the guest with the colour opens their manage
+  // link to move it. Their own appointment is left out of the busy set, as
+  // for any reschedule, and what is left is the filler inside its Break. They
+  // could not even be offered their own time back.
+  const date = futureDate();
+  const { days } = await availableSlots(stubClient({ ...COLOUR, booked: [filler(date)] }), TENANT, {
+    serviceSlug: 'all-over-color', fromDate: date, toDate: date,
+    excludeAppointmentId: uuid(500),
+    length: { durationMin: 180, bufferMin: 15, breaks: [[90, 45]] },
+  });
+  assert.ok(localTimes(days[0]).includes('10:00'), 'its own time is offered');
 });
 
 test('a salon-wide closure removes the day for everyone', async () => {

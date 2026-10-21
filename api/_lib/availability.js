@@ -145,8 +145,15 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
     const ms = (min) => from + min * 60_000;
     const breaks = cleanBreaks(row.breaks, row.duration_min);
     const visit = { durationMin: row.duration_min, bufferMin: row.buffer_min, breaks };
+    const work = workSpans(visit);
     busy.get(row.stylist_id)?.push({
-      spans: [...workSpans(visit), ...cleanDown(visit)].map(([a, b]) => [ms(a), ms(b)]),
+      // What it holds against an ordinary neighbour: the guest's time and
+      // the turnaround after them.
+      spans: [...work, ...cleanDown(visit)].map(([a, b]) => [ms(a), ms(b)]),
+      // What it holds against a visit it sits inside the break of: the
+      // guest's time alone (freeFor below says why).
+      work: work.map(([a, b]) => [ms(a), ms(b)]),
+      guest: [from, ms(row.duration_min)],
       breaks: breaks.map(([at, len]) => [ms(at), ms(at + len)]),
     });
   }
@@ -154,7 +161,7 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
     const span = [+row.from_ts, +row.to_ts];
     // Time off has no holes in it: lunch is not a processing break.
     if (row.stylist_id === null) closed.push(span);
-    else busy.get(row.stylist_id)?.push({ spans: [span], breaks: [] });
+    else busy.get(row.stylist_id)?.push({ spans: [span], work: [span], guest: null, breaks: [] });
   }
 
   const shifts = new Map(stylistIds.map((id) => [id, []]));
@@ -325,12 +332,28 @@ export async function availableSlots(client, tenant, {
        * to the minute, which is the whole point of freeing a stylist while a
        * colour develops. The turnaround still counts against everything else
        * in the day, that same guest's next appointment included.
+       *
+       * And the same the other way round, or the answer depends on which was
+       * booked first. A 45-minute filler already sitting in the 11:30 break
+       * of a colour that has not been booked yet is exactly the case above
+       * with the order swapped: when the colour arrives at 10:00, the filler
+       * is inside its break, so the filler's own turnaround -- running into
+       * the colour's Finish -- is not held against it. Without this a colour
+       * was refused around a filler that would have been accepted inside it,
+       * and a guest could not move a colour whose break had been filled,
+       * not even onto its own time.
        */
       const freeFor = (startMs) => {
         const guestEnd = startMs + own.durationMin * 60_000;
+        const myBreaks = (own.breaks || []).map(([at, len]) => [
+          startMs + at * 60_000, startMs + (at + len) * 60_000]);
         return (busy.get(stylist.id) ?? []).every((entry) => {
+          // This visit sits inside one of theirs.
           const borrowed = entry.breaks.some(([a, b]) => startMs >= a && guestEnd <= b);
-          return !clash(startMs, borrowed ? working : turnaround, entry.spans);
+          // One of theirs sits inside this visit's break.
+          const lending = Boolean(entry.guest)
+            && myBreaks.some(([a, b]) => entry.guest[0] >= a && entry.guest[1] <= b);
+          return !clash(startMs, borrowed ? working : turnaround, lending ? entry.work : entry.spans);
         });
       };
 
