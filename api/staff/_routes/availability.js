@@ -1,5 +1,9 @@
 /**
- * GET /api/staff/availability?service=&stylist=&date=YYYY-MM-DD
+ * GET /api/staff/availability?service=&stylist=&date=YYYY-MM-DD[&to=YYYY-MM-DD]
+ *
+ * With &to, every day from date to to (six weeks at most, what a month view
+ * shows), so New appointment's calendar can grey out the days with nothing
+ * free. Without it, the one day, as before.
  *
  * The same engine the public page uses, with one difference: no minimum lead
  * time. A guest should not book online for ten minutes' time, but a member of
@@ -8,7 +12,7 @@
 import { requireStaff } from '../../_lib/auth.js';
 import { availableSlots } from '../../_lib/availability.js';
 import { pool } from '../../_lib/db.js';
-import { handler, json, requireDate, requireId } from '../../_lib/http.js';
+import { HttpError, handler, json, requireDate, requireId } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
 export default handler({
@@ -23,11 +27,14 @@ export default handler({
       ? requireId(stylistParam, 'Stylist')
       : null;
     const date = requireDate(url.searchParams.get('date'), 'Date');
+    const to = url.searchParams.get('to') ? requireDate(url.searchParams.get('to'), 'End date') : date;
+    const span = (Date.parse(to) - Date.parse(date)) / 86_400_000;
+    if (!(span >= 0 && span <= 42)) throw new HttpError(400, 'Ask for six weeks at most, ending after it starts.');
 
     const client = await pool().connect();
     try {
       const { service, visit, stylists, days } = await availableSlots(client, tenant, {
-        serviceSlug, stylistSlug, fromDate: date, toDate: date, minLeadMin: 0,
+        serviceSlug, stylistSlug, fromDate: date, toDate: to, minLeadMin: 0,
       });
       return json(res, 200, {
         timezone: tenant.timezone,

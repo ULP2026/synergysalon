@@ -1225,15 +1225,31 @@
   .bw-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
   .bw-people img, .bw-any { flex: none; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--peri-pale); }
   .bw-any { display: grid; place-items: center; color: var(--periwinkle); }
-  .bw-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .bw-kinds .bw-opt { flex-direction: column; align-items: flex-start; gap: 10px; min-height: 104px; padding: 16px; }
-  .bw-kinds .go { display: none; }
-  .bw-dot { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-weight: 700; }
-  .bw-dot.color { background: #a8508f; } .bw-dot.treatments { background: #2f7d6f; }
-  .bw-dot.cuts { background: var(--indigo); } .bw-dot.styling { background: #b86f24; } .bw-dot.other { background: var(--muted); }
+  .bw-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .bw-kinds .bw-opt { justify-content: center; min-height: 128px; padding: 18px; text-align: center; }
+  .bw-kinds .bw-opt b { font-size: 1.4rem; font-weight: 650; letter-spacing: -.01em; }
   .bw-list { display: flex; flex-direction: column; gap: 8px; }
   .bw-list .meta { margin-left: auto; text-align: right; white-space: nowrap; font-size: var(--fs-sm); color: var(--muted); }
-  .bw-date { max-width: 230px; }
+  .bw-cal { margin-bottom: 18px; padding: 10px 12px 12px; border: 1px solid var(--line); border-radius: 14px; }
+  .bw-cal-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .bw-cal-h b { font-weight: 650; }
+  .bw-icon { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%;
+             background: var(--card); color: var(--ink); cursor: pointer; }
+  .bw-icon:disabled { opacity: .35; cursor: default; }
+  .bw-cal-w, .bw-cal-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+  .bw-cal-w span { padding: 4px 0; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
+  .bw-day { aspect-ratio: 1 / .8; border: 0; border-radius: 10px; background: var(--raise); color: var(--ink);
+            font: inherit; font-weight: 600; cursor: pointer; transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
+  .bw-day:hover:not(:disabled) { background: var(--peri-pale); }
+  .bw-day.today { box-shadow: inset 0 0 0 1.5px var(--periwinkle); }
+  .bw-day.on { background: var(--periwinkle); color: #fff; }
+  .bw-day:disabled { background: none; color: var(--faint); cursor: default; }
+  .bw-day:focus-visible, .bw-icon:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
+  .bw-sub { margin: 0 0 10px; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+  .bw-with { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .bw-with img, .bw-with .bw-any { width: 48px; height: 48px; }
+  .bw-with small { display: block; font-size: var(--fs-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .bw-with b { font-size: 1.1rem; font-weight: 650; }
   .bw-times { display: grid; grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 8px; }
   .bw-time { padding: 10px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink);
              font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
@@ -1241,11 +1257,11 @@
   .bw-time:hover { border-color: var(--line-2); }
   .bw-time.on { background: var(--periwinkle); border-color: var(--periwinkle); color: #fff; }
   .bw-empty { padding: 6px 0; font-size: var(--fs-sm); color: var(--muted); }
-  .bw-sum { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 16px; padding: 12px 14px; border-radius: 12px;
-            background: var(--raise); font-size: var(--fs-sm); color: var(--ink); }
+  .bw-sum { margin-bottom: 16px; padding: 14px; border-radius: 12px; background: var(--raise); font-size: var(--fs-sm); color: var(--ink); }
+  .bw-sum .bw-facts { display: flex; flex-wrap: wrap; gap: 6px 16px; }
   .bw-sum em { font-style: normal; color: var(--muted); }
   .bw-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--line); background: var(--card); }
-  @media (max-width: 520px) { .bw-kinds { grid-template-columns: 1fr; } .bw-kinds .bw-opt { min-height: 0; flex-direction: row; align-items: center; } }
+  @media (max-width: 520px) { .bw-kinds .bw-opt { min-height: 96px; } .bw-kinds .bw-opt b { font-size: 1.2rem; } }
   @media (prefers-reduced-motion: reduce) { .bw-pane.fwd, .bw-pane.bwd { animation: none; } .bw-bar span { transition: none; } }
 
   /* The team modal: RocketOS's Dialog, in Synergy's colours. */
@@ -2467,7 +2483,9 @@
 
       <section class="bw-pane" data-step="when" hidden>
         <h3 class="bw-q">When?</h3>
-        <label class="bw-date"><span>Date</span><input type="date" id="bookDate"></label>
+        <!-- The whole month at once, days with nothing free greyed out. -->
+        <div class="bw-cal" id="bookCal"></div>
+        <h4 class="bw-sub" id="bookTimesHead"></h4>
         <div class="bw-times" id="bookTimes"></div>
       </section>
 
@@ -2482,7 +2500,8 @@
         <label><span>Notes</span><textarea id="bookNotes" rows="2" placeholder="Optional"></textarea></label>
       </section>
     </div>
-    <input type="hidden" id="bookStylist"><input type="hidden" id="bookService"><input type="hidden" id="bookTime">
+    <input type="hidden" id="bookStylist"><input type="hidden" id="bookService">
+    <input type="hidden" id="bookDate"><input type="hidden" id="bookTime">
     <footer class="bw-foot">
       <button type="button" class="btn quiet" data-book-close>Cancel</button>
       <button class="btn hidden" id="bookSubmit" value="book">Book appointment</button>
@@ -5900,7 +5919,13 @@ const BOOK_KINDS = [['color', 'Color'], ['treatments', 'Treatments'], ['cuts', '
 let bookPreset = null;
 let bookStep = 0;
 let bookKind = null;
-let bookTimesFor = '';   // the service|stylist|date the time buttons show
+let bookMonth = '';      // 'YYYY-MM', the month the calendar shows
+// The free times of that month, by day, for one service and stylist: one
+// request a month, which also says which days to grey out.
+let bookAvail = { key: '', days: null };
+const bookYmd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+const bookLongDate = (iso) => new Date(`${iso}T12:00:00`)
+  .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
 const bookKindOf = (s) => (BOOK_KINDS.some(([k]) => k === s.category) ? s.category : 'other');
 const bookKindLabel = (k) => (BOOK_KINDS.find(([x]) => x === k) || [k, 'Other'])[1];
@@ -5962,11 +5987,10 @@ function paintBookKinds() {
     .map((k) => [k, offered.filter((s) => bookKindOf(s) === k)])
     .filter(([, list]) => list.length);
   const st = me.stylists.find((s) => s.slug === $('bookStylist').value);
+  // Just the kind, large (asked for 2026-10-22): the services come next.
   $('bookKinds').innerHTML = kinds.length
-    ? kinds.map(([k, list]) =>
-      `<button type="button" class="bw-opt${bookKind === k ? ' on' : ''}" data-kind="${k}">`
-      + `<span class="bw-dot ${k}" aria-hidden="true">${bookKindLabel(k)[0]}</span>`
-      + `<span><b>${bookKindLabel(k)}</b><small>${list.length} service${list.length === 1 ? '' : 's'}</small></span></button>`).join('')
+    ? kinds.map(([k]) =>
+      `<button type="button" class="bw-opt${bookKind === k ? ' on' : ''}" data-kind="${k}"><b>${bookKindLabel(k)}</b></button>`).join('')
     : `<p class="bw-empty">${esc(st?.name || 'Nobody')} has no services switched on yet. Go back and pick someone else.</p>`;
 }
 
@@ -5982,58 +6006,106 @@ function paintBookServices() {
 }
 
 function paintBookWhen() {
-  const key = [$('bookService').value, $('bookStylist').value, $('bookDate').value].join('|');
-  if (key !== bookTimesFor) loadTimes();
-  else markBookTime();
+  if (!bookMonth) bookMonth = $('bookDate').value.slice(0, 7);
+  paintBookCal();
+  renderBookTimes();
+  loadTimes();
+}
+
+/** The month as a grid: past days and days with nothing free can't be picked. */
+function paintBookCal() {
+  const [y, m] = bookMonth.split('-').map(Number);
+  const today = salonToday();
+  const known = bookAvail.days;
+  const cells = Array.from({ length: new Date(y, m - 1, 1).getDay() }, () => '<span></span>');
+  for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) {
+    const iso = bookYmd(y, m, d);
+    const past = iso < today;
+    const full = Boolean(known) && !past && !(known[iso] || []).length;
+    const cls = ['bw-day', iso === $('bookDate').value && 'on', iso === today && 'today'].filter(Boolean).join(' ');
+    cells.push(`<button type="button" class="${cls}" data-day="${iso}"${past || full ? ' disabled' : ''}`
+      + ` aria-label="${esc(bookLongDate(iso))}${full ? ', nothing free' : ''}">${d}</button>`);
+  }
+  const label = new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  $('bookCal').innerHTML = `<div class="bw-cal-h">`
+    + `<button type="button" class="bw-icon" data-month="-1" aria-label="Previous month"${bookMonth <= today.slice(0, 7) ? ' disabled' : ''}>`
+    + `<svg class="ic"><use href="#i-left"/></svg></button><b>${esc(label)}</b>`
+    + `<button type="button" class="bw-icon" data-month="1" aria-label="Next month"><svg class="ic"><use href="#i-right"/></svg></button></div>`
+    + `<div class="bw-cal-w">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((w) => `<span>${w}</span>`).join('')}</div>`
+    + `<div class="bw-cal-g">${cells.join('')}</div>`;
+}
+
+/** The chosen day's free times, from the month already loaded. */
+function renderBookTimes() {
+  const box = $('bookTimes');
+  const date = $('bookDate').value;
+  $('bookTimesHead').textContent = date.slice(0, 7) === bookMonth ? bookLongDate(date) : '';
+  if (date.slice(0, 7) !== bookMonth) { box.innerHTML = '<p class="bw-empty">Pick a day.</p>'; return; }
+  if (!bookAvail.days) { box.innerHTML = '<p class="bw-empty">Finding free times…</p>'; return; }
+  const slots = bookAvail.days[date] || [];
+  if (!slots.some((s) => s.start === $('bookTime').value)) $('bookTime').value = '';
+  const want = bookPreset?.minutes;
+  if (want != null && date === bookPreset.date) {
+    const hit = slots.find((x) => salonMinutes(x.start) === want);
+    if (hit) $('bookTime').value = hit.start;
+    else note($('bookNote'), `${clock(want)} is not free for this service. Pick another time.`, 'bad');
+    bookPreset = { ...bookPreset, minutes: null };   // the grid's time is offered once
+  }
+  box.innerHTML = slots.length
+    ? slots.map((s) => `<button type="button" class="bw-time" data-time="${esc(s.start)}">${bookTimeLabel(s.start)}</button>`).join('')
+    : `<p class="bw-empty">${date < salonToday() ? 'That day has passed.' : 'Nothing free that day.'} Pick another day.</p>`;
+  markBookTime();
 }
 
 function markBookTime() {
   for (const b of $('bookTimes').querySelectorAll('.bw-time')) b.classList.toggle('on', b.dataset.time === $('bookTime').value);
 }
 
+/** Load the month the calendar shows, once per service, stylist and month. */
 async function loadTimes() {
-  const box = $('bookTimes');
-  const asked = [$('bookService').value, $('bookStylist').value, $('bookDate').value].join('|');
-  bookTimesFor = asked;
-  box.innerHTML = '<p class="bw-empty">Finding free times…</p>';
-  try {
-    const d = await api('/api/staff/availability?' + new URLSearchParams({
-      service: $('bookService').value,
-      stylist: $('bookStylist').value,
-      date: $('bookDate').value,
-    }));
-    if (asked !== bookTimesFor) return;   // a newer question went out meanwhile
-    const slots = d.days[0]?.slots ?? [];
-    if (!slots.some((s) => s.start === $('bookTime').value)) $('bookTime').value = '';
-    const want = bookPreset?.minutes;
-    if (want != null) {
-      const hit = slots.find((x) => salonMinutes(x.start) === want);
-      if (hit) $('bookTime').value = hit.start;
-      else note($('bookNote'), `${clock(want)} is not free for this service. Pick another time.`, 'bad');
-      bookPreset = { ...bookPreset, minutes: null };   // the grid's time is offered once
+  const key = [$('bookService').value, $('bookStylist').value, bookMonth].join('|');
+  if (bookAvail.key === key) return;
+  bookAvail = { key, days: null };
+  const [y, m] = bookMonth.split('-').map(Number);
+  const today = salonToday();
+  const first = bookYmd(y, m, 1);
+  const last = bookYmd(y, m, new Date(y, m, 0).getDate());
+  const from = first < today ? today : first;
+  let days = {};
+  if (from <= last) {
+    try {
+      const d = await api('/api/staff/availability?' + new URLSearchParams({
+        service: $('bookService').value, stylist: $('bookStylist').value, date: from, to: last,
+      }));
+      days = Object.fromEntries(d.days.map((x) => [x.date, x.slots]));
+    } catch (err) {
+      if (bookAvail.key !== key) return;
+      bookAvail = { key: '', days: null };
+      $('bookTimes').innerHTML = '<p class="bw-empty">Could not load times.</p>';
+      if (err.message !== 'signed out') note($('bookNote'), err.message);
+      return;
     }
-    box.innerHTML = slots.length
-      ? slots.map((s) => `<button type="button" class="bw-time" data-time="${esc(s.start)}">${bookTimeLabel(s.start)}</button>`).join('')
-      : '<p class="bw-empty">Nothing free that day. Try another date.</p>';
-    markBookTime();
-  } catch (err) {
-    if (asked !== bookTimesFor) return;
-    bookTimesFor = '';
-    box.innerHTML = '<p class="bw-empty">Could not load times.</p>';
-    if (err.message !== 'signed out') note($('bookNote'), err.message);
   }
+  if (bookAvail.key !== key) return;   // a newer question went out meanwhile
+  bookAvail.days = days;
+  if (BOOK_STEPS[bookStep] === 'when') { paintBookCal(); renderBookTimes(); }
 }
 
 function paintBookSummary() {
   const s = me.services.find((x) => x.slug === $('bookService').value);
   const st = $('bookStylist').value;
-  const who = st === 'any' ? 'First available' : (me.stylists.find((x) => x.slug === st)?.name || st);
+  const person = me.stylists.find((x) => x.slug === st);
+  const pic = person ? `<img src="${esc(personPhoto(person))}" alt="">`
+    : '<span class="bw-any"><svg class="ic"><use href="#i-user"/></svg></span>';
   const date = new Date(`${$('bookDate').value}T12:00:00`)
     .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const time = $('bookTime').value ? `, ${bookTimeLabel($('bookTime').value)}` : '';
-  $('bookSummary').innerHTML = `<span><em>Service</em> ${esc(s?.name || '')}</span>`
-    + `<span><em>With</em> ${esc(who)}</span><span><em>When</em> ${esc(date + time)}</span>`
-    + (s?.price != null ? `<span><em>From</em> $${esc(s.price)}</span>` : '');
+  // The stylist chosen first, said plainly (asked for 2026-10-22).
+  $('bookSummary').innerHTML = `<div class="bw-with">${pic}<span><small>Booked with</small>`
+    + `<b>${esc(person?.name || 'First available')}</b></span></div>`
+    + `<div class="bw-facts"><span><em>Service</em> ${esc(s?.name || '')}</span>`
+    + `<span><em>When</em> ${esc(date + time)}</span>`
+    + (s?.price != null ? `<span><em>From</em> $${esc(s.price)}</span>` : '') + '</div>';
 }
 
 function openBooking(contact, preset = null) {
@@ -6049,8 +6121,11 @@ function openBooking(contact, preset = null) {
   $('bookService').value = '';
   $('bookTime').value = '';
   bookKind = null;
-  bookTimesFor = '';
-  $('bookDate').value = preset?.date || (page === 'appointments' && day) || salonToday();
+  bookAvail = { key: '', days: null };
+  // A past day can't be booked, so the calendar starts no earlier than today.
+  const start = preset?.date || (page === 'appointments' && day) || salonToday();
+  $('bookDate').value = start < salonToday() ? salonToday() : start;
+  bookMonth = $('bookDate').value.slice(0, 7);
   openDialog($('bookDlg'));
   bookGo(preset?.stylist ? 1 : 0);
 }
@@ -6097,7 +6172,25 @@ $('bookTimes').onclick = (e) => {
   markBookTime();
   bookNext();
 };
-$('bookDate').onchange = () => { $('bookTime').value = ''; note($('bookNote'), ''); loadTimes(); };
+$('bookCal').onclick = (e) => {
+  const mo = e.target.closest('[data-month]');
+  if (mo && !mo.disabled) {
+    const [y, m] = bookMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + Number(mo.dataset.month), 1);
+    bookMonth = bookYmd(d.getFullYear(), d.getMonth() + 1, 1).slice(0, 7);
+    paintBookCal();
+    renderBookTimes();
+    loadTimes();
+    return;
+  }
+  const day = e.target.closest('[data-day]');
+  if (!day || day.disabled) return;
+  $('bookDate').value = day.dataset.day;
+  $('bookTime').value = '';
+  note($('bookNote'), '');
+  paintBookCal();
+  renderBookTimes();
+};
 $('bookBack').onclick = () => { note($('bookNote'), ''); bookGo(bookStep - 1, 'bwd'); };
 for (const b of $('bookDlg').querySelectorAll('[data-book-close]')) b.onclick = () => closeDialog($('bookDlg'));
 
@@ -6132,7 +6225,7 @@ $('bookForm').onsubmit = async (e) => {
     // with everything else they answered kept.
     if (/taken|available|free/i.test(err.message)) {
       $('bookTime').value = '';
-      bookTimesFor = '';
+      bookAvail = { key: '', days: null };
       bookGo(BOOK_STEPS.indexOf('when'), 'bwd');
     }
   } finally { $('bookSubmit').disabled = false; }
