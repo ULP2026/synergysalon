@@ -110,6 +110,25 @@ test('Karen greets people by name, reads a stylist\'s day, and cancels and moves
     assert.equal(now.status, 'booked');
     assert.notEqual(new Date(now.starts_at).getTime(), later.toMillis());
 
+    // With two coming up, naming one picks it, and anything but a number
+    // while she asks "which one?" is asked again rather than misunderstood.
+    const { rows: [color] } = await client.query(
+      "SELECT id, duration_min FROM services WHERE tenant_id = $1 AND slug = 'single-process-color'", [tenant.id],
+    );
+    await client.query(
+      `INSERT INTO appointments (tenant_id, ref, stylist_id, service_id, contact_id, starts_at, duration_min,
+                                 buffer_min, during, guest_name, guest_email, manage_token)
+       VALUES ($1, 'ZZKAR3', $2, $3, $4, $5::timestamptz, $6, 0,
+               tstzrange($5::timestamptz, $5::timestamptz + make_interval(mins => $6::int), '[)'),
+               'ZZ Karen Client', 'zz-karen-client@example.com', 'tok-ZZKAR3')`,
+      [tenant.id, stylistId, color.id, c.id, later.plus({ days: 3 }).toISO(), color.duration_min],
+    );
+    const which = await karenReply(tenant, CLIENT_PHONE, 'cancel please', client);
+    assert.match(which, /Which appointment would you like to cancel\?/);
+    assert.match(await karenReply(tenant, CLIENT_PHONE, 'yes', client), /reply with the number of the appointment, from 1 to 2/);
+    assert.match(await karenReply(tenant, CLIENT_PHONE, 'cancel the color', client), /^Cancel your Single Process Color with Dina/);
+    assert.match(await karenReply(tenant, CLIENT_PHONE, 'no', client), /stays as it is/);
+
     // Somebody the salon does not know, asking to book while online booking is paused.
     const stranger = await karenReply(tenant, '+18135550199', 'Can I book a haircut?', client);
     assert.match(stranger, /^Hi! I'm Karen, the assistant at /);

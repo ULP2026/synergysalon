@@ -321,12 +321,22 @@ async function pickAppointment(ctx, purpose) {
     return { say: "I don't have this number on file, so I can't find an appointment for it. Please call the salon and they'll sort it out.", state: {} };
   }
   if (!list.length) return { say: "I don't see any upcoming appointments for you, so there's nothing to change.", state: {} };
-  if (list.length === 1) return purpose === 'cancel' ? askCancel(list[0], zone) : offerMove(ctx, list[0]);
+  // "Move my haircut": when what they said names just one of them, that one.
+  const named = list.length > 1 ? list.filter((a) => mentions(ctx.t, a)) : [];
+  const one = list.length === 1 ? list[0] : named.length === 1 ? named[0] : null;
+  if (one) return purpose === 'cancel' ? askCancel(one, zone) : offerMove(ctx, one);
   return {
     say: `Which appointment would you like to ${purpose === 'cancel' ? 'cancel' : 'move'}?\n`
       + `${list.map((a, i) => `${i + 1}. ${describe(a, zone)}`).join('\n')}\nReply with its number.`,
     state: { step: 'pick', purpose, ids: list.map((a) => a.id) },
   };
+}
+
+/** Does the message name this appointment's service, or its kind ("the haircut", "my color")? */
+function mentions(t, a) {
+  const name = serviceOf(a).toLowerCase();
+  if (name.split(/[^a-z']+/).some((w) => w.length > 3 && t.includes(w.replace(/'s$/, '')))) return true;
+  return Object.values(KINDS).some((re) => re.test(t) && re.test(name));
 }
 
 function askCancel(a, zone) {
@@ -562,7 +572,12 @@ const number = (t) => { const m = t.match(/^\s*#?(\d{1,2})\b/); return m ? Numbe
 const STEPS = {
   async pick(ctx, st) {
     const n = number(ctx.t);
-    if (!n) return null;
+    if (!n) {
+      // Something else entirely ("book", "my appointments") goes on; anything
+      // else ("yes", "the first one?") is asked again, not misunderstood.
+      if (/cancel|reschedul|\bmove\b|\bbook\b|appointment|schedul|menu|help/.test(ctx.t)) return null;
+      return { say: `Please reply with the number of the appointment, from 1 to ${st.ids.length}.`, state: st };
+    }
     const a = st.ids[n - 1] && await appointmentById(ctx, st.ids[n - 1]);
     if (!a) return { say: `Please reply with a number from 1 to ${st.ids.length}.`, state: st };
     return st.purpose === 'cancel' ? askCancel(a, ctx.tenant.timezone) : offerMove(ctx, a);
