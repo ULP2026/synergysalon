@@ -1731,6 +1731,16 @@
 
   /* ── the person chip: picture and first name ────────────────────────── */
   .grn-me { gap: 8px; padding: 0 14px 0 6px; position: relative; text-decoration: none; }
+  /* A small phone (under 390px wide, 2026-10-22): the profile chip is its
+     picture alone and the items pack closer, or the chip runs off the right
+     edge. Scoped to .grn so it outranks the rule above, which had silently
+     overridden the 420px padding meant for this. */
+  @media (max-width: 389px) {
+    .grn .grn-me { padding: 0 6px; gap: 0; }
+    .grn .grn-me .me-name { display: none; }
+    .grn .grn-item, .grn .grn-item.icon-only { padding: 9px 9px; }
+    .grn .grn-pill { gap: 2px; padding: 8px 6px; }
+  }
   .grn-me .me-pic { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex: none; background: var(--peri-pale);
                     box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(205, 196, 246, .9); }
   .grn-me .me-pic img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
@@ -1883,6 +1893,15 @@
   .cal-n:hover { color: var(--periwinkle); text-decoration: underline; }
   .cal-hint { font-size: var(--fs-xs); color: var(--faint); margin: 8px 0 0; }
   @media (hover: none) { .cal-add { opacity: .9; transform: none; width: 20px; height: 20px; } }
+  /* On a phone the seven columns are about 45px wide, and the "+" squeezed
+     the date into "2€" and "3C". The whole cell already adds an appointment
+     (data-add) and the date opens the day, so the button goes and the date
+     keeps the cell (2026-10-22). */
+  @media (max-width: 599px) {
+    .cal-add { display: none; }
+    .cal-top { justify-content: flex-end; }
+    .cal-cell { padding: 4px 3px 6px; }
+  }
 
   :root[data-theme="dark"] .chip.role { color: var(--ink); }
   :root[data-theme="dark"] .tm-row.me { background: #1f2025; border-color: var(--line-2); }
@@ -2306,7 +2325,12 @@
   .hm-col:hover .hm-bar-v, .hm-col:focus-visible .hm-bar-v { filter: brightness(1.15); }
   .hm-bar-v em { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-style: normal;
                  font-size: .74rem; font-weight: 600; color: var(--ink); white-space: nowrap; }
-  .hm-x { display: flex; margin: 8px 0 0 40px; }
+  .hm-x { display: flex; margin: 8px 0 0 40px; container-type: inline-size; }
+  /* Long series show every other label; a narrow chart (a phone, or a half
+     card on a tablet) every fourth, or "Mon 26" ran into "Wed 28". By the
+     chart's own width, so the same card is right wherever it sits. */
+  .hm-x.many span:not(.k2) { visibility: hidden; }
+  @container (max-width: 340px) { .hm-x.many span:not(.k4) { visibility: hidden; } }
   .hm-x span { flex: 1; min-width: 0; text-align: center; font-size: .7rem; color: var(--muted); white-space: nowrap; overflow: visible; }
 
   .hm-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
@@ -4811,11 +4835,15 @@ function axisHtml(top, fmt) {
     `<span class="hm-tick" style="bottom:${(t / top) * 100}%"><i>${esc(fmt(t))}</i></span>`).join('')}</div>`;
 }
 
-/** Labels under the plot: all of them when they fit, every other when not. */
+/**
+ * Labels under the plot: all of them for a short series; for a long one,
+ * every other, or every fourth when the chart is narrow (CSS, by its width:
+ * k2 and k4 mark which labels survive each thinning).
+ */
 function xLabelsHtml(points) {
-  const step = points.length > 8 ? 2 : 1;
-  return `<div class="hm-x">${points.map((p, i) =>
-    `<span>${i % step === 0 ? esc(p.label) : ''}</span>`).join('')}</div>`;
+  const many = points.length > 8;
+  return `<div class="hm-x${many ? ' many' : ''}">${points.map((p, i) =>
+    `<span class="${i % 2 === 0 ? 'k2' : ''}${i % 4 === 0 ? ' k4' : ''}">${esc(p.label)}</span>`).join('')}</div>`;
 }
 
 function columnsHtml(c) {
