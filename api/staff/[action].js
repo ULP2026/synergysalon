@@ -24,6 +24,8 @@ import diary from './_routes/diary.js';
 import home from './_routes/home.js';
 import login from './_routes/login.js';
 import invite from './_routes/invite.js';
+import karen from './_routes/karen.js';
+import karenSms from './_routes/karen-sms.js';
 import logout from './_routes/logout.js';
 import me from './_routes/me.js';
 import profile from './_routes/profile.js';
@@ -43,6 +45,9 @@ const ROUTES = {
   home,
   login,
   invite,
+  karen,
+  'karen-sms': karenSms,
+  'karen-voice': karenSms,
   logout,
   me,
   profile,

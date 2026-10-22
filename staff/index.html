@@ -876,11 +876,24 @@
   .tl .what .ref { font-size: var(--fs-xs); color: var(--faint); }
   .tl time { text-align: right; font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; line-height: 1.4; font-variant-numeric: tabular-nums; }
   .tl time b { display: block; color: var(--ink); font-weight: 600; }
-  /* What happened, by colour: booked periwinkle, checked in and done green,
-     a no-show amber, a cancellation red, an email indigo. */
-  .tl .k-checkin .dot, .tl .k-done .dot { background: #e1f2e8; color: #22673f; }
-  .tl .k-noshow .dot { background: #fdf0dc; color: #9a5b12; }
+  /* What happened, by colour (asked for 2026-10-22), each its own: booked
+     green, a message sent yellow, checked in blue, done teal, a no-show
+     orange, a cancellation red, the website form pink, added grey. */
+  .tl .k-booked .dot { background: #e1f2e8; color: #22673f; }
+  .tl .k-email .dot, .tl .k-sms .dot { background: #fdf3c8; color: #7a5a00; }
+  .tl .k-checkin .dot { background: #e0eefc; color: #1f5a96; }
+  .tl .k-done .dot { background: #dcf3ef; color: #146b5c; }
+  .tl .k-noshow .dot { background: #fde6d4; color: #a4490c; }
   .tl .k-cancel .dot { background: #fbe5e7; color: #a12a35; }
+  .tl .k-form .dot { background: #fbe6f2; color: #9c2f6b; }
+  .tl .k-lead .dot, .tl .k-sync .dot { background: var(--raise); color: var(--muted); }
+  :root[data-theme="dark"] .tl .k-booked .dot { background: rgba(47, 125, 79, .25); color: #9fd8b6; }
+  :root[data-theme="dark"] .tl .k-email .dot, :root[data-theme="dark"] .tl .k-sms .dot { background: rgba(214, 170, 30, .22); color: #f2d675; }
+  :root[data-theme="dark"] .tl .k-checkin .dot { background: rgba(60, 130, 210, .24); color: #a9cdf3; }
+  :root[data-theme="dark"] .tl .k-done .dot { background: rgba(30, 150, 130, .24); color: #8fded0; }
+  :root[data-theme="dark"] .tl .k-noshow .dot { background: rgba(220, 120, 40, .24); color: #f6bd8f; }
+  :root[data-theme="dark"] .tl .k-cancel .dot { background: rgba(200, 60, 75, .24); color: #f2a7b0; }
+  :root[data-theme="dark"] .tl .k-form .dot { background: rgba(200, 80, 150, .24); color: #f1b0d6; }
   .tl li[data-ticket] { cursor: pointer; border-radius: 12px; }
   .tl li[data-ticket]:hover .what b { color: var(--periwinkle); text-decoration: underline; text-underline-offset: 3px; }
   .tl li[data-ticket]:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
@@ -1257,11 +1270,11 @@
   #karenBtn, #bookKarenBtn { background: linear-gradient(135deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c; }
   #karenBtn:hover:not(:disabled), #bookKarenBtn:hover:not(:disabled) { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
   .karen-cta .kc-pic { width: 28px; height: 28px; }
-  .karen-cta .kc-pic img { width: 24px; height: 24px; }
+  .karen-cta .kc-pic img { width: 28px; height: 28px; }
   @media (max-width: 720px) { .pagehead .karen-cta { width: 100%; justify-content: center; } }
   .kc-pic, .kd-pic { position: relative; flex: none; display: grid; place-items: center; border-radius: 50%; background: #fff; }
   .kc-pic { width: 28px; height: 28px; }
-  .kc-pic img { width: 24px; height: 24px; }
+  .kc-pic img { width: 28px; height: 28px; border-radius: 50%; }
   .kc-pic i, .kd-pic i { position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%;
                          background: #2fb36b; border: 2px solid #fff; }
   dialog.kd { max-width: 460px; width: calc(100% - 24px); height: min(680px, calc(100dvh - 24px)); padding: 0; overflow: hidden; }
@@ -1269,7 +1282,7 @@
   .kd-head { display: flex; align-items: center; gap: 12px; padding: 14px 12px 14px 18px; background: var(--peri-pale);
              border-bottom: 1px solid rgba(85, 96, 166, .16); }
   .kd-pic { width: 46px; height: 46px; box-shadow: var(--e1); }
-  .kd-pic img { width: 40px; height: 40px; }
+  .kd-pic img { width: 46px; height: 46px; border-radius: 50%; }
   .kd-pic i { width: 12px; height: 12px; }
   .kd-id { flex: 1; min-width: 0; }
   .kd-id h2 { margin: 0; font-size: 1.1rem; }
@@ -1314,6 +1327,21 @@
   }
   @media (prefers-reduced-motion: reduce) { .kd-msg, .kd-chip { animation: none; } .kd-typing i { animation: none; } }
 
+  .ka-sec h3 { margin: 6px 0 12px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .ka-num { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px;
+            background: var(--peri-pale); border: 1px solid rgba(85, 96, 166, .16); }
+  .ka-pic, .ka-pic img { width: 44px; height: 44px; }
+  .ka-num small { display: block; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .ka-num b { display: block; font-size: 1.45rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .ka-num b a { color: inherit; text-decoration: none; }
+  .ka-num span { display: block; margin-top: 2px; }
+  .ka-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .ka-form label { flex: 1 1 220px; margin: 0; }
+  .ka-setup { margin-top: 18px; }
+  .ka-setup h4 { margin: 0 0 6px; font-size: var(--fs-sm); }
+  .ka-setup ol { margin: 0; padding-left: 20px; line-height: 1.6; }
+  .ka-setup code { display: inline-block; max-width: 100%; overflow-wrap: anywhere; padding: 1px 6px; border-radius: 6px;
+                   background: var(--raise); font-size: .78rem; }
   .pay-sched { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 14px 0 0; font-size: var(--fs-sm); }
   .pay-sched dt { color: var(--muted); } .pay-sched dd { margin: 0; font-weight: 600; }
 
@@ -1326,23 +1354,7 @@
   .tk-head h2 { margin: 0; }
   .tk-head-r { display: flex; align-items: center; gap: 6px; flex: none; }
   #bookKarenBtn { padding-left: 5px; }
-  .tk-coach { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 16px; padding: 12px 14px; border-radius: 12px;
-              background: linear-gradient(135deg, #fbeef6 0%, #eef0fb 100%); border: 1px solid rgba(85, 96, 166, .18); color: #1e1f5c; }
-  .tk-coach .kc-pic { width: 34px; height: 34px; }
-  .tk-coach .kc-pic img { width: 30px; height: 30px; }
-  .tk-coach-t { flex: 1; min-width: 0; }
-  .tk-coach-t small { display: block; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: #5560a6; }
-  .tk-coach-t p { margin: 2px 0 0; font-size: var(--fs-sm); line-height: 1.45; }
-  .tk-coach-sugg { display: flex; flex-wrap: wrap; gap: 6px; }
-  .tk-coach-sugg:not(:empty) { margin-top: 8px; }
-  .tk-coach-sugg button { padding: 5px 11px; border: 1px solid #5560a6; border-radius: 999px; background: #fff; color: #3d4690;
-                          font: inherit; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; }
-  .tk-coach-sugg button:hover { background: #eef0fb; }
-  #bookCoachGo { flex: none; align-self: center; }
-  @media (max-width: 560px) {
-    .tk-coach { flex-wrap: wrap; }
-    #bookCoachGo { width: 100%; justify-content: center; }
-  }
+
   .tk-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 22px 18px; }
   .tk-sec { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
   .tk-h { margin: 0 0 10px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
@@ -2660,6 +2672,7 @@
         <button type="button" data-set="team" aria-pressed="true">Salon &amp; Team</button>
         <button type="button" data-set="billing" aria-pressed="false" data-admin>Billing</button>
         <button type="button" data-set="payroll" aria-pressed="false" data-admin>Payroll</button>
+        <button type="button" data-set="karen" aria-pressed="false">Karen AI</button>
       </div>
 
       <!-- Salon & Team: how the app looks, where replies go, the team and the
@@ -2702,6 +2715,44 @@
       </div>
 
       <!-- Billing -->
+      <!-- Karen AI (asked for 2026-10-22): the number clients call or text to
+           reach her, and what she does there. Everybody reads it; the admin
+           sets it. -->
+      <div class="card setpane hidden" id="set-karen">
+        <div class="card-head" style="margin-bottom:4px"><h2>Karen AI</h2></div>
+        <section class="ka-sec">
+          <h3>Phone Number Settings</h3>
+          <div class="ka-num" id="kaNum">
+            <span class="kc-pic ka-pic" aria-hidden="true"><img id="kaPic" alt=""></span>
+            <div><small>Karen's number</small><b id="kaNumber">Loading…</b>
+              <span id="kaNumberSub" class="small muted"></span></div>
+          </div>
+          <p class="small muted" style="margin:10px 0 0;max-width:62ch">
+            Clients call or text this number to talk to Karen. She recognises clients and the team by the
+            number they text from and greets them by name: she books, moves and cancels appointments, tells
+            clients when theirs is, and tells the team what's on their schedule ("What's on my schedule
+            tomorrow?"). A call is greeted and put through to the salon.
+          </p>
+          <form id="kaForm" class="ka-form hidden" novalidate>
+            <label><span>Karen's phone number</span>
+              <input id="kaPhone" type="tel" autocomplete="off" placeholder="(813) 555-0100"></label>
+            <button class="btn sm" id="kaSave">Save number</button>
+          </form>
+          <div class="ka-setup hidden" id="kaSetup">
+            <h4>Connecting the number</h4>
+            <ol class="small">
+              <li>Buy a local number from Twilio (Phone Numbers, Buy a number), with SMS and Voice.</li>
+              <li>On that number, set "A message comes in" to this address, HTTP POST:
+                <code id="kaSms"></code></li>
+              <li>And "A call comes in" to this one, HTTP POST: <code id="kaVoice"></code></li>
+              <li>Add the account's Auth Token to Vercel as <code>TWILIO_AUTH_TOKEN</code> and redeploy. It is what
+                proves a text really came from that number, so Karen answers nothing without it.</li>
+              <li>Type the number above and save.</li>
+            </ol>
+          </div>
+        </section>
+      </div>
+
       <div class="card setpane hidden" id="set-billing">
         <div class="card-head" style="margin-bottom:4px"><h2>Billing</h2></div>
         <div class="soon">
@@ -2757,17 +2808,6 @@
       </div>
     </header>
     <div class="tk-body">
-      <!-- Karen's next step (asked for 2026-10-22): what to do first and what
-           comes next, as the ticket fills in, with one button that does it. -->
-      <div class="tk-coach" id="bookCoach" aria-live="polite">
-        <span class="kc-pic" aria-hidden="true"><img id="bookCoachPic" alt=""></span>
-        <div class="tk-coach-t">
-          <small id="bookCoachStep"></small>
-          <p id="bookCoachText"></p>
-          <div class="tk-coach-sugg" id="bookCoachSugg"></div>
-        </div>
-        <button type="button" class="btn sm" id="bookCoachGo"></button>
-      </div>
       <div id="bookNote" class="note bad hidden"></div>
 
       <section class="tk-sec">
@@ -6180,7 +6220,6 @@ function renderPerson() {
         <label><span>Email</span><input name="email" type="email" value="${esc(c.email || '')}" autocomplete="off"></label>
         ${formActs}</form>`
     : `<dl class="px-dl">
-        <dt>Phone</dt><dd>${c.phone ? `<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : dash}</dd>
         <dt>Email</dt><dd>${c.email ? `<a class="email" href="mailto:${esc(c.email)}">${esc(c.email).replace('@', '<wbr>@')}</a>` : dash}</dd>
         <dt>Source</dt><dd>${esc(c.source || '') || dash}</dd>
         <dt>Added</dt><dd>${esc(short(c.createdAt))}</dd>
@@ -6706,11 +6745,10 @@ async function bookMonthDays(month) {
 
 /** The chosen day's times, and the calendar's month when it is open. */
 async function loadBookTimes() {
-  if (!bookQuery()) { paintBookTimes(null); paintBookCoach(); return; }
+  if (!bookQuery()) { paintBookTimes(null); return; }
   const month = $('bookDate').value.slice(0, 7);
   const key = bookKey(month);
   paintBookTimes(bookReady(key));
-  paintBookCoach();
   refreshBookCal();
   try {
     const days = await bookMonthDays(month);
@@ -6720,7 +6758,6 @@ async function loadBookTimes() {
     $('bookTime').innerHTML = '<option value="">Could not load times</option>';
     if (err.message !== 'signed out') note($('bookNote'), err.message);
   }
-  paintBookCoach();
 }
 
 async function refreshBookCal() {
@@ -6750,7 +6787,6 @@ function hideBookSugg() {
 
 function linkBookContact(c) {
   bookContact = c;
-  loadBookLast(c);
   $('bookLinked').classList.toggle('hidden', !c);
   if (c) {
     const visits = Number(c.visits) || 0;
@@ -6793,7 +6829,6 @@ function pickBookClient(c) {
   linkBookContact(c);
   hideBookSugg();
   note($('bookNote'), '');
-  paintBookCoach();
 }
 
 $('bookName').addEventListener('input', () => {
@@ -6823,7 +6858,6 @@ $('bookLinked').addEventListener('click', (e) => {
   $('bookName').value = '';
   $('bookPhone').value = '';
   $('bookEmail').value = '';
-  paintBookCoach();
   $('bookName').focus();
 });
 $('bookDlg').addEventListener('click', (e) => {
@@ -6832,121 +6866,10 @@ $('bookDlg').addEventListener('click', (e) => {
 
 // ── opening, and every control ────────────────────────────────────────────
 
-// ── Karen on the ticket: the next step, and help booking ─────────────────
-//
-// The strip at the top of the ticket says what to do first and what comes
-// next as it fills in (asked for 2026-10-22): the client, then the services,
-// then when, then Book. Services before time because the times offered are
-// for the services on the ticket. Its button does the step; its suggestions
-// are real ones: the client's last service and stylist, read from their
-// history, and a cut alongside a color, which books first in the same visit.
+// ── Karen on the ticket ──────────────────────────────────────────────────
 // "Help me book" opens Karen's chat already holding what the ticket has.
-
-let bookLast = null;   // { id, svc, stylist }: the linked client's last visit
-let bookLastSeq = 0;
-
-async function loadBookLast(c) {
-  bookLast = null;
-  const seq = ++bookLastSeq;
-  if (!c?.id || !Number(c.visits)) return;
-  try {
-    const d = await api(`/api/staff/contacts?id=${encodeURIComponent(c.id)}`);
-    if (seq !== bookLastSeq || bookContact?.id !== c.id) return;
-    const a = (d.appointments || []).find((x) => x.status !== 'cancelled');
-    if (!a) return;
-    const svc = me.services.find((s) => s.name.toLowerCase() === String(a.service || '').toLowerCase()) || null;
-    const st = (me.stylists || []).find((s) => s.name === a.stylist) || null;
-    bookLast = { id: c.id, svc, stylist: st, service: a.service, stylistName: a.stylist };
-    paintBookCoach();
-  } catch { /* the suggestion is a nicety; the ticket works without it */ }
-}
-
-function paintBookCoach() {
-  const name = $('bookName').value.trim();
-  const first = esc(name.split(/\s+/)[0] || '');
-  const reach = bookContact || $('bookPhone').value.trim() || $('bookEmail').value.trim();
-  const visit = esc(bookLines.map((s) => s.name).join(' + '));
-  const st = $('bookStylist').value;
-  const stName = (me.stylists || []).find((s) => s.slug === st)?.name;
-  const opts = [...$('bookTime').options];
-  const loading = opts.some((o) => /Finding/.test(o.textContent));
-  const last = bookLast && bookContact?.id === bookLast.id ? bookLast : null;
-  const addable = bookAddable();
-  const sugg = [];
-  let step; let text; let go;
-
-  if (!name) {
-    step = 1;
-    text = 'First, who is it for? Type the first 3 letters of their name: a client already in Clients fills in their phone and email. A new name adds a new client.';
-    go = ['Find the client', 'name'];
-  } else if (!reach) {
-    step = 1;
-    text = `${first} is new to the salon. Add a phone number or an email so the salon can reach them.`;
-    go = ['Add their phone', 'phone'];
-  } else if (!bookLines.length) {
-    step = 2;
-    text = last
-      ? `Next, what is ${first} having? Last time it was ${esc(last.service)} with ${esc(last.stylistName)}. Add each service: a color and a cut go on one ticket, back to back with one stylist.`
-      : `Next, what is ${first} having? Add each service: a color and a cut go on one ticket, back to back with one stylist.`;
-    go = ['Add a service', 'add'];
-    if (last?.svc && addable.some((s) => s.slug === last.svc.slug)) sugg.push(['add', last.svc.slug, `Add ${last.svc.name} again`]);
-  } else if (!$('bookTime').value) {
-    step = 3;
-    const who = st === 'any'
-      ? `"First available" books whoever is free; ${bookStylistsFor(bookLines).length} on the team do ${bookLines.length > 1 ? 'all of this' : 'this'}.`
-      : `With ${esc(stName || 'them')}.`;
-    text = `Now when. ${who} Pick a day, then a time: only times that fit ${visit} are offered.`;
-    go = !loading && !opts.some((o) => o.value) ? ['See other days', 'day'] : ['Pick a time', 'time'];
-    if (last?.stylist && st === 'any' && [...$('bookStylist').options].some((o) => o.value === last.stylist.slug)) {
-      sugg.push(['stylist', last.stylist.slug, `With ${last.stylist.name} again`]);
-    }
-  } else {
-    step = 4;
-    const when = `${$('bookDayLbl').textContent} at ${bookTimeLabel($('bookTime').value)}`;
-    text = `All set: ${visit} for ${first}, ${esc(when)}${stName ? ` with ${esc(stName)}` : ''}. Read it back to ${first}, then book it.`;
-    go = ['Book Appointment', 'book'];
-  }
-  // A color with no cut: offer the cut, which books first in the same visit.
-  // A plain cut, not a trim; and not when Color & Cut already has one.
-  if (step >= 3 && bookLines.some((s) => bookKindOf(s) === 'color')
-      && !bookLines.some((s) => bookKindOf(s) === 'cuts' || /\bcut\b/i.test(s.name))) {
-    const cuts = addable.filter((s) => bookKindOf(s) === 'cuts');
-    const cut = cuts.find((s) => /women/i.test(s.name)) || cuts.find((s) => /^haircuts?$/i.test(s.name))
-      || cuts.find((s) => !/trim|bang|kid|teen|men/i.test(s.name));
-    if (cut) sugg.push(['add', cut.slug, `Add a cut too: ${cut.name}`]);
-  }
-  $('bookCoachStep').textContent = `Karen · Step ${step} of 4`;
-  $('bookCoachText').innerHTML = text;
-  $('bookCoachSugg').innerHTML = sugg.map(([k, v, label]) =>
-    `<button type="button" data-coach-${k}="${esc(v)}">${esc(label)}</button>`).join('');
-  $('bookCoachGo').textContent = go[0];
-  $('bookCoachGo').dataset.go = go[1];
-  $('bookCoachGo').classList.toggle('quiet', go[1] !== 'book');
-}
-
-$('bookCoachGo').onclick = () => {
-  const go = $('bookCoachGo').dataset.go;
-  if (go === 'name') $('bookName').focus();
-  else if (go === 'phone') $('bookPhone').focus();
-  else if (go === 'add') { toggleBookPicker(true); $('bookPicker').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
-  else if (go === 'day') { if ($('bookCal').hidden) $('bookDayBtn').click(); $('bookCal').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
-  else if (go === 'time') { $('bookTime').focus(); try { $('bookTime').showPicker?.(); } catch { /* not everywhere */ } }
-  else if (go === 'book') $('bookForm').requestSubmit($('bookSubmit'));
-};
-$('bookCoachSugg').onclick = (e) => {
-  const add = e.target.closest('[data-coach-add]')?.dataset.coachAdd;
-  const sty = e.target.closest('[data-coach-stylist]')?.dataset.coachStylist;
-  if (add) {
-    const s = me.services.find((x) => x.slug === add);
-    if (s && !bookLines.some((x) => x.slug === add)) bookLines.push(s);
-  } else if (sty) {
-    $('bookStylist').value = sty;
-  } else return;
-  note($('bookNote'), '');
-  bookChanged();
-};
-$('bookForm').addEventListener('input', () => paintBookCoach());
-$('bookForm').addEventListener('change', () => paintBookCoach());
+// (A "Karen · Step n of 4" strip sat on the ticket too; removed on request,
+// 2026-10-22.)
 
 /** Karen's chat, starting from what the ticket already has, so she asks only the rest. */
 function openKarenFromTicket() {
@@ -7020,7 +6943,6 @@ function openBooking(contact, preset = null) {
   toggleBookPicker(false);
   paintBookDay();
   paintBookLines();
-  paintBookCoach();
   openDialog($('bookDlg'));
   loadBookTimes();
   // Straight to what is still unknown.
@@ -7133,7 +7055,22 @@ $('bookForm').onsubmit = async (e) => {
 // understand; only what it truly can't place gets a nudge, and the nudge
 // says what it needs right now.
 
-const KAREN_PIC = charAvatar('Karen, Synergy');
+// A friendly assistant's face in the console's periwinkle and pink (asked
+// for 2026-10-22): she is the salon's AI helper, not one of its stylists,
+// so she no longer wears a stylist's avatar.
+const KAREN_PIC = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs><linearGradient id="k" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7f8ae6"/><stop offset="1" stop-color="#e58fc4"/></linearGradient></defs>
+  <circle cx="32" cy="32" r="32" fill="url(#k)"/>
+  <path d="M32 10.5v6" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="32" cy="9" r="3.4" fill="#fff"/>
+  <rect x="13" y="17" width="38" height="30" rx="13" fill="#fff"/>
+  <circle cx="24.5" cy="30.5" r="3.6" fill="#3d4690"/><circle cx="39.5" cy="30.5" r="3.6" fill="#3d4690"/>
+  <circle cx="25.6" cy="29.3" r="1.1" fill="#fff"/><circle cx="40.6" cy="29.3" r="1.1" fill="#fff"/>
+  <path d="M26 38q6 5 12 0" stroke="#3d4690" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <circle cx="18.5" cy="37" r="2.6" fill="#f6bcd9"/><circle cx="45.5" cy="37" r="2.6" fill="#f6bcd9"/>
+  <path d="M50.5 9l1.5 3.2 3.2 1.5-3.2 1.5-1.5 3.2-1.5-3.2-3.2-1.5 3.2-1.5z" fill="#fff"/>
+  <path d="M12 47l1 2.1 2.1 1-2.1 1-1 2.1-1-2.1-2.1-1 2.1-1z" fill="#fff" opacity=".85"/>
+</svg>`)}`;
 const KAREN_KINDS = {
   color: /colou?r|balayage|highlight|foil|toner|gloss|dye/,
   treatments: /treatment|keratin|olaplex|k18|bond|scalp|brazilian/,
@@ -7971,7 +7908,6 @@ function kTeam() {
 $('karenBtnPic').src = KAREN_PIC;
 $('karenPic').src = KAREN_PIC;
 $('bookKarenPic').src = KAREN_PIC;
-$('bookCoachPic').src = KAREN_PIC;
 $('karenBtn').onclick = openKaren;
 $('karenRestart').onclick = kStart;
 $('karenClose').onclick = () => closeDialog($('karenDlg'));
@@ -8855,7 +8791,7 @@ function loadAccount() {
 // ─────────────────────── settings sections ───────────────────────
 
 let setTab = 'team';
-const SET_TABS = ['team', 'billing', 'payroll'];
+const SET_TABS = ['team', 'billing', 'payroll', 'karen'];
 
 function showSetting(name) {
   if (!SET_TABS.includes(name)) name = 'team';
@@ -8867,6 +8803,7 @@ function showSetting(name) {
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
   if (name === 'team') { loadAccount(); loadBusiness(); }
   if (name === 'payroll') paintPayday();
+  if (name === 'karen') loadKarenSettings();
   // The person chip is "you": lit while your Team Settings are open.
   if (name === 'team') $('meBtn').setAttribute('aria-current', 'page');
   else $('meBtn').removeAttribute('aria-current');
@@ -8874,6 +8811,41 @@ function showSetting(name) {
 $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
   if (b && b.dataset.set !== setTab) showSetting(b.dataset.set);
+};
+
+/** Karen AI, Phone Number Settings: her number for everyone, the form and setup for the admin. */
+async function loadKarenSettings() {
+  $('kaPic').src = KAREN_PIC;
+  const admin = Boolean(me?.user?.canManageTeam);
+  $('kaForm').classList.toggle('hidden', !admin);
+  $('kaSetup').classList.toggle('hidden', !admin);
+  try {
+    paintKarenSettings(await api('/api/staff/karen'));
+  } catch (err) {
+    $('kaNumber').textContent = 'Could not load';
+    if (err.message !== 'signed out') $('kaNumberSub').textContent = err.message;
+  }
+}
+
+function paintKarenSettings(k) {
+  $('kaNumber').innerHTML = k.pretty ? `<a href="tel:${esc(k.phone)}">${esc(k.pretty)}</a>` : 'No number connected yet';
+  $('kaNumberSub').textContent = !k.pretty
+    ? (me?.user?.canManageTeam ? 'Connect one below and clients can call or text Karen.' : 'The admin connects it here.')
+    : k.texting ? 'Connected: Karen answers texts and calls to this number.'
+    : 'Saved. Karen starts answering once TWILIO_AUTH_TOKEN is added in Vercel.';
+  $('kaPhone').value = k.pretty || '';
+  $('kaSms').textContent = k.webhooks.sms;
+  $('kaVoice').textContent = k.webhooks.voice;
+}
+
+$('kaForm').onsubmit = async (e) => {
+  e.preventDefault();
+  $('kaSave').disabled = true;
+  try {
+    paintKarenSettings(await api('/api/staff/karen', { method: 'PATCH', body: JSON.stringify({ phone: $('kaPhone').value }) }));
+    toast($('kaPhone').value.trim() ? "Karen's number is saved." : "Karen's number is cleared.");
+  } catch (err) { fail(err); }
+  $('kaSave').disabled = false;
 };
 
 /** Payroll runs every Friday, paid by the end of that day: today, if it is Friday, on the salon's clock. */

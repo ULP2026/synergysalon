@@ -426,15 +426,39 @@ made that way are real: name them ZZ and remove them.
   reminders and cancellations still go. Texts are stored only: nothing
   sends SMS. Timeline events carry a `tone` (booked, checkin, done, noshow,
   cancel, email) that colours them.
-- Karen on the ticket (2026-10-22): New appointment opens with a strip,
-  "Karen · Step n of 4" (`paintBookCoach`), saying what to do first and
-  next as the ticket fills in: the client (from their third letter), then
-  the services, then when, then Book Appointment, with one button that does
-  the step. Its suggestions are real: the linked client's last service and
-  stylist (`loadBookLast`, from their history) and a plain cut beside a
-  color. "Help me book" in the ticket's header opens Karen's chat holding
-  what the ticket has (`openKarenFromTicket`), so she asks only the rest;
-  she books for the linked client (`karen.contact`) and closes the ticket.
+- Karen on the ticket (2026-10-22): "Help me book" in New appointment's
+  header opens Karen's chat holding what the ticket has
+  (`openKarenFromTicket`), so she asks only the rest; she books for the
+  linked client (`karen.contact`) and closes the ticket. A "Karen · Step n
+  of 4" strip that sat on the ticket was removed on request the same day.
+  Karen's picture is a friendly assistant's face drawn as an inline SVG
+  (`KAREN_PIC`), not a stylist's avatar, on request.
+- **Karen by text** (2026-10-22): Settings, Karen AI, Phone Number Settings
+  shows the number clients call or text (`tenants.karen_phone`, migration
+  033, also in ensure-schema; `GET/PATCH /api/staff/karen`, the admin
+  sets it) and, for the admin, how to connect it. The phone provider is
+  Twilio: its webhooks are `/api/staff/karen-sms` and `/karen-voice`
+  (through the staff router because of the 12-function limit; no session,
+  the caller is proved by Twilio's signature with `TWILIO_AUTH_TOKEN`, and
+  without that variable every request is refused). `api/_lib/karen-sms.js`
+  recognises the sender by the last ten digits of their number (team
+  member first, then client), greets them by name once a conversation,
+  tells a stylist what is on their schedule ("today", "tomorrow", "Friday",
+  "this week"; somebody with no chair gets the salon's day), and lets a
+  client see, cancel (after YES) or move (numbered openings, same stylist
+  and length, same rules as the manage page) their appointment, with the
+  usual emails and Google copies. New bookings by text follow
+  `ONLINE_BOOKING`: while paused she gives the salon's number. Where each
+  conversation is lives in `karen_threads`, forgotten after 30 minutes. A
+  call is greeted by name and put through to the salon's phone.
+  `tests/karen-sms.integration.test.js` runs the conversations. As of
+  2026-10-22 no number is bought and `TWILIO_AUTH_TOKEN` is not set, so the
+  page says "No number connected yet".
+- Clients, Activity: each kind of event has its own colour (asked for
+  2026-10-22): booked green, emails (and texts, when there are any) yellow,
+  checked in blue, done teal, no-show orange, cancelled red, the website
+  form pink, added grey. Contact details no longer repeats the phone, which
+  is at the top of the profile; it is still edited with the pencil there.
 - Payroll (2026-10-22): processed every Friday, staff and stylists paid by
   the end of that day. The Payroll card says so, with the next payday on
   the salon's clock (`paintPayday`); nothing is paid from the app yet.
@@ -797,7 +821,7 @@ npm run db:setup            # schema + seed
 npm run db:migrate          # anything newer
 npm run ghl:link            # verify and store the CENTRO credentials
 npm run staff:create        # a login for yourself
-npm test                    # 107 tests; the database ones skip without DATABASE_URL
+npm test                    # 131 tests; the database ones skip without DATABASE_URL
 ```
 
 Secrets are shared out of band, not through the repo. `.env` is gitignored and
