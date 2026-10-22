@@ -142,6 +142,9 @@ const STATEMENTS = [
      WHERE appointment_id IS NOT NULL AND cancelled_at IS NULL`,
   'ALTER TABLE services ADD COLUMN IF NOT EXISTS rebook_days integer',
   'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS review_url text',
+  // 032: whether the salon holds a card for a client, set on their profile.
+  // Additive, defaulting to no, unlike 031 safe to add unasked.
+  'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS card_on_file boolean NOT NULL DEFAULT false',
   // And the people removed before the column existed. Each salon's stylists
   // who were never given a login are named in config.js; any other
   // switched-off row with no login is somebody who was removed. Harmless to

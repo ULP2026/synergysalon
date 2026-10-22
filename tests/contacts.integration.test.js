@@ -14,7 +14,7 @@ import pg from 'pg';
 
 import { DEFAULT_TZ } from '../api/_lib/config.js';
 import { pool } from '../api/_lib/db.js';
-import { contactDetail, removeContact } from '../api/staff/_routes/contacts.js';
+import { contactDetail, removeContact, setCard } from '../api/staff/_routes/contacts.js';
 
 const url = process.env.DATABASE_URL;
 const skip = url ? false : 'DATABASE_URL is not set';
@@ -190,5 +190,23 @@ test('a contact\'s detail shows what really happened, newest first, and nothing 
     await client.end();
     await pool().end().catch(() => {});
     globalThis.__synergyPool = undefined;
+  }
+});
+
+test('card on file is off until the team switches it on, and back off', { skip }, async () => {
+  const client = connect();
+  await client.connect();
+  const tenant = await tenantId(client);
+  const id = await addContact(client, tenant);
+  try {
+    assert.equal((await contactDetail(tenant, id, client)).contact.cardOnFile, false);
+    assert.deepEqual(await setCard(tenant, { id, cardOnFile: true }, client), { id, cardOnFile: true });
+    assert.equal((await contactDetail(tenant, id, client)).contact.cardOnFile, true);
+    await setCard(tenant, { id, cardOnFile: false }, client);
+    assert.equal((await contactDetail(tenant, id, client)).contact.cardOnFile, false);
+    await assert.rejects(setCard(tenant, { id, cardOnFile: 'yes' }, client), /yes or no/);
+  } finally {
+    await client.query('DELETE FROM contacts WHERE id = $1', [id]);
+    await client.end();
   }
 });

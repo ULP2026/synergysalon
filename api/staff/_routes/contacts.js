@@ -7,6 +7,7 @@
  *   PATCH                        edit somebody
  *   PATCH  {id, op: 'note'}      add a dated note to the top of their notes
  *   PATCH  {id, op: 'prefs'}     whether they get follow-up emails, and texts
+ *   PATCH  {id, op: 'card'}      whether the salon holds a card for them
  *   DELETE                       remove somebody
  *
  * One list, not two. A person who enquires on Tuesday and books on Thursday
@@ -123,7 +124,8 @@ export async function contactDetail(tenantId, id, db = null) {
     `SELECT id, name, email, phone, source, status, notes, created_at,
             first_booked_at, last_visit_at, session_id,
             to_jsonb(contacts) -> 'email_ok' AS email_ok,
-            to_jsonb(contacts) -> 'sms_ok' AS sms_ok
+            to_jsonb(contacts) -> 'sms_ok' AS sms_ok,
+            to_jsonb(contacts) -> 'card_on_file' AS card_on_file
        FROM contacts WHERE id = $1::uuid AND tenant_id = $2::uuid`,
     [id, tenantId],
   );
@@ -206,6 +208,8 @@ export async function contactDetail(tenantId, id, db = null) {
       prefs: c.email_ok == null && c.sms_ok == null
         ? null
         : { email: c.email_ok !== false, sms: c.sms_ok !== false },
+      // null until migration 032 has run, for the same reason.
+      cardOnFile: c.card_on_file == null ? null : c.card_on_file === true,
     },
     appointments: appts.map((a) => ({
       ref: a.ref,
@@ -273,6 +277,28 @@ export async function setPrefs(tenantId, body, db = null) {
   return { id, prefs: { email: rows[0].email_ok, sms: rows[0].sms_ok } };
 }
 
+/**
+ * Card on file: whether the salon holds a card for this client, so a no-show
+ * can be charged the fee and a visit paid through the stylist. Set by the
+ * team; the app itself never sees a card.
+ */
+export async function setCard(tenantId, body, db = null) {
+  const id = requireString(body.id, 'Contact', { max: 64 });
+  if (!UUID.test(id)) throw new HttpError(400, 'Client is not valid.');
+  if (typeof body.cardOnFile !== 'boolean') throw new HttpError(400, 'Say yes or no for the card.');
+  if (!await hasColumn('contacts', 'card_on_file', db)) {
+    throw new HttpError(409, 'Card on file is not switched on for this salon yet.', 'NOT_MIGRATED');
+  }
+  const { rows } = await (db ? db.query.bind(db) : query)(
+    `UPDATE contacts SET card_on_file = $3::boolean, updated_at = now()
+      WHERE id = $1::uuid AND tenant_id = $2::uuid
+      RETURNING card_on_file`,
+    [id, tenantId, body.cardOnFile],
+  );
+  if (!rows[0]) throw new HttpError(404, 'That client no longer exists.');
+  return { id, cardOnFile: rows[0].card_on_file };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
@@ -308,6 +334,7 @@ export default handler({
               c.first_booked_at, c.last_visit_at, c.created_at,
               count(a.id) FILTER (WHERE a.status <> 'cancelled') AS visits,
               ${STYLIST_OF} AS stylist,
+              (to_jsonb(c) ->> 'card_on_file')::boolean AS card_on_file,
               max(a.starts_at) FILTER (WHERE a.status = 'booked'
                                         AND a.starts_at >= now()) AS next_visit
          FROM contacts c
@@ -347,6 +374,7 @@ export default handler({
         notes: c.notes,
         visits: Number(c.visits),
         stylist: c.stylist || null,
+        cardOnFile: c.card_on_file === true,
         nextVisit: c.next_visit,
         firstBookedAt: c.first_booked_at,
         lastVisitAt: c.last_visit_at,
@@ -414,6 +442,7 @@ export default handler({
 
     if (body.op === 'note') return json(res, 200, await addNote(tenant.id, user, body));
     if (body.op === 'prefs') return json(res, 200, await setPrefs(tenant.id, body));
+    if (body.op === 'card') return json(res, 200, await setCard(tenant.id, body));
 
     const id = requireString(body.id, 'Contact', { max: 64 });
     const name = requireString(body.name, 'Name', { max: 120 });

@@ -1,0 +1,12 @@
+-- Whether the salon holds a card for this client (asked for 2026-10-22).
+--
+-- These are the preferred clients: a no-show can be charged the fee, and a
+-- client who comes pays their stylist without checking out in the app. The
+-- team needs to see them at a glance in Clients.
+--
+-- A flag the team sets on the profile, not a card: nothing in the app takes
+-- or stores card details, and nothing records payments until Stripe. When
+-- Stripe lands it can set this itself. Additive and defaulting to no, so
+-- nobody reads as having a card until somebody says so. Also in
+-- ensure-schema, so it is there on the first load after deploy.
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS card_on_file boolean NOT NULL DEFAULT false;

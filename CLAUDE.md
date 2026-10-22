@@ -426,6 +426,13 @@ made that way are real: name them ZZ and remove them.
   reminders and cancellations still go. Texts are stored only: nothing
   sends SMS. Timeline events carry a `tone` (booked, checkin, done, noshow,
   cancel, email) that colours them.
+- Card on file (2026-10-22): a green "Card on file" chip under the client's
+  name in Clients and on their profile, for the salon's preferred clients
+  (a no-show can be charged the fee; a visit is paid through the stylist).
+  It is a flag the team sets with the Payment switch on the profile
+  (`contacts.card_on_file`, migration 032, also in ensure-schema since it is
+  additive and defaults to no; `PATCH {op: 'card'}`, `setCard`). Nothing in
+  the app takes or stores a card; when Stripe lands it can set the flag.
 - Migration 031 is NOT in ensure-schema, on purpose: previews share the
   live database, and ensure-schema would run it there unasked. Until it is
   run (alone, after approval) everything reads the columns through to_jsonb

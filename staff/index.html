@@ -728,6 +728,9 @@
     display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px;
     background: var(--s-bg); color: var(--s-ink); font-size: var(--fs-xs); font-weight: 600; letter-spacing: .01em;
   }
+  /* Card on file, under the name: the salon's preferred clients, whose
+     no-show fee can be charged and who pay their stylist directly. */
+  .ccard { display: flex; margin-top: 4px; }
   .cmeta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 2px; font-size: .8rem; color: var(--muted); }
   .cmeta span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
   .cmeta .ic { width: 14px; height: 14px; color: var(--faint); flex: none; }
@@ -2325,6 +2328,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></symbol>
   <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M16 3v4M8 3v4M3.5 10h17"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></symbol>
   <symbol id="i-calendar-plus" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M16 3v4M8 3v4M3.5 10h17M12 13v5M9.5 15.5h5"/></symbol>
   <symbol id="i-contacts" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M15.5 4.6a3.5 3.5 0 0 1 0 6.8M17.8 14.8c1.9.8 3.1 2.6 3.7 5.2"/></symbol>
   <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6.5h9M17 6.5h3M4 12h3M11 12h9M4 17.5h11M19 17.5h1"/><circle cx="15" cy="6.5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17.5" r="2"/></symbol>
@@ -5800,6 +5804,7 @@ function renderContacts(d, filtered) {
             <span class="name">${esc(c.name)}</span>
             <span class="spill">${esc(STATUS_LABEL[c.status] || c.status)}</span>
           </div>
+          ${c.cardOnFile ? `<div class="ccard">${cardChip()}</div>` : ''}
           <div class="cmeta">
             ${c.phone ? `<span>${ic('phone')}${esc(c.phone)}</span>` : ''}
             ${c.email ? `<span class="email" title="${esc(c.email)}">${ic('mail')}<span>${esc(c.email).replace('@', '<wbr>@')}</span></span>` : ''}
@@ -5950,7 +5955,13 @@ function personChips(c) {
   return [
     `<span class="chip">${esc(STATUS_LABEL[c.status] || c.status)}</span>`,
     stylistTag(c.stylist),
+    c.cardOnFile ? cardChip() : '',
   ].join(' ');
+}
+
+/** The salon holds a card for this client: set by the team on the profile. */
+function cardChip() {
+  return `<span class="chip ok" title="The salon has a card on file for this client">${ic('card')}Card on file</span>`;
 }
 
 /** The open profile again from the server, after something changed it. */
@@ -6042,6 +6053,14 @@ function renderPerson() {
       <h3>Tags and status${pxEditing === 'status' ? '' : pen('status', 'Change status')}</h3>
       ${tags}
       <p class="px-hint">${c.stylist ? 'Their stylist tag is whoever they last booked with.' : 'They get a stylist tag when they book.'}</p>
+    </section>
+    <section class="px-sec">
+      <h3>Payment</h3>
+      <div class="px-pref">
+        <span><b id="pxCardLbl">Card on file</b><small>The salon holds a card for them: a no-show can be charged the fee, and a visit is paid through their stylist.</small></span>
+        <button type="button" class="switch" role="switch" data-card aria-labelledby="pxCardLbl"
+          aria-checked="${c.cardOnFile === true}" ${c.cardOnFile == null ? 'disabled' : ''}><span></span></button></div>
+      ${c.cardOnFile == null ? '<p class="px-hint">This switches on once the database update for it has run.</p>' : ''}
     </section>
     <section class="px-sec">
       <h3>Contact preferences</h3>
@@ -6168,6 +6187,8 @@ $('pxLeft').onclick = (e) => {
   if (e.target.closest('[data-px-cancel]')) { pxEditing = null; renderPerson(); return; }
   const t = e.target.closest('[data-ticket]');
   if (t) { openTicket(t.dataset.ticket); return; }
+  const card = e.target.closest('button[data-card]');
+  if (card) { setCardOnFile(card); return; }
   const sw = e.target.closest('button[data-pref]');
   if (sw) { setPref(sw); return; }
   if (!e.target.closest('#pxDelete')) return;
@@ -6180,6 +6201,28 @@ for (const col of [$('pxLeft'), $('pxRight')]) {
     const t = e.target.closest?.('[data-ticket]');
     if (t && e.target === t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openTicket(t.dataset.ticket); }
   });
+}
+
+/** Card on file, saved as soon as it is flipped, like the preferences. */
+async function setCardOnFile(btn) {
+  const c = person?.contact;
+  if (!c || c.cardOnFile == null || btn.disabled) return;
+  const next = btn.getAttribute('aria-checked') !== 'true';
+  btn.setAttribute('aria-checked', String(next));
+  btn.disabled = true;
+  try {
+    const r = await api('/api/staff/contacts', { method: 'PATCH', body: JSON.stringify({ id: c.id, op: 'card', cardOnFile: next }) });
+    c.cardOnFile = r.cardOnFile;
+    $('pxChips').innerHTML = personChips(c);
+    const chips = $('pxLeft').querySelector('.px-sec .chips');
+    if (chips) chips.innerHTML = personChips(c);
+    toast(next ? `${c.name} has a card on file.` : `Card on file removed for ${c.name}.`);
+    if (page === 'clients') loadContacts();
+  } catch (err) {
+    btn.setAttribute('aria-checked', String(c.cardOnFile));
+    fail(err);
+  }
+  btn.disabled = false;
 }
 
 /** Email and texts, each its own switch, saved as soon as it is flipped. */
