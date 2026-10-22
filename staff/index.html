@@ -1271,7 +1271,25 @@
   #karenBtn:hover:not(:disabled), #bookKarenBtn:hover:not(:disabled) { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
   .karen-cta .kc-pic { width: 28px; height: 28px; }
   .karen-cta .kc-pic img { width: 28px; height: 28px; }
-  @media (max-width: 720px) { .pagehead .karen-cta { width: 100%; justify-content: center; } }
+  /* On a phone Karen floats in the bottom-right corner and stays there while
+     the page scrolls (asked for 2026-10-22), instead of a full-width bar in
+     the page head. 52px tall: a comfortable thumb target (Apple and Google
+     ask for at least 44 and 48) without covering much of a narrow screen.
+     Clear of the home indicator and the notch's side insets. The page gets
+     room at its foot so the last row is never stuck under her, and a toast
+     rises above her. */
+  @media (max-width: 720px) {
+    #karenBtn {
+      position: fixed; z-index: 40;
+      right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px));
+      bottom: max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+      height: 52px; padding: 0 18px 0 7px; gap: 9px; border-radius: 999px;
+      font-size: .95rem; box-shadow: 0 8px 24px -6px rgba(30, 31, 92, .35), 0 2px 6px rgba(30, 31, 92, .12);
+    }
+    #karenBtn .kc-pic, #karenBtn .kc-pic img { width: 38px; height: 38px; }
+    .main { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+    .toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+  }
   .kc-pic, .kd-pic { position: relative; flex: none; display: grid; place-items: center; border-radius: 50%; background: #fff; }
   .kc-pic { width: 28px; height: 28px; }
   .kc-pic img { width: 28px; height: 28px; border-radius: 50%; }

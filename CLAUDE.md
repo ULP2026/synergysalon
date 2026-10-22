@@ -433,6 +433,10 @@ made that way are real: name them ZZ and remove them.
   reminders and cancellations still go. Texts are stored only: nothing
   sends SMS. Timeline events carry a `tone` (booked, checkin, done, noshow,
   cancel, email) that colours them.
+- On a phone (720px and narrower) "Call Karen" floats in the bottom-right
+  corner and stays there while the page scrolls (2026-10-22): 52px tall,
+  clear of the safe-area insets, with room left at the page's foot and the
+  toast lifted above it. On wider screens it stays in the page head.
 - Karen on the ticket (2026-10-22): "Help me book" in New appointment's
   header opens Karen's chat holding what the ticket has
   (`openKarenFromTicket`), so she asks only the rest; she books for the
