@@ -62,7 +62,8 @@ async function mintInvite(req, userId) {
   );
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0];
   const proto = host.startsWith('localhost') ? 'http' : 'https';
-  return `${proto}://${host}/staff/invite?t=${token}`;
+  // The app's own host has no /staff in its addresses (vercel.json).
+  return `${proto}://${host}${host.startsWith('app.') ? '' : '/staff'}/invite?t=${token}`;
 }
 
 export default handler({

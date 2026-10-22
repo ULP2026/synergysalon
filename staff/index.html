@@ -3967,7 +3967,7 @@ let calSettingsSlug = null;
 
 function goCalendarSettings(slug) {
   calSettingsSlug = slug;
-  history.pushState({ page: 'calendarSettings' }, '', `/staff/calendars/${encodeURIComponent(slug)}`);
+  history.pushState({ page: 'calendarSettings' }, '', `${BASE}/calendars/${encodeURIComponent(slug)}`);
   go('calendarSettings', { push: false });
 }
 
@@ -4069,7 +4069,7 @@ function renderCalendarSettings(c) {
       toast('Saved.');
       // The link may have changed under us, so follow it.
       calSettingsSlug = d.calendar.slug;
-      history.replaceState({ page: 'calendarSettings' }, '', `/staff/calendars/${encodeURIComponent(d.calendar.slug)}`);
+      history.replaceState({ page: 'calendarSettings' }, '', `${BASE}/calendars/${encodeURIComponent(d.calendar.slug)}`);
       renderCalendarSettings(d.calendar);
       markSaved($('setSave'));
     } catch (err) { fail(err); } finally { $('setSave').disabled = false; }
@@ -4078,7 +4078,7 @@ function renderCalendarSettings(c) {
 
 async function loadCalendarSettings() {
   const slug = calSettingsSlug
-    || decodeURIComponent((location.pathname.match(/^\/staff\/calendars\/([^/]+)/) || [])[1] || '');
+    || decodeURIComponent((location.pathname.match(/^(?:\/staff)?\/calendars\/([^/]+)/) || [])[1] || '');
   if (!slug) return go('calendars');
   calSettingsSlug = slug;
   $('calSettings').innerHTML = skeleton(4);
@@ -4094,14 +4094,17 @@ async function loadCalendarSettings() {
   }
 }
 
-// Home's address. On the app's own host it is the bare address,
-// app.synergysalon.com/ (asked for 2026-10-22): no /staff on Home. That
-// host's "/" is redirected here by vercel.json (a rewrite cannot do it: "/"
-// is the public site's index.html, and a file always beats a rewrite), and
+// The console's addresses. On the app's own host there is no /staff in
+// them at all (asked for 2026-10-22): app.synergysalon.com/clients,
+// /settings, and Home at the bare "/". vercel.json rewrites those names to
+// this page on that host and redirects the old /staff/... addresses to
+// them. "/" itself cannot be rewritten (it is the public site's index.html,
+// and a file always beats a rewrite), so that host sends "/" to /home and
 // the address is put back to "/" once the console is up. Elsewhere, a
-// *.vercel.app test address or a local copy, "/" is the public site, so
-// Home stays /staff and a reload still lands in the console.
-const HOME_PATH = /^app\./.test(location.hostname) ? '/' : '/staff';
+// *.vercel.app test address or a local copy, the public site owns those
+// names, so the console keeps /staff and a reload still lands in it.
+const BASE = /^app\./.test(location.hostname) ? '' : '/staff';
+const HOME_PATH = BASE || '/';
 
 const PAGES = {
   // No primary button on Home: booking starts from Appt. Book.
@@ -4110,41 +4113,41 @@ const PAGES = {
     load: () => loadHome(),
   },
   appointments: {
-    path: '/staff/appointments', title: 'Appt. Book', action: 'New appointment',
+    path: `${BASE}/appointments`, title: 'Appt. Book', action: 'New appointment',
     sub: 'Check people in and keep the day on track.',
     run: () => openBooking(null),
     load: () => loadAppointments(),
   },
   clients: {
-    path: '/staff/clients', title: 'Clients', action: 'Add client',
+    path: `${BASE}/clients`, title: 'Clients', action: 'Add client',
     sub: 'Everyone who has booked or asked about a visit.',
     run: () => openContact(null), load: () => { fillStylistFilter(); loadContacts(); refreshTeamFilter(); },
   },
   calendars: {
-    path: '/staff/calendars', title: 'Calendars', action: 'New calendar',
+    path: `${BASE}/calendars`, title: 'Calendars', action: 'New calendar',
     sub: 'The ways people can book you.',
     run: () => openCalType(), load: () => loadCalendars(),
   },
   // Each calendar's deeper options live on their own path, so a shop can send
   // somebody straight to the one they are setting up.
   calendarSettings: {
-    path: '/staff/calendars', title: 'Calendar settings', hidden: true,
+    path: `${BASE}/calendars`, title: 'Calendar settings', hidden: true,
     sub: '', load: () => loadCalendarSettings(),
   },
   settings: {
-    path: '/staff/settings', title: 'Settings',
+    path: `${BASE}/settings`, title: 'Settings',
     sub: 'Your salon, your team and how the app looks.',
     load: () => showSetting(setTab),
   },
   // Opened from the person in the corner, for every role: how the app looks,
   // the CRM link (owners and managers), the team, and the way out.
   account: {
-    path: '/staff/account', title: 'Team',
+    path: `${BASE}/account`, title: 'Team',
     sub: 'Your profile, your team and how the app looks.',
     load: () => loadAccount(),
   },
   automation: {
-    path: '/staff/marketing/automation', title: 'Marketing', group: 'marketing', view: 'marketing',
+    path: `${BASE}/marketing/automation`, title: 'Marketing', group: 'marketing', view: 'marketing',
     sub: 'What happens on its own, before and after a client books.',
     load: () => { markMarketingTab('automation'); renderAutomations(); },
   },
@@ -4580,9 +4583,13 @@ $('msgClose').onclick = () => closeDialog($('msgDlg'));
  * sitting in the DOM fully rendered and the section still carrying `hidden`.
  * Taking the list from the markup means adding a section is enough.
  */
-// The menu's Home links carry the same address, so "copy link" and a
-// middle-click give app.synergysalon.com/ too.
-for (const a of document.querySelectorAll('a[data-page="home"]')) a.setAttribute('href', HOME_PATH);
+// The menu's links carry the same addresses, so "copy link" and a
+// middle-click give app.synergysalon.com/clients and friends too.
+if (!BASE) {
+  for (const a of document.querySelectorAll('a[href^="/staff"]')) {
+    a.setAttribute('href', a.getAttribute('href').replace(/^\/staff/, '') || '/');
+  }
+}
 
 const VIEWS = [...document.querySelectorAll('section.view[id^="view-"]')]
   .map((el) => el.id.slice(5));
@@ -4599,7 +4606,7 @@ const PAGE_ALIASES = {
 function pageFromUrl() {
   // A calendar's settings live at /staff/calendars/<slug>, so the last
   // segment is the calendar, not the page.
-  const deep = location.pathname.match(/^\/staff\/calendars\/([^/]+)/);
+  const deep = location.pathname.match(/^(?:\/staff)?\/calendars\/([^/]+)/);
   if (deep) { calSettingsSlug = decodeURIComponent(deep[1]); return 'calendarSettings'; }
   const seg = location.pathname.replace(/\/+$/, '').split('/').pop();
   const name = PAGE_ALIASES[seg] || seg;
@@ -4880,10 +4887,10 @@ function widgetHtml(item, i) {
     return `<div class="hm-w${size}" data-i="${i}">${strip}<div class="card fill hm-card">
       <div class="card-head">
         <h2 class="cu-head">${ic('calendar')}Coming up</h2>
-        <a href="/staff/appointments" data-page="appointments" class="small">See all appointments</a>
+        <a href="${BASE}/appointments" data-page="appointments" class="small">See all appointments</a>
       </div>
       <div class="fill-body" style="flex:1;display:flex;flex-direction:column">${upcomingHtml(h)}</div>
-      ${h.past ? `<a class="up-foot" href="/staff/appointments" data-page="appointments">Past appointments (${h.past})${ic('right')}</a>` : ''}
+      ${h.past ? `<a class="up-foot" href="${BASE}/appointments" data-page="appointments">Past appointments (${h.past})${ic('right')}</a>` : ''}
     </div></div>`;
   }
   const c = chartData(item.id);
@@ -9508,7 +9515,7 @@ async function showInvite(token) {
       if (!r.ok) throw new Error(d.error || 'That did not work.');
       // The token is spent, so it must not stay in the address bar for a
       // reload to try again with.
-      history.replaceState(null, '', '/staff');
+      history.replaceState(null, '', HOME_PATH);
       location.reload();
     } catch (err) {
       const n = $('inviteErr');
@@ -9524,7 +9531,7 @@ async function start(landing) {
   // session, and sending them to the sign-in form asks for a password they
   // have not got yet.
   const inviteToken = new URLSearchParams(location.search).get('t');
-  if (location.pathname.startsWith('/staff/invite') && inviteToken) {
+  if (/^(\/staff)?\/invite/.test(location.pathname) && inviteToken) {
     return showInvite(inviteToken);
   }
 

@@ -9,7 +9,29 @@
           "value": "app.synergysalon.com"
         }
       ],
-      "destination": "/staff",
+      "destination": "/home",
+      "permanent": false
+    },
+    {
+      "source": "/staff",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.synergysalon.com"
+        }
+      ],
+      "destination": "/home",
+      "permanent": false
+    },
+    {
+      "source": "/staff/:path((?!vendor/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.synergysalon.com"
+        }
+      ],
+      "destination": "/:path",
       "permanent": false
     },
     {
@@ -53,7 +75,7 @@
           "value": "synergysalon.com"
         }
       ],
-      "destination": "https://app.synergysalon.com/staff/:path",
+      "destination": "https://app.synergysalon.com/:path",
       "permanent": false
     },
     {
@@ -117,6 +139,46 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/:page(home|dashboard|appointments|clients|contacts|leads|settings|account|team|calendars|invite)",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.synergysalon.com"
+        }
+      ],
+      "destination": "/staff"
+    },
+    {
+      "source": "/calendars/:slug",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.synergysalon.com"
+        }
+      ],
+      "destination": "/staff"
+    },
+    {
+      "source": "/marketing",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.synergysalon.com"
+        }
+      ],
+      "destination": "/staff"
+    },
+    {
+      "source": "/marketing/:sub(automation|promotions|sms|email)",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.synergysalon.com"
+        }
+      ],
+      "destination": "/staff"
+    },
     {
       "source": "/s/:tenant/:calendar",
       "destination": "/shop"

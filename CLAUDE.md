@@ -394,15 +394,20 @@ made that way are real: name them ZZ and remove them.
   on the right of the nav; it was hidden for a day and brought back on
   request. `.main` starts 116px down (108 and 100 on
   smaller screens) so titles clear the fixed nav.
-- Home's address on app.synergysalon.com is the bare `/` (asked for
-  2026-10-22): `HOME_PATH` in the console. vercel.json still redirects that
-  host's `/` to `/staff` (a rewrite cannot serve it: `/` is the public
-  site's index.html and a file beats a rewrite), and the console puts the
-  address back to `/` once it is up. Other pages keep `/staff/...`. On a
-  `*.vercel.app` or local address Home stays `/staff`, because `/` there
-  is the public site and a reload would leave the console.
-- Nav: Home (`/staff`), Appt. Book (`/staff/appointments`), Clients
-  (`/staff/clients`), Marketing, Settings. Clients has "Choose your stylist"
+- **No /staff in the app's addresses** on app.synergysalon.com (asked for
+  2026-10-22): Home is `/`, then `/appointments`, `/clients`,
+  `/marketing/automation`, `/settings`, `/calendars/<slug>`, `/invite`.
+  vercel.json, for that host only, rewrites those names to the console and
+  redirects every old `/staff/...` address to its new one (bookmarks and
+  old invite emails keep working), except `/staff/vendor/` (the console's
+  own scripts). `/` itself is redirected to `/home`: a rewrite cannot serve
+  it, because `/` is the public site's index.html and a file beats a
+  rewrite, so the console puts the address back to `/` once it is up. In
+  the console `BASE` is `''` on that host and `/staff` elsewhere (a
+  `*.vercel.app` or local address, where those names belong to the public
+  site), `HOME_PATH` is `/` or `/staff`, and the menu's links are rewritten
+  to match. Invite links from `team.js` follow the same rule.
+- Nav: Home, Appt. Book, Clients, Marketing, Settings (addresses above). Clients has "Choose your stylist"
   (2026-10-22): All, then every stylist record from `contacts?stylists=1`
   (`stylistChoices`), with or without a login, calendar or payroll, so long
   as they are active or have ever been booked; one who has left stays,
