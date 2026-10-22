@@ -132,6 +132,47 @@ async function recipients(kind, tenant) {
   };
 }
 
+/**
+ * GET ?history=1[&before=<cursor>]: every email the automations have sent,
+ * newest first, a page at a time, for the history under Marketing.
+ *
+ * From the send log, so it lists what actually went out: a message Resend
+ * refused, or one whose automation was switched off, was never recorded.
+ * The log starts the day migration 024 ran; there is nothing earlier to show.
+ *
+ * Paged by (sent_at, id) rather than by time alone, so two emails sent in the
+ * same instant are neither skipped nor shown twice at a page boundary. The
+ * cursor carries sent_at as Postgres's own text, microseconds included: a
+ * JavaScript Date would round it to the millisecond and lose rows.
+ */
+const HISTORY_PAGE = 50;
+export async function history(tenant, cursor) {
+  const [at, id] = String(cursor || '').split('|');
+  const after = at && id && !Number.isNaN(Date.parse(at)) && /^[0-9a-f-]{36}$/i.test(id);
+  const { rows } = await query(
+    `SELECT m.id, m.kind, m.to_name, m.to_email, m.sent_at, m.sent_at::text AS at, a.ref
+       FROM message_sends m
+       LEFT JOIN appointments a ON a.id = m.appointment_id
+      WHERE m.tenant_id = $1
+        AND ($2::timestamptz IS NULL OR (m.sent_at, m.id) < ($2::timestamptz, $3::uuid))
+      ORDER BY m.sent_at DESC, m.id DESC
+      LIMIT $4::int`,
+    [tenant.id, after ? at : null, after ? id : null, HISTORY_PAGE + 1],
+  ).catch(() => ({ rows: [] }));
+  const page = rows.slice(0, HISTORY_PAGE);
+  const last = page[page.length - 1];
+  return {
+    sends: page.map((r) => ({
+      kind: r.kind,
+      name: r.to_name || r.to_email,
+      email: r.to_email,
+      sentAt: r.sent_at,
+      ref: r.ref || null,
+    })),
+    next: rows.length > HISTORY_PAGE && last ? `${last.at}|${last.id}` : null,
+  };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
@@ -140,6 +181,7 @@ export default handler({
     const kind = q.get('preview');
     if (kind) return json(res, 200, await preview(kind, tenant));
     if (q.has('automations')) return json(res, 200, await automations(tenant));
+    if (q.has('history')) return json(res, 200, await history(tenant, q.get('before')));
     const who = q.get('recipients');
     if (who) return json(res, 200, await recipients(who, tenant));
     const { rows } = await query(

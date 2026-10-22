@@ -593,6 +593,13 @@ made that way are real: name them ZZ and remove them.
   `time_off`, the table availability already subtracts, so a block on the
   grid really stops the time being sold.
   `?demo` on the address shows a sample day that saves nothing.
+- Marketing, Automation lists the automations in two columns (one on a
+  phone), each with its switch and no "N sent" count, and under them **Email
+  history**: every email the automations have sent, newest first, 50 at a
+  time with Show more, on the salon's clock (`GET /api/staff/business?history=1`,
+  read from `message_sends`, so only what actually went out, and only since
+  migration 024). It replaced the per-automation count and its recipients
+  popup (2026-10-22).
 - Marketing is Automation only: the Promotions, SMS and Email tabs, which were
   "coming soon" placeholders, were removed on request (2026-10-22). Their old
   addresses (`/staff/marketing/promotions|sms|email`, still rewritten by

@@ -1486,17 +1486,15 @@
   .au-top .search { margin-left: auto; width: 220px; }
   .au-top .search input { height: 36px; font-size: var(--fs-sm); }
   .au-top .search .ic { top: 9px; width: 18px; height: 18px; }
-  .au-list { display: grid; gap: 8px; }
+  /* Two columns of automations, asked for 2026-10-22; one on a phone. */
+  .au-list { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 760px) { .au-list { grid-template-columns: minmax(0, 1fr); } }
   .au-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 14px; border-radius: 14px;
             border: 1px solid var(--line); background: var(--card); font: inherit; color: var(--ink); text-align: left; cursor: pointer;
             transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
   .au-row:hover { border-color: var(--line-2); box-shadow: 0 10px 24px -18px rgba(30, 31, 92, .55); transform: translateY(-1px); }
   .au-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .au-row .name { flex: 1; min-width: 0; font-weight: 600; font-size: .95rem; }
-  .au-sent { border: 0; background: none; font: inherit; font-size: var(--fs-sm); color: var(--muted);
-             padding: 4px 8px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
-  .au-sent:hover { background: var(--peri-pale); color: var(--indigo); }
-  .au-sent[disabled] { cursor: default; color: var(--faint); background: none; }
   .au-sw { position: relative; width: 40px; height: 23px; flex: none; border: 0; border-radius: 999px;
            background: var(--line-2); cursor: pointer; transition: background var(--t) var(--ease); }
   .au-sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 17px; height: 17px;
@@ -1506,11 +1504,33 @@
   .au-sw:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .au-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; border: 0; background: none;
              font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0; }
-  .recv-list { display: grid; gap: 2px; }
-  .recv-row { display: flex; align-items: baseline; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
-  .recv-row .who { font-weight: 600; }
-  .recv-row .em { color: var(--muted); font-size: var(--fs-sm); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .recv-row .at { color: var(--faint); font-size: var(--fs-sm); white-space: nowrap; }
+  /* Email history, under the automations. */
+  #mailLogCard { margin-top: 16px; }
+  .ml-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .ml-top h2 { margin: 0; font-size: 1.05rem; }
+  .ml-top p { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+  .ml-head, .ml-row { display: grid; grid-template-columns: 150px minmax(0, 1.3fr) minmax(0, 1fr) 90px; gap: 14px; align-items: center; }
+  .ml-head { padding: 8px 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .ml-row { padding: 11px 6px; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+  .ml-row:last-child { border-bottom: 0; }
+  .ml-row .when { color: var(--muted); white-space: nowrap; }
+  .ml-row .who { min-width: 0; }
+  .ml-row .who b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ml-row .who span { display: block; color: var(--muted); font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ml-row .what { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .ml-row .what .au-ic { width: 26px; height: 26px; border-radius: 8px; }
+  .ml-row .what .au-ic .ic { width: 14px; height: 14px; }
+  .ml-row .what span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ml-row .ref { color: var(--faint); font-family: var(--mono, ui-monospace, monospace); font-size: var(--fs-xs); }
+  .ml-more { display: flex; justify-content: center; padding-top: 12px; }
+  @media (max-width: 760px) {
+    .ml-head { display: none; }
+    .ml-row { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
+    .ml-row .who { grid-column: 1; grid-row: 1; }
+    .ml-row .when { grid-column: 2; grid-row: 1; font-size: var(--fs-xs); }
+    .ml-row .what { grid-column: 1; grid-row: 2; }
+    .ml-row .ref { grid-column: 2; grid-row: 2; text-align: right; }
+  }
   .au-row .go { display: grid; color: var(--faint); transition: transform var(--t) var(--ease), color var(--t) var(--ease); }
   .au-row:hover .go { transform: translateX(3px); color: var(--indigo); }
   .au-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; flex: none; color: #fff;
@@ -2542,6 +2562,7 @@
         <button type="button" data-page="automation" aria-pressed="true">Automation</button>
       </div>
       <div class="card" id="mktCard"></div>
+      <div class="card" id="mailLogCard"></div>
     </section>
 
     <!-- Settings -->
@@ -3073,16 +3094,6 @@
   </header>
   <div class="au-body" id="autoBody"></div>
   <p class="au-foot"><svg class="ic"><use href="#i-eye"/></svg>View only. This is what the app does on its own.</p>
-</dialog>
-
-<!-- Marketing, Automation: who an automation has actually emailed. -->
-<dialog id="recvDlg" class="au" aria-labelledby="recvTitle">
-  <header class="au-head">
-    <span class="au-ic" id="recvIc"></span>
-    <div class="grow"><h2 id="recvTitle"></h2><p id="recvSub"></p></div>
-    <button type="button" class="iconbtn lg" id="recvClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
-  </header>
-  <div class="au-body" id="recvBody"></div>
 </dialog>
 
 <dialog id="msgDlg" class="au msg" aria-labelledby="msgTitle">
@@ -4099,6 +4110,7 @@ function renderAutomations() {
   paintAutomationList();
   $('autoSearch').oninput = (e) => { autoQuery = e.target.value; paintAutomationList(); };
   loadAutoStats().then(paintAutomationList);
+  loadMailLog(true);
 }
 function paintAutomationList() {
   const q = autoQuery.trim().toLowerCase();
@@ -4107,9 +4119,6 @@ function paintAutomationList() {
   // button is invalid and stops responding to clicks in Safari.
   $('autoList').innerHTML = list.length ? list.map((a) => {
     const s = autoStats[a.id];
-    const sent = s ? s.sent : null;
-    const count = sent === null ? ''
-      : `<button type="button" class="au-sent" data-sent="${a.id}"${sent ? '' : ' disabled'}>${sent} sent</button>`;
     const sw = s
       ? `<button type="button" class="au-sw" role="switch" data-sw="${a.id}"
                  aria-checked="${s.on ? 'true' : 'false'}"
@@ -4120,18 +4129,16 @@ function paintAutomationList() {
       <button type="button" class="au-open" data-auto="${a.id}">
         <span class="au-ic">${ic(a.icon)}</span><span class="name">${esc(a.name)}</span>
       </button>
-      ${count}${sw}
+      ${sw}
       <span class="go">${ic('right')}</span>
     </div>`;
   }).join('') : '<div class="au-empty">No automation matches that.</div>';
 }
 $('mktCard').addEventListener('click', async (e) => {
-  // The switch and the count sit inside the row, so they are checked first:
-  // otherwise every tap on either would also open the flow behind them.
+  // The switch sits inside the row, so it is checked first: otherwise every
+  // tap on it would also open the flow behind it.
   const sw = e.target.closest('[data-sw]');
   if (sw) return toggleAutomation(sw);
-  const sent = e.target.closest('[data-sent]');
-  if (sent) return openRecipients(sent.dataset.sent);
   const row = e.target.closest('[data-auto]');
   if (row) openAutomation(row.dataset.auto);
 });
@@ -4160,44 +4167,70 @@ async function toggleAutomation(sw) {
   }
 }
 
-/** Who this automation has emailed, newest first. */
-async function openRecipients(kind) {
-  const a = automations().find((x) => x.id === kind);
-  if (!a) return;
-  $('recvIc').innerHTML = ic(a.icon);
-  $('recvTitle').textContent = a.name;
-  $('recvSub').textContent = 'Loading…';
-  $('recvBody').innerHTML = '';
-  openDialog($('recvDlg'));
+/**
+ * Email history: every email the automations have sent, newest first, under
+ * the list (asked for 2026-10-22, in place of each automation's "N sent").
+ * Times are on the salon's clock. Older pages load on demand.
+ */
+let mailLog = { rows: [], next: null, busy: false };
+async function loadMailLog(reset) {
+  if (mailLog.busy) return;
+  if (reset) mailLog = { rows: [], next: null, busy: false };
+  mailLog.busy = true;
+  if (reset) paintMailLog('Loading…');
   try {
-    const d = await api(`/api/staff/business?recipients=${encodeURIComponent(kind)}`);
-    const people = d.people || [];
-    $('recvSub').textContent = people.length === 1
-      ? '1 client has received this' : `${people.length} clients have received this`;
-    $('recvBody').innerHTML = people.length
-      ? `<div class="recv-list">${people.map((p) => `
-          <div class="recv-row">
-            <span class="who">${esc(p.name)}</span>
-            <span class="em">${esc(p.email)}</span>
-            <span class="at">${esc(whenShort(p.sentAt))}</span>
-          </div>`).join('')}</div>`
-      : '<div class="au-empty">Nobody yet. Counts start from when this was switched on.</div>';
+    const d = await api(`/api/staff/business?history=1${mailLog.next ? `&before=${encodeURIComponent(mailLog.next)}` : ''}`);
+    mailLog.rows = mailLog.rows.concat(d.sends || []);
+    mailLog.next = d.next || null;
+    paintMailLog();
   } catch (err) {
-    $('recvSub').textContent = '';
-    $('recvBody').innerHTML = `<div class="au-empty">${esc(err.message || 'Could not load that.')}</div>`;
+    paintMailLog(err.message || 'Could not load the email history.');
+  } finally {
+    mailLog.busy = false;
   }
 }
-
-/** "17 Oct, 2:30 PM" -- enough to find the message, short enough for a row. */
-function whenShort(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(undefined, {
-    day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
-  });
+function paintMailLog(note) {
+  const card = $('mailLogCard');
+  if (!card) return;
+  // Each email by the automation that sent it. A later step's email (the
+  // second no-show note, aftercare) has its own kind, so it is named as
+  // "<automation> · <step>" rather than shown as a raw code.
+  const names = {};
+  for (const a of automations()) {
+    names[a.id] = { name: a.name, icon: a.icon };
+    for (const s of a.steps || []) {
+      if (s.msg && !names[s.msg]) names[s.msg] = { name: `${a.name} · ${s.title}`, icon: a.icon };
+    }
+  }
+  const row = (s) => {
+    const a = names[s.kind];
+    return `
+      <div class="ml-row">
+        <span class="when">${esc(fmtWhen(s.sentAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span>
+        <span class="who"><b>${esc(s.name)}</b><span>${esc(s.email)}</span></span>
+        <span class="what"><span class="au-ic">${ic(a ? a.icon : 'mail')}</span><span>${esc(a ? a.name : 'Email')}</span></span>
+        <span class="ref">${esc(s.ref || '')}</span>
+      </div>`;
+  };
+  const body = note && !mailLog.rows.length
+    ? `<div class="au-empty">${esc(note)}</div>`
+    : mailLog.rows.length
+      ? `<div class="ml-head"><span>Sent</span><span>To</span><span>Email</span><span>Booking</span></div>
+         <div class="ml-list">${mailLog.rows.map(row).join('')}</div>
+         ${mailLog.next ? '<div class="ml-more"><button type="button" class="btn quiet sm" data-ml-more>Show more</button></div>' : ''}`
+      : '<div class="au-empty">No emails sent yet. They appear here as the automations send them.</div>';
+  card.innerHTML = `
+    <div class="ml-top"><h2>Email history</h2>
+      <p>Every email the automations have sent, newest first.</p></div>
+    ${body}`;
 }
-
-$('recvClose').onclick = () => closeDialog($('recvDlg'));
+$('mailLogCard').addEventListener('click', (e) => {
+  const more = e.target.closest('[data-ml-more]');
+  if (!more) return;
+  more.disabled = true;
+  more.textContent = 'Loading…';
+  loadMailLog(false);
+});
 
 function openAutomation(id) {
   const a = automations().find((x) => x.id === id);
