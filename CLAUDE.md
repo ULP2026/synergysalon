@@ -593,6 +593,21 @@ made that way are real: name them ZZ and remove them.
   `time_off`, the table availability already subtracts, so a block on the
   grid really stops the time being sold.
   `?demo` on the address shows a sample day that saves nothing.
+- Marketing, Automation (checklist of 2026-10-22): no search box; compact
+  rows, about half their old height, two columns, all twelve on one screen,
+  each with On/Off in words beside its switch. Turning one **off** opens a
+  confirmation that requires typing the automation's name (`confirmTurnOff`,
+  GoHighLevel-style); turning on needs nothing. Windows (automation, message
+  preview, the off confirmation) share `.au-head`: one flat brand colour
+  (`--indigo-deep`) with white type, readable in light and dark mode. Every
+  flow's first step carries a "Start · Trigger" label, and its steps show
+  Off when the automation is switched off. The booking flow uses the
+  client's words: "A client books an appointment online, at the front desk,
+  or in this app.", "Block the calendar" (it goes in the appointment book so
+  another client cannot book the same time), "Confirmation Message", and
+  every step's link reads "View Message". The message preview's "Plain
+  text" tab is the email's text-only version, not a text message, so it
+  keeps its name; no SMS is sent anywhere yet.
 - Marketing, Automation lists the automations in two columns (one on a
   phone), each with its switch and no "N sent" count, and under them **Email
   history**: every email the automations have sent, newest first, 50 at a

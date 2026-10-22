@@ -1483,12 +1483,37 @@
   .au-top h2 { margin: 0; font-size: 1.05rem; }
   .au-top .n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px;
                background: var(--peri-pale); color: var(--indigo); font-size: var(--fs-xs); font-weight: 700; margin-left: 8px; }
-  .au-top .search { margin-left: auto; width: 220px; }
-  .au-top .search input { height: 36px; font-size: var(--fs-sm); }
-  .au-top .search .ic { top: 9px; width: 18px; height: 18px; }
   /* Two columns of automations, asked for 2026-10-22; one on a phone. */
   .au-list { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 760px) { .au-list { grid-template-columns: minmax(0, 1fr); } }
+  /* Compact, about half the height they were (2026-10-22), so all twelve
+     fit on one screen with the history below. */
+  .au-list { gap: 6px; }
+  .au-list .au-row { padding: 6px 10px; gap: 10px; border-radius: 12px; }
+  .au-list .au-open { gap: 10px; }
+  .au-list .au-ic { width: 28px; height: 28px; border-radius: 9px; }
+  .au-list .au-ic .ic { width: 15px; height: 15px; }
+  .au-list .au-row .name { font-size: .88rem; }
+  .au-list .au-sw { width: 34px; height: 20px; }
+  .au-list .au-sw::after { width: 14px; height: 14px; }
+  .au-list .au-sw[aria-checked="true"]::after { transform: translateX(14px); }
+  .au-list .go .ic { width: 16px; height: 16px; }
+  .au-state { font-size: var(--fs-xs); font-weight: 650; min-width: 22px; text-align: right; }
+  .au-state.on { color: var(--accent-ink); }
+  .au-state.off { color: var(--faint); }
+  /* The first step of every flow: what starts it. */
+  .au-start { display: inline-block; margin: 0 0 6px; padding: 2px 9px; border-radius: 999px; font-size: var(--fs-xs);
+              font-weight: 650; letter-spacing: .02em; background: var(--peri-pale); color: var(--indigo); }
+  :root[data-theme="dark"] .au-start { background: rgba(139, 148, 220, .18); color: #c9cdf2; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .au-start { background: rgba(139, 148, 220, .18); color: #c9cdf2; } }
+  /* Turning an automation off: type its name first. */
+  dialog.au.off { max-width: 460px; }
+  .off-body { padding: 20px 24px 22px; }
+  .off-warn { margin: 0 0 14px; font-weight: 600; }
+  .off-why { margin: 0 0 16px; font-size: var(--fs-sm); color: var(--muted); }
+  .off-type { display: grid; gap: 6px; font-size: var(--fs-sm); }
+  .off-type input { width: 100%; }
+  .off-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   .au-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 14px; border-radius: 14px;
             border: 1px solid var(--line); background: var(--card); font: inherit; color: var(--ink); text-align: left; cursor: pointer;
             transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
@@ -1540,11 +1565,18 @@
 
   dialog.au { max-width: 760px; padding: 0; overflow: hidden; }
   dialog.au.msg { max-width: 640px; }
-  .au-head { display: flex; align-items: center; gap: 14px; padding: 16px 20px 14px; border-bottom: 1px solid var(--line);
-             background: linear-gradient(120deg, #e4e6f7 0%, var(--peri-pale) 55%, #f3f2fb 100%); }
+  /* One flat brand colour with white type, so it reads the same in light
+     and dark mode (2026-10-22). It was a light gradient, and dark mode's
+     white title sat on it unreadably. */
+  .au-head { display: flex; align-items: center; gap: 14px; padding: 16px 20px 14px; border-bottom: 0;
+             background: var(--indigo-deep); color: #fff; }
+  .au-head h2 { color: #fff !important; }
+  .au-head .au-ic { background: rgba(255, 255, 255, .14); box-shadow: none; }
+  .au-head .iconbtn { color: rgba(255, 255, 255, .85); border-color: rgba(255, 255, 255, .28); }
+  .au-head .iconbtn:hover:not(:disabled) { background: rgba(255, 255, 255, .12); color: #fff; }
   .au-head .au-ic { width: 44px; height: 44px; border-radius: 14px; }
   .au-head h2 { margin: 0 0 2px !important; font-size: 1.1rem; }
-  .au-head p { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+  .au-head p { margin: 0; font-size: var(--fs-sm); color: rgba(255, 255, 255, .78); }
   .au-head .grow { flex: 1; min-width: 0; }
   .au-body { padding: 20px 24px 8px; max-height: calc(100dvh - 220px); overflow-y: auto; }
   .au-foot { display: flex; align-items: center; gap: 8px; padding: 14px 24px 18px; margin: 0; font-size: var(--fs-xs); color: var(--faint); }
@@ -1553,7 +1585,7 @@
   /* The flow, as the original Appointment Confirmation picture: numbered icon
      tiles left to right, joined by a moving dashed line, each with its name,
      one line of what it does and its status underneath. A message step is a
-     button: its tile and "View email" open the email itself. */
+     button: its tile and "View Message" open the email itself. */
   .au-flow { list-style: none; margin: 0; padding: 12px 0 4px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
              gap: 12px; counter-reset: au; }
   .au-flow > li { position: relative; counter-increment: au; }
@@ -3096,6 +3128,26 @@
   <p class="au-foot"><svg class="ic"><use href="#i-eye"/></svg>View only. This is what the app does on its own.</p>
 </dialog>
 
+<!-- Marketing: turning an automation off asks first, and asks for its name,
+     the way GoHighLevel guards a destructive action (2026-10-22). -->
+<dialog id="offDlg" class="au off" aria-labelledby="offTitle">
+  <header class="au-head">
+    <span class="au-ic" id="offIc"></span>
+    <div class="grow"><h2 id="offTitle">Turn off this automation?</h2><p id="offSub"></p></div>
+    <button type="button" class="iconbtn lg" id="offClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </header>
+  <form class="off-body" id="offForm">
+    <p class="off-warn">Are you sure you want to turn off this automation?</p>
+    <p class="off-why">Clients stop receiving it until somebody switches it back on. Bookings themselves are not affected.</p>
+    <label class="off-type"><span>Type <b id="offName"></b> to confirm</span>
+      <input id="offInput" autocomplete="off" spellcheck="false" aria-describedby="offName"></label>
+    <div class="off-actions">
+      <button type="button" class="btn quiet" id="offCancel">Cancel</button>
+      <button type="submit" class="btn danger" id="offGo" disabled>Turn off</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="msgDlg" class="au msg" aria-labelledby="msgTitle">
   <header class="au-head">
     <span class="au-ic"><svg class="ic"><use href="#i-mail"/></svg></span>
@@ -3978,10 +4030,10 @@ function automations() {
     {
       id: 'confirmation', name: 'Appointment Booking', icon: 'calendar-plus',
       sub: 'Confirms every new booking by email.',
-      when: ['calendar-plus', 'A client books', 'Online, or at the front desk in this app.'],
+      when: ['calendar-plus', 'A client books', 'A client books an appointment online, at the front desk, or in this app.'],
       steps: [
-        ['calendar', 'Hold the time', 'It goes in the diary, so nobody else can take it.'],
-        { msg: 'confirmation', title: 'Confirmation email', text: 'Date, time, stylist and the salon’s address, with a link to change or cancel.' },
+        ['calendar', 'Block the calendar', 'It goes in the appointment book, so another client cannot book the same time.'],
+        { msg: 'confirmation', title: 'Confirmation Message', text: 'Date, time, stylist and the salon’s address, with a link to change or cancel.' },
       ],
     },
     {
@@ -4084,7 +4136,6 @@ function automations() {
   ];
 }
 
-let autoQuery = '';
 // What the server says about each automation: whether it is on, how many have
 // gone out, and when the last one did. Empty until the first load, and left
 // empty if the call fails -- the list still paints, just without the numbers,
@@ -4103,22 +4154,22 @@ function renderAutomations() {
   $('mktCard').innerHTML = `
     <div class="au-top">
       <h2>Automations<span class="n">${all.length}</span></h2>
-      <div class="search"><svg class="ic"><use href="#i-search"/></svg>
-        <input id="autoSearch" type="search" placeholder="Search automations" aria-label="Search automations" value="${esc(autoQuery)}"></div>
     </div>
     <div class="au-list" id="autoList"></div>`;
   paintAutomationList();
-  $('autoSearch').oninput = (e) => { autoQuery = e.target.value; paintAutomationList(); };
   loadAutoStats().then(paintAutomationList);
   loadMailLog(true);
 }
 function paintAutomationList() {
-  const q = autoQuery.trim().toLowerCase();
-  const list = automations().filter((a) => !q || a.name.toLowerCase().includes(q));
+  // All twelve, always: the search box was removed on request (2026-10-22),
+  // and they fit on one screen now.
+  const list = automations();
   // A row, not a button: it holds three controls now, and a button inside a
   // button is invalid and stops responding to clicks in Safari.
   $('autoList').innerHTML = list.length ? list.map((a) => {
     const s = autoStats[a.id];
+    // On or Off in words beside the switch, so the state reads at a glance.
+    const state = s ? `<span class="au-state ${s.on ? 'on' : 'off'}">${s.on ? 'On' : 'Off'}</span>` : '';
     const sw = s
       ? `<button type="button" class="au-sw" role="switch" data-sw="${a.id}"
                  aria-checked="${s.on ? 'true' : 'false'}"
@@ -4129,7 +4180,7 @@ function paintAutomationList() {
       <button type="button" class="au-open" data-auto="${a.id}">
         <span class="au-ic">${ic(a.icon)}</span><span class="name">${esc(a.name)}</span>
       </button>
-      ${sw}
+      ${state}${sw}
       <span class="go">${ic('right')}</span>
     </div>`;
   }).join('') : '<div class="au-empty">No automation matches that.</div>';
@@ -4153,6 +4204,12 @@ $('mktCard').addEventListener('click', async (e) => {
 async function toggleAutomation(sw) {
   const kind = sw.dataset.sw;
   const on = sw.getAttribute('aria-checked') !== 'true';
+  // Off is the destructive direction: clients stop hearing from the salon,
+  // and nobody may notice for days. Turning on needs no ceremony.
+  if (!on) {
+    const a = automations().find((x) => x.id === kind) || { name: kind, icon: 'zap' };
+    if (!(await confirmTurnOff(a))) return;
+  }
   sw.setAttribute('aria-checked', String(on));
   sw.disabled = true;
   try {
@@ -4164,7 +4221,43 @@ async function toggleAutomation(sw) {
     toast(err.message || 'Could not change that.', 'bad');
   } finally {
     sw.disabled = false;
+    // Repaint, so the On/Off beside the switch says what the server holds.
+    paintAutomationList();
   }
+}
+
+/**
+ * Ask before an automation is turned off, and make the person type its name,
+ * as GoHighLevel does for a destructive action. Resolves true only once the
+ * name is typed and Turn off pressed; closing, Cancel or Escape leave it on.
+ * Case and surrounding spaces do not matter: the point is a deliberate act,
+ * not a spelling test.
+ */
+function confirmTurnOff(a) {
+  return new Promise((resolve) => {
+    const dlg = $('offDlg');
+    const input = $('offInput');
+    $('offIc').innerHTML = ic(a.icon);
+    $('offSub').textContent = a.name;
+    $('offName').textContent = a.name;
+    input.value = '';
+    $('offGo').disabled = true;
+    const matches = () => input.value.trim().toLowerCase() === a.name.trim().toLowerCase();
+    let done = false;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      if (dlg.open) closeDialog(dlg);
+      resolve(ok);
+    };
+    input.oninput = () => { $('offGo').disabled = !matches(); };
+    $('offForm').onsubmit = (e) => { e.preventDefault(); if (matches()) finish(true); };
+    $('offCancel').onclick = () => finish(false);
+    $('offClose').onclick = () => finish(false);
+    dlg.addEventListener('close', () => finish(false), { once: true });
+    openDialog(dlg);
+    setTimeout(() => input.focus(), 60);
+  });
 }
 
 /**
@@ -4241,15 +4334,18 @@ function openAutomation(id) {
   $('autoSub').textContent = a.sub;
   const [wi, wt, wx] = a.when;
   const tile = (icon) => `<span class="au-tile">${ic(icon)}</span>`;
-  const on = '<span class="chip ok">On</span>';
-  const mail = emailOn ? '<span class="chip ok">On</span>'
+  // The steps say what the switch says: an automation turned off shows Off
+  // on every step, where it used to say On regardless.
+  const live = autoStats[a.id] ? autoStats[a.id].on !== false : true;
+  const on = live ? '<span class="chip ok">On</span>' : '<span class="chip">Off</span>';
+  const mail = !live ? on : emailOn ? '<span class="chip ok">On</span>'
     : '<span class="chip pending" title="The booking still happens; the client is just not emailed yet.">Starts once email is set up</span>';
   $('autoBody').innerHTML = `<ol class="au-flow">
-    <li class="when"><div class="au-step">${tile(wi)}<h3>${esc(wt)}</h3><p>${esc(wx)}</p>${on}</div></li>
+    <li class="when"><div class="au-step">${tile(wi)}<span class="au-start">Start · Trigger</span><h3>${esc(wt)}</h3><p>${esc(wx)}</p>${on}</div></li>
     ${a.steps.map((st) => (st.msg ? `
       <li><button type="button" class="au-step" data-msg="${st.msg}" data-title="${esc(st.title)}">
         ${tile('mail')}<h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>${mail}
-        <span class="open">View email${ic('right')}</span></button></li>` : `
+        <span class="open">View Message${ic('right')}</span></button></li>` : `
       <li><div class="au-step">${tile(st[0])}<h3>${esc(st[1])}</h3><p>${esc(st[2])}</p>${on}</div></li>`)).join('')}
   </ol>`;
   // As wide as its steps need: a two-step automation in a five-step window
