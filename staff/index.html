@@ -2453,8 +2453,8 @@
       <div class="md-sec">Connect your tools</div>
       <div id="memberToolsList"></div>
 
-      <!-- The work: left out entirely for the salon's admin, who takes no
-           appointments (memberWork is hidden for them in openMember). -->
+      <!-- The work: services, prices and hours, for everybody, the owner
+           included; an owner can be a stylist too. -->
       <div id="memberWork">
         <!-- Services and prices: four switches, a price beside each one that is on. -->
         <div class="md-sec">Services &amp; pricing</div>
@@ -6108,34 +6108,29 @@ function paintGoogleWeek() {
 }
 
 /**
- * Whether these hours can be changed: only by the admin, on somebody else's
- * window or while adding somebody (a stylist with or without a sign-in). A
- * stylist sees their own schedule grey and cannot change it, as the salon
- * asked, and no hours are sent from it, so the stored ones are kept; the admin has
- * no hours of their own. The server holds the same line: /profile ignores
- * hours, and /team, which takes them, is the admin's alone.
+ * Whether these hours can be changed: only by the admin, on anybody's window,
+ * their own included, or while adding somebody (a stylist with or without a
+ * sign-in). A stylist sees their own schedule grey and cannot change it, as
+ * the salon asked, and no hours are sent from it, so the stored ones are
+ * kept. The server holds the same line: /profile takes your own hours only
+ * from the admin, and /team, which takes everybody's, is the admin's alone.
  */
 function hoursOpen() {
-  return Boolean(me?.user?.canManageTeam && memberEdit !== 'me' && !memberIsAdmin(toolsFor));
+  return Boolean(me?.user?.canManageTeam);
 }
 
 /**
- * The admin (the owner, or the support login: canManageTeam on the server,
- * the app's one admin rule) runs the place rather than taking appointments,
- * so their window has no services, prices or hours. Follows the role picker
- * while editing, so making somebody Owner takes the sections away before
- * saving. An admin by email stays one whatever the role says.
+ * Services, prices and hours are everybody's, the owner's included: an owner
+ * can take appointments as well as run the place (asked for 2026-10-22; the
+ * admin's window used to leave them out). With every service off they are
+ * simply not on the booking page (syncStylist, roster.js).
  */
-const ADMIN_ROLES = ['owner', 'admin'];
-function memberIsAdmin(m) {
-  const role = $('memberForm').elements.role.value;
-  const byEmail = Boolean(m && m.admin && !ADMIN_ROLES.includes(m.role));
-  return byEmail || ADMIN_ROLES.includes(role);
+function paintWorkVisibility() {
+  $('memberWork').classList.remove('hidden');
 }
 
-function paintWorkVisibility() {
-  $('memberWork').classList.toggle('hidden', memberIsAdmin(toolsFor));
-}
+/** The roles only an owner may hand out (the role picker in Add Team Member). */
+const ADMIN_ROLES = ['owner', 'admin'];
 
 /** Every day grey and every control disabled while the section is closed. */
 function paintHoursState() {
@@ -6489,13 +6484,11 @@ $('memberForm').onsubmit = async (e) => {
         }
       }
     }
-    // Sent only when it changed, so saving a name works before migration 012,
-    // and never for the admin, whose window has no services at all.
-    const admin = memberIsAdmin(memberEdit === 'me' ? toolsFor : memberEdit);
-    if (!admin && JSON.stringify(services) !== memberOrig.services) fields.services = services;
+    // Sent only when it changed, so saving a name works before migration 012.
+    if (JSON.stringify(services) !== memberOrig.services) fields.services = services;
     // Hours only while the section is open; otherwise nothing could have
     // been changed, and leaving them out keeps what is stored.
-    const sendHours = hoursOpen() && !admin;
+    const sendHours = hoursOpen();
     if (sendHours) fields.hours = readHoursUI();
     if (memberPic !== undefined) fields.avatar = memberPic;
     if (memberEdit && memberEdit.noLogin) {

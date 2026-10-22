@@ -10,7 +10,7 @@
  */
 import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { query, transaction } from '../../_lib/db.js';
-import { hoursFor, syncStylist } from '../../_lib/roster.js';
+import { hoursFor, readHours, syncStylist } from '../../_lib/roster.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
@@ -224,9 +224,9 @@ export default handler({
       avatarStyle: me.avatar_style || null,
       photo: me.photo || (me.stylist_slug ? stylistPhoto(me.tenant_slug, me.stylist_slug) : null),
       hours,
-      // The admin (canManageTeam, the one admin rule) runs the place rather
-      // than taking appointments, so the window leaves out services, prices
-      // and hours.
+      // Whether they run the team (canManageTeam, the one admin rule). It no
+      // longer hides anything: an owner can take appointments too, so their
+      // window has services, prices and hours like everybody's.
       admin: canManageTeam(me),
       since: me.created_at,
       lastSeen: me.last_seen_at,
@@ -270,9 +270,10 @@ export default handler({
       await assertUsernameFree(user.tenant_id, username, user.id);
       add('username', username);
     }
-    // Every stylist sets their own prices: they are the one quoting them.
-    // Not the admin, who takes no appointments: whatever is stored is left.
-    const services = canManageTeam(user) ? undefined : servicesFrom(body.services);
+    // Everybody sets their own prices: they are the one quoting them. The
+    // owner too, who can be a stylist as well as run the place; with every
+    // service off they are simply not on the booking page (syncStylist).
+    const services = servicesFrom(body.services);
     if (services !== undefined) add('services', JSON.stringify(services));
     if (body.pricing !== undefined && CAN_PRICE.includes(user.role)) {
       add('pricing', String(body.pricing || '').trim().slice(0, 120));
@@ -293,10 +294,11 @@ export default handler({
       add('password_hash', await hashPassword(next));
     }
 
-    // Nobody sets their own working hours: the admin does, from the team
-    // (team.js). Hours sent here are ignored, so the stored rota stands.
-    const hours = null;
-    if (!sets.length) throw new HttpError(400, 'Nothing to change.');
+    // Working hours are the admin's to set, from the team (team.js) for
+    // everybody else and here for their own. A stylist's own hours sent here
+    // are ignored, so the stored rota stands.
+    const hours = canManageTeam(user) ? readHours(body.hours) : null;
+    if (!sets.length && !hours) throw new HttpError(400, 'Nothing to change.');
 
     const returning = `RETURNING id, name, email, phone, role, avatar,
                   to_jsonb(staff_users) ->> 'username' AS username,

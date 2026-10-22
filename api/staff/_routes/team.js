@@ -130,8 +130,8 @@ export default handler({
         email: r.email,
         phone: r.phone || '',
         role: r.role,
-        // The admin takes no appointments, so their window has no services,
-        // prices or hours (canManageTeam in auth.js).
+        // Whether they run the team (canManageTeam in auth.js). It no longer
+        // hides their services, prices or hours: an owner can be a stylist.
         admin: canManageTeam(r),
         status: r.status,
         note: r.note,
@@ -429,10 +429,9 @@ export default handler({
           add('username', username);
         }
         if (body.pricing !== undefined) add('pricing', String(body.pricing || '').trim().slice(0, 120));
-        // An admin (as they will be after this save) takes no appointments,
-        // so services sent for them are ignored and what is stored is left.
-        const admin = canManageTeam({ role: body.role ?? target.role, email: body.email ?? target.email });
-        const services = admin ? undefined : servicesFrom(body.services);
+        // Owners and admins included: an owner can be a stylist too, and with
+        // every service off is simply not on the booking page (syncStylist).
+        const services = servicesFrom(body.services);
         if (services !== undefined) add('services', JSON.stringify(services));
         const avatar = avatarFrom(body.avatar);
         if (avatar !== undefined) add('avatar', avatar);
