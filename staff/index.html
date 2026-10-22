@@ -1206,6 +1206,16 @@
     .karen-tab:hover { padding-right: 16px; }
     .karen-tab .kt-lbl { writing-mode: horizontal-tb; transform: none; }
   }
+  /* Karen in the top bar, beside the person chip, on every page: the one
+     place sure to be on screen whatever else covers the edges. */
+  .grn-karen { gap: 8px; padding: 0 14px 0 6px; border-color: rgba(85, 96, 166, .28); font-weight: 650; }
+  /* By id, so dark mode's glass does not turn her dark: she stays pink in both. */
+  #karenNav { background: linear-gradient(135deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c; }
+  #karenNav:hover { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
+  .grn-karen .kc-pic { width: 32px; height: 32px; }
+  .grn-karen .kc-pic img { width: 27px; height: 27px; }
+  /* Phones have no room in the top bar: Karen is the round button at the bottom right there. */
+  @media (max-width: 720px) { .grn-karen { display: none; } }
   .kc-pic, .kd-pic { position: relative; flex: none; display: grid; place-items: center; border-radius: 50%; background: #fff; }
   .kc-pic { width: 28px; height: 28px; }
   .kc-pic img { width: 24px; height: 24px; }
@@ -2338,6 +2348,10 @@
       <a class="grn-item icon-only" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
         <svg class="grn-ic"><use href="#l-settings"/></svg></a>
     </nav>
+    <!-- Call Karen, the booking assistant, beside the person on every page. -->
+    <button type="button" class="grn-me grn-karen glass-strong" id="karenNav" title="Call Karen, the booking assistant" aria-label="Call Karen">
+      <span class="kc-pic" aria-hidden="true"><img id="karenNavPic" alt=""><i></i></span><span class="me-name">Call Karen</span>
+    </button>
     <!-- The person: their picture and first name. A click opens their own
          profile in place, the dialog Team Members opens for them; it stays a
          link to Settings, so a new-tab click still goes there. -->
@@ -6925,8 +6939,10 @@ function kTeam() {
 }
 
 $('karenBtnPic').src = KAREN_PIC;
+$('karenNavPic').src = KAREN_PIC;
 $('karenPic').src = KAREN_PIC;
 $('karenBtn').onclick = openKaren;
+$('karenNav').onclick = openKaren;
 $('karenRestart').onclick = kStart;
 $('karenClose').onclick = () => closeDialog($('karenDlg'));
 
