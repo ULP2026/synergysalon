@@ -5088,12 +5088,10 @@ $('diary').onclick = (e) => {
   if (!col || e.target !== col || col.classList.contains('dg-gcol')) return;
   if (noCals && !dgDemo) { toast('Create a calendar first.'); return; }
   const mins = slotAt(col, e.clientY);
-  const anchor = col.querySelector('.ghost');
-  // After this click has finished bubbling, or the page's "click elsewhere
-  // closes the menu" handler would shut it straight away.
-  setTimeout(() => showMenu(anchor, [
-    { label: `New appointment at ${clock(mins)}`, run: () => openBooking(null, { date: day, minutes: mins, stylist: col.dataset.stylist || undefined }) },
-  ]), 0);
+  // Straight into New appointment, with no "New appointment at…" menu first
+  // (asked for 2026-10-22): the column is the stylist and the click the time,
+  // so it opens on "What type of service?".
+  openBooking(null, { date: day, minutes: mins, stylist: col.dataset.stylist || undefined });
 };
 
 // ── one appointment in full ───────────────────────────────────────────────
