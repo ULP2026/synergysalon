@@ -1190,6 +1190,66 @@
     .mrow .badges { grid-column: 2; justify-content: flex-start; }
   }
 
+  /* Call Karen: the booking assistant's button and chat. */
+  .karen-cta { gap: 8px; padding-left: 8px; border: 1px solid rgba(85, 96, 166, .28); font-weight: 650; color: var(--indigo-deep);
+               background: linear-gradient(135deg, #f6dcec 0%, var(--peri-pale) 100%); box-shadow: var(--e1); }
+  .karen-cta:hover:not(:disabled) { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
+  .kc-pic, .kd-pic { position: relative; flex: none; display: grid; place-items: center; border-radius: 50%; background: #fff; }
+  .kc-pic { width: 28px; height: 28px; }
+  .kc-pic img { width: 24px; height: 24px; }
+  .kc-pic i, .kd-pic i { position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%;
+                         background: #2fb36b; border: 2px solid #fff; }
+  dialog.kd { max-width: 460px; width: calc(100% - 24px); height: min(680px, calc(100dvh - 24px)); padding: 0; overflow: hidden; }
+  dialog.kd[open] { display: flex; flex-direction: column; }
+  .kd-head { display: flex; align-items: center; gap: 12px; padding: 14px 12px 14px 18px; background: var(--peri-pale);
+             border-bottom: 1px solid rgba(85, 96, 166, .16); }
+  .kd-pic { width: 46px; height: 46px; box-shadow: var(--e1); }
+  .kd-pic img { width: 40px; height: 40px; }
+  .kd-pic i { width: 12px; height: 12px; }
+  .kd-id { flex: 1; min-width: 0; }
+  .kd-id h2 { margin: 0; font-size: 1.1rem; }
+  .kd-id span { font-size: var(--fs-xs); color: var(--muted); }
+  .kd-x { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none;
+          color: var(--muted); cursor: pointer; }
+  .kd-x:hover { background: rgba(85, 96, 166, .12); }
+  .kd-log { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--raise); }
+  .kd-msg { max-width: 84%; padding: 10px 14px; border-radius: 16px; font-size: .94rem; line-height: 1.45; overflow-wrap: anywhere;
+            animation: kd-in .22s var(--ease); }
+  .kd-msg.karen { align-self: flex-start; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
+  .kd-msg.me { align-self: flex-end; background: var(--periwinkle); color: #fff; border-bottom-right-radius: 6px; }
+  .kd-msg p { margin: 0; } .kd-msg p + p { margin-top: 6px; }
+  .kd-typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
+  .kd-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); animation: kd-dot 1s infinite ease-in-out; }
+  .kd-typing i:nth-child(2) { animation-delay: .15s; } .kd-typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes kd-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes kd-dot { 0%, 80%, 100% { opacity: .35; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+  .kd-card { margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--raise); }
+  .kd-card dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: var(--fs-sm); }
+  .kd-card dt { color: var(--muted); } .kd-card dd { margin: 0; font-weight: 600; }
+  .kd-ok { display: flex; align-items: center; gap: 8px; font-weight: 650; color: var(--ok); }
+  .kd-ok svg { width: 18px; height: 18px; }
+  .kd-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 38%; overflow-y: auto; padding: 10px 16px;
+              border-top: 1px solid var(--line); background: var(--card); }
+  .kd-chips:empty { display: none; }
+  .kd-chip { padding: 8px 14px; border: 1px solid var(--periwinkle); border-radius: 999px; background: var(--card); color: var(--periwinkle);
+             font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; animation: kd-in .22s var(--ease) both;
+             transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
+  .kd-chip:hover { background: var(--peri-pale); }
+  .kd-chip.solid { background: var(--periwinkle); color: #fff; }
+  .kd-chip.solid:hover { background: var(--indigo); }
+  .kd-chip:focus-visible, .kd-send:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
+  .kd-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--card); }
+  .kd-input input { flex: 1; min-width: 0; padding: 10px 16px; border: 1px solid var(--line-2); border-radius: 999px;
+                    background: var(--field); color: var(--ink); font: inherit; }
+  .kd-send { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 50%;
+             background: var(--periwinkle); color: #fff; cursor: pointer; }
+  .kd-send:hover { background: var(--indigo); }
+  @media (max-width: 720px) { .pagehead .karen-cta { flex: 1; justify-content: center; } }
+  @media (max-width: 520px) {
+    dialog.kd { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; border-radius: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .kd-msg, .kd-chip { animation: none; } .kd-typing i { animation: none; } }
+
   /* New appointment: one question at a time, each answer a card. */
   dialog.bw { max-width: 600px; padding: 0; overflow: hidden; }
   dialog.bw[open] { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
@@ -2282,6 +2342,10 @@
       <button type="button" class="btn quiet hidden" id="homeEdit">
         <svg class="ic"><use href="#i-settings"/></svg><span>Customize</span>
       </button>
+      <!-- Karen, the booking assistant: Home and Appt. Book. -->
+      <button type="button" class="btn karen-cta hidden" id="karenBtn">
+        <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span><span>Call Karen</span>
+      </button>
       <button class="btn primary" id="primaryBtn">
         <svg class="ic"><use href="#i-plus"/></svg><span id="primaryLbl">New appointment</span>
       </button>
@@ -2506,6 +2570,28 @@
       <button type="button" class="btn quiet" data-book-close>Cancel</button>
       <button class="btn hidden" id="bookSubmit" value="book">Book appointment</button>
     </footer>
+  </form>
+</dialog>
+
+<!-- Karen, the booking assistant (asked for 2026-10-22): a chat that walks
+     through service, stylist, day, time and client, offering the real
+     choices as buttons and understanding the same answers typed. It books
+     through POST /api/staff/book, exactly as New appointment does. -->
+<dialog id="karenDlg" class="kd" aria-labelledby="karenTitle">
+  <header class="kd-head">
+    <span class="kd-pic"><img id="karenPic" alt=""><i></i></span>
+    <div class="kd-id">
+      <h2 id="karenTitle">Karen</h2>
+      <span>Booking assistant · online</span>
+    </div>
+    <button type="button" class="kd-x" id="karenRestart" title="Start over" aria-label="Start over"><svg class="ic"><use href="#i-sync"/></svg></button>
+    <button type="button" class="kd-x" id="karenClose" title="Close" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </header>
+  <div class="kd-log" id="karenLog" role="log" aria-live="polite"></div>
+  <div class="kd-chips" id="karenChips"></div>
+  <form class="kd-input" id="karenForm" autocomplete="off">
+    <input id="karenText" placeholder="Type a message…" aria-label="Message Karen" maxlength="200">
+    <button class="kd-send" aria-label="Send"><svg class="ic"><use href="#i-right"/></svg></button>
   </form>
 </dialog>
 
@@ -4138,6 +4224,7 @@ function go(name, { push = true } = {}) {
   $('pageSub').textContent = name === 'home' ? greeting() : p.sub;
   // One primary action per view, and none where there is nothing to do yet.
   $('primaryBtn').classList.toggle('hidden', !p.action);
+  $('karenBtn').classList.toggle('hidden', !(name === 'home' || name === 'appointments'));
   $('homeEdit').classList.toggle('hidden', !(name === 'home' && homeData?.canCustomize) || homeEditing);
   // Leaving Home ends customizing without saving, as Cancel would.
   if (name !== 'home' && homeEditing) { homeLayout = JSON.parse(homeBefore || '[]'); homeEditing = false; }
@@ -6228,6 +6315,609 @@ $('bookForm').onsubmit = async (e) => {
     }
   } finally { $('bookSubmit').disabled = false; }
 };
+
+// ───────────────────────────── Karen ─────────────────────────────
+//
+// The booking assistant behind "Call Karen" (asked for 2026-10-22). Not a
+// language model: a guided conversation that offers the real choices as
+// buttons at every turn and understands the same answers typed ("color",
+// "Kim", "tomorrow at 2", "skip"). It reads the services, stylists and free
+// times New appointment reads, and books through the same POST
+// /api/staff/book, so it cannot offer or book anything the diary would not.
+
+const KAREN_PIC = charAvatar('Karen, Synergy');
+const KAREN_KINDS = {
+  color: /colou?r|balayage|highlight|foil|toner|gloss|dye/,
+  treatments: /treatment|keratin|olaplex|k18|bond|scalp|brazilian/,
+  cuts: /\bcuts?\b|haircut|trim|bang/,
+  styling: /styl|blow ?out|updo|bridal|special event|extension/,
+};
+const KAREN_WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const KAREN_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+let karen = null;                  // what has been chosen so far
+let karenQueue = Promise.resolve();   // Karen speaks one message at a time
+let karenExpect = null;            // what a typed answer means right now
+let karenRun = 0;                  // a new conversation silences the old one
+
+const kWait = (ms) => new Promise((r) => { setTimeout(r, ms); });
+const kQuiet = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const kPad = (n) => String(n).padStart(2, '0');
+const kDate = (iso, opts = { weekday: 'long', month: 'long', day: 'numeric' }) =>
+  new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { ...opts, timeZone: 'UTC' });
+const kDayName = (iso) => (iso === salonToday() ? 'Today'
+  : iso === addDays(salonToday(), 1) ? 'Tomorrow' : kDate(iso, { weekday: 'short', month: 'short', day: 'numeric' }));
+const kWho = () => (karen.stylist === 'any' ? 'whoever is free'
+  : esc(me.stylists.find((s) => s.slug === karen.stylist)?.name || 'them'));
+const kFirst = () => esc(karen.name.trim().split(/\s+/)[0] || 'them');
+
+function kScroll() { const log = $('karenLog'); log.scrollTop = log.scrollHeight; }
+
+/** Karen says something, after a moment of typing. html is built here; anything typed is escaped first. */
+function kSay(html) {
+  const run = karenRun;
+  karenQueue = karenQueue.then(async () => {
+    if (run !== karenRun) return;
+    const b = document.createElement('div');
+    b.className = 'kd-msg karen';
+    b.innerHTML = '<span class="kd-typing" aria-label="Karen is typing"><i></i><i></i><i></i></span>';
+    $('karenLog').append(b);
+    kScroll();
+    await kWait(kQuiet() ? 0 : 380 + Math.min(html.length * 2, 420));
+    if (run !== karenRun) { b.remove(); return; }
+    b.innerHTML = html;
+    kScroll();
+  });
+  return karenQueue;
+}
+
+function kMe(text) {
+  const b = document.createElement('div');
+  b.className = 'kd-msg me';
+  b.textContent = text;
+  $('karenLog').append(b);
+  kScroll();
+}
+
+/**
+ * The answers offered under the conversation, and what typing means while
+ * they are up. expect(t, raw) returns false when it did not understand (the
+ * buttons stay and Karen says so), 'keep' when it answered but the question
+ * stands, and anything else when the conversation moved on.
+ */
+function kAsk(chips, expect = null, hint = '') {
+  const run = karenRun;
+  karenQueue = karenQueue.then(() => {
+    if (run !== karenRun) return;
+    karenExpect = expect ? { fn: expect, hint } : null;
+    $('karenChips').innerHTML = chips.map((c, i) =>
+      `<button type="button" class="kd-chip${c.solid ? ' solid' : ''}" data-i="${i}" style="animation-delay:${i * 30}ms">${esc(c.label)}</button>`).join('');
+    $('karenChips').onclick = (e) => {
+      const b = e.target.closest('[data-i]');
+      if (!b) return;
+      const c = chips[Number(b.dataset.i)];
+      $('karenChips').innerHTML = '';
+      karenExpect = null;
+      kMe(c.say || c.label);
+      c.run();
+    };
+    kScroll();
+  });
+}
+
+$('karenForm').onsubmit = (e) => {
+  e.preventDefault();
+  const raw = $('karenText').value.trim();
+  if (!raw) return;
+  $('karenText').value = '';
+  kMe(raw);
+  const t = raw.toLowerCase();
+  if (/^(start over|restart|reset|start again|new booking)\b/.test(t)) { kStart(); return; }
+  const ask = karenExpect;
+  const got = ask ? ask.fn(t, raw) : false;
+  if (got === 'keep') return;
+  if (got === false) {
+    kSay(`<p>Sorry, I didn't catch that. ${esc(ask?.hint || 'Tap one of the options below, or type "start over".')}</p>`);
+    return;
+  }
+  $('karenChips').innerHTML = '';
+  karenExpect = null;
+};
+
+// ── what the salon offers ────────────────────────────────────────────────
+
+/** Services anybody (or this stylist) does. */
+function kOffered(stylist = null) {
+  const lists = (me.stylists || []).filter((s) => !stylist || stylist === 'any' || s.slug === stylist).map((s) => s.services);
+  if (lists.some((l) => !Array.isArray(l))) return me.services;
+  const set = new Set(lists.flat());
+  return me.services.filter((s) => set.has(s.slug));
+}
+const kStylistsFor = (svc) => (me.stylists || []).filter((s) => !Array.isArray(s.services) || s.services.includes(svc.slug));
+const kWord = (w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+
+function kFindService(t, pool = kOffered()) {
+  const exact = pool.find((s) => t.includes(s.name.toLowerCase()));
+  if (exact) return exact;
+  // A distinctive word of a name ("corrective") names the service, but a
+  // word that names a kind is the kind: "color" is Color, not Color & Cut.
+  if (Object.values(KAREN_KINDS).some((re) => re.test(t))) return null;
+  return pool.find((s) => s.name.toLowerCase().split(/[^a-z0-9]+/).some((w) => w.length > 4 && kWord(w).test(t))) || null;
+}
+function kFindKind(t) {
+  const offered = kOffered();
+  return Object.keys(KAREN_KINDS).find((k) => KAREN_KINDS[k].test(t) && offered.some((s) => bookKindOf(s) === k)) || null;
+}
+function kFindStylist(t, list = me.stylists || []) {
+  return list.find((s) => t.includes(s.name.toLowerCase()))
+    || list.find((s) => kWord(s.name.toLowerCase().split(/\s+/)[0]).test(t)) || null;
+}
+
+/** "today", "tomorrow", "friday", "next tuesday", "oct 28", "10/28", "the 5th". */
+function kParseDate(t) {
+  const today = salonToday();
+  if (/\btoday\b|\btonight\b/.test(t)) return today;
+  if (/\btomorrow\b|\btmrw\b/.test(t)) return addDays(today, 1);
+  const wd = KAREN_WEEKDAYS.findIndex((w) => kWord(w).test(t) || kWord(w.slice(0, 3)).test(t));
+  if (wd >= 0) {
+    const now = new Date(`${today}T12:00:00Z`).getUTCDay();
+    let n = (wd - now + 7) % 7;
+    if (n === 0 && /\bnext\b/.test(t)) n = 7;
+    return addDays(today, n);
+  }
+  const md = t.match(/\b(\d{1,2})[/-](\d{1,2})\b/);
+  const mi = KAREN_MONTHS.findIndex((m) => kWord(m).test(t) || new RegExp(`\\b${m}[a-z]*\\b`).test(t));
+  const num = t.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/);
+  let y = Number(today.slice(0, 4));
+  let m;
+  let d;
+  if (md) { m = Number(md[1]); d = Number(md[2]); }
+  else if (mi >= 0 && num) { m = mi + 1; d = Number(num[1]); }
+  else if (num && /\b(the|on)\s+\d/.test(t)) { m = Number(today.slice(5, 7)); d = Number(num[1]); }
+  else return null;
+  let iso = `${y}-${kPad(m)}-${kPad(d)}`;
+  if (iso < today) {
+    if (!md && mi < 0) { m += 1; if (m > 12) { m = 1; y += 1; } }   // "the 5th", already gone: next month's
+    else y += 1;
+    iso = `${y}-${kPad(m)}-${kPad(d)}`;
+  }
+  return new Date(`${iso}T12:00:00Z`).toISOString().slice(0, 10) === iso ? iso : null;
+}
+
+/** "2", "2:30", "2pm", "10 am", "noon". strict: only with am/pm or minutes, for a date typed with a time. */
+function kParseTime(t, strict = false) {
+  if (/\bnoon\b|\bmidday\b/.test(t)) return 720;
+  const re = strict
+    ? /\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)(?![a-z])|\b(\d{1,2}):(\d{2})\b/
+    : /\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?|a|p)?(?![a-z0-9])/;
+  const m = t.match(re);
+  if (!m) return null;
+  let h = Number(m[1] ?? m[4]);
+  const min = Number(m[2] ?? m[5] ?? 0);
+  const ap = (m[3] || '')[0];
+  if (h > 23 || min > 59) return null;
+  if (ap === 'p' && h < 12) h += 12;
+  if (ap === 'a' && h === 12) h = 0;
+  if (!ap && h >= 1 && h <= 7) h += 12;   // a salon's "2" is the afternoon
+  return h * 60 + min;
+}
+
+// ── the conversation ─────────────────────────────────────────────────────
+
+function kReset() {
+  karen = {
+    kind: null, svc: null, stylist: null, date: null, time: null, wantTime: null,
+    name: '', phone: null, email: null, days: null, daysKey: '', done: false,
+  };
+}
+
+function openKaren() {
+  if (!karen || karen.done) kStart();
+  openDialog($('karenDlg'));
+  setTimeout(() => $('karenText').focus({ preventScroll: true }), 60);
+}
+
+function kStart() {
+  karenRun += 1;
+  karenQueue = Promise.resolve();
+  karenExpect = null;
+  kReset();
+  $('karenLog').innerHTML = '';
+  $('karenChips').innerHTML = '';
+  kSay('<p>Hey! How can I help you today?</p>');
+  kMenu();
+}
+
+function kMenu() {
+  kAsk([
+    { label: 'Help me book an appointment', solid: true, run: kBook },
+    { label: 'What services do you offer?', run: kServices },
+    { label: 'Who can I book with?', run: kTeam },
+  ], (t) => {
+    if (/^(hi|hey|hello|yo|good (morning|afternoon|evening))\b/.test(t) && t.split(/\s+/).length <= 3) {
+      kSay('<p>Hi there! I can book an appointment, or tell you about our services and team.</p>');
+      return 'keep';
+    }
+    if (/servic|offer|menu|price|cost|how much/.test(t) && !/book/.test(t)) { kServices(); return true; }
+    if (/\bwho\b|stylist|team|staff/.test(t) && !/book/.test(t)) { kTeam(); return true; }
+    if (/book|appoint|schedul|reserv|slot|availab|free|open/.test(t) || kFindService(t) || kFindKind(t) || kFindStylist(t)) {
+      kBookFrom(t);
+      return true;
+    }
+    return false;
+  }, 'I can help you book an appointment, or tell you about our services and team.');
+}
+
+function kBook() {
+  kSay("<p>Happy to help! Let's find the right time.</p>");
+  kNext();
+}
+
+/** A first message that already says some of it: "a balayage with Kim tomorrow at 2". */
+function kBookFrom(t) {
+  const svc = kFindService(t);
+  if (svc) { karen.svc = svc; karen.kind = bookKindOf(svc); }
+  else karen.kind = kFindKind(t);
+  const st = kFindStylist(t);
+  if (st) karen.stylist = st.slug;
+  const date = kParseDate(t);
+  if (date) { karen.date = date; karen.wantTime = kParseTime(t, true); }
+  if (karen.svc && karen.stylist && !kStylistsFor(karen.svc).some((s) => s.slug === karen.stylist)) {
+    kSay(`<p>${esc(st.name)} doesn't do ${esc(karen.svc.name)}, so let me show you who does.</p>`);
+    karen.stylist = null;
+  } else {
+    kSay('<p>Happy to help!</p>');
+  }
+  kNext();
+}
+
+function kNext() {
+  if (!karen.svc) return karen.kind ? kAskService() : kAskKind();
+  if (karen.stylist === null) return kAskStylist();
+  if (!karen.date) return kAskDate();
+  if (!karen.time) return kAskTime();
+  if (!karen.name) return kAskName();
+  if (karen.phone === null) return kAskPhone();
+  if (karen.email === null) return kAskEmail();
+  return kConfirm();
+}
+
+function kAskKind() {
+  const offered = kOffered(karen.stylist);
+  const kinds = BOOK_KINDS.filter(([k]) => offered.some((s) => bookKindOf(s) === k));
+  if (!kinds.length) {
+    kSay("<p>Hmm, no services are switched on for booking yet. An owner can turn them on in Settings, under each person's profile.</p>");
+    kAsk([{ label: 'Start over', run: kStart }]);
+    return;
+  }
+  kSay('<p>What kind of service is it for?</p>');
+  kAsk(kinds.map(([k, label]) => ({ label, run: () => { karen.kind = k; kNext(); } })), (t) => {
+    const s = kFindService(t, offered);
+    if (s) { karen.svc = s; karen.kind = bookKindOf(s); kNext(); return true; }
+    const k = kFindKind(t);
+    if (k) { karen.kind = k; kNext(); return true; }
+    return false;
+  }, 'Try "color", "a haircut" or a service like "balayage".');
+}
+
+function kAskService() {
+  const list = kOffered(karen.stylist).filter((s) => bookKindOf(s) === karen.kind);
+  if (list.length === 1) {
+    karen.svc = list[0];
+    kSay(`<p>For ${esc(bookKindLabel(karen.kind).toLowerCase())} we have <b>${esc(list[0].name)}</b>.</p>`);
+    kNext();
+    return;
+  }
+  kSay(`<p>Which ${esc(bookKindLabel(karen.kind).toLowerCase())} service?</p>`);
+  kAsk(list.map((s) => ({
+    label: `${s.name} · ${s.durationMin} min${s.price != null ? ` · from $${s.price}` : ''}`,
+    say: s.name,
+    run: () => { karen.svc = s; kNext(); },
+  })), (t) => {
+    const s = kFindService(t, list);
+    if (!s) return false;
+    karen.svc = s;
+    kNext();
+    return true;
+  }, 'Tap a service, or type its name.');
+}
+
+function kAskStylist() {
+  const list = kStylistsFor(karen.svc);
+  if (!list.length) {
+    kSay(`<p>Nobody has ${esc(karen.svc.name)} switched on for booking yet.</p>`);
+    kAsk([
+      { label: 'Pick a different service', run: () => { karen.svc = null; karen.kind = null; kNext(); } },
+      { label: 'Start over', run: kStart },
+    ]);
+    return;
+  }
+  kSay(`<p>Great choice. Who would they like to see for ${esc(karen.svc.name)}?</p>`);
+  const pick = (slug) => { karen.stylist = slug; karen.days = null; kNext(); };
+  kAsk([
+    { label: 'First available', run: () => pick('any') },
+    ...list.map((s) => ({ label: s.name, run: () => pick(s.slug) })),
+  ], (t) => {
+    if (/\bany(one|body)?\b|first|whoever|no pref|doesn.?t matter|don.?t mind/.test(t)) { pick('any'); return true; }
+    const s = kFindStylist(t, list);
+    if (s) { pick(s.slug); return true; }
+    const other = kFindStylist(t);
+    if (other) { kSay(`<p>${esc(other.name)} doesn't do ${esc(karen.svc.name)}. Pick someone below.</p>`); return 'keep'; }
+    return false;
+  }, 'Tap a name, or say "first available".');
+}
+
+/** The next three weeks of free times for this service and stylist. */
+async function kLoadDays() {
+  const key = `${karen.svc.slug}|${karen.stylist}`;
+  if (karen.days && karen.daysKey === key) return;
+  const today = salonToday();
+  const d = await api('/api/staff/availability?' + new URLSearchParams({
+    service: karen.svc.slug, stylist: karen.stylist, date: today, to: addDays(today, 20),
+  }));
+  karen.days = Object.fromEntries(d.days.map((x) => [x.date, x.slots]));
+  karen.daysKey = key;
+}
+
+async function kSlotsOn(date) {
+  await kLoadDays();
+  if (!(date in karen.days)) {
+    const d = await api('/api/staff/availability?' + new URLSearchParams({
+      service: karen.svc.slug, stylist: karen.stylist, date,
+    }));
+    karen.days[date] = d.days[0]?.slots ?? [];
+  }
+  return karen.days[date];
+}
+
+function kDateAnswer(t) {
+  const d = kParseDate(t);
+  if (!d) return false;
+  if (d < salonToday()) { kSay('<p>That day has already passed. Which day would work?</p>'); return 'keep'; }
+  karen.date = d;
+  karen.wantTime = kParseTime(t, true);
+  kNext();
+  return true;
+}
+
+async function kAskDate() {
+  const run = karenRun;
+  kSay(`<p>Let me look at ${kWho()} for ${esc(karen.svc.name)}…</p>`);
+  try {
+    await kLoadDays();
+  } catch (err) {
+    if (run !== karenRun) return;
+    kSay(`<p>I couldn't reach the diary just now (${esc(err.message)}).</p>`);
+    kAsk([{ label: 'Try again', solid: true, run: kAskDate }, { label: 'Start over', run: kStart }]);
+    return;
+  }
+  if (run !== karenRun) return;
+  const free = Object.keys(karen.days).filter((d) => karen.days[d].length).sort();
+  if (!free.length) {
+    kSay(`<p>I couldn't find anything free for ${kWho()} in the next three weeks.</p>`);
+    kAsk([
+      ...(karen.stylist !== 'any' ? [{ label: 'Try first available', solid: true, run: () => { karen.stylist = 'any'; karen.days = null; kNext(); } }] : []),
+      { label: 'Pick another day', run: () => { kSay('<p>Type the day, like "Nov 18" or "next Friday".</p>'); kAsk([], kDateAnswer, 'Type a day like "Nov 18" or "next Friday".'); } },
+      { label: 'Different service', run: () => { karen.svc = null; karen.kind = null; karen.stylist = null; kNext(); } },
+    ], kDateAnswer, 'Type a day like "Nov 18", or tap an option.');
+    return;
+  }
+  const first = karen.days[free[0]][0];
+  kSay(`<p>The first opening is <b>${esc(kDayName(free[0]))} at ${esc(bookTimeLabel(first.start))}</b>. Which day works?</p>`);
+  kAsk([
+    ...free.slice(0, 6).map((d) => ({ label: kDayName(d), run: () => { karen.date = d; kNext(); } })),
+    { label: 'Another day', run: () => { kSay('<p>Sure. Type the day, like "next Friday" or "Nov 3".</p>'); kAsk([], kDateAnswer, 'Type a day like "next Friday" or "Nov 3".'); } },
+  ], kDateAnswer, 'Tap a day, or type one like "Friday" or "Oct 30".');
+}
+
+async function kAskTime() {
+  const run = karenRun;
+  let slots;
+  try {
+    slots = await kSlotsOn(karen.date);
+  } catch (err) {
+    if (run !== karenRun) return;
+    kSay(`<p>I couldn't load that day (${esc(err.message)}).</p>`);
+    kAsk([{ label: 'Try again', solid: true, run: kAskTime }, { label: 'Pick another day', run: () => { karen.date = null; kNext(); } }]);
+    return;
+  }
+  if (run !== karenRun) return;
+  if (!slots.length) {
+    kSay(`<p>Nothing is free on ${esc(kDate(karen.date))}, sorry.</p>`);
+    karen.date = null;
+    karen.wantTime = null;
+    kNext();
+    return;
+  }
+  if (karen.wantTime != null) {
+    const want = karen.wantTime;
+    karen.wantTime = null;
+    const hit = slots.find((s) => salonMinutes(s.start) === want);
+    if (hit) { karen.time = hit.start; kSay(`<p>${esc(clock(want))} on ${esc(kDate(karen.date))} is free.</p>`); kNext(); return; }
+    kSay(`<p>${esc(clock(want))} isn't open that day.</p>`);
+  }
+  kSay(`<p>Here's what's open on <b>${esc(kDate(karen.date))}</b>:</p>`);
+  const pick = (s) => { karen.time = s.start; kNext(); };
+  kAsk([
+    ...slots.map((s) => ({ label: bookTimeLabel(s.start), run: () => pick(s) })),
+    { label: 'A different day', run: () => { karen.date = null; kNext(); } },
+  ], (t) => {
+    const other = kParseDate(t);
+    if (other && other !== karen.date && !/^\d{1,2}(:\d{2})?\s*(am|pm|a|p)?$/.test(t.trim())) return kDateAnswer(t);
+    const want = kParseTime(t);
+    if (want == null) return false;
+    const hit = slots.find((s) => salonMinutes(s.start) === want);
+    if (hit) { pick(hit); return true; }
+    const near = [...slots].sort((a, b) => Math.abs(salonMinutes(a.start) - want) - Math.abs(salonMinutes(b.start) - want))
+      .slice(0, 2).sort((a, b) => a.start.localeCompare(b.start)).map((s) => bookTimeLabel(s.start));
+    kSay(`<p>${esc(clock(want))} isn't open. The closest are ${esc(near.join(' and '))}.</p>`);
+    return 'keep';
+  }, 'Tap a time, or type one like "2:30".');
+}
+
+function kAskName() {
+  kSay(`<p>${esc(bookTimeLabel(karen.time))} on ${esc(kDate(karen.date))} it is. Who is the appointment for? Type their name.</p>`);
+  kAsk([], (t, raw) => {
+    if (raw.length < 2) return false;
+    karen.name = raw.slice(0, 120);
+    kNext();
+    return true;
+  }, "Type the client's name.");
+}
+
+function kAskPhone() {
+  kSay(`<p>What's ${kFirst()}'s phone number?</p>`);
+  kAsk([{ label: 'Skip', run: () => { karen.phone = ''; kNext(); } }], (t, raw) => {
+    if (/^(skip|no|none|n\/a|don.?t know)\b/.test(t)) { karen.phone = ''; kNext(); return true; }
+    if ((raw.match(/\d/g) || []).length < 7) return false;
+    karen.phone = raw.slice(0, 40);
+    kNext();
+    return true;
+  }, 'Type a phone number, or tap Skip.');
+}
+
+function kAskEmail() {
+  kSay(`<p>And their email? I'll send the confirmation there.</p>`);
+  kAsk([{ label: 'Skip', run: () => { karen.email = ''; kNext(); } }], (t, raw) => {
+    if (/^(skip|no|none|n\/a|don.?t know)\b/.test(t)) { karen.email = ''; kNext(); return true; }
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(raw)) return false;
+    karen.email = raw.slice(0, 200);
+    kNext();
+    return true;
+  }, 'Type an email address like name@example.com, or tap Skip.');
+}
+
+function kSummary() {
+  const who = karen.stylist === 'any' ? 'First available' : me.stylists.find((s) => s.slug === karen.stylist)?.name || '';
+  const row = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
+  return `<div class="kd-card"><dl>${row('Client', karen.name)}${row('Phone', karen.phone)}${row('Email', karen.email)}`
+    + `${row('Service', karen.svc.name)}${row('With', who)}`
+    + `${row('When', `${kDate(karen.date)}, ${bookTimeLabel(karen.time)}`)}`
+    + `${karen.svc.price != null ? row('From', `$${karen.svc.price}`) : ''}</dl></div>`;
+}
+
+function kConfirm() {
+  kSay(`<p>Here's the appointment. Shall I book it?</p>${kSummary()}`);
+  kAsk([
+    { label: 'Book it', solid: true, run: kDoBook },
+    { label: 'Change something', run: kChange },
+  ], (t) => {
+    if (/\b(yes|yep|yeah|sure|ok(ay)?|book|confirm|go|do it|perfect|great)\b/.test(t)) { kDoBook(); return true; }
+    if (/\b(no|change|edit|wrong|wait)\b/.test(t)) { kChange(); return true; }
+    return false;
+  }, 'Say "book it", or "change" to fix something.');
+}
+
+function kChange() {
+  kSay('<p>No problem. What would you like to change?</p>');
+  kAsk([
+    { label: 'Service', run: () => { Object.assign(karen, { svc: null, kind: null, date: null, time: null, days: null }); if (karen.stylist !== 'any') karen.stylist = null; kNext(); } },
+    { label: 'Stylist', run: () => { Object.assign(karen, { stylist: null, date: null, time: null, days: null }); kNext(); } },
+    { label: 'Day and time', run: () => { Object.assign(karen, { date: null, time: null }); kNext(); } },
+    { label: 'Client details', run: () => { Object.assign(karen, { name: '', phone: null, email: null }); kNext(); } },
+    { label: 'Nothing, book it', solid: true, run: kDoBook },
+  ], (t) => {
+    if (/servic/.test(t)) { Object.assign(karen, { svc: null, kind: null, date: null, time: null, days: null }); if (karen.stylist !== 'any') karen.stylist = null; kNext(); return true; }
+    if (/stylist|who|person/.test(t)) { Object.assign(karen, { stylist: null, date: null, time: null, days: null }); kNext(); return true; }
+    if (/day|date|time|when/.test(t)) { Object.assign(karen, { date: null, time: null }); kNext(); return true; }
+    if (/client|name|phone|email|detail/.test(t)) { Object.assign(karen, { name: '', phone: null, email: null }); kNext(); return true; }
+    return false;
+  }, 'Tap what to change: service, stylist, day and time, or client details.');
+}
+
+async function kDoBook() {
+  const run = karenRun;
+  kSay('<p>Booking it now…</p>');
+  try {
+    const r = await api('/api/staff/book', {
+      method: 'POST',
+      body: JSON.stringify({
+        contact: null,
+        name: karen.name,
+        phone: karen.phone || '',
+        email: karen.email || '',
+        service: karen.svc.slug,
+        stylist: karen.stylist,
+        start: karen.time,
+        notes: '',
+      }),
+    });
+    if (run !== karenRun) return;
+    karen.done = true;
+    const when = r?.startsAt ? `${kDate(karen.date)}, ${bookTimeLabel(r.startsAt)}` : `${kDate(karen.date)}, ${bookTimeLabel(karen.time)}`;
+    const row = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
+    kSay('<p class="kd-ok"><svg class="ic"><use href="#i-check"/></svg>You\'re all set!</p>'
+      + `<div class="kd-card"><dl>${row('Reference', r?.ref)}${row('Client', karen.name)}${row('Service', karen.svc.name)}`
+      + `${row('With', r?.stylist || (karen.stylist === 'any' ? '' : me.stylists.find((s) => s.slug === karen.stylist)?.name))}`
+      + `${row('When', when)}</dl></div>`
+      + (karen.email ? `<p>A confirmation email is on its way to ${esc(karen.email)}.</p>` : ''));
+    toast(`Booked ${karen.name}.`);
+    if (page === 'appointments') refreshDiary();
+    else if (page === 'home') loadHome();
+    const date = karen.date;
+    kAsk([
+      { label: 'See it on Appt. Book', solid: true, run: () => { closeDialog($('karenDlg')); day = date; go('appointments'); } },
+      { label: 'Book another', run: kStart },
+      { label: "That's all", run: () => { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); kAsk([{ label: 'Close', run: () => closeDialog($('karenDlg')) }]); } },
+    ]);
+  } catch (err) {
+    if (run !== karenRun) return;
+    if (/taken|available|free/i.test(err.message)) {
+      kSay('<p>Oh no, somebody just took that time. Here is what is still open.</p>');
+      karen.time = null;
+      karen.days = null;
+      kNext();
+      return;
+    }
+    kSay(`<p>Sorry, that didn't go through: ${esc(err.message)}</p>`);
+    kAsk([
+      { label: 'Try again', solid: true, run: kDoBook },
+      { label: 'Change something', run: kChange },
+      { label: 'Start over', run: kStart },
+    ]);
+  }
+}
+
+function kServices() {
+  const offered = kOffered();
+  const kinds = [...BOOK_KINDS.map(([k]) => k), 'other'].map((k) => [k, offered.filter((s) => bookKindOf(s) === k)]).filter(([, l]) => l.length);
+  kSay(kinds.length
+    ? '<p>Here is what we offer:</p>' + kinds.map(([k, list]) => `<p><b>${esc(bookKindLabel(k))}</b>: ${list.map((s) =>
+      esc(s.name) + (s.price != null ? ` (from $${esc(s.price)})` : '')).join(', ')}</p>`).join('')
+    : '<p>No services are switched on for booking yet.</p>');
+  kSay('<p>Would you like me to book one?</p>');
+  kAsk([
+    { label: 'Yes, book an appointment', solid: true, run: kBook },
+    { label: 'Who can I book with?', run: kTeam },
+    { label: "That's all", run: () => { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); kMenu(); } },
+  ], (t) => {
+    if (/\b(yes|yep|sure|book|ok)\b/.test(t) || kFindService(t) || kFindKind(t)) { kBookFrom(t); return true; }
+    if (/\bwho\b|stylist|team/.test(t)) { kTeam(); return true; }
+    if (/\b(no|nope|that.?s all|thanks)\b/.test(t)) { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); kMenu(); return true; }
+    return false;
+  }, 'Say "book" to start, or tap an option.');
+}
+
+function kTeam() {
+  const list = (me.stylists || []).map((s) => {
+    const kinds = [...new Set(kOffered(s.slug).map((x) => bookKindLabel(bookKindOf(x))))];
+    return `<p><b>${esc(s.name)}</b>${kinds.length ? `: ${esc(kinds.join(', '))}` : ': not taking bookings yet'}</p>`;
+  });
+  kSay(list.length ? `<p>You can book with:</p>${list.join('')}` : '<p>Nobody is set up to take bookings yet.</p>');
+  kAsk([
+    { label: 'Book an appointment', solid: true, run: kBook },
+    { label: 'What services do you offer?', run: kServices },
+  ], (t) => {
+    if (/servic|offer|price/.test(t)) { kServices(); return true; }
+    if (/\b(yes|book|ok|sure)\b/.test(t) || kFindStylist(t) || kFindService(t) || kFindKind(t)) { kBookFrom(t); return true; }
+    return false;
+  }, 'Say "book" to start, or tap an option.');
+}
+
+$('karenBtnPic').src = KAREN_PIC;
+$('karenPic').src = KAREN_PIC;
+$('karenBtn').onclick = openKaren;
+$('karenRestart').onclick = kStart;
+$('karenClose').onclick = () => closeDialog($('karenDlg'));
 
 // ───────────────────────────── settings ─────────────────────────────
 
