@@ -619,3 +619,26 @@ const STEPS = {
     return bookIt(ctx, st.service, st.start, name);
   },
 };
+
+// ── what Karen sends on her own ──────────────────────────────────────────
+
+/**
+ * The text that goes with a message kind, in Karen's voice and short enough
+ * for one or two texts. Shown in Marketing's message preview; replies to it
+ * land with Karen, which is why it invites them. Kinds with no text return
+ * null. Nothing sends these yet: texts go out once a sending number is
+ * connected.
+ */
+export function smsText(kind, appt, tenant) {
+  const zone = tenant.timezone;
+  const at = when(appt.starts_at, zone);
+  const name = first(appt.guest_name) || 'there';
+  const visit = `${appt.service_name} with ${first(appt.stylist_name)}`;
+  const shop = tenant.name || 'the salon';
+  const texts = {
+    // Kept to one text (160 characters) for a usual name and service.
+    confirmation: `Hi ${name}! You're booked at ${shop}: ${visit}, ${at}. Reply here to move or cancel. See you soon! - Karen`,
+  };
+  return texts[kind] || null;
+}
+

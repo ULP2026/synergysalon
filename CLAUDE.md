@@ -648,9 +648,15 @@ made that way are real: name them ZZ and remove them.
   client's words: "A client books an appointment online, at the front desk,
   or in this app.", "Block the calendar" (it goes in the appointment book so
   another client cannot book the same time), "Confirmation Message", and
-  every step's link reads "View Message". The message preview's "Plain
-  text" tab is the email's text-only version, not a text message, so it
-  keeps its name; no SMS is sent anywhere yet.
+  every step's link reads "View Message". The message preview offers only
+  the channels its step sends (asked for 2026-10-22): an email-only step
+  shows the email with no tabs; the Confirmation Message has Email and SMS
+  tabs. The "Plain text" tab is gone. Email keeps its From, To, Replies and
+  Subject. SMS is from "Karen from <salon>" at Karen's connected number
+  (Settings, Karen AI; "No number connected yet" until then) to the sample
+  client's name and phone, with the text itself (`smsText` in
+  karen-sms.js, kept to one text) and its length. No SMS is sent anywhere
+  yet.
 - Marketing, Automation lists the automations in two columns (one on a
   phone), each with its switch and no "N sent" count, and under them **Email
   history**: every email the automations have sent, newest first, 50 at a

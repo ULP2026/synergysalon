@@ -13,6 +13,7 @@ import { DateTime } from 'luxon';
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import { MESSAGE_KINDS, automationOn, previewMessage } from '../../_lib/email.js';
+import { prettyPhone, smsText } from '../../_lib/karen-sms.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
@@ -74,7 +75,24 @@ async function preview(kind, tenant) {
     manage_token: 'preview',
   };
   const out = previewMessage(kind, appt, tenant, start.minus({ days: 1 }).toJSDate());
-  return { kind, to: `${appt.guest_name} <${appt.guest_email}>`, ...out };
+  // The text that goes with it, where there is one: from Karen at the
+  // salon's connected number (Settings, Karen AI), to the client's phone.
+  const body = smsText(kind, appt, tenant);
+  let sms = null;
+  if (body) {
+    const { rows } = await query(
+      "SELECT to_jsonb(tenants) ->> 'karen_phone' AS karen_phone FROM tenants WHERE id = $1::uuid", [tenant.id],
+    );
+    sms = {
+      from: `Karen from ${tenant.name || 'the salon'}`,
+      number: prettyPhone(rows[0]?.karen_phone),
+      to: appt.guest_name,
+      toPhone: '(813) 555-0142',   // a 555 number: a sample, like Jamie
+      body,
+      connected: Boolean(rows[0]?.karen_phone && process.env.TWILIO_AUTH_TOKEN),
+    };
+  }
+  return { kind, to: `${appt.guest_name} <${appt.guest_email}>`, ...out, sms };
 }
 
 /**

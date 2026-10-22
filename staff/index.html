@@ -1686,10 +1686,15 @@
   .mp-env dt { color: var(--muted); }
   .mp-env dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
   .mp-env dd.subj { font-weight: 650; }
-  .mp-tabs { margin-bottom: 10px; }
   .mp-frame { display: block; width: 100%; height: 360px; border: 1px solid var(--line); border-radius: 12px; background: #faf8f6; }
-  .mp-text { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raise);
-             font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; max-height: 420px; overflow: auto; }
+  .mp-tabs { margin-bottom: 14px; }
+  .mp-tabs button { display: inline-flex; align-items: center; gap: 6px; }
+  .mp-tabs .ic { width: 15px; height: 15px; }
+  /* A text as a phone shows it: one bubble from the salon, on a quiet panel. */
+  .mp-sms { padding: 20px 18px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--raise); }
+  .mp-bubble { max-width: 340px; padding: 11px 14px; border-radius: 18px 18px 18px 6px; background: var(--card);
+               border: 1px solid var(--line); color: var(--ink); font-size: .94rem; line-height: 1.45; white-space: pre-wrap; }
+  .mp-sms small { display: block; margin-top: 8px; font-size: var(--fs-xs); color: var(--muted); }
   .mp-note { margin-bottom: 14px; }
   @media (max-width: 560px) {
     .au-top { flex-wrap: wrap; }
@@ -3259,7 +3264,7 @@
 
 <dialog id="msgDlg" class="au msg" aria-labelledby="msgTitle">
   <header class="au-head">
-    <span class="au-ic"><svg class="ic"><use href="#i-mail"/></svg></span>
+    <span class="au-ic" id="msgIc"><svg class="ic"><use href="#i-mail"/></svg></span>
     <div class="grow"><h2 id="msgTitle"></h2><p>Shown with a sample appointment. Clients see their own details.</p></div>
     <button type="button" class="iconbtn lg" id="msgClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </header>
@@ -4457,7 +4462,7 @@ function openAutomation(id) {
   $('autoBody').innerHTML = `<ol class="au-flow">
     <li class="when"><div class="au-step">${tile(wi)}<span class="au-start">Start · Trigger</span><h3>${esc(wt)}</h3><p>${esc(wx)}</p>${on}</div></li>
     ${a.steps.map((st) => (st.msg ? `
-      <li><button type="button" class="au-step" data-msg="${st.msg}" data-title="${esc(st.title)}">
+      <li><button type="button" class="au-step" data-msg="${st.msg}" data-title="${esc(st.title)}"${st.sms ? ' data-sms' : ''}>
         ${st.sms ? duo() : tile('mail')}<h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>
         ${st.sms ? `<span class="duo-chips">${mail.replace('>On<', '>Email · On<')}<span class="chip pending" title="No text message is sent yet: texting is not connected.">SMS · Coming soon</span></span>` : mail}
         <span class="open">View Message${ic('right')}</span></button></li>` : `
@@ -4471,48 +4476,65 @@ function openAutomation(id) {
 $('autoClose').onclick = () => closeDialog($('autoDlg'));
 $('autoBody').addEventListener('click', (e) => {
   const b = e.target.closest('[data-msg]');
-  if (b) openMessage(b.dataset.msg, b.dataset.title);
+  if (b) openMessage(b.dataset.msg, b.dataset.title, b.hasAttribute('data-sms'));
 });
 
 const msgCache = {};
 let msgView = 'email';
-async function openMessage(kind, title) {
+// A step's message is an email, or an email and a text (the booking
+// confirmation). The window offers only what the step really sends, labelled
+// Email and SMS (asked for 2026-10-22): it used to offer the email's
+// text-only version as "Plain text", which read as a text message.
+async function openMessage(kind, title, withSms = false) {
   $('msgTitle').textContent = title;
   $('msgBody').innerHTML = skeleton(4);
   openDialog($('msgDlg'));
   try {
     const m = msgCache[kind] || (msgCache[kind] = await api(`/api/staff/business?preview=${encodeURIComponent(kind)}`));
-    paintMessage(m);
+    paintMessage(m, withSms && m.sms ? ['email', 'sms'] : ['email']);
   } catch (err) {
     if (err.message !== 'signed out') $('msgBody').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this message', text: err.message });
   }
 }
-function paintMessage(m) {
+function paintMessage(m, types) {
+  if (!types.includes(msgView)) msgView = types[0];
   const emailOn = Boolean(me?.features?.email);
   $('msgBody').innerHTML = `
-    ${emailOn ? '' : `<div class="note mp-note">${ic('info')}<span>Email is not connected yet, so this is not being sent. It is exactly what clients will get once it is.</span></div>`}
-    <dl class="mp-env">
-      <dt>From</dt><dd>${esc(m.from)}</dd>
-      <dt>To</dt><dd>${esc(m.to)}</dd>
-      ${m.replyTo ? `<dt>Replies</dt><dd>${esc(m.replyTo)}</dd>` : ''}
-      <dt>Subject</dt><dd class="subj">${esc(m.subject)}</dd>
-    </dl>
-    <div class="seg mp-tabs" id="msgSeg" role="group" aria-label="Show the message as">
-      <button type="button" data-v="email" aria-pressed="${msgView === 'email'}">Email</button>
-      <button type="button" data-v="text" aria-pressed="${msgView === 'text'}">Plain text</button>
-    </div>
+    ${types.length > 1 ? `<div class="seg mp-tabs" id="msgSeg" role="group" aria-label="Message type">
+      ${types.map((t) => `<button type="button" data-v="${t}" aria-pressed="${msgView === t}">${ic(t === 'sms' ? 'message' : 'mail')}${t === 'sms' ? 'SMS' : 'Email'}</button>`).join('')}
+    </div>` : ''}
     <div id="msgView"></div>`;
   const show = () => {
+    $('msgIc').innerHTML = ic(msgView === 'sms' ? 'message' : 'mail');
+    if (msgView === 'sms') {
+      const t = m.sms;
+      $('msgView').innerHTML = `
+        ${t.connected ? '' : `<div class="note mp-note">${ic('info')}<span>${t.number
+          ? 'Texting is not switched on yet, so this is not being sent. It is exactly what clients will get once it is.'
+          : 'No phone number is connected to Karen yet (Settings, Karen AI), so this is not being sent. It is exactly what clients will get once it is.'}</span></div>`}
+        <dl class="mp-env">
+          <dt>From</dt><dd>${esc(t.from)} · ${t.number ? esc(t.number) : '<span class="muted">No number connected yet</span>'}</dd>
+          <dt>To</dt><dd>${esc(t.to)} · ${esc(t.toPhone)}</dd>
+        </dl>
+        <div class="mp-sms"><div class="mp-bubble">${esc(t.body)}</div>
+          <small>${t.body.length} characters · ${t.body.length <= 160 ? '1 text' : `${Math.ceil(t.body.length / 153)} texts`}</small></div>`;
+      return;
+    }
     // A sandboxed frame with no scripts: the message's own styles, and none
     // of this page's, exactly as an inbox would render it.
-    $('msgView').innerHTML = msgView === 'email'
-      ? '<iframe class="mp-frame" sandbox title="Email preview"></iframe>'
-      : `<pre class="mp-text">${esc(m.text)}</pre>`;
-    const f = $('msgView').querySelector('iframe');
-    if (f) f.srcdoc = m.html;
+    $('msgView').innerHTML = `
+      ${emailOn ? '' : `<div class="note mp-note">${ic('info')}<span>Email is not connected yet, so this is not being sent. It is exactly what clients will get once it is.</span></div>`}
+      <dl class="mp-env">
+        <dt>From</dt><dd>${esc(m.from)}</dd>
+        <dt>To</dt><dd>${esc(m.to)}</dd>
+        ${m.replyTo ? `<dt>Replies</dt><dd>${esc(m.replyTo)}</dd>` : ''}
+        <dt>Subject</dt><dd class="subj">${esc(m.subject)}</dd>
+      </dl>
+      <iframe class="mp-frame" sandbox title="Email preview"></iframe>`;
+    $('msgView').querySelector('iframe').srcdoc = m.html;
   };
   show();
-  $('msgSeg').onclick = (e) => {
+  if ($('msgSeg')) $('msgSeg').onclick = (e) => {
     const b = e.target.closest('button[data-v]');
     if (!b || b.dataset.v === msgView) return;
     msgView = b.dataset.v;
