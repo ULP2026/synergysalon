@@ -3624,7 +3624,7 @@ function paintFavicon(logo) {
 }
 async function signOutNow() {
   await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' });
-  history.replaceState(null, '', '/staff');
+  history.replaceState(null, '', HOME_PATH);
   showLogin();
 }
 
@@ -4076,10 +4076,19 @@ async function loadCalendarSettings() {
   }
 }
 
+// Home's address. On the app's own host it is the bare address,
+// app.synergysalon.com/ (asked for 2026-10-22): no /staff on Home. That
+// host's "/" is redirected here by vercel.json (a rewrite cannot do it: "/"
+// is the public site's index.html, and a file always beats a rewrite), and
+// the address is put back to "/" once the console is up. Elsewhere, a
+// *.vercel.app test address or a local copy, "/" is the public site, so
+// Home stays /staff and a reload still lands in the console.
+const HOME_PATH = /^app\./.test(location.hostname) ? '/' : '/staff';
+
 const PAGES = {
   // No primary button on Home: booking starts from Appt. Book.
   home: {
-    path: '/staff', title: 'Home', action: null,
+    path: HOME_PATH, title: 'Home', action: null,
     load: () => loadHome(),
   },
   appointments: {
@@ -4553,6 +4562,10 @@ $('msgClose').onclick = () => closeDialog($('msgDlg'));
  * sitting in the DOM fully rendered and the section still carrying `hidden`.
  * Taking the list from the markup means adding a section is enough.
  */
+// The menu's Home links carry the same address, so "copy link" and a
+// middle-click give app.synergysalon.com/ too.
+for (const a of document.querySelectorAll('a[data-page="home"]')) a.setAttribute('href', HOME_PATH);
+
 const VIEWS = [...document.querySelectorAll('section.view[id^="view-"]')]
   .map((el) => el.id.slice(5));
 
