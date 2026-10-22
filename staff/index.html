@@ -1191,9 +1191,21 @@
   }
 
   /* Call Karen: the booking assistant's button and chat. */
-  .karen-cta { gap: 8px; padding-left: 8px; border: 1px solid rgba(85, 96, 166, .28); font-weight: 650; color: var(--indigo-deep);
-               background: linear-gradient(135deg, #f6dcec 0%, var(--peri-pale) 100%); box-shadow: var(--e1); }
-  .karen-cta:hover:not(:disabled) { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
+  .karen-tab { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 45;
+               display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 9px 16px 10px;
+               border: 1px solid rgba(85, 96, 166, .28); border-right: 0; border-radius: 16px 0 0 16px;
+               background: linear-gradient(160deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c;
+               font: inherit; font-size: var(--fs-sm); font-weight: 650; cursor: pointer; box-shadow: var(--e2);
+               transition: padding var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .karen-tab:hover { padding-right: 14px; background: linear-gradient(160deg, #f1cfe3 0%, #dfe2f5 100%); }
+  .karen-tab:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
+  .karen-tab .kt-lbl { writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .02em; white-space: nowrap; }
+  @media (max-width: 720px) {
+    .karen-tab { top: auto; bottom: 16px; right: 16px; transform: none; flex-direction: row; gap: 8px;
+                 padding: 7px 16px 7px 7px; border-right: 1px solid rgba(85, 96, 166, .28); border-radius: 999px; }
+    .karen-tab:hover { padding-right: 16px; }
+    .karen-tab .kt-lbl { writing-mode: horizontal-tb; transform: none; }
+  }
   .kc-pic, .kd-pic { position: relative; flex: none; display: grid; place-items: center; border-radius: 50%; background: #fff; }
   .kc-pic { width: 28px; height: 28px; }
   .kc-pic img { width: 24px; height: 24px; }
@@ -1244,7 +1256,6 @@
   .kd-send { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 50%;
              background: var(--periwinkle); color: #fff; cursor: pointer; }
   .kd-send:hover { background: var(--indigo); }
-  @media (max-width: 720px) { .pagehead .karen-cta { flex: 1; justify-content: center; } }
   @media (max-width: 520px) {
     dialog.kd { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; border-radius: 0; }
   }
@@ -2300,6 +2311,11 @@
 
 <!-- ─────────────────────────── app ─────────────────────────── -->
 <div id="app" class="app hidden">
+  <!-- Call Karen, the booking assistant: a tab on the right edge of every
+       page (asked for 2026-10-22), a round button at the bottom on phones. -->
+  <button type="button" class="karen-tab" id="karenBtn" title="Call Karen, the booking assistant">
+    <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span><span class="kt-lbl">Call Karen</span>
+  </button>
   <!-- GoldenRingNav, ported from RocketOS: a fixed cluster at the top centre,
        the nav pill and a separate chip for the person. The periwinkle ring slides
        under the current page on framer-motion's spring (see moveRing()).
@@ -2341,10 +2357,6 @@
       <!-- Home only, and only for the admin: arrange the dashboard. -->
       <button type="button" class="btn quiet hidden" id="homeEdit">
         <svg class="ic"><use href="#i-settings"/></svg><span>Customize</span>
-      </button>
-      <!-- Karen, the booking assistant: Home and Appt. Book. -->
-      <button type="button" class="btn karen-cta hidden" id="karenBtn">
-        <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span><span>Call Karen</span>
       </button>
       <button class="btn primary" id="primaryBtn">
         <svg class="ic"><use href="#i-plus"/></svg><span id="primaryLbl">New appointment</span>
@@ -4224,7 +4236,6 @@ function go(name, { push = true } = {}) {
   $('pageSub').textContent = name === 'home' ? greeting() : p.sub;
   // One primary action per view, and none where there is nothing to do yet.
   $('primaryBtn').classList.toggle('hidden', !p.action);
-  $('karenBtn').classList.toggle('hidden', !(name === 'home' || name === 'appointments'));
   $('homeEdit').classList.toggle('hidden', !(name === 'home' && homeData?.canCustomize) || homeEditing);
   // Leaving Home ends customizing without saving, as Cancel would.
   if (name !== 'home' && homeEditing) { homeLayout = JSON.parse(homeBefore || '[]'); homeEditing = false; }
