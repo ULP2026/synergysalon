@@ -5,6 +5,8 @@
  *   GET     ?id=                 one person, their appointments and activity
  *   POST                         add somebody
  *   PATCH                        edit somebody
+ *   PATCH  {id, op: 'note'}      add a dated note to the top of their notes
+ *   PATCH  {id, op: 'prefs'}     whether they get follow-up emails, and texts
  *   DELETE                       remove somebody
  *
  * One list, not two. A person who enquires on Tuesday and books on Thursday
@@ -12,7 +14,8 @@
  * up in both with somebody merging them by hand later.
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
-import { query, transaction } from '../../_lib/db.js';
+import { DEFAULT_TZ } from '../../_lib/config.js';
+import { hasColumn, query, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle } from '../../_lib/google-mirror.js';
 import {
   HttpError, handler, json, optionalPhone, readJson, requireId, requireString,
@@ -20,6 +23,53 @@ import {
 import { tenantForUser } from '../../_lib/tenant.js';
 
 const STATUSES = ['new', 'contacted', 'booked', 'won', 'lost'];
+
+/** Room for years of dated notes; the edit form and Add note share it. */
+const NOTES_MAX = 8000;
+
+/**
+ * Each client's stylist: whoever they most recently booked with, not
+ * counting cancellations. The tag a client wears in the list and on their
+ * profile. Their source ("Front desk", "Online booking") is how the record
+ * was made, which nobody filters a client list by; who looks after them is.
+ */
+const STYLIST_OF = `(SELECT jsonb_build_object('name', ts.name, 'slug', ts.slug)
+     FROM appointments ta JOIN stylists ts ON ts.id = ta.stylist_id
+    WHERE ta.contact_id = c.id AND ta.status <> 'cancelled'
+    ORDER BY ta.starts_at DESC LIMIT 1)`;
+
+/**
+ * Everyone who has had a chair, for Choose your stylist: every stylist row,
+ * with or without a login, a connected calendar or anything else, so long as
+ * they are bookable now or somebody has booked them before. Somebody who has
+ * left stays, marked, because their clients and history did not leave with
+ * them.
+ */
+export async function stylistChoices(tenantId, db = null) {
+  const { rows } = await (db ? db.query.bind(db) : query)(
+    `SELECT s.slug, s.name, s.active, (to_jsonb(s) ->> 'removed_at') IS NOT NULL AS removed
+       FROM stylists s
+      WHERE s.tenant_id = $1::uuid
+        AND (s.active OR EXISTS (SELECT 1 FROM appointments a WHERE a.stylist_id = s.id))
+      ORDER BY (s.active AND (to_jsonb(s) ->> 'removed_at') IS NULL) DESC, s.sort_order, s.name`,
+    [tenantId],
+  );
+  return rows.map((r) => ({ slug: r.slug, name: r.name, left: r.removed || !r.active }));
+}
+
+/**
+ * What kind of thing happened, finer than its type, so the timeline can
+ * colour a check-in apart from a cancellation.
+ */
+const TONE = {
+  'Booked by staff': 'booked',
+  'Booked online': 'booked',
+  'Checked in': 'checkin',
+  'Appointment cancelled': 'cancel',
+  'Marked as done': 'done',
+  'Didn’t show up': 'noshow',
+  'Reminder email sent': 'email',
+};
 
 /**
  * Deleting a salon's client cannot be undone, so it is kept to the people who
@@ -67,21 +117,24 @@ export async function removeContact(client, tenantId, id) {
  * so there are no SMS or automation events, rather than placeholders that
  * look like activity. The console says so instead.
  */
-export async function contactDetail(tenantId, id) {
-  const { rows: found } = await query(
+export async function contactDetail(tenantId, id, db = null) {
+  const q = db ? db.query.bind(db) : query;
+  const { rows: found } = await q(
     `SELECT id, name, email, phone, source, status, notes, created_at,
-            first_booked_at, last_visit_at, session_id
+            first_booked_at, last_visit_at, session_id,
+            to_jsonb(contacts) -> 'email_ok' AS email_ok,
+            to_jsonb(contacts) -> 'sms_ok' AS sms_ok
        FROM contacts WHERE id = $1::uuid AND tenant_id = $2::uuid`,
     [id, tenantId],
   );
   const c = found[0];
   if (!c) return null;
 
-  const { rows: appts } = await query(
+  const { rows: appts } = await q(
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.status, a.channel,
             a.created_at, a.updated_at, a.cancelled_at, a.checked_in_at,
             a.reminder_sent_at,
-            s.name AS stylist, v.name AS service
+            s.name AS stylist, s.slug AS stylist_slug, v.name AS service
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
@@ -94,7 +147,7 @@ export async function contactDetail(tenantId, id) {
   // Pushes to the CRM that went through, for this person or their bookings.
   // History: nothing has been sent there since 21 October 2026, but what was
   // sent before then really happened.
-  const { rows: synced } = await query(
+  const { rows: synced } = await q(
     `SELECT kind, done_at FROM sync_outbox
       WHERE tenant_id = $2::uuid AND state = 'done' AND done_at IS NOT NULL
         AND (contact_id = $1::uuid
@@ -106,7 +159,7 @@ export async function contactDetail(tenantId, id) {
 
   const activity = [];
   const add = (type, at, title, detail = '', ref = null) => {
-    if (at) activity.push({ type, at, title, detail, ref });
+    if (at) activity.push({ type, at, title, detail, ref, tone: TONE[title] || type });
   };
 
   // A contact with a booking session came in through the website wizard.
@@ -131,6 +184,9 @@ export async function contactDetail(tenantId, id) {
   }
   activity.sort((x, y) => new Date(y.at) - new Date(x.at));
 
+  // Their stylist: the last one they were booked with, not cancelled.
+  const latest = appts.find((a) => a.status !== 'cancelled');
+
   return {
     contact: {
       id: c.id,
@@ -143,6 +199,13 @@ export async function contactDetail(tenantId, id) {
       createdAt: c.created_at,
       firstBookedAt: c.first_booked_at,
       lastVisitAt: c.last_visit_at,
+      stylist: latest ? { name: latest.stylist, slug: latest.stylist_slug } : null,
+      // null until migration 031 has run: the profile then says the choice
+      // is not available yet, rather than offering a switch that saves
+      // nowhere.
+      prefs: c.email_ok == null && c.sms_ok == null
+        ? null
+        : { email: c.email_ok !== false, sms: c.sms_ok !== false },
     },
     appointments: appts.map((a) => ({
       ref: a.ref,
@@ -156,6 +219,58 @@ export async function contactDetail(tenantId, id) {
     })),
     activity,
   };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Add note: one dated line on top of what is there, written in one
+ * statement so two people adding notes at once both keep theirs. The edit
+ * form still rewrites the whole field for anyone who wants to tidy it.
+ */
+export async function addNote(tenantId, user, body, db = null) {
+  const id = requireString(body.id, 'Contact', { max: 64 });
+  if (!UUID.test(id)) throw new HttpError(400, 'Client is not valid.');
+  const text = requireString(body.note, 'Note', { max: 1000 });
+  const stamp = new Date().toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', timeZone: user.timezone || DEFAULT_TZ,
+  });
+  const line = `${stamp}, ${user.name || 'Staff'}: ${text}`;
+  const { rows } = await (db ? db.query.bind(db) : query)(
+    `UPDATE contacts
+        SET notes = left(CASE WHEN btrim(notes) = '' THEN $3::text
+                              ELSE $3::text || E'
+' || notes END, $4::int),
+            updated_at = now()
+      WHERE id = $1::uuid AND tenant_id = $2::uuid
+      RETURNING notes`,
+    [id, tenantId, line, NOTES_MAX],
+  );
+  if (!rows[0]) throw new HttpError(404, 'That client no longer exists.');
+  return { id, notes: rows[0].notes };
+}
+
+/**
+ * Whether the app may send this client follow-up emails, and texts. Two
+ * separate switches. Refused, plainly, until migration 031 adds them.
+ */
+export async function setPrefs(tenantId, body, db = null) {
+  const id = requireString(body.id, 'Contact', { max: 64 });
+  if (!UUID.test(id)) throw new HttpError(400, 'Client is not valid.');
+  if (typeof body.email !== 'boolean' || typeof body.sms !== 'boolean') {
+    throw new HttpError(400, 'Say yes or no for email and for texts.');
+  }
+  if (!await hasColumn('contacts', 'email_ok', db) || !await hasColumn('contacts', 'sms_ok', db)) {
+    throw new HttpError(409, 'Contact preferences are not switched on for this salon yet.', 'NOT_MIGRATED');
+  }
+  const { rows } = await (db ? db.query.bind(db) : query)(
+    `UPDATE contacts SET email_ok = $3::boolean, sms_ok = $4::boolean, updated_at = now()
+      WHERE id = $1::uuid AND tenant_id = $2::uuid
+      RETURNING email_ok, sms_ok`,
+    [id, tenantId, body.email, body.sms],
+  );
+  if (!rows[0]) throw new HttpError(404, 'That client no longer exists.');
+  return { id, prefs: { email: rows[0].email_ok, sms: rows[0].sms_ok } };
 }
 
 export default handler({
@@ -192,6 +307,7 @@ export default handler({
       `SELECT c.id, c.name, c.email, c.phone, c.source, c.status, c.notes,
               c.first_booked_at, c.last_visit_at, c.created_at,
               count(a.id) FILTER (WHERE a.status <> 'cancelled') AS visits,
+              ${STYLIST_OF} AS stylist,
               max(a.starts_at) FILTER (WHERE a.status = 'booked'
                                         AND a.starts_at >= now()) AS next_visit
          FROM contacts c
@@ -219,6 +335,8 @@ export default handler({
 
     return json(res, 200, {
       count: rows.length,
+      // Only when asked: the booking window's name search does not need it.
+      ...(url.searchParams.has('stylists') ? { stylists: await stylistChoices(tenant.id) } : {}),
       contacts: rows.map((c) => ({
         id: c.id,
         name: c.name,
@@ -228,6 +346,7 @@ export default handler({
         status: c.status,
         notes: c.notes,
         visits: Number(c.visits),
+        stylist: c.stylist || null,
         nextVisit: c.next_visit,
         firstBookedAt: c.first_booked_at,
         lastVisitAt: c.last_visit_at,
@@ -293,6 +412,9 @@ export default handler({
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
 
+    if (body.op === 'note') return json(res, 200, await addNote(tenant.id, user, body));
+    if (body.op === 'prefs') return json(res, 200, await setPrefs(tenant.id, body));
+
     const id = requireString(body.id, 'Contact', { max: 64 });
     const name = requireString(body.name, 'Name', { max: 120 });
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
@@ -326,7 +448,7 @@ export default handler({
         [
           tenant.id, id, name, email, phone,
           typeof body.source === 'string' ? body.source.trim().slice(0, 60) : '',
-          typeof body.notes === 'string' ? body.notes.trim().slice(0, 2000) : '',
+          typeof body.notes === 'string' ? body.notes.trim().slice(0, NOTES_MAX) : '',
           status,
         ],
       );

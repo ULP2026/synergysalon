@@ -8,7 +8,7 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots, chooseStylist } from './availability.js';
-import { EXCLUSION_VIOLATION, UNIQUE_VIOLATION } from './db.js';
+import { EXCLUSION_VIOLATION, UNIQUE_VIOLATION, hasColumn } from './db.js';
 import { HttpError, newRef, newToken } from './http.js';
 
 export const SLOT_TAKEN = 'SLOT_TAKEN';
@@ -59,6 +59,13 @@ async function insertFor(client, stylistId, ctx) {
         ],
       );
       await client.query('RELEASE SAVEPOINT try_slot');
+
+      // Every service of the visit, itemized, for its ticket (migration 031).
+      // Asked first, so a database without the column books as it always has.
+      if (visit.lines?.length && await hasColumn('appointments', 'services', client)) {
+        await client.query('UPDATE appointments SET services = $2::jsonb WHERE id = $1::uuid',
+          [rows[0].id, JSON.stringify(visit.lines)]);
+      }
 
       const { rows: named } = await client.query(
         `SELECT s.name AS stylist_name, s.slug AS stylist_slug,

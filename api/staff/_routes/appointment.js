@@ -1,5 +1,6 @@
 /**
  * POST /api/staff/appointment: what the front desk does to a booking.
+ * GET  ?ref=: the booking as a ticket -- the whole visit in one place.
  *
  *   check_in | undo_check_in | complete | no_show | cancel | reopen | delete
  *
@@ -13,8 +14,10 @@
  * system created. It leaves nothing behind, which is why only an owner or a
  * manager may do it.
  */
+import { DateTime } from 'luxon';
+
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
-import { EXCLUSION_VIOLATION, transaction } from '../../_lib/db.js';
+import { EXCLUSION_VIOLATION, query, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle, removeGoogleCopies } from '../../_lib/google-mirror.js';
 import { sendCancellation } from '../../_lib/email.js';
 import { at, cancelFor, enqueue } from '../../_lib/scheduled.js';
@@ -24,7 +27,100 @@ import { tenantForUser } from '../../_lib/tenant.js';
 /** Same bar as deleting a contact: this removes history outright. */
 const CAN_DELETE = ['owner', 'admin', 'manager'];
 
+/**
+ * One visit as a ticket: who, with whom, when, every service on it with its
+ * price, and what was paid.
+ *
+ * The appointment is the reservation in the diary; the ticket is the visit
+ * on paper. They are the same row, so the Appt. Book and a client's history
+ * open the same thing and cannot disagree.
+ *
+ * Nothing is filled in that the database does not hold. A visit booked
+ * before its services were itemized (migration 031) shows its first service
+ * and the visit total, and says it is not itemized, rather than putting the
+ * whole price against one line. Payments are not recorded anywhere yet, so
+ * the ticket says that too, and lists no transactions.
+ */
+export async function ticketFor(tenant, ref, db = null) {
+  const { rows } = await (db ? db.query.bind(db) : query)(
+    `SELECT a.ref, a.starts_at, a.duration_min, a.status, a.channel, a.checked_in_at,
+            a.cancelled_at, a.created_at, a.price_cents, a.notes, a.contact_id,
+            a.guest_name, a.guest_email, a.guest_phone,
+            to_jsonb(a) -> 'services' AS lines, to_jsonb(a) -> 'breaks' AS breaks,
+            s.name AS stylist_name, s.slug AS stylist_slug,
+            v.name AS service_name, v.slug AS service_slug,
+            b.name AS booked_by_name,
+            c.name AS contact_name, c.phone AS contact_phone, c.email AS contact_email,
+            (SELECT min(n.starts_at) FROM appointments n
+              WHERE n.contact_id = a.contact_id AND n.status = 'booked'
+                AND n.starts_at > a.starts_at) AS next_starts_at
+       FROM appointments a
+       JOIN stylists s ON s.id = a.stylist_id
+       JOIN services v ON v.id = a.service_id
+       LEFT JOIN staff_users b ON b.id = a.booked_by
+       LEFT JOIN contacts c ON c.id = a.contact_id
+      WHERE a.ref = $1::text AND a.tenant_id = $2::uuid`,
+    [ref, tenant.id],
+  );
+  const r = rows[0];
+  if (!r) return null;
+
+  const starts = DateTime.fromJSDate(new Date(r.starts_at)).setZone(tenant.timezone);
+  const saved = Array.isArray(r.lines) && r.lines.length ? r.lines : null;
+  const lines = saved
+    ? saved.map((l) => ({
+      name: String(l.name || ''),
+      priceCents: Number.isFinite(l.priceCents) ? l.priceCents : null,
+      durationMin: Number.isFinite(l.durationMin) ? l.durationMin : null,
+    }))
+    : [{ name: r.service_name, priceCents: null, durationMin: null }];
+
+  return {
+    ref: r.ref,
+    status: r.status,
+    checkedInAt: r.checked_in_at,
+    cancelledAt: r.cancelled_at,
+    startsAt: r.starts_at,
+    date: starts.toISODate(),
+    time: starts.toFormat('h:mm a'),
+    endTime: starts.plus({ minutes: r.duration_min }).toFormat('h:mm a'),
+    durationMin: r.duration_min,
+    breaks: Array.isArray(r.breaks) ? r.breaks : [],
+    channel: r.channel,
+    bookedBy: r.booked_by_name,
+    createdAt: r.created_at,
+    notes: r.notes,
+    nextStartsAt: r.next_starts_at,
+    stylist: r.stylist_name,
+    stylistSlug: r.stylist_slug,
+    // The client as the salon knows them now, else as they were booked.
+    contactId: r.contact_id,
+    guestName: r.contact_name || r.guest_name,
+    guestPhone: r.contact_phone || r.guest_phone,
+    guestEmail: r.contact_email || r.guest_email,
+    service: lines.map((l) => l.name).join(' + '),
+    lines,
+    itemized: Boolean(saved),
+    totalCents: r.price_cents,
+    price: r.price_cents == null ? null : r.price_cents / 100,
+    // No payment is recorded by this app yet (Stripe is not connected), so
+    // there is nothing to say but that.
+    payment: { status: 'not_tracked' },
+    transactions: [],
+  };
+}
+
 export default handler({
+  async GET(req, res) {
+    const user = await requireStaff(req);
+    const tenant = await tenantForUser(user);
+    const url = new URL(req.url, 'http://localhost');
+    const ref = requireString(url.searchParams.get('ref'), 'Reference', { max: 16 }).toUpperCase();
+    const ticket = await ticketFor(tenant, ref);
+    if (!ticket) throw new HttpError(404, 'No appointment with that reference.');
+    return json(res, 200, ticket);
+  },
+
   async POST(req, res) {
     assertSameOrigin(req);
     const user = await requireStaff(req);

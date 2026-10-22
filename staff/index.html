@@ -873,6 +873,63 @@
   .tl .what .ref { font-size: var(--fs-xs); color: var(--faint); }
   .tl time { text-align: right; font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; line-height: 1.4; font-variant-numeric: tabular-nums; }
   .tl time b { display: block; color: var(--ink); font-weight: 600; }
+  /* What happened, by colour: booked periwinkle, checked in and done green,
+     a no-show amber, a cancellation red, an email indigo. */
+  .tl .k-checkin .dot, .tl .k-done .dot { background: #e1f2e8; color: #22673f; }
+  .tl .k-noshow .dot { background: #fdf0dc; color: #9a5b12; }
+  .tl .k-cancel .dot { background: #fbe5e7; color: #a12a35; }
+  .tl li[data-ticket] { cursor: pointer; border-radius: 12px; }
+  .tl li[data-ticket]:hover .what b { color: var(--periwinkle); text-decoration: underline; text-underline-offset: 3px; }
+  .tl li[data-ticket]:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+  .px-appts li[data-ticket] { cursor: pointer; transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
+  .px-appts li[data-ticket]:hover { border-color: var(--periwinkle); box-shadow: var(--e1); }
+  .px-appts li[data-ticket]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* The profile edited in place: a pencil on the card, the form inside it. */
+  .px-sub { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font-size: var(--fs-sm); color: var(--muted); }
+  .px-sub:empty { display: none; }
+  .px-sub .ic { width: 15px; height: 15px; }
+  .px-sub a { color: inherit; }
+  .px-pen { margin-left: auto; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%;
+            background: none; color: var(--muted); cursor: pointer; }
+  .px-pen .ic { width: 16px; height: 16px; }
+  .px-pen:hover { background: var(--peri-pale); color: var(--indigo); }
+  .px-pen:focus-visible, .px-add:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .px-sec h3 .px-add { margin-left: auto; text-transform: none; letter-spacing: 0; }
+  .px-form { display: grid; gap: 10px; margin: 0 0 8px; }
+  .px-form label { margin: 0; }
+  .px-form .note { margin: 0; }
+  .px-form-acts { display: flex; justify-content: flex-end; gap: 8px; }
+  .px-hint { margin: 10px 0 0; font-size: var(--fs-xs); color: var(--muted); }
+  .px-pref { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; }
+  .px-pref + .px-pref { border-top: 1px solid var(--hair); padding-top: 10px; margin-top: 4px; }
+  .px-pref b { display: block; font-size: var(--fs-sm); font-weight: 600; }
+  .px-pref small { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--muted); }
+  .px-pref .switch:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* A client's stylist, as a tag in their colour. */
+  .tag.stag { display: inline-flex; align-items: center; gap: 6px; }
+  .tag.stag .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+  .cstylists .clabel { flex: none; margin-right: 4px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em;
+                       text-transform: uppercase; color: var(--muted); }
+  .cstylists button.left { opacity: .75; }
+  .cstylists button small { font-size: var(--fs-xs); color: var(--muted); }
+
+  /* The ticket. */
+  /* The details scroll; the header and the actions stay in view. */
+  dialog.tkt { max-width: 560px; max-height: calc(100dvh - 32px); }
+  dialog.tkt[open] { display: flex; flex-direction: column; }
+  .tkt-body { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -6px 14px; padding: 0 6px; }
+  .tkt-sec { margin: 0 0 14px; }
+  .tkt-h { margin: 0 0 8px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .tkt-scroll { overflow-x: auto; }
+  .tkt-lines { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+  .tkt-lines th, .tkt-lines td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--hair); }
+  .tkt-lines thead th { font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
+  .tkt-lines .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tkt-lines tfoot th, .tkt-lines tfoot td { border-bottom: 0; font-weight: 650; color: var(--ink); }
+  .tkt-pay { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: var(--fs-sm); }
+  .tkt-hint { margin: 8px 0 0; font-size: var(--fs-xs); color: var(--muted); }
 
   @media (max-width: 860px) {
     dialog.xl { width: 100%; max-width: none; height: 100dvh; max-height: none; border-radius: 0; margin: 0; }
@@ -2968,14 +3025,20 @@
   </div>
 </dialog>
 
-<!-- One appointment, in full: what the day card had to cut short. -->
-<dialog id="apptDlg" aria-labelledby="adName">
+<!-- One visit as a ticket: the appointment in full, every service on it
+     with its price, the total and what was paid. Appt. Book and a client's
+     history both open this one window (openTicket). -->
+<dialog id="apptDlg" class="tkt" aria-labelledby="adName">
   <div class="ad-head">
     <span class="avatar" id="adAvatar" aria-hidden="true"></span>
     <div style="flex:1;min-width:0"><h2 id="adName"></h2><div class="chips" id="adChips" style="margin-top:4px"></div></div>
     <button type="button" class="iconbtn lg" id="adClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
-  <dl class="ad-dl" id="adBody"></dl>
+  <div class="tkt-body">
+    <dl class="ad-dl" id="adBody"></dl>
+    <section class="tkt-sec" aria-labelledby="adLinesH"><h3 class="tkt-h" id="adLinesH">Services</h3><div id="adLines"></div></section>
+    <section class="tkt-sec" aria-labelledby="adPayH"><h3 class="tkt-h" id="adPayH">Payment</h3><div id="adPay"></div></section>
+  </div>
   <div class="ad-acts" id="adActs"></div>
 </dialog>
 
@@ -3038,6 +3101,7 @@
     <span class="avatar" id="pxAvatar" aria-hidden="true"></span>
     <div class="who">
       <h2 id="pxName"></h2>
+      <p class="px-sub" id="pxSub"></p>
       <div class="chips" id="pxChips"></div>
     </div>
     <div class="acts">
@@ -5146,7 +5210,8 @@ async function apptAction(ref, act, btn) {
   try {
     const r = await api('/api/staff/appointment', { method: 'POST', body: JSON.stringify({ ref, action: act }) });
     if (r && r.deleted) toast(`Appointment ${ref} deleted.`);
-    await refreshDiary();
+    // From a client's history the diary is not on screen; it loads when opened.
+    if (page === 'appointments') await refreshDiary();
   } catch (err) {
     fail(err);
     if (btn) btn.disabled = false;
@@ -5245,19 +5310,64 @@ $('diary').onclick = (e) => {
   openBooking(null, { date: day, minutes: mins, stylist: col.dataset.stylist || undefined });
 };
 
-// ── one appointment in full ───────────────────────────────────────────────
+// ── one visit as a ticket ─────────────────────────────────────────────────
+//
+// The appointment is the reservation in the diary; the ticket is the whole
+// visit: the client, the stylist, when, every service with its price, the
+// total and what was paid (asked for 2026-10-22). The Appt. Book and a
+// client's history open this same window from the same endpoint (GET
+// /api/staff/appointment?ref=), so the two cannot disagree. From the day,
+// what the card already knows is drawn at once and the rest fills in.
 let apptOpen = null;
-function openAppt(a) {
-  if (!a) return;
+let ticketSeq = 0;
+function openAppt(a) { if (a) openTicket(a.ref, a); }
+async function openTicket(ref, seed = null) {
+  const seq = ++ticketSeq;
+  paintTicket(seed || { ref, guestName: '', status: 'booked', loading: true });
+  openDialog($('apptDlg'));
+  if (dgDemo && seed) return;
+  try {
+    const t = await api(`/api/staff/appointment?ref=${encodeURIComponent(ref)}`);
+    if (seq === ticketSeq && $('apptDlg').open) paintTicket(t);
+  } catch (err) {
+    if (seq !== ticketSeq || err.message === 'signed out') return;
+    // With the day's copy on screen the ticket is still useful; with nothing,
+    // say why it did not open.
+    if (!seed) { closeDialog($('apptDlg')); fail(err); }
+  }
+}
+
+/** Every service on the visit, its time and price, and the total. */
+function ticketLines(a) {
+  if (a.loading) return skeleton(2);
+  const lines = a.lines || [{ name: a.service, durationMin: null, priceCents: null }];
+  const dash = '<span class="muted">–</span>';
+  const price = (l) => (a.itemized && l.priceCents != null ? esc(money(l.priceCents / 100)) : dash);
+  return `<div class="tkt-scroll"><table class="tkt-lines">
+      <thead><tr><th scope="col">Service</th><th scope="col">Time</th><th scope="col" class="num">Price</th></tr></thead>
+      <tbody>${lines.map((l) => `<tr><td>${esc(l.name)}</td><td class="muted">${l.durationMin ? esc(`${l.durationMin} min`) : ''}</td><td class="num">${price(l)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><th scope="row" colspan="2">Total</th><td class="num">${a.price == null ? '<span class="muted">Not priced</span>' : esc(money(a.price))}</td></tr></tfoot>
+    </table></div>
+    ${a.lines && !a.itemized ? '<p class="tkt-hint">Booked before visits were itemized, so only the total is known.</p>' : ''}`;
+}
+
+/** What was paid. Nothing is recorded by the app yet, and it says so. */
+function ticketPayment(a) {
+  if (a.loading || !a.payment) return a.loading ? skeleton(1) : '';
+  const tx = a.transactions || [];
+  return `<div class="tkt-pay"><span>Status</span><span class="chip">Not recorded</span></div>
+    <p class="tkt-hint">${tx.length ? '' : 'No transactions. '}Payments are not taken or recorded in this app yet; card payments arrive with Stripe, which is not connected.</p>`;
+}
+
+function paintTicket(a) {
   apptOpen = a;
   $('adAvatar').textContent = initialsOf(a.guestName);
-  $('adName').textContent = a.guestName;
-  $('adChips').innerHTML = statusChips(a);
+  $('adName').textContent = a.guestName || 'Ticket';
+  $('adChips').innerHTML = a.loading ? '' : statusChips(a);
   const dash = '<span class="muted">–</span>';
   const row = (k, v) => `<dt>${esc(k)}</dt><dd>${v || dash}</dd>`;
-  $('adBody').innerHTML = [
+  $('adBody').innerHTML = a.loading ? skeleton(4) : [
     row('When', esc(`${dayLabel(a.date || day)}, ${a.time} to ${a.endTime}`)),
-    row('Service', esc(a.service)),
     row('Stylist', esc(a.stylist)),
     // Processing time inside it: the stylist is free for somebody else then.
     (a.breaks || []).length ? row('Processing', esc((a.breaks || []).map(([at, len]) => {
@@ -5267,15 +5377,17 @@ function openAppt(a) {
     a.room ? row('Room', esc(a.room)) : '',
     row('Phone', a.guestPhone ? `<a href="tel:${esc(a.guestPhone)}">${esc(a.guestPhone)}</a>` : ''),
     row('Email', a.guestEmail ? `<a href="mailto:${esc(a.guestEmail)}">${mail(a.guestEmail)}</a>` : ''),
-    row('Price', esc(money(a.price))),
     row('Created on', esc(shortDate(a.createdAt))),
     row('Next appt', esc(a.nextStartsAt ? fmtWhen(a.nextStartsAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')),
     row('Booked', esc(a.channel === 'staff' ? `By ${a.bookedBy || 'staff'}` : 'Online')),
     row('Notes', a.notes ? `<span style="white-space:pre-line">${esc(a.notes)}</span>` : ''),
     row('Ref', esc(a.ref)),
   ].join('');
+  $('adLines').innerHTML = ticketLines(a);
+  $('adPay').innerHTML = ticketPayment(a);
   const b = (act, label, cls = 'quiet') => `<button type="button" class="btn ${cls} sm" data-ad="${act}">${esc(label)}</button>`;
   const acts = [];
+  if (a.loading) { $('adActs').innerHTML = ''; return; }
   if (a.contactId) acts.push(b('client', 'Open client'));
   if (a.status === 'cancelled') acts.push(b('reopen', 'Reopen', ''));
   if (a.status === 'booked') {
@@ -5290,7 +5402,6 @@ function openAppt(a) {
   // Last, not first: it is the one action here that cannot be undone.
   if (me?.user?.canAdmin) acts.push(b('delete', 'Delete for good', 'danger'));
   $('adActs').innerHTML = acts.join('');
-  openDialog($('apptDlg'));
 }
 $('adClose').onclick = () => closeDialog($('apptDlg'));
 $('adActs').onclick = (e) => {
@@ -5298,8 +5409,13 @@ $('adActs').onclick = (e) => {
   if (!btn || !apptOpen) return;
   const a = apptOpen;
   closeDialog($('apptDlg'));
-  if (btn.dataset.ad === 'client') { setTimeout(() => openPerson(a.contactId), 170); return; }
-  setTimeout(() => apptAction(a.ref, btn.dataset.ad), 170);
+  // Opened from this client's own profile: closing the ticket is the way back.
+  const fromPerson = $('personDlg').open && person && String(person.contact.id) === String(a.contactId);
+  if (btn.dataset.ad === 'client') { if (!fromPerson) setTimeout(() => openPerson(a.contactId), 170); return; }
+  setTimeout(async () => {
+    await apptAction(a.ref, btn.dataset.ad);
+    if ($('personDlg').open && person) reloadPerson();
+  }, 170);
 };
 
 // ── lunch and blocks ──────────────────────────────────────────────────────
@@ -5588,39 +5704,40 @@ $('dayPicker').onchange = (e) => e.target.value && loadDay(e.target.value);
 // ───────────────────────────── clients ─────────────────────────────
 
 let contactList = [];
-let contactStylist = '';    // a team member's id, or '' for everyone
-let contactSource = '';
+let contactStylist = '';    // a stylist's slug, or '' for everyone
 
-/**
- * All, then one button per stylist: everybody on the team with the Stylist
- * role, so adding a stylist adds their filter without anybody touching this.
- *
- * Until somebody has that role, the whole team stands in, so the filters can
- * be seen and tried. Their clients are whoever booked in the chair linked to
- * their login, which for a placeholder is nobody yet.
- */
 const STYLIST_COLORS = ['#5560a6', '#c2547a', '#17877a', '#d0812a', '#7b4fc0', '#2f7fb8', '#9a6b1f', '#3f8f4f'];
 
-/** What a filter says: their username, else their name, shortened when long. */
-function filterLabel(t) {
-  if (t.username) return t.username.replace(/^@/, '');
-  return t.name.length > 12 ? shortName(t.name) : t.name;
+/**
+ * Choose your stylist: every stylist record the salon has, from the server
+ * (contacts?stylists), whether or not they have a login, a connected
+ * calendar or payroll. Somebody who has left stays on the list, marked, so
+ * their clients and history can still be found (asked for 2026-10-22; it
+ * used to be the team members with the Stylist role, which missed anyone
+ * added as a chair without a login).
+ */
+let contactStylists = [];
+/** A colour per stylist by their slug's place in the list, so it stays theirs. */
+function stylistColor(slug) {
+  const order = contactStylists.map((t) => t.slug).sort();
+  const i = order.indexOf(slug);
+  return STYLIST_COLORS[(i < 0 ? 0 : i) % STYLIST_COLORS.length];
+}
+/** A client's stylist, as the tag they wear in the list and on their profile. */
+function stylistTag(st) {
+  return st ? `<span class="tag stag" style="--c:${stylistColor(st.slug)}" title="Their stylist: ${esc(st.name)}"><i class="dot"></i>${esc(st.name)}</span>` : '';
 }
 
 function fillStylistFilter() {
   const box = $('contactStylist');
-  const team = me?.team || [];
-  const stylists = team.filter((t) => t.role === 'stylist');
-  const list = stylists.length ? stylists : team;
-  if (contactStylist && !list.some((t) => String(t.id) === contactStylist)) contactStylist = '';
+  const list = contactStylists;
+  if (contactStylist && !list.some((t) => t.slug === contactStylist)) contactStylist = '';
   box.classList.toggle('hidden', !list.length);
-  // A colour per person by their place in the whole team, sorted by id, so it
-  // stays theirs when somebody else joins or the placeholders give way.
-  const order = [...team].map((t) => String(t.id)).sort();
-  const color = (t) => STYLIST_COLORS[order.indexOf(String(t.id)) % STYLIST_COLORS.length];
-  box.innerHTML = `<button type="button" data-member="" aria-pressed="${contactStylist === ''}">All</button>`
-    + list.map((t) => `<button type="button" data-member="${esc(t.id)}" style="--c:${color(t)}"
-      title="${esc(t.name)}" aria-pressed="${String(t.id) === contactStylist}"><i class="dot"></i>${esc(filterLabel(t))}</button>`).join('');
+  box.innerHTML = '<span class="clabel" id="contactStylistLbl">Choose your stylist</span>'
+    + `<button type="button" data-member="" aria-pressed="${contactStylist === ''}">All</button>`
+    + list.map((t) => `<button type="button" data-member="${esc(t.slug)}" style="--c:${stylistColor(t.slug)}"
+      title="${esc(t.name)}${t.left ? ' (no longer here; their clients stay)' : ''}" aria-pressed="${t.slug === contactStylist}"
+      class="${t.left ? 'left' : ''}"><i class="dot"></i>${esc(t.name)}${t.left ? ' <small>left</small>' : ''}</button>`).join('');
 }
 
 // The lead-stage filters (All, New, Contacted, Booked, Client, Lost) were
@@ -5634,17 +5751,12 @@ const statusClass = (st) => `s-${STATUS_LABEL[st] ? st : 'new'}`;
 function renderContacts(d, filtered) {
   contactList = d.contacts;
 
-  const inStage = d.contacts;
-
-  // Sources become tags you can click. Built from what the server returned,
-  // so they only ever offer something that will find somebody.
-  const sources = [...new Set(d.contacts.map((c) => (c.source || '').trim()).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b));
-  if (contactSource && !sources.includes(contactSource)) contactSource = '';
-  const shown = contactSource ? inStage.filter((c) => (c.source || '').trim() === contactSource) : inStage;
-  $('contactTags').innerHTML = (sources.length ? `${ic('tag')}${sources.map((src) =>
-    `<button type="button" class="tag" data-source="${esc(src)}" aria-pressed="${src === contactSource}">${esc(src)}</button>`).join('')}` : '')
-    + (d.contacts.length ? `<span class="count">${shown.length} ${shown.length === 1 ? 'person' : 'people'}</span>` : '');
+  // The source tags ("Front desk", "Online booking") are gone (asked for
+  // 2026-10-22): a client's tag is their stylist. The source is still kept,
+  // and still shown on their profile.
+  const shown = d.contacts;
+  $('contactTags').innerHTML = d.contacts.length
+    ? `<span class="count">${shown.length} ${shown.length === 1 ? 'person' : 'people'}</span>` : '';
 
   if (!shown.length) {
     $('contacts').innerHTML = filtered || contactStatus
@@ -5682,9 +5794,7 @@ function renderContacts(d, filtered) {
             ${!c.phone && !c.email ? '<span>No phone or email yet</span>' : ''}
           </div>
         </div>
-        <div class="ctags">
-          ${c.source ? `<span class="tag">${ic('tag')}${esc(c.source)}</span>` : ''}
-        </div>
+        <div class="ctags">${stylistTag(c.stylist)}</div>
         <div class="cvisits"><b>${c.visits}</b><span>${c.visits === 1 ? 'visit' : 'visits'}</span></div>
         ${next}
         <div class="acts">
@@ -5726,12 +5836,6 @@ $('contactStylist').onclick = (e) => {
   if (!b || b.dataset.member === contactStylist) return;
   contactStylist = b.dataset.member;
   fillStylistFilter();
-  loadContacts();
-};
-$('contactTags').onclick = (e) => {
-  const b = e.target.closest('button[data-source]');
-  if (!b) return;
-  contactSource = contactSource === b.dataset.source ? '' : b.dataset.source;
   loadContacts();
 };
 // The rows are buttons in all but name, so the keyboard opens them too.
@@ -5809,6 +5913,8 @@ async function openPerson(id) {
   const c = contactList.find((x) => String(x.id) === String(id));
   person = null;
   tlFilter = 'all';
+  pxEditing = null;
+  $('pxSub').innerHTML = '';
   // Paint what the list already knows at once, then fill in the rest.
   $('pxAvatar').textContent = initialsOf(c?.name);
   $('pxName').textContent = c?.name || '';
@@ -5831,14 +5937,31 @@ async function openPerson(id) {
 function personChips(c) {
   return [
     `<span class="chip">${esc(STATUS_LABEL[c.status] || c.status)}</span>`,
-    c.source ? `<span class="chip">${esc(c.source)}</span>` : '',
+    stylistTag(c.stylist),
   ].join(' ');
 }
 
+/** The open profile again from the server, after something changed it. */
+async function reloadPerson() {
+  const id = person?.contact?.id;
+  if (!id) return;
+  try {
+    const fresh = await api(`/api/staff/contacts?id=${encodeURIComponent(id)}`);
+    if (person?.contact?.id === id) { person = fresh; renderPerson(); }
+  } catch (err) { if (err.message !== 'signed out') fail(err); }
+  if (page === 'clients') loadContacts();
+}
+
+// What is open for editing in place on the profile: 'contact', 'status',
+// 'note', or nothing. One at a time, so Save always means one thing.
+let pxEditing = null;
+
 function renderPerson() {
-  const { contact: c, appointments: appts, activity } = person;
+  const { contact: c, appointments: appts } = person;
   $('pxAvatar').textContent = initialsOf(c.name);
   $('pxName').textContent = c.name;
+  // Name, phone and stylist tag, together at the top (asked for 2026-10-22).
+  $('pxSub').innerHTML = c.phone ? `${ic('phone')}<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : '';
   $('pxChips').innerHTML = personChips(c);
 
   const dash = '<span class="muted">–</span>';
@@ -5847,7 +5970,9 @@ function renderPerson() {
   const past = appts.filter((a) => !upcoming.includes(a));
   const visits = appts.filter((a) => a.status !== 'cancelled').length;
   const short = (iso) => fmtWhen(iso, { month: 'short', day: 'numeric', year: 'numeric' });
-  const apptRow = (a) => `<li>
+  // Each one opens its ticket, the same window as in the Appt. Book.
+  const apptRow = (a) => `<li data-ticket="${esc(a.ref)}" tabindex="0" role="button"
+      aria-label="Open the ticket: ${esc(a.service)} with ${esc(a.stylist)}, ${esc(short(a.startsAt))}">
       <span class="when">${esc(fmtWhen(a.startsAt, { month: 'short', day: 'numeric' }))}</span>
       <span class="what" title="${esc(a.service)} with ${esc(a.stylist)}">${esc(a.service)} · ${esc(a.stylist)}</span>
       ${a.status === 'cancelled' ? '<span class="chip warn">Cancelled</span>'
@@ -5855,16 +5980,40 @@ function renderPerson() {
         : a.status === 'no_show' ? '<span class="chip warn">No show</span>'
         : new Date(a.startsAt) > Date.now() ? '<span class="chip info">Upcoming</span>' : '<span class="chip">Booked</span>'}
     </li>`;
+  const pen = (what, label) => `<button type="button" class="px-pen" data-px-edit="${what}" aria-label="${esc(label)}" title="${esc(label)}">${ic('edit')}</button>`;
+  const formActs = '<p class="note bad hidden" id="pxFormNote"></p><div class="px-form-acts"><button type="button" class="btn quiet sm" data-px-cancel>Cancel</button><button class="btn sm">Save</button></div>';
 
-  $('pxLeft').innerHTML = `
-    <section class="px-sec">
-      <h3>Contact details</h3>
-      <dl class="px-dl">
+  const details = pxEditing === 'contact'
+    ? `<form class="px-form" id="pxContactForm" novalidate>
+        <label><span>Name</span><input name="name" value="${esc(c.name)}" required maxlength="120" autocomplete="off"></label>
+        <label><span>Phone</span><input name="phone" type="tel" value="${esc(c.phone || '')}" autocomplete="off"></label>
+        <label><span>Email</span><input name="email" type="email" value="${esc(c.email || '')}" autocomplete="off"></label>
+        ${formActs}</form>`
+    : `<dl class="px-dl">
         <dt>Phone</dt><dd>${c.phone ? `<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : dash}</dd>
         <dt>Email</dt><dd>${c.email ? `<a class="email" href="mailto:${esc(c.email)}">${esc(c.email).replace('@', '<wbr>@')}</a>` : dash}</dd>
         <dt>Source</dt><dd>${esc(c.source || '') || dash}</dd>
         <dt>Added</dt><dd>${esc(short(c.createdAt))}</dd>
-      </dl>
+      </dl>`;
+
+  const tags = pxEditing === 'status'
+    ? `<form class="px-form" id="pxStatusForm">
+        <label><span>Status</span><select name="status">${Object.entries(STATUS_LABEL).map(([k, v]) =>
+          `<option value="${k}" ${k === c.status ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
+        ${formActs}</form>`
+    : `<div class="chips">${personChips(c)}</div>`;
+
+  // Two separate switches: people often want one and not the other.
+  const prefs = c.prefs;
+  const sw = (key, label, sub) => `<div class="px-pref">
+      <span><b id="pxPref-${key}">${label}</b><small>${sub}</small></span>
+      <button type="button" class="switch" role="switch" data-pref="${key}" aria-labelledby="pxPref-${key}"
+        aria-checked="${prefs ? prefs[key] !== false : true}" ${prefs ? '' : 'disabled'}><span></span></button></div>`;
+
+  $('pxLeft').innerHTML = `
+    <section class="px-sec">
+      <h3>Contact details${pxEditing === 'contact' ? '' : pen('contact', 'Edit contact details')}</h3>
+      ${details}
     </section>
     <section class="px-sec">
       <h3>Appt. Book</h3>
@@ -5878,12 +6027,22 @@ function renderPerson() {
         : `<p class="px-none">${ic('calendar')}No appointments yet.</p>`}
     </section>
     <section class="px-sec">
-      <h3>Tags and status</h3>
-      <div class="chips">${personChips(c)}</div>
+      <h3>Tags and status${pxEditing === 'status' ? '' : pen('status', 'Change status')}</h3>
+      ${tags}
+      <p class="px-hint">${c.stylist ? 'Their stylist tag is whoever they last booked with.' : 'They get a stylist tag when they book.'}</p>
     </section>
     <section class="px-sec">
-      <h3>Notes</h3>
-      ${c.notes ? `<p class="small" style="margin:0;white-space:pre-line">${esc(c.notes)}</p>` : `<p class="px-none">${ic('edit')}No notes yet.</p>`}
+      <h3>Contact preferences</h3>
+      ${sw('email', 'Email', 'Follow-ups: thank-yous, rebook and win-back emails. Confirmations and reminders still go.')}
+      ${sw('sms', 'Text messages', 'The app does not send texts yet; this is kept for when it does.')}
+      ${prefs ? '' : '<p class="px-hint">These switch on once the database update for them has run.</p>'}
+    </section>
+    <section class="px-sec">
+      <h3>Notes${pxEditing === 'note' ? '' : `<button type="button" class="btn quiet sm px-add" data-px-edit="note">${ic('plus')}Add note</button>`}</h3>
+      ${pxEditing === 'note' ? `<form class="px-form" id="pxNoteForm">
+          <label><span class="sr">New note</span><textarea name="note" rows="3" maxlength="1000" placeholder="What should the team know?" required></textarea></label>
+          ${formActs}</form>` : ''}
+      ${c.notes ? `<p class="small" style="margin:0;white-space:pre-line">${esc(c.notes)}</p>` : (pxEditing === 'note' ? '' : `<p class="px-none">${ic('edit')}No notes yet.</p>`)}
     </section>
     ${me?.user?.canAdmin ? '<div class="px-danger"><button type="button" id="pxDelete">Delete client</button></div>' : ''}`;
 
@@ -5914,8 +6073,9 @@ function renderTimeline() {
     }[tlFilter];
     body = `<p class="px-none" style="padding:12px 0">${ic(TL_ICON[tlFilter] || 'info')}${esc(why || 'Nothing here yet.')}</p>`;
   } else {
+    // Coloured by what happened (tone), and a booking's events open its ticket.
     body = `<ol class="tl">${shown.map((e) => `
-      <li class="t-${esc(e.type)}">
+      <li class="t-${esc(e.type)} k-${esc(e.tone || e.type)}"${e.ref ? ` data-ticket="${esc(e.ref)}" tabindex="0" role="button" aria-label="${esc(e.title)}: open the ticket"` : ''}>
         <span class="dot">${ic(TL_ICON[e.type] || 'info')}</span>
         <div class="what"><b>${esc(e.title)}</b>
           ${e.detail ? `<span>${esc(e.detail)}</span>` : ''}
@@ -5929,6 +6089,8 @@ function renderTimeline() {
 $('pxRight').onclick = (e) => {
   const f = e.target.closest('button[data-tl]');
   if (f) { tlFilter = f.dataset.tl; renderTimeline(); return; }
+  const t = e.target.closest('[data-ticket]');
+  if (t && !e.target.closest('a')) { openTicket(t.dataset.ticket); return; }
   if (e.target.closest('button[data-empty="person-book"]')) bookFromPerson();
 };
 
@@ -5984,10 +6146,85 @@ $('pxEdit').onclick = () => {
   closePerson(); setTimeout(() => openContact(c), 150);
 };
 $('pxLeft').onclick = (e) => {
+  const edit = e.target.closest('[data-px-edit]');
+  if (edit) {
+    pxEditing = edit.dataset.pxEdit;
+    renderPerson();
+    $('pxLeft').querySelector('.px-form input, .px-form select, .px-form textarea')?.focus();
+    return;
+  }
+  if (e.target.closest('[data-px-cancel]')) { pxEditing = null; renderPerson(); return; }
+  const t = e.target.closest('[data-ticket]');
+  if (t) { openTicket(t.dataset.ticket); return; }
+  const sw = e.target.closest('button[data-pref]');
+  if (sw) { setPref(sw); return; }
   if (!e.target.closest('#pxDelete')) return;
   const c = currentPerson(); if (!c) return;
   closePerson(); setTimeout(() => deleteContact(c), 150);
 };
+// A ticket row is a button in all but name, so the keyboard opens it too.
+for (const col of [$('pxLeft'), $('pxRight')]) {
+  col.addEventListener('keydown', (e) => {
+    const t = e.target.closest?.('[data-ticket]');
+    if (t && e.target === t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openTicket(t.dataset.ticket); }
+  });
+}
+
+/** Email and texts, each its own switch, saved as soon as it is flipped. */
+async function setPref(btn) {
+  const c = person?.contact;
+  if (!c?.prefs || btn.disabled) return;
+  const next = { ...c.prefs, [btn.dataset.pref]: btn.getAttribute('aria-checked') !== 'true' };
+  btn.setAttribute('aria-checked', String(next[btn.dataset.pref]));
+  btn.disabled = true;
+  try {
+    const r = await api('/api/staff/contacts', { method: 'PATCH', body: JSON.stringify({ id: c.id, op: 'prefs', ...next }) });
+    c.prefs = r.prefs;
+    toast(`${btn.dataset.pref === 'email' ? 'Emails' : 'Texts'} ${next[btn.dataset.pref] ? 'on' : 'off'} for ${c.name}.`);
+  } catch (err) {
+    btn.setAttribute('aria-checked', String(c.prefs[btn.dataset.pref]));
+    fail(err);
+  }
+  btn.disabled = false;
+}
+
+// The three forms edited in place: contact details, status, a new note.
+$('pxLeft').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const c = person?.contact;
+  if (!c) return;
+  const v = (k) => f.elements[k]?.value.trim() ?? '';
+  let body;
+  if (f.id === 'pxNoteForm') {
+    if (!v('note')) { note($('pxFormNote'), 'Write the note first.'); return; }
+    body = { id: c.id, op: 'note', note: v('note') };
+  } else {
+    // The whole record, as the Edit form sends it, with what changed.
+    body = {
+      id: c.id, name: c.name, phone: c.phone || '', email: c.email || '',
+      source: c.source || '', notes: c.notes || '', status: c.status,
+    };
+    if (f.id === 'pxContactForm') {
+      Object.assign(body, { name: v('name'), phone: v('phone'), email: v('email') });
+      if (!body.name) { note($('pxFormNote'), 'They need a name.'); return; }
+      if (!body.phone && !body.email) { note($('pxFormNote'), 'Keep a phone number or an email.'); return; }
+    } else {
+      body.status = v('status');
+    }
+  }
+  const save = f.querySelector('button:not([type])');
+  if (save) save.disabled = true;
+  try {
+    await api('/api/staff/contacts', { method: 'PATCH', body: JSON.stringify(body) });
+    pxEditing = null;
+    await reloadPerson();
+    toast(f.id === 'pxNoteForm' ? 'Note added.' : 'Saved.');
+  } catch (err) {
+    note($('pxFormNote'), err.message);
+    if (save) save.disabled = false;
+  }
+});
 
 let searchTimer = null;
 let contactSeq = 0;
@@ -5997,8 +6234,10 @@ async function loadContacts() {
   const sv = contactStylist;
   if (!contactList.length) $('contacts').innerHTML = skeleton(6);
   try {
-    const d = await api(`/api/staff/contacts?q=${encodeURIComponent(qv)}&member=${encodeURIComponent(sv)}`);
-    if (seq === contactSeq) renderContacts(d, Boolean(qv || sv || contactSource));
+    const d = await api(`/api/staff/contacts?q=${encodeURIComponent(qv)}&stylist=${encodeURIComponent(sv)}&stylists=1`);
+    if (seq !== contactSeq) return;
+    if (d.stylists) { contactStylists = d.stylists; fillStylistFilter(); }
+    renderContacts(d, Boolean(qv || sv));
   } catch (err) {
     if (seq === contactSeq && err.message !== 'signed out') {
       $('contacts').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load clients', text: err.message });

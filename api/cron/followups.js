@@ -123,10 +123,13 @@ export default handler({
               t.id AS tenant_id, t.name AS shop_name, t.timezone, t.host, t.slug,
               t.address, t.phone, t.email,
               to_jsonb(t) -> 'automations_off' AS automations_off,
-              to_jsonb(t) ->> 'review_url' AS review_url
+              to_jsonb(t) ->> 'review_url' AS review_url,
+              -- The client's own say (migration 031); yes where unset.
+              COALESCE((to_jsonb(c) ->> 'email_ok')::boolean, true) AS email_ok
          FROM scheduled_messages m
          JOIN tenants t ON t.id = m.tenant_id
          LEFT JOIN appointments a ON a.id = m.appointment_id
+         LEFT JOIN contacts c ON c.id = COALESCE(m.contact_id, a.contact_id)
          LEFT JOIN stylists s ON s.id = a.stylist_id
          LEFT JOIN services v ON v.id = a.service_id
         WHERE m.sent_at IS NULL
@@ -151,6 +154,17 @@ export default handler({
         await query(
           `UPDATE scheduled_messages SET cancelled_at = now(), cancel_reason = $2 WHERE id = $1`,
           [row.id, 'appointment cancelled'],
+        );
+        skipped.push(row.kind);
+        continue;
+      }
+
+      // The client asked not to be sent follow-up emails. Cancelled, not
+      // held, for the same reason a switched-off automation's are.
+      if (!row.email_ok) {
+        await query(
+          `UPDATE scheduled_messages SET cancelled_at = now(), cancel_reason = $2 WHERE id = $1`,
+          [row.id, 'client opted out of email'],
         );
         skipped.push(row.kind);
         continue;

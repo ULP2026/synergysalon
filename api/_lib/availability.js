@@ -67,6 +67,11 @@ export function combineServices(primary, extras = []) {
     bufferMin: last.buffer_min || 0,
     priceCents: priced ? all.reduce((t, v) => t + v.price_cents, 0) : null,
     names: all.map((v) => v.name),
+    // The ticket's lines, in the order they are done: what each one was
+    // priced at and took when this visit was booked.
+    lines: all.map((v) => ({
+      slug: v.slug, name: v.name, priceCents: v.price_cents ?? null, durationMin: v.duration_min,
+    })),
     breaks: cleanBreaks(breaks, t),
   };
 }
