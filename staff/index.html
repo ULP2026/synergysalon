@@ -2332,6 +2332,12 @@
             <div id="business"></div>
           </section>
 
+          <!-- Sign out, at the foot of the page the person chip opens. It had
+               gone from here and lived only in your own profile dialog, which
+               nobody thinks to open to leave. -->
+          <button type="button" class="btn signout" id="signOutBtn">
+            <svg class="ic"><use href="#i-signout"/></svg>Sign out</button>
+
         </div>
       </div>
 
@@ -4098,6 +4104,7 @@ document.fonts?.addEventListener?.('loadingdone', () => { if (me) moveRing(true)
 
 // The chip is the person; it is a data-page link to Team Settings, routed
 // like every other one. Sign out lives at the bottom of that page.
+$('signOutBtn').onclick = () => signOutNow();
 
 $('mktSeg').onclick = (e) => {
   const b = e.target.closest('button[data-page]');
