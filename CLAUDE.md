@@ -811,6 +811,20 @@ made that way are real: name them ZZ and remove them.
   opacity .9, and only the page's one primary carries `--cta-glow` (capped at
   RocketOS's gold-glow strength). Ambient page light stays at about 5%.
 
+## Small screens
+
+Checked on 2026-10-22 at 375, 390, 768 and 1440px against the real console
+and API running locally on a test database (every page, New appointment,
+the client profile, the automation, message and turn-off windows, Karen):
+nothing pushes the page sideways. What was fixed then: under 390px the
+profile chip in the nav is its picture alone (a later `.grn-me` rule had
+been overriding the 420px padding, so it ran off the edge); under 600px the
+month grid has no "+" buttons, since the whole cell already adds and they
+squeezed the dates; Home's chart labels thin by the chart's own width
+(container query on `.hm-x`). The Appt. Book day grid is wider than a phone
+on purpose -- one column per stylist -- and scrolls sideways inside its card
+(`#dgWrap`, `overflow-x: auto`).
+
 ## Gotchas worth knowing before you hit them
 
 **Untyped query parameters.** `tstzrange($1, $1 + make_interval(mins => $2))`
