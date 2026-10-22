@@ -1191,31 +1191,14 @@
   }
 
   /* Call Karen: the booking assistant's button and chat. */
-  .karen-tab { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 45;
-               display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 9px 16px 10px;
-               border: 1px solid rgba(85, 96, 166, .28); border-right: 0; border-radius: 16px 0 0 16px;
-               background: linear-gradient(160deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c;
-               font: inherit; font-size: var(--fs-sm); font-weight: 650; cursor: pointer; box-shadow: var(--e2);
-               transition: padding var(--t) var(--ease), background-color var(--t) var(--ease); }
-  .karen-tab:hover { padding-right: 14px; background: linear-gradient(160deg, #f1cfe3 0%, #dfe2f5 100%); }
-  .karen-tab:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
-  .karen-tab .kt-lbl { writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .02em; white-space: nowrap; }
-  @media (max-width: 720px) {
-    .karen-tab { top: auto; bottom: 16px; right: 16px; transform: none; flex-direction: row; gap: 8px;
-                 padding: 7px 16px 7px 7px; border-right: 1px solid rgba(85, 96, 166, .28); border-radius: 999px; }
-    .karen-tab:hover { padding-right: 16px; }
-    .karen-tab .kt-lbl { writing-mode: horizontal-tb; transform: none; }
-  }
-  /* Karen in the top bar, beside the person chip, on every page: the one
-     place sure to be on screen whatever else covers the edges. */
-  .grn-karen { gap: 8px; padding: 0 14px 0 6px; border-color: rgba(85, 96, 166, .28); font-weight: 650; }
-  /* By id, so dark mode's glass does not turn her dark: she stays pink in both. */
-  #karenNav { background: linear-gradient(135deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c; }
-  #karenNav:hover { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
-  .grn-karen .kc-pic { width: 32px; height: 32px; }
-  .grn-karen .kc-pic img { width: 27px; height: 27px; }
-  /* Phones have no room in the top bar: Karen is the round button at the bottom right there. */
-  @media (max-width: 720px) { .grn-karen { display: none; } }
+  /* Beside each page's title, at the right of New appointment, on every
+     page (asked for 2026-10-22). Pink by id, so dark mode keeps her pink. */
+  .karen-cta { gap: 8px; padding-left: 7px; font-weight: 650; border: 1px solid rgba(85, 96, 166, .28); box-shadow: var(--e1); }
+  #karenBtn { background: linear-gradient(135deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c; }
+  #karenBtn:hover:not(:disabled) { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
+  .karen-cta .kc-pic { width: 28px; height: 28px; }
+  .karen-cta .kc-pic img { width: 24px; height: 24px; }
+  @media (max-width: 720px) { .pagehead .karen-cta { width: 100%; justify-content: center; } }
   .kc-pic, .kd-pic { position: relative; flex: none; display: grid; place-items: center; border-radius: 50%; background: #fff; }
   .kc-pic { width: 28px; height: 28px; }
   .kc-pic img { width: 24px; height: 24px; }
@@ -2321,11 +2304,6 @@
 
 <!-- ─────────────────────────── app ─────────────────────────── -->
 <div id="app" class="app hidden">
-  <!-- Call Karen, the booking assistant: a tab on the right edge of every
-       page (asked for 2026-10-22), a round button at the bottom on phones. -->
-  <button type="button" class="karen-tab" id="karenBtn" title="Call Karen, the booking assistant">
-    <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span><span class="kt-lbl">Call Karen</span>
-  </button>
   <!-- GoldenRingNav, ported from RocketOS: a fixed cluster at the top centre,
        the nav pill and a separate chip for the person. The periwinkle ring slides
        under the current page on framer-motion's spring (see moveRing()).
@@ -2348,10 +2326,6 @@
       <a class="grn-item icon-only" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
         <svg class="grn-ic"><use href="#l-settings"/></svg></a>
     </nav>
-    <!-- Call Karen, the booking assistant, beside the person on every page. -->
-    <button type="button" class="grn-me grn-karen glass-strong" id="karenNav" title="Call Karen, the booking assistant" aria-label="Call Karen">
-      <span class="kc-pic" aria-hidden="true"><img id="karenNavPic" alt=""><i></i></span><span class="me-name">Call Karen</span>
-    </button>
     <!-- The person: their picture and first name. A click opens their own
          profile in place, the dialog Team Members opens for them; it stays a
          link to Settings, so a new-tab click still goes there. -->
@@ -2374,6 +2348,11 @@
       </button>
       <button class="btn primary" id="primaryBtn">
         <svg class="ic"><use href="#i-plus"/></svg><span id="primaryLbl">New appointment</span>
+      </button>
+      <!-- Call Karen, the booking assistant: on every page, at the right of
+           New appointment where there is one. -->
+      <button type="button" class="btn karen-cta" id="karenBtn" title="Call Karen, the booking assistant">
+        <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span><span>Call Karen</span>
       </button>
     </header>
 
@@ -6939,10 +6918,8 @@ function kTeam() {
 }
 
 $('karenBtnPic').src = KAREN_PIC;
-$('karenNavPic').src = KAREN_PIC;
 $('karenPic').src = KAREN_PIC;
 $('karenBtn').onclick = openKaren;
-$('karenNav').onclick = openKaren;
 $('karenRestart').onclick = kStart;
 $('karenClose').onclick = () => closeDialog($('karenDlg'));
 
