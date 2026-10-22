@@ -166,7 +166,7 @@ the page whenever it is missing (a static `<style>` is thrown away when the
 bundle swaps its document in): on touch screens a card looks picked only
 when it is (`@media (hover: none)`, the tap that opens the popup used to
 leave a sticky hover on the card under it), the day's label has room above
-its times, and "Get directions" and "Done" share the row on one line each.
+its times (space under the calendar), and "Get directions" and "Done" share the row on one line each.
 While the popup is open the test-mode bar sits at the top of the screen;
 at the bottom it covered Continue and a tester could not leave step 1.
 

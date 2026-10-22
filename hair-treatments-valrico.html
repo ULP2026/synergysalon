@@ -304,7 +304,8 @@ html.ss-soon-lock,html.ss-soon-lock body{overflow:hidden}
   //  - A finger leaves a "sticky hover" behind: the card that opens under
   //    the tap that opened the popup looked chosen before anything was. On
   //    touch screens a card looks picked only when it is.
-  //  - The day's label had no room between it and the calendar.
+  //  - What follows the calendar (the day's label, or "Pick a date")
+  //    had no room between it and the calendar.
   //  - "Get directions" wrapped onto two lines inside its button.
   var BK_CSS = '@media (hover: none) {'
     + '.bk-opt:hover:not(.on), .bk-person:hover:not(.on) { border-color: rgba(53,54,118,.16); background: #fff; }'
@@ -312,7 +313,7 @@ html.ss-soon-lock,html.ss-soon-lock body{overflow:hidden}
     + '.bk-time:hover:not(.on):not(:disabled) { border-color: rgba(53,54,118,.16); }'
     + '.bk-chip:hover:not(.on) { border-color: rgba(53,54,118,.2); }'
     + '}'
-    + '.bk-mini:has(+ .bk-times) { margin-top: 1rem; }'
+    + '.bk-cal { margin-bottom: 1rem; }'
     + '.bk-done-actions > a, .bk-done-actions > button { white-space: nowrap; }'
     + '@media (max-width: 640px) { .bk-done-actions { flex-wrap: nowrap; width: 100%; }'
     + ' .bk-done-actions > a, .bk-done-actions > button { flex: 1 1 0; min-width: 0; justify-content: center; } }';
