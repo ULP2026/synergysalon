@@ -1254,6 +1254,69 @@
   }
   @media (prefers-reduced-motion: reduce) { .kd-msg, .kd-chip { animation: none; } .kd-typing i { animation: none; } }
 
+  /* New appointment as one ticket: when at the top, the client, the services. */
+  dialog.tk { max-width: 640px; padding: 0; overflow: hidden; }
+  dialog.tk[open] { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+  .tk form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .tk-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 14px 22px;
+             background: var(--peri-pale); border-bottom: 1px solid rgba(85, 96, 166, .16); }
+  .tk-head h2 { margin: 0; }
+  .tk-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 22px 18px; }
+  .tk-sec { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .tk-h { margin: 0 0 10px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .tk-when { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 0 12px; }
+  .tk-when label, .tk-sec .two label, .tk-search label { margin-bottom: 0; }
+  .tk-field { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 42px;
+              padding: 0 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--field); color: var(--ink);
+              font: inherit; cursor: pointer; text-align: left; }
+  .tk-field[aria-expanded="true"] { border-color: var(--periwinkle); box-shadow: 0 0 0 3px rgba(85, 96, 166, .15); }
+  .tk-field .ic { color: var(--muted); flex: none; }
+  .tk-cal { margin: 12px 0 0; }
+  .tk-hint { margin: 8px 0 0; font-size: var(--fs-xs); color: var(--muted); }
+  .tk-hint:empty { display: none; }
+  .tk-search { position: relative; margin-bottom: 12px; }
+  .tk-sugg { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); max-height: 260px; overflow-y: auto;
+             padding: 6px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--card); box-shadow: var(--e2); }
+  .tk-sug { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: none; color: var(--ink);
+            font: inherit; text-align: left; cursor: pointer; }
+  .tk-sug:hover, .tk-sug:focus-visible { background: var(--raise); outline: none; }
+  .tk-sug b { display: block; font-weight: 600; }
+  .tk-sug small { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--muted); }
+  .tk-sug mark { background: rgba(85, 96, 166, .18); color: inherit; border-radius: 3px; }
+  .tk-none { margin: 0; padding: 8px 10px; font-size: var(--fs-sm); color: var(--muted); }
+  .tk-linked { display: flex; align-items: center; gap: 6px; margin: -4px 0 12px; font-size: var(--fs-sm); font-weight: 600; color: var(--ok); }
+  .tk-linked .ic { width: 16px; height: 16px; }
+  .tk-link { border: 0; background: none; padding: 0; margin-left: 4px; color: var(--periwinkle); font: inherit; font-weight: 600;
+             text-decoration: underline; cursor: pointer; }
+  .tk-lines { display: flex; flex-direction: column; gap: 8px; }
+  .tk-line { display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .tk-line span { flex: 1; min-width: 0; }
+  .tk-line b { display: block; font-weight: 600; }
+  .tk-line small, .tk-opt small { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--muted); }
+  .tk-x { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 50%;
+          background: none; color: var(--muted); cursor: pointer; }
+  .tk-x:hover { background: var(--raise); color: var(--warn); }
+  .tk-empty { margin: 0; padding: 4px 0; font-size: var(--fs-sm); color: var(--muted); }
+  .tk-add { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 8px 14px; border: 1px dashed var(--periwinkle);
+            border-radius: 999px; background: none; color: var(--periwinkle); font: inherit; font-weight: 600; cursor: pointer; }
+  .tk-add:hover, .tk-add[aria-expanded="true"] { background: var(--peri-pale); }
+  .tk-add[hidden] { display: none; }
+  .tk-picker { margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--raise); }
+  .tk-kind + .tk-kind { margin-top: 12px; }
+  .tk-kind h4 { margin: 0 0 8px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .tk-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+  .tk-opt { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink);
+            font: inherit; text-align: left; cursor: pointer; transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
+  .tk-opt:hover { border-color: var(--periwinkle); box-shadow: var(--e1); }
+  .tk-opt b { display: block; font-weight: 600; }
+  .tk-total { margin-top: 10px; text-align: right; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+  .tk-total:empty { display: none; }
+  .tk-x:focus-visible, .tk-add:focus-visible, .tk-opt:focus-visible, .tk-field:focus-visible, .tk-link:focus-visible {
+    outline: 2px solid var(--periwinkle); outline-offset: 2px; }
+  @media (max-width: 560px) {
+    .tk-when { grid-template-columns: 1fr 1fr; }
+    .tk-when label:first-child { grid-column: 1 / -1; margin-bottom: 12px; }
+  }
   /* New appointment: one question at a time, each answer a card. */
   dialog.bw { max-width: 600px; padding: 0; overflow: hidden; }
   dialog.bw[open] { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
@@ -2517,63 +2580,60 @@
 <div id="pop" class="pop hidden" role="menu"></div>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-<!-- New appointment, one question at a time (asked for 2026-10-22): the
-     stylist, the kind of service, the service, the time, then the client.
-     A choice moves on by itself; Back keeps every answer. The chosen values
-     sit in the hidden inputs, which is all the booking itself reads. -->
-<dialog id="bookDlg" class="bw" aria-labelledby="bookTitle">
+<!-- New appointment, one ticket on one page (asked for 2026-10-22): the
+     stylist, day and time at the top; the client under them, found as their
+     name is typed; then as many services as the visit has. Times always fit
+     the services on the ticket. -->
+<dialog id="bookDlg" class="tk" aria-labelledby="bookTitle">
   <form method="dialog" id="bookForm" novalidate>
-    <header class="bw-head">
-      <div class="bw-top">
-        <button type="button" class="bw-back" id="bookBack"><svg class="ic"><use href="#i-left"/></svg>Back</button>
-        <span class="bw-count" id="bookCount">Step 1 of 5</span>
-        <button type="button" class="bw-x" data-book-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
-      </div>
+    <header class="tk-head">
       <h2 id="bookTitle">New appointment</h2>
-      <div class="bw-bar" aria-hidden="true"><span id="bookBar"></span></div>
+      <button type="button" class="bw-x" data-book-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
     </header>
-    <div class="bw-body">
+    <div class="tk-body">
       <div id="bookNote" class="note bad hidden"></div>
 
-      <section class="bw-pane" data-step="stylist">
-        <h3 class="bw-q">Who is the stylist?</h3>
-        <div class="bw-people" id="bookStylists"></div>
+      <section class="tk-sec">
+        <div class="tk-when">
+          <label><span>Stylist</span><select id="bookStylist"></select></label>
+          <label><span>Day</span>
+            <button type="button" class="tk-field" id="bookDayBtn" aria-expanded="false">
+              <span id="bookDayLbl"></span><svg class="ic"><use href="#i-calendar"/></svg></button></label>
+          <label><span>Time</span><select id="bookTime"></select></label>
+        </div>
+        <div class="bw-cal tk-cal" id="bookCal" hidden></div>
+        <p class="tk-hint" id="bookWhenHint"></p>
       </section>
 
-      <section class="bw-pane" data-step="kind" hidden>
-        <h3 class="bw-q">What type of service?</h3>
-        <div class="bw-kinds" id="bookKinds"></div>
-      </section>
-
-      <section class="bw-pane" data-step="service" hidden>
-        <h3 class="bw-q" id="bookServiceQ">Which service?</h3>
-        <div class="bw-list" id="bookServices"></div>
-      </section>
-
-      <section class="bw-pane" data-step="when" hidden>
-        <h3 class="bw-q">When?</h3>
-        <!-- The whole month at once, days with nothing free greyed out. -->
-        <div class="bw-cal" id="bookCal"></div>
-        <h4 class="bw-sub" id="bookTimesHead"></h4>
-        <div class="bw-times" id="bookTimes"></div>
-      </section>
-
-      <section class="bw-pane" data-step="client" hidden>
-        <h3 class="bw-q">Who is the client?</h3>
-        <div class="bw-sum" id="bookSummary"></div>
-        <label><span>Client name</span><input id="bookName" autocomplete="off"></label>
+      <section class="tk-sec">
+        <h3 class="tk-h">Client</h3>
+        <div class="tk-search">
+          <label><span>Name</span>
+            <input id="bookName" autocomplete="off" placeholder="Type 3 letters to find a client" role="combobox"
+              aria-autocomplete="list" aria-controls="bookSugg" aria-expanded="false"></label>
+          <div class="tk-sugg" id="bookSugg" role="listbox" hidden></div>
+        </div>
+        <p class="tk-linked hidden" id="bookLinked"></p>
         <div class="two">
           <label><span>Phone</span><input id="bookPhone" type="tel" autocomplete="off"></label>
           <label><span>Email</span><input type="email" id="bookEmail" autocomplete="off"></label>
         </div>
-        <label><span>Notes</span><textarea id="bookNotes" rows="2" placeholder="Optional"></textarea></label>
       </section>
+
+      <section class="tk-sec">
+        <h3 class="tk-h">Services</h3>
+        <div class="tk-lines" id="bookLines"></div>
+        <button type="button" class="tk-add" id="bookAdd" aria-expanded="false"><svg class="ic"><use href="#i-plus"/></svg>Add service</button>
+        <div class="tk-picker" id="bookPicker" hidden></div>
+        <div class="tk-total" id="bookTotal"></div>
+      </section>
+
+      <label><span>Notes</span><textarea id="bookNotes" rows="2" placeholder="Optional"></textarea></label>
     </div>
-    <input type="hidden" id="bookStylist"><input type="hidden" id="bookService">
-    <input type="hidden" id="bookDate"><input type="hidden" id="bookTime">
+    <input type="hidden" id="bookDate">
     <footer class="bw-foot">
       <button type="button" class="btn quiet" data-book-close>Cancel</button>
-      <button class="btn hidden" id="bookSubmit" value="book">Book appointment</button>
+      <button class="btn" id="bookSubmit" value="book">Book appointment</button>
     </footer>
   </form>
 </dialog>
@@ -5993,119 +6053,106 @@ $('contactForm').onsubmit = async (e) => {
 // ───────────────────────────── booking ─────────────────────────────
 
 /**
- * New appointment, one question at a time (asked for 2026-10-22): who the
- * stylist is, the kind of service (Color, Treatments, Cuts, Styling), the
- * service, the time, then the client. Picking an answer moves on by itself;
- * Back keeps every answer, and changing one clears only what it no longer
- * fits (a service the new stylist does not do, a time no longer free).
+ * New appointment, one ticket on one page (asked for 2026-10-22, replacing
+ * the five-step survey): stylist, day and time at the top; the client under
+ * them, found from the third letter of their name and filled in; then as
+ * many services as the visit has, booked as one appointment with one
+ * stylist end to end (the engine's "with", as on the public page).
  *
- * preset, from a click on the day grid: { stylist, date, minutes }. The
- * stylist is already answered, so it opens on the kind of service, and the
- * clicked time is chosen for them when it is free.
+ * The free times are always for the services on the ticket. Until the first
+ * is added they are the stylist's times for their shortest service, so a
+ * time can be picked first; adding services re-checks it, and a time that no
+ * longer fits is cleared with a note rather than booked short.
+ *
+ * preset, from a click on the day grid: { stylist, date, minutes }. That
+ * stylist, day and time are already chosen, as long as the time fits.
  */
-const BOOK_STEPS = ['stylist', 'kind', 'service', 'when', 'client'];
 const BOOK_KINDS = [['color', 'Color'], ['treatments', 'Treatments'], ['cuts', 'Cuts'], ['styling', 'Styling']];
-let bookPreset = null;
-let bookStep = 0;
-let bookKind = null;
-let bookMonth = '';      // 'YYYY-MM', the month the calendar shows
-// The free times of that month, by day, for one service and stylist: one
-// request a month, which also says which days to grey out.
-let bookAvail = { key: '', days: null };
-const bookYmd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-const bookLongDate = (iso) => new Date(`${iso}T12:00:00`)
-  .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
 const bookKindOf = (s) => (BOOK_KINDS.some(([k]) => k === s.category) ? s.category : 'other');
 const bookKindLabel = (k) => (BOOK_KINDS.find(([x]) => x === k) || [k, 'Other'])[1];
 const bookTimeLabel = (iso) => new Date(iso).toLocaleTimeString('en-US', {
   hour: 'numeric', minute: '2-digit', timeZone: me.salon.timezone,
 });
+const bookMins = (n) => (n >= 60 ? `${Math.floor(n / 60)} hr${n % 60 ? ` ${n % 60} min` : ''}` : `${n} min`);
+const bookYmd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+const bookLongDate = (iso) => new Date(`${iso}T12:00:00`)
+  .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-/** The services the chosen stylist does; for First available, anybody's. */
-function bookOffered() {
+let bookPreset = null;
+let bookLines = [];        // the services on the ticket, the first leading
+let bookMonth = '';        // 'YYYY-MM', the month the calendar shows
+let bookContact = null;    // the client picked from the search, if any
+let bookChosen = '';       // the time picked, kept while the times reload
+// Free times by day, a month at a time, for one set of services and one
+// stylist: one request a month, which also says which days to grey out. The
+// calendar and the time list share it, so paging the calendar never loses
+// the chosen day's times.
+const bookCache = new Map();   // key -> { day: slots } (or the request in flight)
+let bookSuggSeq = 0;
+let bookSuggTimer = null;
+
+/** Stylists who do every service on the ticket (anybody, while it is empty). */
+const bookStylistsFor = (lines) => (me.stylists || []).filter((s) => !Array.isArray(s.services)
+  || lines.every((x) => s.services.includes(x.slug)));
+
+/** Services that could join the ticket: the chosen stylist does them, alongside the rest. */
+function bookAddable() {
   const st = $('bookStylist').value;
-  const lists = (me.stylists || []).filter((s) => st === 'any' || s.slug === st).map((s) => s.services);
-  // A /me from before stylists listed their services: offer everything.
-  if (lists.some((l) => !Array.isArray(l))) return me.services;
-  const offered = new Set(lists.flat());
-  return me.services.filter((s) => offered.has(s.slug));
+  const taken = new Set(bookLines.map((s) => s.slug));
+  return me.services.filter((s) => !taken.has(s.slug)
+    && bookStylistsFor([...bookLines, s]).some((p) => st === 'any' || p.slug === st));
 }
 
-function bookGo(i, dir = 'fwd') {
-  bookStep = Math.max(0, Math.min(BOOK_STEPS.length - 1, i));
-  const step = BOOK_STEPS[bookStep];
-  for (const pane of $('bookDlg').querySelectorAll('.bw-pane')) {
-    const here = pane.dataset.step === step;
-    pane.hidden = !here;
-    pane.classList.remove('fwd', 'bwd');
-    if (here) { void pane.offsetWidth; pane.classList.add(dir); }   // restart the slide
-  }
-  $('bookCount').textContent = `Step ${bookStep + 1} of ${BOOK_STEPS.length}`;
-  $('bookBar').style.width = `${((bookStep + 1) / BOOK_STEPS.length) * 100}%`;
-  $('bookBack').classList.toggle('off', bookStep === 0);
-  $('bookSubmit').classList.toggle('hidden', step !== 'client');
-  ({
-    stylist: paintBookStylists, kind: paintBookKinds, service: paintBookServices,
-    when: paintBookWhen, client: paintBookSummary,
-  })[step]();
-  $('bookDlg').querySelector('.bw-body').scrollTop = 0;
-  // Focus follows the question, for the keyboard and for a screen reader.
-  requestAnimationFrame(() => {
-    const pane = $('bookDlg').querySelector(`.bw-pane[data-step="${step}"]`);
-    const target = step === 'client' ? $('bookName') : pane.querySelector('.on') || pane.querySelector('button, input');
-    target?.focus({ preventScroll: true });
-  });
+/** What the times are worked out for: the ticket's services, or a short stand-in. */
+function bookQuery() {
+  if (bookLines.length) return { service: bookLines[0].slug, with: bookLines.slice(1).map((s) => s.slug).join(',') };
+  const st = $('bookStylist').value;
+  const offered = me.services.filter((s) => bookStylistsFor([s]).some((p) => st === 'any' || p.slug === st));
+  const shortest = [...offered].sort((a, b) => a.durationMin - b.durationMin)[0];
+  return shortest ? { service: shortest.slug, with: '' } : null;
 }
-// A beat before moving on, so the choice is seen to be made.
-const bookNext = () => setTimeout(() => bookGo(bookStep + 1, 'fwd'), 160);
 
 function paintBookStylists() {
-  const cur = $('bookStylist').value;
-  const card = (slug, pic, name, sub) =>
-    `<button type="button" class="bw-opt${cur === slug ? ' on' : ''}" data-stylist="${esc(slug)}">${pic}`
-    + `<span><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
-  $('bookStylists').innerHTML =
-    card('any', '<span class="bw-any"><svg class="ic"><use href="#i-user"/></svg></span>', 'First available', 'Whoever is free')
-    + (me.stylists || []).map((s) => card(s.slug, `<img src="${esc(personPhoto(s))}" alt="">`, s.name, s.title || '')).join('');
+  const cur = $('bookStylist').value || 'any';
+  const list = bookStylistsFor(bookLines);
+  $('bookStylist').innerHTML = '<option value="any">First available</option>'
+    + list.map((s) => `<option value="${esc(s.slug)}">${esc(s.name)}</option>`).join('');
+  $('bookStylist').value = list.some((s) => s.slug === cur) ? cur : 'any';
 }
 
-function paintBookKinds() {
-  const offered = bookOffered();
-  const kinds = [...BOOK_KINDS.map(([k]) => k), 'other']
-    .map((k) => [k, offered.filter((s) => bookKindOf(s) === k)])
-    .filter(([, list]) => list.length);
-  const st = me.stylists.find((s) => s.slug === $('bookStylist').value);
-  // Just the kind, large (asked for 2026-10-22): the services come next.
-  $('bookKinds').innerHTML = kinds.length
-    ? kinds.map(([k]) =>
-      `<button type="button" class="bw-opt${bookKind === k ? ' on' : ''}" data-kind="${k}"><b>${bookKindLabel(k)}</b></button>`).join('')
-    : `<p class="bw-empty">${esc(st?.name || 'Nobody')} has no services switched on yet. Go back and pick someone else.</p>`;
+function paintBookLines() {
+  $('bookLines').innerHTML = bookLines.length
+    ? bookLines.map((s, i) => `<div class="tk-line"><span><b>${esc(s.name)}</b><small>${esc(bookMins(s.durationMin))}`
+      + `${s.price != null ? ` · from $${esc(s.price)}` : ''}</small></span>`
+      + `<button type="button" class="tk-x" data-remove="${i}" aria-label="Remove ${esc(s.name)}"><svg class="ic"><use href="#i-x"/></svg></button></div>`).join('')
+    : '<p class="tk-empty">No services yet. Add the first one.</p>';
+  const mins = bookLines.reduce((n, s) => n + s.durationMin, 0);
+  const priced = bookLines.filter((s) => s.price != null);
+  $('bookTotal').innerHTML = bookLines.length > 1
+    ? `About ${esc(bookMins(mins))}${priced.length === bookLines.length ? ` · from $${priced.reduce((n, s) => n + Number(s.price), 0)}` : ''}` : '';
+  $('bookAdd').hidden = !bookAddable().length;
 }
 
-function paintBookServices() {
-  $('bookServiceQ').textContent = `Which ${bookKindLabel(bookKind).toLowerCase()} service?`;
-  const cur = $('bookService').value;
-  const list = bookOffered().filter((s) => bookKindOf(s) === bookKind);
-  $('bookServices').innerHTML = list.map((s) =>
-    `<button type="button" class="bw-opt${cur === s.slug ? ' on' : ''}" data-service="${esc(s.slug)}">`
-    + `<span><b>${esc(s.name)}</b>${s.consultFirst ? '<small>Consultation first</small>' : ''}</span>`
-    + `<span class="meta">${s.durationMin} min${s.price != null ? `<br>from $${esc(s.price)}` : ''}</span></button>`).join('')
-    || '<p class="bw-empty">Nothing here yet.</p>';
+function paintBookPicker() {
+  const can = bookAddable();
+  const kinds = [...BOOK_KINDS.map(([k]) => k), 'other'].map((k) => [k, can.filter((s) => bookKindOf(s) === k)]).filter(([, l]) => l.length);
+  $('bookPicker').innerHTML = kinds.length
+    ? kinds.map(([k, list]) => `<div class="tk-kind"><h4>${esc(bookKindLabel(k))}</h4><div class="tk-opts">${list.map((s) =>
+      `<button type="button" class="tk-opt" data-add="${esc(s.slug)}"><b>${esc(s.name)}</b><small>${esc(bookMins(s.durationMin))}`
+      + `${s.price != null ? ` · $${esc(s.price)}` : ''}</small></button>`).join('')}</div></div>`).join('')
+    : '<p class="tk-empty">Nothing else can go with these for one stylist.</p>';
 }
 
-function paintBookWhen() {
-  if (!bookMonth) bookMonth = $('bookDate').value.slice(0, 7);
-  paintBookCal();
-  renderBookTimes();
-  loadTimes();
+function toggleBookPicker(open = $('bookPicker').hidden) {
+  if (open) paintBookPicker();
+  $('bookPicker').hidden = !open;
+  $('bookAdd').setAttribute('aria-expanded', String(open));
 }
 
 /** The month as a grid: past days and days with nothing free can't be picked. */
-function paintBookCal() {
+function paintBookCal(known = null) {
   const [y, m] = bookMonth.split('-').map(Number);
   const today = salonToday();
-  const known = bookAvail.days;
   const cells = Array.from({ length: new Date(y, m - 1, 1).getDay() }, () => '<span></span>');
   for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) {
     const iso = bookYmd(y, m, d);
@@ -6116,150 +6163,249 @@ function paintBookCal() {
       + ` aria-label="${esc(bookLongDate(iso))}${full ? ', nothing free' : ''}">${d}</button>`);
   }
   const label = new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  $('bookCal').innerHTML = `<div class="bw-cal-h">`
+  $('bookCal').innerHTML = '<div class="bw-cal-h">'
     + `<button type="button" class="bw-icon" data-month="-1" aria-label="Previous month"${bookMonth <= today.slice(0, 7) ? ' disabled' : ''}>`
     + `<svg class="ic"><use href="#i-left"/></svg></button><b>${esc(label)}</b>`
-    + `<button type="button" class="bw-icon" data-month="1" aria-label="Next month"><svg class="ic"><use href="#i-right"/></svg></button></div>`
+    + '<button type="button" class="bw-icon" data-month="1" aria-label="Next month"><svg class="ic"><use href="#i-right"/></svg></button></div>'
     + `<div class="bw-cal-w">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((w) => `<span>${w}</span>`).join('')}</div>`
     + `<div class="bw-cal-g">${cells.join('')}</div>`;
 }
 
+function paintBookDay() {
+  const d = $('bookDate').value;
+  $('bookDayLbl').textContent = new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
 /** The chosen day's free times, from the month already loaded. */
-function renderBookTimes() {
-  const box = $('bookTimes');
+function paintBookTimes(days = null) {
+  const sel = $('bookTime');
   const date = $('bookDate').value;
-  $('bookTimesHead').textContent = date.slice(0, 7) === bookMonth ? bookLongDate(date) : '';
-  if (date.slice(0, 7) !== bookMonth) { box.innerHTML = '<p class="bw-empty">Pick a day.</p>'; return; }
-  if (!bookAvail.days) { box.innerHTML = '<p class="bw-empty">Finding free times…</p>'; return; }
-  const slots = bookAvail.days[date] || [];
-  if (!slots.some((s) => s.start === $('bookTime').value)) $('bookTime').value = '';
-  const want = bookPreset?.minutes;
-  if (want != null && date === bookPreset.date) {
-    const hit = slots.find((x) => salonMinutes(x.start) === want);
-    if (hit) $('bookTime').value = hit.start;
-    else note($('bookNote'), `${clock(want)} is not free for this service. Pick another time.`, 'bad');
-    bookPreset = { ...bookPreset, minutes: null };   // the grid's time is offered once
+  const want = bookChosen;
+  const hint = (text) => { $('bookWhenHint').textContent = text; };
+  if (!bookQuery()) {
+    sel.innerHTML = '<option value="">No services to book</option>';
+    sel.disabled = true;
+    hint('Nobody has services switched on for booking yet.');
+    return;
   }
-  box.innerHTML = slots.length
-    ? slots.map((s) => `<button type="button" class="bw-time" data-time="${esc(s.start)}">${bookTimeLabel(s.start)}</button>`).join('')
-    : `<p class="bw-empty">${date < salonToday() ? 'That day has passed.' : 'Nothing free that day.'} Pick another day.</p>`;
-  markBookTime();
-}
-
-function markBookTime() {
-  for (const b of $('bookTimes').querySelectorAll('.bw-time')) b.classList.toggle('on', b.dataset.time === $('bookTime').value);
-}
-
-/** Load the month the calendar shows, once per service, stylist and month. */
-async function loadTimes() {
-  const key = [$('bookService').value, $('bookStylist').value, bookMonth].join('|');
-  if (bookAvail.key === key) return;
-  bookAvail = { key, days: null };
-  const [y, m] = bookMonth.split('-').map(Number);
-  const today = salonToday();
-  const first = bookYmd(y, m, 1);
-  const last = bookYmd(y, m, new Date(y, m, 0).getDate());
-  const from = first < today ? today : first;
-  let days = {};
-  if (from <= last) {
-    try {
-      const d = await api('/api/staff/availability?' + new URLSearchParams({
-        service: $('bookService').value, stylist: $('bookStylist').value, date: from, to: last,
-      }));
-      days = Object.fromEntries(d.days.map((x) => [x.date, x.slots]));
-    } catch (err) {
-      if (bookAvail.key !== key) return;
-      bookAvail = { key: '', days: null };
-      $('bookTimes').innerHTML = '<p class="bw-empty">Could not load times.</p>';
-      if (err.message !== 'signed out') note($('bookNote'), err.message);
-      return;
-    }
+  sel.disabled = false;
+  if (!days) {
+    sel.innerHTML = '<option value="">Finding free times…</option>';
+    return;
   }
-  if (bookAvail.key !== key) return;   // a newer question went out meanwhile
-  bookAvail.days = days;
-  if (BOOK_STEPS[bookStep] === 'when') { paintBookCal(); renderBookTimes(); }
+  const slots = days[date] || [];
+  sel.innerHTML = slots.length
+    ? '<option value="">Pick a time</option>' + slots.map((s) => `<option value="${esc(s.start)}">${bookTimeLabel(s.start)}</option>`).join('')
+    : `<option value="">${date < salonToday() ? 'That day has passed' : 'Nothing free that day'}</option>`;
+  // The grid's time, once, if it fits.
+  const pre = bookPreset?.minutes;
+  if (pre != null && date === bookPreset.date) {
+    const hit = slots.find((s) => salonMinutes(s.start) === pre);
+    if (hit) { sel.value = hit.start; bookChosen = hit.start; }
+    else if (slots.length) note($('bookNote'), `${clock(pre)} is not free for this. Pick another time.`, 'bad');
+    bookPreset = { ...bookPreset, minutes: null };
+  } else if (want && slots.some((s) => s.start === want)) {
+    sel.value = want;
+  } else if (want) {
+    bookChosen = '';
+    note($('bookNote'), `${bookTimeLabel(want)} no longer fits ${bookLines.map((s) => s.name).join(' + ') || 'this'}. Pick another time.`, 'bad');
+  }
+  hint(bookLines.length ? (slots.length ? '' : 'Try another day: tap the day to see the month.')
+    : 'Times for a short visit. Adding services re-checks the time so it fits.');
 }
 
-function paintBookSummary() {
-  const s = me.services.find((x) => x.slug === $('bookService').value);
-  const st = $('bookStylist').value;
-  const person = me.stylists.find((x) => x.slug === st);
-  const pic = person ? `<img src="${esc(personPhoto(person))}" alt="">`
-    : '<span class="bw-any"><svg class="ic"><use href="#i-user"/></svg></span>';
-  const date = new Date(`${$('bookDate').value}T12:00:00`)
-    .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  const time = $('bookTime').value ? `, ${bookTimeLabel($('bookTime').value)}` : '';
-  // The stylist chosen first, said plainly (asked for 2026-10-22).
-  $('bookSummary').innerHTML = `<div class="bw-with">${pic}<span><small>Booked with</small>`
-    + `<b>${esc(person?.name || 'First available')}</b></span></div>`
-    + `<div class="bw-facts"><span><em>Service</em> ${esc(s?.name || '')}</span>`
-    + `<span><em>When</em> ${esc(date + time)}</span>`
-    + (s?.price != null ? `<span><em>From</em> $${esc(s.price)}</span>` : '') + '</div>';
+const bookKey = (month) => {
+  const q = bookQuery();
+  return q ? [q.service, q.with, $('bookStylist').value, month].join('|') : '';
+};
+const bookReady = (key) => {
+  const v = bookCache.get(key);
+  return v && !(v instanceof Promise) ? v : null;
+};
+
+/** A month's free times for what is on the ticket, asked once. */
+async function bookMonthDays(month) {
+  const key = bookKey(month);
+  if (!key) return null;
+  if (!bookCache.has(key)) {
+    const q = bookQuery();
+    const [y, m] = month.split('-').map(Number);
+    const today = salonToday();
+    const first = bookYmd(y, m, 1);
+    const last = bookYmd(y, m, new Date(y, m, 0).getDate());
+    const from = first < today ? today : first;
+    const ask = from > last ? Promise.resolve({}) : api('/api/staff/availability?' + new URLSearchParams({
+      service: q.service, stylist: $('bookStylist').value, date: from, to: last, ...(q.with ? { with: q.with } : {}),
+    })).then((d) => Object.fromEntries(d.days.map((x) => [x.date, x.slots])));
+    bookCache.set(key, ask);
+    ask.then((days) => bookCache.set(key, days), () => bookCache.delete(key));
+  }
+  return bookCache.get(key);
 }
+
+/** The chosen day's times, and the calendar's month when it is open. */
+async function loadBookTimes() {
+  if (!bookQuery()) { paintBookTimes(null); return; }
+  const month = $('bookDate').value.slice(0, 7);
+  const key = bookKey(month);
+  paintBookTimes(bookReady(key));
+  refreshBookCal();
+  try {
+    const days = await bookMonthDays(month);
+    if (key !== bookKey($('bookDate').value.slice(0, 7))) return;   // something changed meanwhile
+    paintBookTimes(days);
+  } catch (err) {
+    $('bookTime').innerHTML = '<option value="">Could not load times</option>';
+    if (err.message !== 'signed out') note($('bookNote'), err.message);
+  }
+}
+
+async function refreshBookCal() {
+  if ($('bookCal').hidden) return;
+  const key = bookKey(bookMonth);
+  paintBookCal(bookReady(key));
+  try {
+    const days = await bookMonthDays(bookMonth);
+    if (!$('bookCal').hidden && key === bookKey(bookMonth)) paintBookCal(days);
+  } catch { /* the times line says so */ }
+}
+
+/** Something on the ticket changed: who can do it, what can join it, when it fits. */
+function bookChanged() {
+  paintBookStylists();
+  paintBookLines();
+  if (!$('bookPicker').hidden) paintBookPicker();
+  loadBookTimes();
+}
+
+// ── the client: found from the third letter ──────────────────────────────
+
+function hideBookSugg() {
+  $('bookSugg').hidden = true;
+  $('bookName').setAttribute('aria-expanded', 'false');
+}
+
+function linkBookContact(c) {
+  bookContact = c;
+  $('bookLinked').classList.toggle('hidden', !c);
+  if (c) {
+    const visits = Number(c.visits) || 0;
+    $('bookLinked').innerHTML = `<svg class="ic"><use href="#i-user-check"/></svg>Existing client`
+      + `${visits ? ` · ${visits} visit${visits === 1 ? '' : 's'}` : ''}`
+      + ' <button type="button" class="tk-link" id="bookUnlink">Not them?</button>';
+  }
+}
+
+async function searchBookClients() {
+  const q = $('bookName').value.trim();
+  if (q.length < 3 || (bookContact && q === bookContact.name)) { hideBookSugg(); return; }
+  const seq = ++bookSuggSeq;
+  let list = [];
+  try {
+    list = (await api(`/api/staff/contacts?${new URLSearchParams({ q, limit: '8' })}`)).contacts || [];
+  } catch { return; }
+  if (seq !== bookSuggSeq) return;
+  const mark = (s) => {
+    const i = s.toLowerCase().indexOf(q.toLowerCase());
+    return i < 0 ? esc(s) : `${esc(s.slice(0, i))}<mark>${esc(s.slice(i, i + q.length))}</mark>${esc(s.slice(i + q.length))}`;
+  };
+  $('bookSugg').innerHTML = list.length
+    ? list.map((c, i) => `<button type="button" role="option" class="tk-sug" data-i="${i}"><b>${mark(c.name || '')}</b>`
+      + `<small>${[c.phone, c.email].filter(Boolean).map(esc).join(' · ') || 'No phone or email yet'}`
+      + `${c.visits ? ` · ${c.visits} visit${Number(c.visits) === 1 ? '' : 's'}` : ''}</small></button>`).join('')
+    : `<p class="tk-none">No client called "${esc(q)}" yet. They'll be added as a new client.</p>`;
+  $('bookSugg').onclick = (e) => {
+    const b = e.target.closest('[data-i]');
+    if (b) pickBookClient(list[Number(b.dataset.i)]);
+  };
+  $('bookSugg').hidden = false;
+  $('bookName').setAttribute('aria-expanded', 'true');
+}
+
+function pickBookClient(c) {
+  $('bookName').value = c.name || '';
+  $('bookPhone').value = c.phone || '';
+  $('bookEmail').value = c.email || '';
+  linkBookContact(c);
+  hideBookSugg();
+  note($('bookNote'), '');
+}
+
+$('bookName').addEventListener('input', () => {
+  // Typing over a picked client's name means somebody else.
+  if (bookContact && $('bookName').value.trim() !== bookContact.name) linkBookContact(null);
+  clearTimeout(bookSuggTimer);
+  bookSuggTimer = setTimeout(searchBookClients, 180);
+});
+$('bookName').addEventListener('keydown', (e) => {
+  const opts = [...$('bookSugg').querySelectorAll('.tk-sug')];
+  if ($('bookSugg').hidden || !opts.length) return;
+  const at = opts.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown') { e.preventDefault(); opts[0].focus(); }
+  else if (e.key === 'Escape') { e.preventDefault(); hideBookSugg(); }
+  else if (e.key === 'Enter' && at < 0) { e.preventDefault(); opts[0].click(); }
+});
+$('bookSugg').addEventListener('keydown', (e) => {
+  const opts = [...$('bookSugg').querySelectorAll('.tk-sug')];
+  const at = opts.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown') { e.preventDefault(); opts[Math.min(at + 1, opts.length - 1)]?.focus(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); (at <= 0 ? $('bookName') : opts[at - 1]).focus(); }
+  else if (e.key === 'Escape') { e.preventDefault(); hideBookSugg(); $('bookName').focus(); }
+});
+$('bookLinked').addEventListener('click', (e) => {
+  if (!e.target.closest('#bookUnlink')) return;
+  linkBookContact(null);
+  $('bookName').value = '';
+  $('bookPhone').value = '';
+  $('bookEmail').value = '';
+  $('bookName').focus();
+});
+$('bookDlg').addEventListener('click', (e) => {
+  if (!e.target.closest('.tk-search')) hideBookSugg();
+});
+
+// ── opening, and every control ────────────────────────────────────────────
 
 function openBooking(contact, preset = null) {
-  bookingFor = contact?.id || null;
   bookPreset = preset;
+  bookLines = [];
+  bookChosen = '';
+  bookCache.clear();
   note($('bookNote'), '');
   $('bookTitle').textContent = contact?.name ? `Book ${contact.name}` : 'New appointment';
   $('bookName').value = contact?.name || '';
   $('bookPhone').value = contact?.phone || '';
   $('bookEmail').value = contact?.email || '';
   $('bookNotes').value = '';
-  $('bookStylist').value = preset?.stylist || '';
-  $('bookService').value = '';
-  $('bookTime').value = '';
-  bookKind = null;
-  bookAvail = { key: '', days: null };
-  // A past day can't be booked, so the calendar starts no earlier than today.
+  linkBookContact(contact?.id ? contact : null);
+  hideBookSugg();
+  $('bookStylist').value = 'any';
+  paintBookStylists();
+  if ([...$('bookStylist').options].some((o) => o.value === preset?.stylist)) $('bookStylist').value = preset.stylist;
+  $('bookTime').innerHTML = '';
+  // A past day can't be booked, so the ticket starts no earlier than today.
   const start = preset?.date || (page === 'appointments' && day) || salonToday();
   $('bookDate').value = start < salonToday() ? salonToday() : start;
   bookMonth = $('bookDate').value.slice(0, 7);
+  $('bookCal').hidden = true;
+  $('bookDayBtn').setAttribute('aria-expanded', 'false');
+  toggleBookPicker(false);
+  paintBookDay();
+  paintBookLines();
   openDialog($('bookDlg'));
-  bookGo(preset?.stylist ? 1 : 0);
+  loadBookTimes();
+  // Straight to what is still unknown.
+  setTimeout(() => (contact?.name ? $('bookAdd') : $('bookName')).focus({ preventScroll: true }), 60);
 }
 
-$('bookStylists').onclick = (e) => {
-  const b = e.target.closest('[data-stylist]');
-  if (!b) return;
-  if ($('bookStylist').value !== b.dataset.stylist) {
-    $('bookStylist').value = b.dataset.stylist;
-    // What the new stylist does not do cannot stay chosen.
-    if (!bookOffered().some((s) => s.slug === $('bookService').value)) $('bookService').value = '';
-    if (bookKind && !bookOffered().some((s) => bookKindOf(s) === bookKind)) bookKind = null;
-    $('bookTime').value = '';
-  }
-  note($('bookNote'), '');
-  paintBookStylists();
-  bookNext();
-};
-$('bookKinds').onclick = (e) => {
-  const b = e.target.closest('[data-kind]');
-  if (!b) return;
-  if (bookKind !== b.dataset.kind) {
-    bookKind = b.dataset.kind;
-    const s = me.services.find((x) => x.slug === $('bookService').value);
-    if (s && bookKindOf(s) !== bookKind) { $('bookService').value = ''; $('bookTime').value = ''; }
-  }
-  note($('bookNote'), '');
-  paintBookKinds();
-  bookNext();
-};
-$('bookServices').onclick = (e) => {
-  const b = e.target.closest('[data-service]');
-  if (!b) return;
-  if ($('bookService').value !== b.dataset.service) { $('bookService').value = b.dataset.service; $('bookTime').value = ''; }
-  note($('bookNote'), '');
-  paintBookServices();
-  bookNext();
-};
-$('bookTimes').onclick = (e) => {
-  const b = e.target.closest('[data-time]');
-  if (!b) return;
-  $('bookTime').value = b.dataset.time;
-  note($('bookNote'), '');
-  markBookTime();
-  bookNext();
+$('bookStylist').onchange = () => { note($('bookNote'), ''); bookChanged(); };
+$('bookTime').onchange = () => { bookChosen = $('bookTime').value; note($('bookNote'), ''); };
+$('bookDayBtn').onclick = () => {
+  const open = $('bookCal').hidden;
+  if (open) bookMonth = $('bookDate').value.slice(0, 7);
+  $('bookCal').hidden = !open;
+  $('bookDayBtn').setAttribute('aria-expanded', String(open));
+  refreshBookCal();
 };
 $('bookCal').onclick = (e) => {
   const mo = e.target.closest('[data-month]');
@@ -6267,38 +6413,61 @@ $('bookCal').onclick = (e) => {
     const [y, m] = bookMonth.split('-').map(Number);
     const d = new Date(y, m - 1 + Number(mo.dataset.month), 1);
     bookMonth = bookYmd(d.getFullYear(), d.getMonth() + 1, 1).slice(0, 7);
-    paintBookCal();
-    renderBookTimes();
-    loadTimes();
+    refreshBookCal();
     return;
   }
-  const day = e.target.closest('[data-day]');
-  if (!day || day.disabled) return;
-  $('bookDate').value = day.dataset.day;
-  $('bookTime').value = '';
+  const b = e.target.closest('[data-day]');
+  if (!b || b.disabled) return;
+  $('bookDate').value = b.dataset.day;
+  bookChosen = '';
   note($('bookNote'), '');
-  paintBookCal();
-  renderBookTimes();
+  paintBookDay();
+  $('bookCal').hidden = true;
+  $('bookDayBtn').setAttribute('aria-expanded', 'false');
+  loadBookTimes();
 };
-$('bookBack').onclick = () => { note($('bookNote'), ''); bookGo(bookStep - 1, 'bwd'); };
+$('bookAdd').onclick = () => toggleBookPicker();
+$('bookPicker').onclick = (e) => {
+  const b = e.target.closest('[data-add]');
+  if (!b) return;
+  const s = me.services.find((x) => x.slug === b.dataset.add);
+  if (!s) return;
+  bookLines.push(s);
+  toggleBookPicker(false);
+  note($('bookNote'), '');
+  bookChanged();
+};
+$('bookLines').onclick = (e) => {
+  const b = e.target.closest('[data-remove]');
+  if (!b) return;
+  bookLines.splice(Number(b.dataset.remove), 1);
+  note($('bookNote'), '');
+  bookChanged();
+};
 for (const b of $('bookDlg').querySelectorAll('[data-book-close]')) b.onclick = () => closeDialog($('bookDlg'));
 
 $('bookForm').onsubmit = async (e) => {
   e.preventDefault();
-  // Enter in a field submits the form: only the last question books.
-  if (BOOK_STEPS[bookStep] !== 'client') return;
+  if (e.submitter && e.submitter.value !== 'book') return;
+  if (!bookLines.length) { note($('bookNote'), 'Add at least one service.'); toggleBookPicker(true); return; }
+  if (!$('bookTime').value) { note($('bookNote'), 'Pick a time.'); $('bookTime').focus(); return; }
   if (!$('bookName').value.trim()) { note($('bookNote'), 'Type the client’s name.'); $('bookName').focus(); return; }
-  if (!$('bookTime').value) { note($('bookNote'), 'Pick a time.'); bookGo(BOOK_STEPS.indexOf('when'), 'bwd'); return; }
+  if (!bookContact && !$('bookPhone').value.trim() && !$('bookEmail').value.trim()) {
+    note($('bookNote'), 'Add a phone number or an email, so the salon can reach them.');
+    $('bookPhone').focus();
+    return;
+  }
   $('bookSubmit').disabled = true;
   try {
     await api('/api/staff/book', {
       method: 'POST',
       body: JSON.stringify({
-        contact: bookingFor,
+        contact: bookContact?.id || null,
         name: $('bookName').value,
         phone: $('bookPhone').value,
         email: $('bookEmail').value,
-        service: $('bookService').value,
+        service: bookLines[0].slug,
+        with: bookLines.slice(1).map((s) => s.slug),
         stylist: $('bookStylist').value,
         start: $('bookTime').value,
         notes: $('bookNotes').value,
@@ -6310,12 +6479,11 @@ $('bookForm').onsubmit = async (e) => {
     go('appointments');
   } catch (err) {
     note($('bookNote'), err.message);
-    // Somebody took it while this dialog was open: back to the times, fresh,
-    // with everything else they answered kept.
+    // Somebody took it while this was open: the times again, fresh.
     if (/taken|available|free/i.test(err.message)) {
-      $('bookTime').value = '';
-      bookAvail = { key: '', days: null };
-      bookGo(BOOK_STEPS.indexOf('when'), 'bwd');
+      bookChosen = '';
+      bookCache.clear();
+      loadBookTimes();
     }
   } finally { $('bookSubmit').disabled = false; }
 };
