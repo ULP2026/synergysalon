@@ -28,7 +28,7 @@ export default handler({
     const canManage = canManageTeam(user);
     const [services, stylists, pending, own, team] = await Promise.all([
       query(
-        `SELECT slug, name, duration_min, price_cents, consult_first
+        `SELECT slug, name, category, duration_min, price_cents, consult_first
            FROM services WHERE tenant_id = $1 AND active ORDER BY sort_order`,
         [tenant.id],
       ),
@@ -37,8 +37,13 @@ export default handler({
       query(
         // to_jsonb reads stylists.photo without naming it, so this still runs
         // on a database that has not had migration 012 yet.
+        // services: what each one offers, so New appointment asks only
+        // about the kinds and services the chosen stylist does.
         `SELECT s.slug, s.name, s.title,
-                COALESCE(u.avatar, to_jsonb(s) ->> 'photo') AS photo
+                COALESCE(u.avatar, to_jsonb(s) ->> 'photo') AS photo,
+                ARRAY(SELECT v.slug FROM stylist_services x
+                        JOIN services v ON v.id = x.service_id
+                       WHERE x.stylist_id = s.id AND v.active) AS services
            FROM stylists s
            LEFT JOIN staff_users u ON u.id = s.staff_user_id
           WHERE s.tenant_id = $1 AND s.active ORDER BY s.sort_order`,
@@ -82,6 +87,7 @@ export default handler({
       services: services.rows.map((s) => ({
         slug: s.slug,
         name: s.name,
+        category: s.category,
         durationMin: s.duration_min,
         price: s.price_cents == null ? null : s.price_cents / 100,
         consultFirst: s.consult_first,

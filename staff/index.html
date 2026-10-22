@@ -1190,6 +1190,64 @@
     .mrow .badges { grid-column: 2; justify-content: flex-start; }
   }
 
+  /* New appointment: one question at a time, each answer a card. */
+  dialog.bw { max-width: 600px; padding: 0; overflow: hidden; }
+  dialog.bw[open] { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+  .bw form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .bw-head { padding: 14px 22px 0; background: var(--peri-pale); border-bottom: 1px solid rgba(85, 96, 166, .16); }
+  .bw-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; }
+  .bw-back { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; color: var(--periwinkle);
+             font: inherit; font-size: var(--fs-sm); font-weight: 600; padding: 6px 10px 6px 4px; border-radius: 10px; cursor: pointer; }
+  .bw-back.off { visibility: hidden; }
+  .bw-count { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .bw-x { width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; color: var(--muted);
+          display: grid; place-items: center; cursor: pointer; }
+  .bw-back:hover, .bw-x:hover { background: rgba(85, 96, 166, .12); }
+  .bw-head h2 { margin: 4px 0 12px; }
+  .bw-bar { height: 4px; margin: 0 -22px; background: rgba(85, 96, 166, .14); }
+  .bw-bar span { display: block; height: 100%; width: 20%; background: linear-gradient(90deg, var(--periwinkle), var(--indigo));
+                 transition: width .35s var(--ease); }
+  .bw-body { flex: 1; min-height: 300px; overflow-y: auto; padding: 18px 22px 20px; }
+  .bw-q { margin: 0 0 14px; font-size: 1.05rem; font-weight: 650; color: var(--ink); }
+  .bw-pane.fwd { animation: bw-fwd .28s var(--ease); }
+  .bw-pane.bwd { animation: bw-bwd .28s var(--ease); }
+  @keyframes bw-fwd { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+  @keyframes bw-bwd { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+  .bw-opt { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; text-align: left;
+            border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink); font: inherit; cursor: pointer;
+            transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
+  .bw-opt:hover { border-color: var(--line-2); box-shadow: var(--e1); transform: translateY(-1px); }
+  .bw-opt:focus-visible, .bw-time:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
+  .bw-opt.on { border-color: var(--periwinkle); box-shadow: 0 0 0 3px rgba(85, 96, 166, .18); }
+  .bw-opt b { display: block; font-weight: 600; }
+  .bw-opt small { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--muted); }
+  .bw-opt .go { margin-left: auto; flex: none; color: var(--faint); }
+  .bw-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+  .bw-people img, .bw-any { flex: none; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: var(--peri-pale); }
+  .bw-any { display: grid; place-items: center; color: var(--periwinkle); }
+  .bw-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .bw-kinds .bw-opt { flex-direction: column; align-items: flex-start; gap: 10px; min-height: 104px; padding: 16px; }
+  .bw-kinds .go { display: none; }
+  .bw-dot { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-weight: 700; }
+  .bw-dot.color { background: #a8508f; } .bw-dot.treatments { background: #2f7d6f; }
+  .bw-dot.cuts { background: var(--indigo); } .bw-dot.styling { background: #b86f24; } .bw-dot.other { background: var(--muted); }
+  .bw-list { display: flex; flex-direction: column; gap: 8px; }
+  .bw-list .meta { margin-left: auto; text-align: right; white-space: nowrap; font-size: var(--fs-sm); color: var(--muted); }
+  .bw-date { max-width: 230px; }
+  .bw-times { display: grid; grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 8px; }
+  .bw-time { padding: 10px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink);
+             font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+             transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease); }
+  .bw-time:hover { border-color: var(--line-2); }
+  .bw-time.on { background: var(--periwinkle); border-color: var(--periwinkle); color: #fff; }
+  .bw-empty { padding: 6px 0; font-size: var(--fs-sm); color: var(--muted); }
+  .bw-sum { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 16px; padding: 12px 14px; border-radius: 12px;
+            background: var(--raise); font-size: var(--fs-sm); color: var(--ink); }
+  .bw-sum em { font-style: normal; color: var(--muted); }
+  .bw-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--line); background: var(--card); }
+  @media (max-width: 520px) { .bw-kinds { grid-template-columns: 1fr; } .bw-kinds .bw-opt { min-height: 0; flex-direction: row; align-items: center; } }
+  @media (prefers-reduced-motion: reduce) { .bw-pane.fwd, .bw-pane.bwd { animation: none; } .bw-bar span { transition: none; } }
+
   /* The team modal: RocketOS's Dialog, in Synergy's colours. */
   dialog.member { max-width: 560px; padding: 0; overflow: hidden; }
   .md-head { display: flex; align-items: center; gap: 16px; padding: 22px 24px 18px;
@@ -2374,26 +2432,61 @@
 <div id="pop" class="pop hidden" role="menu"></div>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-<dialog id="bookDlg">
-  <form method="dialog" id="bookForm">
-    <h2 id="bookTitle">New appointment</h2>
-    <div id="bookNote" class="note bad hidden"></div>
-    <label><span>Client</span><input id="bookName" required></label>
-    <div class="two">
-      <label><span>Phone</span><input id="bookPhone" type="tel"></label>
-      <label><span>Email</span><input type="email" id="bookEmail"></label>
+<!-- New appointment, one question at a time (asked for 2026-10-22): the
+     stylist, the kind of service, the service, the time, then the client.
+     A choice moves on by itself; Back keeps every answer. The chosen values
+     sit in the hidden inputs, which is all the booking itself reads. -->
+<dialog id="bookDlg" class="bw" aria-labelledby="bookTitle">
+  <form method="dialog" id="bookForm" novalidate>
+    <header class="bw-head">
+      <div class="bw-top">
+        <button type="button" class="bw-back" id="bookBack"><svg class="ic"><use href="#i-left"/></svg>Back</button>
+        <span class="bw-count" id="bookCount">Step 1 of 5</span>
+        <button type="button" class="bw-x" data-book-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+      </div>
+      <h2 id="bookTitle">New appointment</h2>
+      <div class="bw-bar" aria-hidden="true"><span id="bookBar"></span></div>
+    </header>
+    <div class="bw-body">
+      <div id="bookNote" class="note bad hidden"></div>
+
+      <section class="bw-pane" data-step="stylist">
+        <h3 class="bw-q">Who is the stylist?</h3>
+        <div class="bw-people" id="bookStylists"></div>
+      </section>
+
+      <section class="bw-pane" data-step="kind" hidden>
+        <h3 class="bw-q">What type of service?</h3>
+        <div class="bw-kinds" id="bookKinds"></div>
+      </section>
+
+      <section class="bw-pane" data-step="service" hidden>
+        <h3 class="bw-q" id="bookServiceQ">Which service?</h3>
+        <div class="bw-list" id="bookServices"></div>
+      </section>
+
+      <section class="bw-pane" data-step="when" hidden>
+        <h3 class="bw-q">When?</h3>
+        <label class="bw-date"><span>Date</span><input type="date" id="bookDate"></label>
+        <div class="bw-times" id="bookTimes"></div>
+      </section>
+
+      <section class="bw-pane" data-step="client" hidden>
+        <h3 class="bw-q">Who is the client?</h3>
+        <div class="bw-sum" id="bookSummary"></div>
+        <label><span>Client name</span><input id="bookName" autocomplete="off"></label>
+        <div class="two">
+          <label><span>Phone</span><input id="bookPhone" type="tel" autocomplete="off"></label>
+          <label><span>Email</span><input type="email" id="bookEmail" autocomplete="off"></label>
+        </div>
+        <label><span>Notes</span><textarea id="bookNotes" rows="2" placeholder="Optional"></textarea></label>
+      </section>
     </div>
-    <label><span>Service</span><select id="bookService" required></select></label>
-    <label><span>Stylist</span><select id="bookStylist"></select></label>
-    <div class="two">
-      <label><span>Date</span><input type="date" id="bookDate" required></label>
-      <label><span>Time</span><select id="bookTime" required></select></label>
-    </div>
-    <label><span>Notes</span><textarea id="bookNotes"></textarea></label>
-    <div class="dlg-actions">
-      <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
-      <button class="btn" id="bookSubmit" value="book">Book</button>
-    </div>
+    <input type="hidden" id="bookStylist"><input type="hidden" id="bookService"><input type="hidden" id="bookTime">
+    <footer class="bw-foot">
+      <button type="button" class="btn quiet" data-book-close>Cancel</button>
+      <button class="btn hidden" id="bookSubmit" value="book">Book appointment</button>
+    </footer>
   </form>
 </dialog>
 
@@ -5792,11 +5885,157 @@ $('contactForm').onsubmit = async (e) => {
 // ───────────────────────────── booking ─────────────────────────────
 
 /**
- * preset, from a click on the day grid: { stylist, date, minutes }. The time
- * is chosen for them when it is free, so booking from the grid is one click
- * plus the client's name.
+ * New appointment, one question at a time (asked for 2026-10-22): who the
+ * stylist is, the kind of service (Color, Treatments, Cuts, Styling), the
+ * service, the time, then the client. Picking an answer moves on by itself;
+ * Back keeps every answer, and changing one clears only what it no longer
+ * fits (a service the new stylist does not do, a time no longer free).
+ *
+ * preset, from a click on the day grid: { stylist, date, minutes }. The
+ * stylist is already answered, so it opens on the kind of service, and the
+ * clicked time is chosen for them when it is free.
  */
+const BOOK_STEPS = ['stylist', 'kind', 'service', 'when', 'client'];
+const BOOK_KINDS = [['color', 'Color'], ['treatments', 'Treatments'], ['cuts', 'Cuts'], ['styling', 'Styling']];
 let bookPreset = null;
+let bookStep = 0;
+let bookKind = null;
+let bookTimesFor = '';   // the service|stylist|date the time buttons show
+
+const bookKindOf = (s) => (BOOK_KINDS.some(([k]) => k === s.category) ? s.category : 'other');
+const bookKindLabel = (k) => (BOOK_KINDS.find(([x]) => x === k) || [k, 'Other'])[1];
+const bookTimeLabel = (iso) => new Date(iso).toLocaleTimeString('en-US', {
+  hour: 'numeric', minute: '2-digit', timeZone: me.salon.timezone,
+});
+
+/** The services the chosen stylist does; for First available, anybody's. */
+function bookOffered() {
+  const st = $('bookStylist').value;
+  const lists = (me.stylists || []).filter((s) => st === 'any' || s.slug === st).map((s) => s.services);
+  // A /me from before stylists listed their services: offer everything.
+  if (lists.some((l) => !Array.isArray(l))) return me.services;
+  const offered = new Set(lists.flat());
+  return me.services.filter((s) => offered.has(s.slug));
+}
+
+function bookGo(i, dir = 'fwd') {
+  bookStep = Math.max(0, Math.min(BOOK_STEPS.length - 1, i));
+  const step = BOOK_STEPS[bookStep];
+  for (const pane of $('bookDlg').querySelectorAll('.bw-pane')) {
+    const here = pane.dataset.step === step;
+    pane.hidden = !here;
+    pane.classList.remove('fwd', 'bwd');
+    if (here) { void pane.offsetWidth; pane.classList.add(dir); }   // restart the slide
+  }
+  $('bookCount').textContent = `Step ${bookStep + 1} of ${BOOK_STEPS.length}`;
+  $('bookBar').style.width = `${((bookStep + 1) / BOOK_STEPS.length) * 100}%`;
+  $('bookBack').classList.toggle('off', bookStep === 0);
+  $('bookSubmit').classList.toggle('hidden', step !== 'client');
+  ({
+    stylist: paintBookStylists, kind: paintBookKinds, service: paintBookServices,
+    when: paintBookWhen, client: paintBookSummary,
+  })[step]();
+  $('bookDlg').querySelector('.bw-body').scrollTop = 0;
+  // Focus follows the question, for the keyboard and for a screen reader.
+  requestAnimationFrame(() => {
+    const pane = $('bookDlg').querySelector(`.bw-pane[data-step="${step}"]`);
+    const target = step === 'client' ? $('bookName') : pane.querySelector('.on') || pane.querySelector('button, input');
+    target?.focus({ preventScroll: true });
+  });
+}
+// A beat before moving on, so the choice is seen to be made.
+const bookNext = () => setTimeout(() => bookGo(bookStep + 1, 'fwd'), 160);
+
+function paintBookStylists() {
+  const cur = $('bookStylist').value;
+  const card = (slug, pic, name, sub) =>
+    `<button type="button" class="bw-opt${cur === slug ? ' on' : ''}" data-stylist="${esc(slug)}">${pic}`
+    + `<span><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
+  $('bookStylists').innerHTML =
+    card('any', '<span class="bw-any"><svg class="ic"><use href="#i-user"/></svg></span>', 'First available', 'Whoever is free')
+    + (me.stylists || []).map((s) => card(s.slug, `<img src="${esc(personPhoto(s))}" alt="">`, s.name, s.title || '')).join('');
+}
+
+function paintBookKinds() {
+  const offered = bookOffered();
+  const kinds = [...BOOK_KINDS.map(([k]) => k), 'other']
+    .map((k) => [k, offered.filter((s) => bookKindOf(s) === k)])
+    .filter(([, list]) => list.length);
+  const st = me.stylists.find((s) => s.slug === $('bookStylist').value);
+  $('bookKinds').innerHTML = kinds.length
+    ? kinds.map(([k, list]) =>
+      `<button type="button" class="bw-opt${bookKind === k ? ' on' : ''}" data-kind="${k}">`
+      + `<span class="bw-dot ${k}" aria-hidden="true">${bookKindLabel(k)[0]}</span>`
+      + `<span><b>${bookKindLabel(k)}</b><small>${list.length} service${list.length === 1 ? '' : 's'}</small></span></button>`).join('')
+    : `<p class="bw-empty">${esc(st?.name || 'Nobody')} has no services switched on yet. Go back and pick someone else.</p>`;
+}
+
+function paintBookServices() {
+  $('bookServiceQ').textContent = `Which ${bookKindLabel(bookKind).toLowerCase()} service?`;
+  const cur = $('bookService').value;
+  const list = bookOffered().filter((s) => bookKindOf(s) === bookKind);
+  $('bookServices').innerHTML = list.map((s) =>
+    `<button type="button" class="bw-opt${cur === s.slug ? ' on' : ''}" data-service="${esc(s.slug)}">`
+    + `<span><b>${esc(s.name)}</b>${s.consultFirst ? '<small>Consultation first</small>' : ''}</span>`
+    + `<span class="meta">${s.durationMin} min${s.price != null ? `<br>from $${esc(s.price)}` : ''}</span></button>`).join('')
+    || '<p class="bw-empty">Nothing here yet.</p>';
+}
+
+function paintBookWhen() {
+  const key = [$('bookService').value, $('bookStylist').value, $('bookDate').value].join('|');
+  if (key !== bookTimesFor) loadTimes();
+  else markBookTime();
+}
+
+function markBookTime() {
+  for (const b of $('bookTimes').querySelectorAll('.bw-time')) b.classList.toggle('on', b.dataset.time === $('bookTime').value);
+}
+
+async function loadTimes() {
+  const box = $('bookTimes');
+  const asked = [$('bookService').value, $('bookStylist').value, $('bookDate').value].join('|');
+  bookTimesFor = asked;
+  box.innerHTML = '<p class="bw-empty">Finding free times…</p>';
+  try {
+    const d = await api('/api/staff/availability?' + new URLSearchParams({
+      service: $('bookService').value,
+      stylist: $('bookStylist').value,
+      date: $('bookDate').value,
+    }));
+    if (asked !== bookTimesFor) return;   // a newer question went out meanwhile
+    const slots = d.days[0]?.slots ?? [];
+    if (!slots.some((s) => s.start === $('bookTime').value)) $('bookTime').value = '';
+    const want = bookPreset?.minutes;
+    if (want != null) {
+      const hit = slots.find((x) => salonMinutes(x.start) === want);
+      if (hit) $('bookTime').value = hit.start;
+      else note($('bookNote'), `${clock(want)} is not free for this service. Pick another time.`, 'bad');
+      bookPreset = { ...bookPreset, minutes: null };   // the grid's time is offered once
+    }
+    box.innerHTML = slots.length
+      ? slots.map((s) => `<button type="button" class="bw-time" data-time="${esc(s.start)}">${bookTimeLabel(s.start)}</button>`).join('')
+      : '<p class="bw-empty">Nothing free that day. Try another date.</p>';
+    markBookTime();
+  } catch (err) {
+    if (asked !== bookTimesFor) return;
+    bookTimesFor = '';
+    box.innerHTML = '<p class="bw-empty">Could not load times.</p>';
+    if (err.message !== 'signed out') note($('bookNote'), err.message);
+  }
+}
+
+function paintBookSummary() {
+  const s = me.services.find((x) => x.slug === $('bookService').value);
+  const st = $('bookStylist').value;
+  const who = st === 'any' ? 'First available' : (me.stylists.find((x) => x.slug === st)?.name || st);
+  const date = new Date(`${$('bookDate').value}T12:00:00`)
+    .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const time = $('bookTime').value ? `, ${bookTimeLabel($('bookTime').value)}` : '';
+  $('bookSummary').innerHTML = `<span><em>Service</em> ${esc(s?.name || '')}</span>`
+    + `<span><em>With</em> ${esc(who)}</span><span><em>When</em> ${esc(date + time)}</span>`
+    + (s?.price != null ? `<span><em>From</em> $${esc(s.price)}</span>` : '');
+}
+
 function openBooking(contact, preset = null) {
   bookingFor = contact?.id || null;
   bookPreset = preset;
@@ -5806,52 +6045,68 @@ function openBooking(contact, preset = null) {
   $('bookPhone').value = contact?.phone || '';
   $('bookEmail').value = contact?.email || '';
   $('bookNotes').value = '';
-
-  $('bookService').innerHTML = me.services.map((s) =>
-    `<option value="${esc(s.slug)}">${esc(s.name)} · ${s.durationMin} min${s.price != null ? ` · $${s.price}` : ''}</option>`).join('');
-  $('bookStylist').innerHTML = '<option value="any">First available</option>'
-    + me.stylists.map((s) => `<option value="${esc(s.slug)}">${esc(s.name)}</option>`).join('');
+  $('bookStylist').value = preset?.stylist || '';
+  $('bookService').value = '';
+  $('bookTime').value = '';
+  bookKind = null;
+  bookTimesFor = '';
   $('bookDate').value = preset?.date || (page === 'appointments' && day) || salonToday();
-  if (preset?.stylist) $('bookStylist').value = preset.stylist;
   openDialog($('bookDlg'));
-  loadTimes();
+  bookGo(preset?.stylist ? 1 : 0);
 }
 
-async function loadTimes() {
-  const sel = $('bookTime');
-  sel.innerHTML = '<option value="">Finding free times…</option>';
-  try {
-    const d = await api('/api/staff/availability?' + new URLSearchParams({
-      service: $('bookService').value,
-      stylist: $('bookStylist').value,
-      date: $('bookDate').value,
-    }));
-    const slots = d.days[0]?.slots ?? [];
-    const want = bookPreset?.minutes;
-    sel.innerHTML = slots.length
-      ? slots.map((s) => `<option value="${s.start}">${new Date(s.start)
-          .toLocaleTimeString('en-US', {
-            hour: 'numeric', minute: '2-digit', timeZone: me.salon.timezone,
-          })}</option>`).join('')
-      : '<option value="">Nothing free that day</option>';
-    if (want != null && slots.length) {
-      const hit = slots.find((x) => salonMinutes(x.start) === want);
-      if (hit) sel.value = hit.start;
-      else note($('bookNote'), `${clock(want)} is not free for this service. Pick another time.`, 'bad');
-    }
-  } catch (err) {
-    sel.innerHTML = '<option value="">Could not load times</option>';
-    if (err.message !== 'signed out') note($('bookNote'), err.message);
+$('bookStylists').onclick = (e) => {
+  const b = e.target.closest('[data-stylist]');
+  if (!b) return;
+  if ($('bookStylist').value !== b.dataset.stylist) {
+    $('bookStylist').value = b.dataset.stylist;
+    // What the new stylist does not do cannot stay chosen.
+    if (!bookOffered().some((s) => s.slug === $('bookService').value)) $('bookService').value = '';
+    if (bookKind && !bookOffered().some((s) => bookKindOf(s) === bookKind)) bookKind = null;
+    $('bookTime').value = '';
   }
-}
-$('bookService').onchange = loadTimes;
-$('bookStylist').onchange = loadTimes;
-$('bookDate').onchange = loadTimes;
+  note($('bookNote'), '');
+  paintBookStylists();
+  bookNext();
+};
+$('bookKinds').onclick = (e) => {
+  const b = e.target.closest('[data-kind]');
+  if (!b) return;
+  if (bookKind !== b.dataset.kind) {
+    bookKind = b.dataset.kind;
+    const s = me.services.find((x) => x.slug === $('bookService').value);
+    if (s && bookKindOf(s) !== bookKind) { $('bookService').value = ''; $('bookTime').value = ''; }
+  }
+  note($('bookNote'), '');
+  paintBookKinds();
+  bookNext();
+};
+$('bookServices').onclick = (e) => {
+  const b = e.target.closest('[data-service]');
+  if (!b) return;
+  if ($('bookService').value !== b.dataset.service) { $('bookService').value = b.dataset.service; $('bookTime').value = ''; }
+  note($('bookNote'), '');
+  paintBookServices();
+  bookNext();
+};
+$('bookTimes').onclick = (e) => {
+  const b = e.target.closest('[data-time]');
+  if (!b) return;
+  $('bookTime').value = b.dataset.time;
+  note($('bookNote'), '');
+  markBookTime();
+  bookNext();
+};
+$('bookDate').onchange = () => { $('bookTime').value = ''; note($('bookNote'), ''); loadTimes(); };
+$('bookBack').onclick = () => { note($('bookNote'), ''); bookGo(bookStep - 1, 'bwd'); };
+for (const b of $('bookDlg').querySelectorAll('[data-book-close]')) b.onclick = () => closeDialog($('bookDlg'));
 
 $('bookForm').onsubmit = async (e) => {
-  if (e.submitter?.value !== 'book') return;
   e.preventDefault();
-  if (!$('bookTime').value) { note($('bookNote'), 'Pick a time.'); return; }
+  // Enter in a field submits the form: only the last question books.
+  if (BOOK_STEPS[bookStep] !== 'client') return;
+  if (!$('bookName').value.trim()) { note($('bookNote'), 'Type the client’s name.'); $('bookName').focus(); return; }
+  if (!$('bookTime').value) { note($('bookNote'), 'Pick a time.'); bookGo(BOOK_STEPS.indexOf('when'), 'bwd'); return; }
   $('bookSubmit').disabled = true;
   try {
     await api('/api/staff/book', {
@@ -5873,8 +6128,13 @@ $('bookForm').onsubmit = async (e) => {
     go('appointments');
   } catch (err) {
     note($('bookNote'), err.message);
-    // Somebody took it while this dialog was open; show what is left.
-    if (/taken|available|free/i.test(err.message)) loadTimes();
+    // Somebody took it while this dialog was open: back to the times, fresh,
+    // with everything else they answered kept.
+    if (/taken|available|free/i.test(err.message)) {
+      $('bookTime').value = '';
+      bookTimesFor = '';
+      bookGo(BOOK_STEPS.indexOf('when'), 'bwd');
+    }
   } finally { $('bookSubmit').disabled = false; }
 };
 
