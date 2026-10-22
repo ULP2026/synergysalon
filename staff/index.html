@@ -1254,8 +1254,8 @@
   /* Beside each page's title, at the right of New appointment, on every
      page (asked for 2026-10-22). Pink by id, so dark mode keeps her pink. */
   .karen-cta { gap: 8px; padding-left: 7px; font-weight: 650; border: 1px solid rgba(85, 96, 166, .28); box-shadow: var(--e1); }
-  #karenBtn { background: linear-gradient(135deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c; }
-  #karenBtn:hover:not(:disabled) { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
+  #karenBtn, #bookKarenBtn { background: linear-gradient(135deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c; }
+  #karenBtn:hover:not(:disabled), #bookKarenBtn:hover:not(:disabled) { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
   .karen-cta .kc-pic { width: 28px; height: 28px; }
   .karen-cta .kc-pic img { width: 24px; height: 24px; }
   @media (max-width: 720px) { .pagehead .karen-cta { width: 100%; justify-content: center; } }
@@ -1314,6 +1314,9 @@
   }
   @media (prefers-reduced-motion: reduce) { .kd-msg, .kd-chip { animation: none; } .kd-typing i { animation: none; } }
 
+  .pay-sched { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 14px 0 0; font-size: var(--fs-sm); }
+  .pay-sched dt { color: var(--muted); } .pay-sched dd { margin: 0; font-weight: 600; }
+
   /* New appointment as one ticket: when at the top, the client, the services. */
   dialog.tk { max-width: 640px; padding: 0; overflow: hidden; }
   dialog.tk[open] { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
@@ -1321,6 +1324,25 @@
   .tk-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 14px 22px;
              background: var(--peri-pale); border-bottom: 1px solid rgba(85, 96, 166, .16); }
   .tk-head h2 { margin: 0; }
+  .tk-head-r { display: flex; align-items: center; gap: 6px; flex: none; }
+  #bookKarenBtn { padding-left: 5px; }
+  .tk-coach { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 16px; padding: 12px 14px; border-radius: 12px;
+              background: linear-gradient(135deg, #fbeef6 0%, #eef0fb 100%); border: 1px solid rgba(85, 96, 166, .18); color: #1e1f5c; }
+  .tk-coach .kc-pic { width: 34px; height: 34px; }
+  .tk-coach .kc-pic img { width: 30px; height: 30px; }
+  .tk-coach-t { flex: 1; min-width: 0; }
+  .tk-coach-t small { display: block; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: #5560a6; }
+  .tk-coach-t p { margin: 2px 0 0; font-size: var(--fs-sm); line-height: 1.45; }
+  .tk-coach-sugg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tk-coach-sugg:not(:empty) { margin-top: 8px; }
+  .tk-coach-sugg button { padding: 5px 11px; border: 1px solid #5560a6; border-radius: 999px; background: #fff; color: #3d4690;
+                          font: inherit; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; }
+  .tk-coach-sugg button:hover { background: #eef0fb; }
+  #bookCoachGo { flex: none; align-self: center; }
+  @media (max-width: 560px) {
+    .tk-coach { flex-wrap: wrap; }
+    #bookCoachGo { width: 100%; justify-content: center; }
+  }
   .tk-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 22px 18px; }
   .tk-sec { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
   .tk-h { margin: 0 0 10px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
@@ -2697,9 +2719,18 @@
         <div class="card-head" style="margin-bottom:4px"><h2>Payroll</h2></div>
         <div class="soon">
           <span class="chip">Coming soon</span>
+          <!-- The salon's pay schedule (asked for 2026-10-22): processed every
+               Friday, and the team paid by the end of that Friday. -->
+          <dl class="pay-sched">
+            <dt>Pay schedule</dt><dd>Weekly, every Friday</dd>
+            <dt>Paid by</dt><dd>End of day Friday</dd>
+            <dt>Next payday</dt><dd id="payNext">Friday</dd>
+          </dl>
           <p class="small muted" style="margin:12px 0 0;max-width:46ch">
-            Pay for each team member, worked out from their appointments, will
-            live here. Nothing is being paid from the app today.
+            Payroll is processed every Friday, and staff and stylists are paid
+            by the end of the day that Friday. Pay for each team member, worked
+            out from their appointments, will live here. Nothing is being paid
+            from the app today.
           </p>
         </div>
       </div>
@@ -2719,9 +2750,24 @@
   <form method="dialog" id="bookForm" novalidate>
     <header class="tk-head">
       <h2 id="bookTitle">New appointment</h2>
-      <button type="button" class="bw-x" data-book-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+      <div class="tk-head-r">
+        <button type="button" class="btn sm karen-cta" id="bookKarenBtn" title="Karen asks what is missing, one step at a time, and books it">
+          <span class="kc-pic" aria-hidden="true"><img id="bookKarenPic" alt=""><i></i></span><span>Help me book</span></button>
+        <button type="button" class="bw-x" data-book-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+      </div>
     </header>
     <div class="tk-body">
+      <!-- Karen's next step (asked for 2026-10-22): what to do first and what
+           comes next, as the ticket fills in, with one button that does it. -->
+      <div class="tk-coach" id="bookCoach" aria-live="polite">
+        <span class="kc-pic" aria-hidden="true"><img id="bookCoachPic" alt=""></span>
+        <div class="tk-coach-t">
+          <small id="bookCoachStep"></small>
+          <p id="bookCoachText"></p>
+          <div class="tk-coach-sugg" id="bookCoachSugg"></div>
+        </div>
+        <button type="button" class="btn sm" id="bookCoachGo"></button>
+      </div>
       <div id="bookNote" class="note bad hidden"></div>
 
       <section class="tk-sec">
@@ -6660,10 +6706,11 @@ async function bookMonthDays(month) {
 
 /** The chosen day's times, and the calendar's month when it is open. */
 async function loadBookTimes() {
-  if (!bookQuery()) { paintBookTimes(null); return; }
+  if (!bookQuery()) { paintBookTimes(null); paintBookCoach(); return; }
   const month = $('bookDate').value.slice(0, 7);
   const key = bookKey(month);
   paintBookTimes(bookReady(key));
+  paintBookCoach();
   refreshBookCal();
   try {
     const days = await bookMonthDays(month);
@@ -6673,6 +6720,7 @@ async function loadBookTimes() {
     $('bookTime').innerHTML = '<option value="">Could not load times</option>';
     if (err.message !== 'signed out') note($('bookNote'), err.message);
   }
+  paintBookCoach();
 }
 
 async function refreshBookCal() {
@@ -6702,6 +6750,7 @@ function hideBookSugg() {
 
 function linkBookContact(c) {
   bookContact = c;
+  loadBookLast(c);
   $('bookLinked').classList.toggle('hidden', !c);
   if (c) {
     const visits = Number(c.visits) || 0;
@@ -6744,6 +6793,7 @@ function pickBookClient(c) {
   linkBookContact(c);
   hideBookSugg();
   note($('bookNote'), '');
+  paintBookCoach();
 }
 
 $('bookName').addEventListener('input', () => {
@@ -6773,6 +6823,7 @@ $('bookLinked').addEventListener('click', (e) => {
   $('bookName').value = '';
   $('bookPhone').value = '';
   $('bookEmail').value = '';
+  paintBookCoach();
   $('bookName').focus();
 });
 $('bookDlg').addEventListener('click', (e) => {
@@ -6780,6 +6831,168 @@ $('bookDlg').addEventListener('click', (e) => {
 });
 
 // ── opening, and every control ────────────────────────────────────────────
+
+// ── Karen on the ticket: the next step, and help booking ─────────────────
+//
+// The strip at the top of the ticket says what to do first and what comes
+// next as it fills in (asked for 2026-10-22): the client, then the services,
+// then when, then Book. Services before time because the times offered are
+// for the services on the ticket. Its button does the step; its suggestions
+// are real ones: the client's last service and stylist, read from their
+// history, and a cut alongside a color, which books first in the same visit.
+// "Help me book" opens Karen's chat already holding what the ticket has.
+
+let bookLast = null;   // { id, svc, stylist }: the linked client's last visit
+let bookLastSeq = 0;
+
+async function loadBookLast(c) {
+  bookLast = null;
+  const seq = ++bookLastSeq;
+  if (!c?.id || !Number(c.visits)) return;
+  try {
+    const d = await api(`/api/staff/contacts?id=${encodeURIComponent(c.id)}`);
+    if (seq !== bookLastSeq || bookContact?.id !== c.id) return;
+    const a = (d.appointments || []).find((x) => x.status !== 'cancelled');
+    if (!a) return;
+    const svc = me.services.find((s) => s.name.toLowerCase() === String(a.service || '').toLowerCase()) || null;
+    const st = (me.stylists || []).find((s) => s.name === a.stylist) || null;
+    bookLast = { id: c.id, svc, stylist: st, service: a.service, stylistName: a.stylist };
+    paintBookCoach();
+  } catch { /* the suggestion is a nicety; the ticket works without it */ }
+}
+
+function paintBookCoach() {
+  const name = $('bookName').value.trim();
+  const first = esc(name.split(/\s+/)[0] || '');
+  const reach = bookContact || $('bookPhone').value.trim() || $('bookEmail').value.trim();
+  const visit = esc(bookLines.map((s) => s.name).join(' + '));
+  const st = $('bookStylist').value;
+  const stName = (me.stylists || []).find((s) => s.slug === st)?.name;
+  const opts = [...$('bookTime').options];
+  const loading = opts.some((o) => /Finding/.test(o.textContent));
+  const last = bookLast && bookContact?.id === bookLast.id ? bookLast : null;
+  const addable = bookAddable();
+  const sugg = [];
+  let step; let text; let go;
+
+  if (!name) {
+    step = 1;
+    text = 'First, who is it for? Type the first 3 letters of their name: a client already in Clients fills in their phone and email. A new name adds a new client.';
+    go = ['Find the client', 'name'];
+  } else if (!reach) {
+    step = 1;
+    text = `${first} is new to the salon. Add a phone number or an email so the salon can reach them.`;
+    go = ['Add their phone', 'phone'];
+  } else if (!bookLines.length) {
+    step = 2;
+    text = last
+      ? `Next, what is ${first} having? Last time it was ${esc(last.service)} with ${esc(last.stylistName)}. Add each service: a color and a cut go on one ticket, back to back with one stylist.`
+      : `Next, what is ${first} having? Add each service: a color and a cut go on one ticket, back to back with one stylist.`;
+    go = ['Add a service', 'add'];
+    if (last?.svc && addable.some((s) => s.slug === last.svc.slug)) sugg.push(['add', last.svc.slug, `Add ${last.svc.name} again`]);
+  } else if (!$('bookTime').value) {
+    step = 3;
+    const who = st === 'any'
+      ? `"First available" books whoever is free; ${bookStylistsFor(bookLines).length} on the team do ${bookLines.length > 1 ? 'all of this' : 'this'}.`
+      : `With ${esc(stName || 'them')}.`;
+    text = `Now when. ${who} Pick a day, then a time: only times that fit ${visit} are offered.`;
+    go = !loading && !opts.some((o) => o.value) ? ['See other days', 'day'] : ['Pick a time', 'time'];
+    if (last?.stylist && st === 'any' && [...$('bookStylist').options].some((o) => o.value === last.stylist.slug)) {
+      sugg.push(['stylist', last.stylist.slug, `With ${last.stylist.name} again`]);
+    }
+  } else {
+    step = 4;
+    const when = `${$('bookDayLbl').textContent} at ${bookTimeLabel($('bookTime').value)}`;
+    text = `All set: ${visit} for ${first}, ${esc(when)}${stName ? ` with ${esc(stName)}` : ''}. Read it back to ${first}, then book it.`;
+    go = ['Book Appointment', 'book'];
+  }
+  // A color with no cut: offer the cut, which books first in the same visit.
+  // A plain cut, not a trim; and not when Color & Cut already has one.
+  if (step >= 3 && bookLines.some((s) => bookKindOf(s) === 'color')
+      && !bookLines.some((s) => bookKindOf(s) === 'cuts' || /\bcut\b/i.test(s.name))) {
+    const cuts = addable.filter((s) => bookKindOf(s) === 'cuts');
+    const cut = cuts.find((s) => /women/i.test(s.name)) || cuts.find((s) => /^haircuts?$/i.test(s.name))
+      || cuts.find((s) => !/trim|bang|kid|teen|men/i.test(s.name));
+    if (cut) sugg.push(['add', cut.slug, `Add a cut too: ${cut.name}`]);
+  }
+  $('bookCoachStep').textContent = `Karen · Step ${step} of 4`;
+  $('bookCoachText').innerHTML = text;
+  $('bookCoachSugg').innerHTML = sugg.map(([k, v, label]) =>
+    `<button type="button" data-coach-${k}="${esc(v)}">${esc(label)}</button>`).join('');
+  $('bookCoachGo').textContent = go[0];
+  $('bookCoachGo').dataset.go = go[1];
+  $('bookCoachGo').classList.toggle('quiet', go[1] !== 'book');
+}
+
+$('bookCoachGo').onclick = () => {
+  const go = $('bookCoachGo').dataset.go;
+  if (go === 'name') $('bookName').focus();
+  else if (go === 'phone') $('bookPhone').focus();
+  else if (go === 'add') { toggleBookPicker(true); $('bookPicker').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  else if (go === 'day') { if ($('bookCal').hidden) $('bookDayBtn').click(); $('bookCal').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  else if (go === 'time') { $('bookTime').focus(); try { $('bookTime').showPicker?.(); } catch { /* not everywhere */ } }
+  else if (go === 'book') $('bookForm').requestSubmit($('bookSubmit'));
+};
+$('bookCoachSugg').onclick = (e) => {
+  const add = e.target.closest('[data-coach-add]')?.dataset.coachAdd;
+  const sty = e.target.closest('[data-coach-stylist]')?.dataset.coachStylist;
+  if (add) {
+    const s = me.services.find((x) => x.slug === add);
+    if (s && !bookLines.some((x) => x.slug === add)) bookLines.push(s);
+  } else if (sty) {
+    $('bookStylist').value = sty;
+  } else return;
+  note($('bookNote'), '');
+  bookChanged();
+};
+$('bookForm').addEventListener('input', () => paintBookCoach());
+$('bookForm').addEventListener('change', () => paintBookCoach());
+
+/** Karen's chat, starting from what the ticket already has, so she asks only the rest. */
+function openKarenFromTicket() {
+  karenRun += 1;
+  karenQueue = Promise.resolve();
+  karenAsk = null;
+  kReset();
+  $('karenLog').innerHTML = '';
+  $('karenChips').innerHTML = '';
+  karen.fromTicket = true;
+  karen.contact = bookContact?.id || null;
+  const name = $('bookName').value.trim();
+  const phone = $('bookPhone').value.trim();
+  const email = $('bookEmail').value.trim();
+  const have = [];
+  if (name) {
+    karen.name = name;
+    // A client picked from Clients has been reached before: nothing to ask.
+    karen.phone = bookContact || phone ? phone : null;
+    karen.email = bookContact || email ? email : null;
+    have.push(esc(name));
+  }
+  if (bookLines.length) {
+    karen.svc = bookLines[0];
+    karen.kind = bookKindOf(bookLines[0]);
+    karen.extras = bookLines.slice(1);
+    karen.multi = karen.extras.length > 0;
+    have.push(esc(kVisit()));
+  }
+  const st = $('bookStylist').value;
+  if (st !== 'any') karen.stylist = st;
+  if ($('bookTime').value) {
+    // The time was found for this stylist choice, so it comes with it.
+    karen.stylist = st;
+    karen.date = $('bookDate').value;
+    karen.time = $('bookTime').value;
+    have.push(esc(`${kDate(karen.date)} at ${bookTimeLabel(karen.time)}`));
+  }
+  kSay(have.length
+    ? `<p>Hi! I'll help you finish this one. From the ticket I have ${have.join(', ')}. I'll ask for the rest, one step at a time.</p>`
+    : "<p>Hi! I'll walk you through it one step at a time: the services first, then who and when, then the client's details. Then I'll book it.</p>");
+  kNext();
+  openDialog($('karenDlg'));
+  setTimeout(() => $('karenText').focus({ preventScroll: true }), 60);
+}
+$('bookKarenBtn').onclick = openKarenFromTicket;
 
 function openBooking(contact, preset = null) {
   bookPreset = preset;
@@ -6807,6 +7020,7 @@ function openBooking(contact, preset = null) {
   toggleBookPicker(false);
   paintBookDay();
   paintBookLines();
+  paintBookCoach();
   openDialog($('bookDlg'));
   loadBookTimes();
   // Straight to what is still unknown.
@@ -7663,7 +7877,7 @@ async function kDoBook() {
     const r = await api('/api/staff/book', {
       method: 'POST',
       body: JSON.stringify({
-        contact: null,
+        contact: karen.contact || null,
         name: karen.name,
         phone: karen.phone || '',
         email: karen.email || '',
@@ -7676,6 +7890,8 @@ async function kDoBook() {
     });
     if (run !== karenRun) return;
     karen.done = true;
+    // Booked from the ticket: the ticket is done too.
+    if (karen.fromTicket && $('bookDlg').open) closeDialog($('bookDlg'));
     const when = `${kDate(karen.date)}, ${bookTimeLabel(r?.startsAt || karen.time)}`;
     const row = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
     kSay('<p class="kd-ok"><svg class="ic"><use href="#i-check"/></svg>You\'re all set!</p>'
@@ -7754,6 +7970,8 @@ function kTeam() {
 
 $('karenBtnPic').src = KAREN_PIC;
 $('karenPic').src = KAREN_PIC;
+$('bookKarenPic').src = KAREN_PIC;
+$('bookCoachPic').src = KAREN_PIC;
 $('karenBtn').onclick = openKaren;
 $('karenRestart').onclick = kStart;
 $('karenClose').onclick = () => closeDialog($('karenDlg'));
@@ -8648,6 +8866,7 @@ function showSetting(name) {
   }
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
   if (name === 'team') { loadAccount(); loadBusiness(); }
+  if (name === 'payroll') paintPayday();
   // The person chip is "you": lit while your Team Settings are open.
   if (name === 'team') $('meBtn').setAttribute('aria-current', 'page');
   else $('meBtn').removeAttribute('aria-current');
@@ -8656,6 +8875,15 @@ $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
   if (b && b.dataset.set !== setTab) showSetting(b.dataset.set);
 };
+
+/** Payroll runs every Friday, paid by the end of that day: today, if it is Friday, on the salon's clock. */
+function paintPayday() {
+  const today = salonToday();
+  const dow = new Date(`${today}T12:00:00Z`).getUTCDay();
+  const next = addDays(today, (5 - dow + 7) % 7);
+  $('payNext').textContent = next === today ? 'Today, by the end of the day'
+    : new Date(`${next}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
+}
 
 // ── Appearance ───────────────────────────────────────────────────────────
 //

@@ -426,6 +426,18 @@ made that way are real: name them ZZ and remove them.
   reminders and cancellations still go. Texts are stored only: nothing
   sends SMS. Timeline events carry a `tone` (booked, checkin, done, noshow,
   cancel, email) that colours them.
+- Karen on the ticket (2026-10-22): New appointment opens with a strip,
+  "Karen · Step n of 4" (`paintBookCoach`), saying what to do first and
+  next as the ticket fills in: the client (from their third letter), then
+  the services, then when, then Book Appointment, with one button that does
+  the step. Its suggestions are real: the linked client's last service and
+  stylist (`loadBookLast`, from their history) and a plain cut beside a
+  color. "Help me book" in the ticket's header opens Karen's chat holding
+  what the ticket has (`openKarenFromTicket`), so she asks only the rest;
+  she books for the linked client (`karen.contact`) and closes the ticket.
+- Payroll (2026-10-22): processed every Friday, staff and stylists paid by
+  the end of that day. The Payroll card says so, with the next payday on
+  the salon's clock (`paintPayday`); nothing is paid from the app yet.
 - Card on file (2026-10-22): a green "Card on file" chip under the client's
   name in Clients and on their profile, for the salon's preferred clients
   (a no-show can be charged the fee; a visit is paid through the stylist).
