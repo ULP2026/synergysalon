@@ -1609,6 +1609,25 @@
                      width: 22px; height: 22px; border-radius: 50%; background: var(--indigo-deep); color: #fff;
                      font-size: 11px; font-weight: 700; box-shadow: 0 0 0 3px var(--card); }
   .au-flow .when .au-tile { background: linear-gradient(135deg, #8b94dc, var(--indigo)); color: #fff; border: 0; }
+  /* A message that goes out as email and SMS: two cards, the SMS one tilted
+     behind the email one (asked for 2026-10-22). The tile itself is only the
+     frame that keeps the step number in its corner. */
+  .au-tile.duo { background: transparent; border: 0; box-shadow: none; }
+  .au-tile.duo::before { z-index: 2; }
+  /* 36px cards in opposite corners of the 60px tile: SMS behind at the top
+     left, email in front at the bottom right, overlapping by a corner. The
+     step number keeps the top-right corner clear of both icons. */
+  .au-tile.duo .duo-card { position: absolute; display: grid; place-items: center; width: 36px; height: 36px;
+                           border-radius: 12px; border: 1px solid var(--line-2); background: var(--card);
+                           transition: transform var(--t) var(--ease); }
+  .au-tile.duo .duo-card .ic { width: 18px; height: 18px; }
+  .au-tile.duo .sms { top: 0; left: 0; color: var(--periwinkle); transform: rotate(-8deg); }
+  .au-tile.duo .mail { bottom: 0; right: 0; color: var(--indigo); box-shadow: 0 8px 18px -12px rgba(30, 31, 92, .55); z-index: 1; }
+  button.au-step:hover .au-tile.duo { transform: none; box-shadow: none; }
+  button.au-step:hover .au-tile.duo .sms { transform: rotate(-13deg) translate(-2px, -2px); }
+  button.au-step:hover .au-tile.duo .mail { transform: translateY(-2px); border-color: var(--periwinkle); }
+  .au-step .duo-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+  .au-step .duo-chips .chip { margin-top: 0; }
   .au-flow h3 { margin: 0 0 4px; font-size: .95rem; color: var(--indigo-deep); }
   .au-flow p { margin: 0; font-size: var(--fs-sm); color: var(--muted); line-height: 1.45; max-width: 24ch; }
   .au-step .chip { margin-top: 10px; }
@@ -4037,7 +4056,7 @@ function automations() {
       when: ['calendar-plus', 'A client books', 'A client books an appointment online, at the front desk, or in this app.'],
       steps: [
         ['calendar', 'Block the calendar', 'It goes in the appointment book, so another client cannot book the same time.'],
-        { msg: 'confirmation', title: 'Confirmation Message', text: 'Date, time, stylist and the salon’s address, with a link to change or cancel.' },
+        { msg: 'confirmation', title: 'Confirmation Message', sms: true, text: 'Date, time, stylist and the salon’s address, with a link to change or cancel.' },
       ],
     },
     {
@@ -4338,6 +4357,11 @@ function openAutomation(id) {
   $('autoSub').textContent = a.sub;
   const [wi, wt, wx] = a.when;
   const tile = (icon) => `<span class="au-tile">${ic(icon)}</span>`;
+  // Email and SMS as two stacked cards. SMS is drawn because it is part of
+  // the flow the salon described, but labelled for what it is today: no
+  // text message is sent until texting is connected, and the status under
+  // the tile must not say otherwise.
+  const duo = () => `<span class="au-tile duo"><span class="duo-card sms">${ic('message')}</span><span class="duo-card mail">${ic('mail')}</span></span>`;
   // The steps say what the switch says: an automation turned off shows Off
   // on every step, where it used to say On regardless.
   const live = autoStats[a.id] ? autoStats[a.id].on !== false : true;
@@ -4348,7 +4372,8 @@ function openAutomation(id) {
     <li class="when"><div class="au-step">${tile(wi)}<span class="au-start">Start · Trigger</span><h3>${esc(wt)}</h3><p>${esc(wx)}</p>${on}</div></li>
     ${a.steps.map((st) => (st.msg ? `
       <li><button type="button" class="au-step" data-msg="${st.msg}" data-title="${esc(st.title)}">
-        ${tile('mail')}<h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>${mail}
+        ${st.sms ? duo() : tile('mail')}<h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>
+        ${st.sms ? `<span class="duo-chips">${mail.replace('>On<', '>Email · On<')}<span class="chip pending" title="No text message is sent yet: texting is not connected.">SMS · Coming soon</span></span>` : mail}
         <span class="open">View Message${ic('right')}</span></button></li>` : `
       <li><div class="au-step">${tile(st[0])}<h3>${esc(st[1])}</h3><p>${esc(st[2])}</p>${on}</div></li>`)).join('')}
   </ol>`;
