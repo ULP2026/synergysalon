@@ -2188,9 +2188,10 @@
       <a class="grn-item icon-only" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
         <svg class="grn-ic"><use href="#l-settings"/></svg></a>
     </nav>
-    <!-- The person: their picture and first name. It opens Settings on Team
-         Settings, where their profile, the team and sign out live. -->
-    <a class="grn-me glass-strong" id="meBtn" href="/staff/settings" data-page="account" title="Settings">
+    <!-- The person: their picture and first name. A click opens their own
+         profile in place, the dialog Team Members opens for them; it stays a
+         link to Settings, so a new-tab click still goes there. -->
+    <a class="grn-me glass-strong" id="meBtn" href="/staff/settings" data-page="account" title="Your profile">
       <span class="me-pic" id="mePic" aria-hidden="true"></span>
       <span class="me-name" id="meName"></span>
       <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span>
@@ -2993,7 +2994,7 @@ function paintMe() {
   // RocketOS's chip carries the first name only.
   $('meName').textContent = me.user.name.trim().split(/\s+/)[0] || me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
-  $('meBtn').title = `Team · ${meSubtitle}`;
+  $('meBtn').title = `Your profile · ${meSubtitle}`;
   // The chip shows Ziggy, the AI support assistant, for everyone, as asked;
   // a person's own picture lives in their profile. Until the Ziggy image is
   // published at ZIGGY_AVATAR the chip falls back to the person's picture
@@ -4042,6 +4043,9 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('a[data-page]');
   if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
   e.preventDefault();
+  // The person chip opens your own profile where you are, rather than
+  // taking you to Settings to find it in Team Members.
+  if (a.id === 'meBtn') { openMember('me'); return; }
   go(a.dataset.page);
 });
 window.addEventListener('popstate', () => { if (me) go(pageFromUrl(), { push: false }); });
@@ -4102,8 +4106,8 @@ document.fonts?.ready.then(() => { if (me) moveRing(true); });
 // re-measures, so the ring never sits beside its label.
 document.fonts?.addEventListener?.('loadingdone', () => { if (me) moveRing(true); });
 
-// The chip is the person; it is a data-page link to Team Settings, routed
-// like every other one. Sign out lives at the bottom of that page.
+// The chip is the person: a click opens their profile dialog (the router
+// above), whose footer signs out. Sign out is also at the bottom of Settings.
 $('signOutBtn').onclick = () => signOutNow();
 
 $('mktSeg').onclick = (e) => {
