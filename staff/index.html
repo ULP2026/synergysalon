@@ -2535,13 +2535,11 @@
       </div>
     </section>
 
-    <!-- Coming soon (Marketing) -->
+    <!-- Marketing: Automation only. Promotions, SMS and Email were "coming
+         soon" placeholders and were removed on request (2026-10-22). -->
     <section class="view hidden" id="view-marketing">
       <div class="seg wrapseg" id="mktSeg" role="group" aria-label="Marketing sections">
         <button type="button" data-page="automation" aria-pressed="true">Automation</button>
-        <button type="button" data-page="promotions" aria-pressed="false">Promotions</button>
-        <button type="button" data-page="sms" aria-pressed="false">SMS</button>
-        <button type="button" data-page="email" aria-pressed="false">Email</button>
       </div>
       <div class="card" id="mktCard"></div>
     </section>
@@ -3946,32 +3944,8 @@ const PAGES = {
     sub: 'What happens on its own, before and after a client books.',
     load: () => { markMarketingTab('automation'); renderAutomations(); },
   },
-  // Marketing: placeholders until each is built, in the same shape as Billing.
-  promotions: soonPage('promotions', 'Promotions', 'tag',
-    'Seasonal announcements and client offers will be planned here. Nothing has been sent to anyone.'),
-  sms: soonPage('sms', 'SMS', 'message',
-    'Two-way text conversations with clients will live here. No texts are sent from this app yet.'),
-  email: soonPage('email', 'Email', 'mail',
-    'Newsletters and email campaigns will be written and scheduled here. Nothing is being sent from this page yet.'),
 };
 
-// One Marketing page with a tab per section, the same shape as Settings;
-// each tab keeps its own address so a reload or a shared link lands on it.
-function soonPage(key, title, icon, copy) {
-  return {
-    path: `/staff/marketing/${key}`, title: 'Marketing', group: 'marketing', view: 'marketing',
-    sub: 'Reminders, offers and messages to your clients. Coming soon.',
-    load: () => {
-      markMarketingTab(key);
-      $('mktCard').innerHTML = `
-        <div class="card-head" style="margin-bottom:4px"><h2>${esc(title)}</h2></div>
-        <div class="soon">
-          <span class="chip">Coming soon</span>
-          <p class="small muted" style="margin:12px 0 0;max-width:52ch">${esc(copy)}</p>
-        </div>`;
-    },
-  };
-}
 function markMarketingTab(key) {
   for (const b of $('mktSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.page === key));
@@ -4318,7 +4292,12 @@ const VIEWS = [...document.querySelectorAll('section.view[id^="view-"]')]
 
 // The old names still land: bookmarks to /staff/dashboard and
 // /staff/contacts open Home and Clients rather than falling through.
-const PAGE_ALIASES = { dashboard: 'home', contacts: 'clients', leads: 'clients', marketing: 'automation', team: 'account' };
+const PAGE_ALIASES = {
+  dashboard: 'home', contacts: 'clients', leads: 'clients', marketing: 'automation', team: 'account',
+  // Marketing's removed tabs (2026-10-22): a bookmark or a shared link to one
+  // opens Automation, and the address is corrected, rather than landing on Home.
+  promotions: 'automation', sms: 'automation', email: 'automation',
+};
 
 function pageFromUrl() {
   // A calendar's settings live at /staff/calendars/<slug>, so the last

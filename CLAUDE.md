@@ -593,6 +593,10 @@ made that way are real: name them ZZ and remove them.
   `time_off`, the table availability already subtracts, so a block on the
   grid really stops the time being sold.
   `?demo` on the address shows a sample day that saves nothing.
+- Marketing is Automation only: the Promotions, SMS and Email tabs, which were
+  "coming soon" placeholders, were removed on request (2026-10-22). Their old
+  addresses (`/staff/marketing/promotions|sms|email`, still rewritten by
+  `vercel.json`) open Automation through `PAGE_ALIASES`.
 - Marketing, Automation is a list of automation names (Appointment Booking,
   reminder, reschedule, cancellation). Each opens a modal with its flow as numbered icon tiles left to right (the original confirmation picture), sized to its step count, and
   each email step opens the email itself, rendered by the sending code in
