@@ -160,6 +160,16 @@ the typed name): looking a profile up by name on a public page would expose
 any client's email and phone. Color's "Other" has no service, so it saves a
 lead for the salon to call, as "Not sure yet" did.
 
+**Phone polish for the popup** (2026-10-22) lives in the booking script of
+all six pages' static heads, as a `<style id="ss-bk-polish">` put back into
+the page whenever it is missing (a static `<style>` is thrown away when the
+bundle swaps its document in): on touch screens a card looks picked only
+when it is (`@media (hover: none)`, the tap that opens the popup used to
+leave a sticky hover on the card under it), the day's label has room above
+its times, and "Get directions" and "Done" share the row on one line each.
+While the popup is open the test-mode bar sits at the top of the screen;
+at the bottom it covered Continue and a tester could not leave step 1.
+
 **Test mode on the Vercel addresses.** `?booking-demo=1` on a `*.vercel.app`
 (or local) address opens the real popup despite the pause, with a yellow
 "Test booking mode: bookings are real and show in the app" bar. Since
