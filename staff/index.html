@@ -6325,9 +6325,16 @@ $('bookForm').onsubmit = async (e) => {
 // The booking assistant behind "Call Karen" (asked for 2026-10-22). Not a
 // language model: a guided conversation that offers the real choices as
 // buttons at every turn and understands the same answers typed ("color",
-// "Kim", "tomorrow at 2", "skip"). It reads the services, stylists and free
-// times New appointment reads, and books through the same POST
-// /api/staff/book, so it cannot offer or book anything the diary would not.
+// "and a cut", "Kim", "tomorrow at 2", "skip"). It reads the services,
+// stylists and free times New appointment reads, and books through the same
+// POST /api/staff/book, so it cannot offer or book anything the diary would
+// not. More than one service in a visit goes through the engine's own
+// "with" (one stylist, end to end), as on the public booking page.
+//
+// It also answers what people say in passing ("hang on", "how much is it?",
+// "go back", "it's more than one service") instead of saying it didn't
+// understand; only what it truly can't place gets a nudge, and the nudge
+// says what it needs right now.
 
 const KAREN_PIC = charAvatar('Karen, Synergy');
 const KAREN_KINDS = {
@@ -6336,23 +6343,35 @@ const KAREN_KINDS = {
   cuts: /\bcuts?\b|haircut|trim|bang/,
   styling: /styl|blow ?out|updo|bridal|special event|extension/,
 };
+const KAREN_KIND_HELP = {
+  color: 'all-over color, highlights, balayage, toners',
+  treatments: 'keratin, bond repair, scalp care',
+  cuts: 'haircuts and trims',
+  styling: 'blowouts, updos, extensions',
+};
 const KAREN_WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const KAREN_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-let karen = null;                  // what has been chosen so far
+const KAREN_MULTI = /more than (one|1)|\b(two|2|three|3|several|multiple|a few) (services|things|treatments)\b|\bboth\b|another service|more services|\bcombo\b|\bcombine\b|\badd (on|another|a|an)\b|\bas well\b|\balso\b|\bplus\b/;
+let karen = null;                     // what has been chosen so far
 let karenQueue = Promise.resolve();   // Karen speaks one message at a time
-let karenExpect = null;            // what a typed answer means right now
-let karenRun = 0;                  // a new conversation silences the old one
+let karenAsk = null;                  // the question standing: { fn, hint, key }
+let karenRun = 0;                     // a new conversation silences the old one
 
 const kWait = (ms) => new Promise((r) => { setTimeout(r, ms); });
 const kQuiet = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const kPick = (list) => list[Math.floor(Math.random() * list.length)];
 const kPad = (n) => String(n).padStart(2, '0');
 const kDate = (iso, opts = { weekday: 'long', month: 'long', day: 'numeric' }) =>
   new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { ...opts, timeZone: 'UTC' });
 const kDayName = (iso) => (iso === salonToday() ? 'Today'
   : iso === addDays(salonToday(), 1) ? 'Tomorrow' : kDate(iso, { weekday: 'short', month: 'short', day: 'numeric' }));
+const kAll = () => (karen.svc ? [karen.svc, ...karen.extras] : []);
+const kVisit = () => kAll().map((s) => s.name).join(' + ');
 const kWho = () => (karen.stylist === 'any' ? 'whoever is free'
   : esc(me.stylists.find((s) => s.slug === karen.stylist)?.name || 'them'));
 const kFirst = () => esc(karen.name.trim().split(/\s+/)[0] || 'them');
+const kPrice = (s) => (s.price != null ? `from $${s.price}` : 'priced on the day');
+const kMins = (n) => (n >= 60 ? `${Math.floor(n / 60)} hr${n % 60 ? ` ${n % 60} min` : ''}` : `${n} min`);
 
 function kScroll() { const log = $('karenLog'); log.scrollTop = log.scrollHeight; }
 
@@ -6384,15 +6403,15 @@ function kMe(text) {
 
 /**
  * The answers offered under the conversation, and what typing means while
- * they are up. expect(t, raw) returns false when it did not understand (the
- * buttons stay and Karen says so), 'keep' when it answered but the question
- * stands, and anything else when the conversation moved on.
+ * they are up. expect(t, raw) returns false when it did not understand,
+ * 'keep' when it answered but the question stands, and anything else when
+ * the conversation moved on. key names the question, for "go back".
  */
-function kAsk(chips, expect = null, hint = '') {
+function kAsk(chips, expect = null, hint = '', key = '') {
   const run = karenRun;
   karenQueue = karenQueue.then(() => {
     if (run !== karenRun) return;
-    karenExpect = expect ? { fn: expect, hint } : null;
+    karenAsk = { fn: expect, hint, key };
     $('karenChips').innerHTML = chips.map((c, i) =>
       `<button type="button" class="kd-chip${c.solid ? ' solid' : ''}" data-i="${i}" style="animation-delay:${i * 30}ms">${esc(c.label)}</button>`).join('');
     $('karenChips').onclick = (e) => {
@@ -6400,7 +6419,7 @@ function kAsk(chips, expect = null, hint = '') {
       if (!b) return;
       const c = chips[Number(b.dataset.i)];
       $('karenChips').innerHTML = '';
-      karenExpect = null;
+      karenAsk = null;
       kMe(c.say || c.label);
       c.run();
     };
@@ -6414,17 +6433,24 @@ $('karenForm').onsubmit = (e) => {
   if (!raw) return;
   $('karenText').value = '';
   kMe(raw);
-  const t = raw.toLowerCase();
-  if (/^(start over|restart|reset|start again|new booking)\b/.test(t)) { kStart(); return; }
-  const ask = karenExpect;
-  const got = ask ? ask.fn(t, raw) : false;
+  const t = raw.toLowerCase().replace(/[’`]/g, "'");
+  const ask = karenAsk;
+  const moved = () => { $('karenChips').innerHTML = ''; karenAsk = null; };
+  if (/^(start over|restart|reset|start again|new booking|from the top)\b/.test(t)) { kStart(); return; }
+  // Things said at any point that are not answers: back, cancel, wait, thanks.
+  const control = kControl(t, ask);
+  if (control === 'moved') { moved(); return; }
+  if (control) return;
+  // The question's own answers.
+  const got = ask?.fn ? ask.fn(t, raw) : false;
   if (got === 'keep') return;
-  if (got === false) {
-    kSay(`<p>Sorry, I didn't catch that. ${esc(ask?.hint || 'Tap one of the options below, or type "start over".')}</p>`);
-    return;
-  }
-  $('karenChips').innerHTML = '';
-  karenExpect = null;
+  if (got !== false) { moved(); return; }
+  // Questions and asides: prices, how long, more than one service, not sure.
+  const aside = kAside(t, ask);
+  if (aside === 'moved') { moved(); return; }
+  if (aside) return;
+  kSay(`<p>${kPick(["Hmm, I didn't quite get that.", "Sorry, I'm not sure I followed.", "I'm not sure what you mean there."])} `
+    + `${esc(ask?.hint || 'Tap one of the options below, or type "start over".')}</p>`);
 };
 
 // ── what the salon offers ────────────────────────────────────────────────
@@ -6436,21 +6462,35 @@ function kOffered(stylist = null) {
   const set = new Set(lists.flat());
   return me.services.filter((s) => set.has(s.slug));
 }
-const kStylistsFor = (svc) => (me.stylists || []).filter((s) => !Array.isArray(s.services) || s.services.includes(svc.slug));
+/** Stylists who do every one of these services. */
+const kStylistsFor = (list) => (me.stylists || []).filter((s) => !Array.isArray(s.services)
+  || [].concat(list).every((x) => s.services.includes(x.slug)));
+/** Services one stylist could do alongside what is chosen so far. */
+function kCombinable() {
+  const chosen = kAll();
+  const taken = new Set(chosen.map((s) => s.slug));
+  const pool = karen.stylist && karen.stylist !== 'any' ? kOffered(karen.stylist) : kOffered();
+  return pool.filter((s) => !taken.has(s.slug) && kStylistsFor([...chosen, s]).length);
+}
+
+const kNorm = (s) => ` ${s.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim()} `;
 const kWord = (w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
 
-function kFindService(t, pool = kOffered()) {
-  const exact = pool.find((s) => t.includes(s.name.toLowerCase()));
-  if (exact) return exact;
-  // A distinctive word of a name ("corrective") names the service, but a
-  // word that names a kind is the kind: "color" is Color, not Color & Cut.
-  if (Object.values(KAREN_KINDS).some((re) => re.test(t))) return null;
-  return pool.find((s) => s.name.toLowerCase().split(/[^a-z0-9]+/).some((w) => w.length > 4 && kWord(w).test(t))) || null;
+/** Every service named in what was typed: whole names first, then a distinctive word ("corrective"). */
+function kFindServices(t, pool = kOffered()) {
+  const n = kNorm(t);
+  const whole = pool.filter((s) => n.includes(kNorm(s.name)))
+    .filter((s, _, all) => !all.some((o) => o !== s && kNorm(o.name).includes(kNorm(s.name))));
+  if (whole.length) return whole;
+  // A word that names a kind is the kind: "color" is Color, not Color & Cut.
+  if (Object.values(KAREN_KINDS).some((re) => re.test(t))) return [];
+  return pool.filter((s) => kNorm(s.name).trim().split(' ').some((w) => w.length > 4 && n.includes(` ${w} `)));
 }
-function kFindKind(t) {
-  const offered = kOffered();
-  return Object.keys(KAREN_KINDS).find((k) => KAREN_KINDS[k].test(t) && offered.some((s) => bookKindOf(s) === k)) || null;
+const kFindService = (t, pool) => kFindServices(t, pool)[0] || null;
+function kFindKinds(t, pool = kOffered()) {
+  return Object.keys(KAREN_KINDS).filter((k) => KAREN_KINDS[k].test(t) && pool.some((s) => bookKindOf(s) === k));
 }
+const kFindKind = (t, pool) => kFindKinds(t, pool)[0] || null;
 function kFindStylist(t, list = me.stylists || []) {
   return list.find((s) => t.includes(s.name.toLowerCase()))
     || list.find((s) => kWord(s.name.toLowerCase().split(/\s+/)[0]).test(t)) || null;
@@ -6469,7 +6509,7 @@ function kParseDate(t) {
     return addDays(today, n);
   }
   const md = t.match(/\b(\d{1,2})[/-](\d{1,2})\b/);
-  const mi = KAREN_MONTHS.findIndex((m) => kWord(m).test(t) || new RegExp(`\\b${m}[a-z]*\\b`).test(t));
+  const mi = KAREN_MONTHS.findIndex((m) => new RegExp(`\\b${m}[a-z]*\\b`).test(t));
   const num = t.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/);
   let y = Number(today.slice(0, 4));
   let m;
@@ -6505,11 +6545,112 @@ function kParseTime(t, strict = false) {
   return h * 60 + min;
 }
 
+// ── said in passing ──────────────────────────────────────────────────────
+
+/** Back, cancel, wait, thanks: understood whatever the question. */
+function kControl(t, ask) {
+  if (/^(back|go back|previous|undo|oops)\b|\bgo back\b|\bprevious (question|step)\b/.test(t)) { kBack(ask?.key); return 'moved'; }
+  if (/^(cancel|stop|never ?mind|forget it|quit|exit)\b/.test(t) && !karen.done) {
+    kReset();
+    kSay("<p>No problem, I've stopped that booking. Is there anything else I can help with?</p>");
+    kMenu();
+    return 'moved';
+  }
+  if (/^(but )?(hang on|hold on|wait|one sec(ond)?|give me a (sec|second|minute|min)|just a (sec|second|minute)|let me (check|think|ask))\b[\s.!,]*$/.test(t)) {
+    kSay(`<p>${kPick(['Of course, take your time.', "No rush, I'll be right here.", 'Sure, take your time.'])}</p>`);
+    return true;
+  }
+  if (/^(thanks|thank you|ty|cheers|thx)\b/.test(t)) {
+    kSay(karen.done ? "<p>You're welcome! I'm here whenever you need me.</p>"
+      : `<p>You're welcome! ${esc(ask?.hint || '')}</p>`);
+    return true;
+  }
+  return false;
+}
+
+/** Questions and asides: prices, how long, more than one service, not sure. */
+function kAside(t, ask) {
+  const key = ask?.key || '';
+  if (KAREN_MULTI.test(t)) {
+    if (key === 'kind' || key === 'service' || key === 'menu') {
+      karen.multi = true;
+      const found = kFindServices(t, key === 'service' ? kOffered(karen.stylist).filter((s) => bookKindOf(s) === karen.kind) : kOffered(karen.stylist));
+      if (found.length) { kTake(found); kNext(); return 'moved'; }
+      kSay(`<p>No problem, they can have more than one service in the same visit. ${key === 'service'
+        ? `Pick the first ${esc(bookKindLabel(karen.kind).toLowerCase())} service below, and I'll ask what else they'd like next.`
+        : "Let's start with the first one, and I'll ask what else they'd like next."}</p>`);
+      return true;
+    }
+    if (karen.svc && key !== 'extras') {
+      Object.assign(karen, { extrasAsked: false, multi: true, date: null, time: null, days: null });
+      kSay("<p>Sure, let's add another service to the visit.</p>");
+      kNext();
+      return 'moved';
+    }
+  }
+  if (/how much|\bprice|\bcost|\$/.test(t)) {
+    const list = karen.svc ? kAll()
+      : key === 'service' ? kOffered(karen.stylist).filter((s) => bookKindOf(s) === karen.kind) : kOffered(karen.stylist);
+    if (!list.length) return false;
+    kSay(list.length === 1 ? `<p>${esc(list[0].name)} is ${esc(kPrice(list[0]))}.</p>`
+      : `<p>${list.map((s) => `${esc(s.name)}: ${esc(kPrice(s))}`).join('<br>')}</p>`);
+    if (ask?.hint) kSay(`<p>${esc(ask.hint)}</p>`);
+    return true;
+  }
+  if (/how long|\bduration\b|how many (hours|minutes)|\btake\b.*\b(long|time)\b/.test(t)) {
+    const list = karen.svc ? kAll()
+      : key === 'service' ? kOffered(karen.stylist).filter((s) => bookKindOf(s) === karen.kind) : kOffered(karen.stylist);
+    if (!list.length) return false;
+    kSay(`<p>${list.map((s) => `${esc(s.name)}: about ${esc(kMins(s.durationMin))}`).join('<br>')}</p>`
+      + (list.length > 1 && karen.svc ? '<p>Back to back with one stylist, so the visit is all of those together.</p>' : ''));
+    if (ask?.hint) kSay(`<p>${esc(ask.hint)}</p>`);
+    return true;
+  }
+  if (/not sure|don.?t know|no idea|recommend|suggest|which (one|should)|help me (choose|pick|decide)|undecided|\bconsult/.test(t)) {
+    if (key === 'kind' || key === 'service' || key === 'menu') {
+      kSay(`<p>Here's a quick guide:</p><p>${BOOK_KINDS.filter(([k]) => kOffered().some((s) => bookKindOf(s) === k))
+        .map(([k, label]) => `<b>${esc(label)}</b>: ${esc(KAREN_KIND_HELP[k])}`).join('<br>')}</p>`
+        + '<p>Pick the closest one; the stylist can always adjust on the day.</p>');
+      return true;
+    }
+    if (key === 'stylist') { kSay('<p>If they don\'t mind who, "First available" gives them the most times to choose from.</p>'); return true; }
+    if (key === 'date' || key === 'time') { kSay('<p>The earliest opening is the first one listed. Tap it, or tell me a day that suits them.</p>'); return true; }
+  }
+  return false;
+}
+
+/** One step back: undo the last answer and ask its question again. */
+function kBack(key) {
+  const undo = {
+    service: () => { karen.kind = null; },
+    extras: () => {
+      if (karen.extras.length) karen.extras.pop();
+      else { karen.svc = null; karen.multi = false; }
+    },
+    stylist: () => { karen.extrasAsked = false; },
+    date: () => { karen.stylist = null; karen.days = null; },
+    time: () => { karen.date = null; },
+    name: () => { karen.time = null; },
+    phone: () => { karen.name = ''; },
+    email: () => { karen.phone = null; },
+    confirm: () => { if (karen.email !== null && karen.email !== '') karen.email = null; else if (karen.phone !== null && karen.email === '') karen.email = null; else karen.phone = null; },
+  }[key];
+  if (!undo) {
+    kSay("<p>We're right at the start, so there's nothing to go back to.</p>");
+    kMenu();
+    return;
+  }
+  undo();
+  kSay(`<p>${kPick(['Sure, going back.', "No problem, let's go back a step."])}</p>`);
+  kNext();
+}
+
 // ── the conversation ─────────────────────────────────────────────────────
 
 function kReset() {
   karen = {
-    kind: null, svc: null, stylist: null, date: null, time: null, wantTime: null,
+    kind: null, svc: null, extras: [], extrasAsked: false, multi: false, pendingKinds: [],
+    stylist: null, date: null, time: null, wantTime: null,
     name: '', phone: null, email: null, days: null, daysKey: '', done: false,
   };
 }
@@ -6523,7 +6664,7 @@ function openKaren() {
 function kStart() {
   karenRun += 1;
   karenQueue = Promise.resolve();
-  karenExpect = null;
+  karenAsk = null;
   kReset();
   $('karenLog').innerHTML = '';
   $('karenChips').innerHTML = '';
@@ -6541,41 +6682,54 @@ function kMenu() {
       kSay('<p>Hi there! I can book an appointment, or tell you about our services and team.</p>');
       return 'keep';
     }
-    if (/servic|offer|menu|price|cost|how much/.test(t) && !/book/.test(t)) { kServices(); return true; }
+    if (/servic|offer|menu/.test(t) && !/book/.test(t)) { kServices(); return true; }
     if (/\bwho\b|stylist|team|staff/.test(t) && !/book/.test(t)) { kTeam(); return true; }
-    if (/book|appoint|schedul|reserv|slot|availab|free|open/.test(t) || kFindService(t) || kFindKind(t) || kFindStylist(t)) {
+    if (/book|appoint|schedul|reserv|slot|availab|free|open/.test(t) || kFindServices(t).length || kFindKind(t) || kFindStylist(t)) {
       kBookFrom(t);
       return true;
     }
     return false;
-  }, 'I can help you book an appointment, or tell you about our services and team.');
+  }, 'I can book an appointment, or tell you about our services and team.', 'menu');
 }
 
 function kBook() {
-  kSay("<p>Happy to help! Let's find the right time.</p>");
+  kSay(`<p>${kPick(["Happy to help! Let's find the right time.", "Of course! Let's get them booked in."])}</p>`);
   kNext();
 }
 
-/** A first message that already says some of it: "a balayage with Kim tomorrow at 2". */
+/** Services found in one message: the first leads, the rest join it where one stylist can do them all. */
+function kTake(found) {
+  if (!karen.svc) { karen.svc = found[0]; karen.kind = bookKindOf(found[0]); found = found.slice(1); }
+  for (const s of found) {
+    if (karen.extras.length < 5 && !kAll().some((x) => x.slug === s.slug) && kStylistsFor([...kAll(), s]).length) karen.extras.push(s);
+  }
+  if (karen.extras.length) karen.multi = true;
+}
+
+/** A first message that already says some of it: "a balayage and a cut with Kim tomorrow at 2". */
 function kBookFrom(t) {
-  const svc = kFindService(t);
-  if (svc) { karen.svc = svc; karen.kind = bookKindOf(svc); }
-  else karen.kind = kFindKind(t);
+  const found = kFindServices(t);
+  if (found.length) kTake(found);
+  const kinds = kFindKinds(t).filter((k) => !kAll().some((s) => bookKindOf(s) === k));
+  if (!karen.svc && kinds.length) karen.kind = kinds.shift();
+  karen.pendingKinds = kinds;
+  if (kinds.length || KAREN_MULTI.test(t)) karen.multi = true;
   const st = kFindStylist(t);
   if (st) karen.stylist = st.slug;
   const date = kParseDate(t);
   if (date) { karen.date = date; karen.wantTime = kParseTime(t, true); }
-  if (karen.svc && karen.stylist && !kStylistsFor(karen.svc).some((s) => s.slug === karen.stylist)) {
-    kSay(`<p>${esc(st.name)} doesn't do ${esc(karen.svc.name)}, so let me show you who does.</p>`);
-    karen.stylist = null;
-  } else {
-    kSay('<p>Happy to help!</p>');
-  }
+  kSay(`<p>${kPick(['Happy to help!', 'Of course!', 'Sure thing!'])}</p>`);
   kNext();
 }
 
 function kNext() {
   if (!karen.svc) return karen.kind ? kAskService() : kAskKind();
+  if (!karen.extrasAsked) return kAskExtras();
+  if (karen.stylist && karen.stylist !== 'any' && !kStylistsFor(kAll()).some((s) => s.slug === karen.stylist)) {
+    const name = me.stylists.find((s) => s.slug === karen.stylist)?.name || 'That stylist';
+    kSay(`<p>${esc(name)} doesn't do ${esc(kVisit())}, so let me show you who does.</p>`);
+    karen.stylist = null;
+  }
   if (karen.stylist === null) return kAskStylist();
   if (!karen.date) return kAskDate();
   if (!karen.time) return kAskTime();
@@ -6593,70 +6747,125 @@ function kAskKind() {
     kAsk([{ label: 'Start over', run: kStart }]);
     return;
   }
-  kSay('<p>What kind of service is it for?</p>');
+  kSay(karen.multi ? '<p>What kind of service is the first one?</p>' : '<p>What kind of service is it for?</p>');
   kAsk(kinds.map(([k, label]) => ({ label, run: () => { karen.kind = k; kNext(); } })), (t) => {
-    const s = kFindService(t, offered);
-    if (s) { karen.svc = s; karen.kind = bookKindOf(s); kNext(); return true; }
-    const k = kFindKind(t);
-    if (k) { karen.kind = k; kNext(); return true; }
+    const found = kFindServices(t, offered);
+    if (found.length) { kTake(found); kNext(); return true; }
+    const ks = kFindKinds(t, offered);
+    if (ks.length) {
+      karen.kind = ks[0];
+      karen.pendingKinds = ks.slice(1);
+      if (ks.length > 1) karen.multi = true;
+      kNext();
+      return true;
+    }
     return false;
-  }, 'Try "color", "a haircut" or a service like "balayage".');
+  }, 'Just tell me the type, like "color" or "a haircut", or tap one below.', 'kind');
 }
 
 function kAskService() {
   const list = kOffered(karen.stylist).filter((s) => bookKindOf(s) === karen.kind);
+  const kind = bookKindLabel(karen.kind).toLowerCase();
   if (list.length === 1) {
     karen.svc = list[0];
-    kSay(`<p>For ${esc(bookKindLabel(karen.kind).toLowerCase())} we have <b>${esc(list[0].name)}</b>.</p>`);
+    kSay(`<p>For ${esc(kind)} we have <b>${esc(list[0].name)}</b>.</p>`);
     kNext();
     return;
   }
-  kSay(`<p>Which ${esc(bookKindLabel(karen.kind).toLowerCase())} service?</p>`);
+  kSay(`<p>${kPick(['Lovely.', 'Great.', 'Perfect.'])} Which ${esc(kind)} service would they like?</p>`);
   kAsk(list.map((s) => ({
-    label: `${s.name} · ${s.durationMin} min${s.price != null ? ` · from $${s.price}` : ''}`,
+    label: `${s.name} · ${kMins(s.durationMin)}`,
     say: s.name,
     run: () => { karen.svc = s; kNext(); },
   })), (t) => {
-    const s = kFindService(t, list);
-    if (!s) return false;
-    karen.svc = s;
+    const found = kFindServices(t, kOffered(karen.stylist));
+    if (!found.length) return false;
+    kTake(found);
     kNext();
     return true;
-  }, 'Tap a service, or type its name.');
+  }, `Which ${kind} service would they like? Tap one, or type its name.`, 'service');
+}
+
+/** Anything else in the same visit, for one stylist end to end. */
+function kAskExtras() {
+  const can = kCombinable();
+  // "Color and a cut": the cut is already asked for, so ask only which cut.
+  while (karen.pendingKinds.length) {
+    const k = karen.pendingKinds.shift();
+    const list = can.filter((s) => bookKindOf(s) === k);
+    if (list.length === 1) {
+      karen.extras.push(list[0]);
+      kSay(`<p>And a <b>${esc(list[0].name)}</b> with it.</p>`);
+      return kNext();
+    }
+    if (list.length > 1) {
+      kSay(`<p>And which ${esc(bookKindLabel(k).toLowerCase())} service with it?</p>`);
+      kAsk(list.map((s) => ({ label: `${s.name} · ${kMins(s.durationMin)}`, say: s.name, run: () => { karen.extras.push(s); kNext(); } })), (t) => {
+        const s = kFindService(t, list);
+        if (!s) return false;
+        karen.extras.push(s);
+        kNext();
+        return true;
+      }, `Which ${bookKindLabel(k).toLowerCase()} service? Tap one, or type its name.`, 'extras');
+      return undefined;
+    }
+  }
+  if (!can.length || karen.extras.length >= 5) { karen.extrasAsked = true; return kNext(); }
+  const first = !karen.extras.length;
+  kSay(first
+    ? (karen.multi ? `<p>Got it, ${esc(karen.svc.name)} first. What else would they like in the same visit?</p>`
+      : `<p>Would they like anything else in the same visit, or just ${esc(karen.svc.name)}?</p>`)
+    : `<p>Got it: ${esc(kVisit())}. Anything else?</p>`);
+  const done = () => { karen.extrasAsked = true; kNext(); };
+  kAsk([
+    { label: first ? `Just ${karen.svc.name}` : "No, that's everything", solid: true, run: done },
+    ...can.slice(0, 10).map((s) => ({ label: `+ ${s.name}`, say: `Add ${s.name}`, run: () => { karen.extras.push(s); kNext(); } })),
+  ], (t) => {
+    const found = kFindServices(t, can);
+    if (found.length) { kTake(found); kNext(); return true; }
+    const ks = kFindKinds(t, can);
+    if (ks.length) { karen.pendingKinds = ks; kNext(); return true; }
+    if (/^(no|nope|nah|that'?s (all|it|everything)|nothing( else)?|done|all good|i'?m good|only)\b|\bjust (that|this|the one|one)\b/.test(t)) { done(); return true; }
+    if (/\b(yes|yeah|yep|sure|another|more|add|also)\b/.test(t)) { kSay('<p>Sure! Which one? Tap it below, or type its name.</p>'); return 'keep'; }
+    return false;
+  }, first ? `Tap "Just ${karen.svc.name}", or add another service below.` : 'Add another service below, or tap "No, that\'s everything".', 'extras');
+  return undefined;
 }
 
 function kAskStylist() {
-  const list = kStylistsFor(karen.svc);
+  const list = kStylistsFor(kAll());
   if (!list.length) {
-    kSay(`<p>Nobody has ${esc(karen.svc.name)} switched on for booking yet.</p>`);
+    kSay(`<p>Nobody here does ${esc(kVisit())} together yet.</p>`);
     kAsk([
-      { label: 'Pick a different service', run: () => { karen.svc = null; karen.kind = null; kNext(); } },
+      ...(karen.extras.length ? [{ label: 'Just the first service', solid: true, run: () => { karen.extras = []; karen.extrasAsked = true; kNext(); } }] : []),
+      { label: 'Pick a different service', run: () => { Object.assign(karen, { svc: null, kind: null, extras: [], extrasAsked: false }); kNext(); } },
       { label: 'Start over', run: kStart },
     ]);
     return;
   }
-  kSay(`<p>Great choice. Who would they like to see for ${esc(karen.svc.name)}?</p>`);
+  kSay(`<p>${kPick(['Great choice.', 'Lovely.', 'Perfect.'])} Who would they like to see for ${esc(kVisit())}?</p>`);
   const pick = (slug) => { karen.stylist = slug; karen.days = null; kNext(); };
   kAsk([
     { label: 'First available', run: () => pick('any') },
     ...list.map((s) => ({ label: s.name, run: () => pick(s.slug) })),
   ], (t) => {
-    if (/\bany(one|body)?\b|first|whoever|no pref|doesn.?t matter|don.?t mind/.test(t)) { pick('any'); return true; }
+    if (/\bany(one|body)?\b|first|whoever|no pref|doesn'?t matter|don'?t mind|either/.test(t)) { pick('any'); return true; }
     const s = kFindStylist(t, list);
     if (s) { pick(s.slug); return true; }
     const other = kFindStylist(t);
-    if (other) { kSay(`<p>${esc(other.name)} doesn't do ${esc(karen.svc.name)}. Pick someone below.</p>`); return 'keep'; }
+    if (other) { kSay(`<p>${esc(other.name)} doesn't do ${esc(kVisit())}. Here's who does.</p>`); return 'keep'; }
     return false;
-  }, 'Tap a name, or say "first available".');
+  }, 'Tap a name, or say "first available" if they don\'t mind who.', 'stylist');
 }
 
-/** The next three weeks of free times for this service and stylist. */
+/** The next three weeks of free times for this visit and stylist. */
 async function kLoadDays() {
-  const key = `${karen.svc.slug}|${karen.stylist}`;
+  const withs = karen.extras.map((s) => s.slug).join(',');
+  const key = `${karen.svc.slug}|${withs}|${karen.stylist}`;
   if (karen.days && karen.daysKey === key) return;
   const today = salonToday();
   const d = await api('/api/staff/availability?' + new URLSearchParams({
-    service: karen.svc.slug, stylist: karen.stylist, date: today, to: addDays(today, 20),
+    service: karen.svc.slug, stylist: karen.stylist, date: today, to: addDays(today, 20), ...(withs ? { with: withs } : {}),
   }));
   karen.days = Object.fromEntries(d.days.map((x) => [x.date, x.slots]));
   karen.daysKey = key;
@@ -6665,8 +6874,9 @@ async function kLoadDays() {
 async function kSlotsOn(date) {
   await kLoadDays();
   if (!(date in karen.days)) {
+    const withs = karen.extras.map((s) => s.slug).join(',');
     const d = await api('/api/staff/availability?' + new URLSearchParams({
-      service: karen.svc.slug, stylist: karen.stylist, date,
+      service: karen.svc.slug, stylist: karen.stylist, date, ...(withs ? { with: withs } : {}),
     }));
     karen.days[date] = d.days[0]?.slots ?? [];
   }
@@ -6685,7 +6895,7 @@ function kDateAnswer(t) {
 
 async function kAskDate() {
   const run = karenRun;
-  kSay(`<p>Let me look at ${kWho()} for ${esc(karen.svc.name)}…</p>`);
+  kSay(`<p>Let me check ${kWho()} for ${esc(kVisit())}…</p>`);
   try {
     await kLoadDays();
   } catch (err) {
@@ -6696,21 +6906,22 @@ async function kAskDate() {
   }
   if (run !== karenRun) return;
   const free = Object.keys(karen.days).filter((d) => karen.days[d].length).sort();
+  const another = { label: 'Another day', run: () => { kSay('<p>Sure. Which day? Something like "next Friday" or "Nov 3".</p>'); kAsk([], kDateAnswer, 'Tell me a day, like "next Friday" or "Nov 3".', 'date'); } };
   if (!free.length) {
-    kSay(`<p>I couldn't find anything free for ${kWho()} in the next three weeks.</p>`);
+    kSay(`<p>I couldn't find anything free for ${kWho()} in the next three weeks${karen.extras.length ? ' with that much time together' : ''}.</p>`);
     kAsk([
       ...(karen.stylist !== 'any' ? [{ label: 'Try first available', solid: true, run: () => { karen.stylist = 'any'; karen.days = null; kNext(); } }] : []),
-      { label: 'Pick another day', run: () => { kSay('<p>Type the day, like "Nov 18" or "next Friday".</p>'); kAsk([], kDateAnswer, 'Type a day like "Nov 18" or "next Friday".'); } },
-      { label: 'Different service', run: () => { karen.svc = null; karen.kind = null; karen.stylist = null; kNext(); } },
-    ], kDateAnswer, 'Type a day like "Nov 18", or tap an option.');
+      another,
+      { label: 'Different service', run: () => { Object.assign(karen, { svc: null, kind: null, extras: [], extrasAsked: false, stylist: null }); kNext(); } },
+    ], kDateAnswer, 'Tell me a day, like "Nov 18", or tap an option.', 'date');
     return;
   }
   const first = karen.days[free[0]][0];
-  kSay(`<p>The first opening is <b>${esc(kDayName(free[0]))} at ${esc(bookTimeLabel(first.start))}</b>. Which day works?</p>`);
+  kSay(`<p>The first opening is <b>${esc(kDayName(free[0]))} at ${esc(bookTimeLabel(first.start))}</b>. Which day suits them?</p>`);
   kAsk([
     ...free.slice(0, 6).map((d) => ({ label: kDayName(d), run: () => { karen.date = d; kNext(); } })),
-    { label: 'Another day', run: () => { kSay('<p>Sure. Type the day, like "next Friday" or "Nov 3".</p>'); kAsk([], kDateAnswer, 'Type a day like "next Friday" or "Nov 3".'); } },
-  ], kDateAnswer, 'Tap a day, or type one like "Friday" or "Oct 30".');
+    another,
+  ], kDateAnswer, 'Tap a day, or tell me one like "Friday" or "Oct 30".', 'date');
 }
 
 async function kAskTime() {
@@ -6736,8 +6947,8 @@ async function kAskTime() {
     const want = karen.wantTime;
     karen.wantTime = null;
     const hit = slots.find((s) => salonMinutes(s.start) === want);
-    if (hit) { karen.time = hit.start; kSay(`<p>${esc(clock(want))} on ${esc(kDate(karen.date))} is free.</p>`); kNext(); return; }
-    kSay(`<p>${esc(clock(want))} isn't open that day.</p>`);
+    if (hit) { karen.time = hit.start; kSay(`<p>Good news, ${esc(clock(want))} on ${esc(kDate(karen.date))} is free.</p>`); kNext(); return; }
+    kSay(`<p>${esc(clock(want))} isn't open that day, I'm afraid.</p>`);
   }
   kSay(`<p>Here's what's open on <b>${esc(kDate(karen.date))}</b>:</p>`);
   const pick = (s) => { karen.time = s.start; kNext(); };
@@ -6747,56 +6958,83 @@ async function kAskTime() {
   ], (t) => {
     const other = kParseDate(t);
     if (other && other !== karen.date && !/^\d{1,2}(:\d{2})?\s*(am|pm|a|p)?$/.test(t.trim())) return kDateAnswer(t);
+    if (/\b(morning|afternoon|evening|earliest|first|latest|last)\b/.test(t) && kParseTime(t) == null) {
+      const mins = (s) => salonMinutes(s.start);
+      const set = /morning/.test(t) ? slots.filter((s) => mins(s) < 720) : /afternoon/.test(t) ? slots.filter((s) => mins(s) >= 720 && mins(s) < 1020)
+        : /evening/.test(t) ? slots.filter((s) => mins(s) >= 1020) : /latest|last/.test(t) ? slots.slice(-1) : slots.slice(0, 1);
+      if (/earliest|first|latest|last/.test(t) && set.length === 1) { pick(set[0]); return true; }
+      kSay(set.length ? `<p>In the ${esc(t.match(/morning|afternoon|evening/)[0])} there's ${esc(set.map((s) => bookTimeLabel(s.start)).join(', '))}.</p>`
+        : `<p>Nothing is open in the ${esc(t.match(/morning|afternoon|evening/)?.[0] || 'day')} then.</p>`);
+      return 'keep';
+    }
     const want = kParseTime(t);
     if (want == null) return false;
     const hit = slots.find((s) => salonMinutes(s.start) === want);
     if (hit) { pick(hit); return true; }
     const near = [...slots].sort((a, b) => Math.abs(salonMinutes(a.start) - want) - Math.abs(salonMinutes(b.start) - want))
       .slice(0, 2).sort((a, b) => a.start.localeCompare(b.start)).map((s) => bookTimeLabel(s.start));
-    kSay(`<p>${esc(clock(want))} isn't open. The closest are ${esc(near.join(' and '))}.</p>`);
+    kSay(`<p>${esc(clock(want))} isn't open, I'm afraid. The closest are ${esc(near.join(' and '))}.</p>`);
     return 'keep';
-  }, 'Tap a time, or type one like "2:30".');
+  }, 'Tap a time, or tell me one like "2:30" or "morning".', 'time');
 }
 
 function kAskName() {
-  kSay(`<p>${esc(bookTimeLabel(karen.time))} on ${esc(kDate(karen.date))} it is. Who is the appointment for? Type their name.</p>`);
+  kSay(`<p>${esc(bookTimeLabel(karen.time))} on ${esc(kDate(karen.date))} it is. Who is the appointment for?</p>`);
   kAsk([], (t, raw) => {
-    if (raw.length < 2) return false;
-    karen.name = raw.slice(0, 120);
+    // A question is not a name.
+    if (/\?\s*$/.test(raw) || /^(how|what|when|where|why|can|could|is|are|does|do|will)\b/.test(t)) return false;
+    const name = raw.replace(/^((it['’]?s|its|it is|for|the client is|client is|(her|his|their) name is|name is|this is)\s+)+/i, '').trim();
+    if (name.length < 2) return false;
+    karen.name = name.slice(0, 120);
     kNext();
     return true;
-  }, "Type the client's name.");
+  }, "Just type the client's name.", 'name');
 }
 
 function kAskPhone() {
-  kSay(`<p>What's ${kFirst()}'s phone number?</p>`);
-  kAsk([{ label: 'Skip', run: () => { karen.phone = ''; kNext(); } }], (t, raw) => {
-    if (/^(skip|no|none|n\/a|don.?t know)\b/.test(t)) { karen.phone = ''; kNext(); return true; }
+  kSay(`<p>${kPick(['Thanks!', 'Lovely.'])} What's ${kFirst()}'s phone number?</p>`);
+  kAsk([{ label: 'Skip, I have their email', run: () => { karen.phone = ''; kNext(); } }], (t, raw) => {
+    if (/^(skip|no|none|n\/a|don'?t (know|have))\b/.test(t)) { karen.phone = ''; kNext(); return true; }
+    if (/@/.test(raw) && /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(raw)) { karen.phone = ''; karen.email = raw.slice(0, 200); kNext(); return true; }
     if ((raw.match(/\d/g) || []).length < 7) return false;
     karen.phone = raw.slice(0, 40);
     kNext();
     return true;
-  }, 'Type a phone number, or tap Skip.');
+  }, 'Type their phone number, or tap Skip if you have their email instead.', 'phone');
 }
 
 function kAskEmail() {
-  kSay(`<p>And their email? I'll send the confirmation there.</p>`);
-  kAsk([{ label: 'Skip', run: () => { karen.email = ''; kNext(); } }], (t, raw) => {
-    if (/^(skip|no|none|n\/a|don.?t know)\b/.test(t)) { karen.email = ''; kNext(); return true; }
-    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(raw)) return false;
+  // Booking needs one way to reach them: a phone number or an email.
+  const needed = !karen.phone;
+  kSay(needed ? "<p>What's their email? I need a phone number or an email so the salon can reach them.</p>"
+    : "<p>And their email? I'll send the confirmation there.</p>");
+  kAsk(needed ? [{ label: 'Add a phone number instead', run: () => { karen.phone = null; kNext(); } }]
+    : [{ label: 'Skip', run: () => { karen.email = ''; kNext(); } }], (t, raw) => {
+    if (/^(skip|no|none|n\/a|don'?t (know|have))\b/.test(t)) {
+      if (needed) { kSay('<p>I do need one way to reach them: a phone number or an email.</p>'); return 'keep'; }
+      karen.email = '';
+      kNext();
+      return true;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(raw)) {
+      if (needed && (raw.match(/\d/g) || []).length >= 7) { karen.phone = raw.slice(0, 40); kNext(); return true; }
+      return false;
+    }
     karen.email = raw.slice(0, 200);
     kNext();
     return true;
-  }, 'Type an email address like name@example.com, or tap Skip.');
+  }, needed ? 'Type an email like name@example.com, or tap to add a phone number instead.'
+    : 'Type an email like name@example.com, or tap Skip.', 'email');
 }
 
 function kSummary() {
   const who = karen.stylist === 'any' ? 'First available' : me.stylists.find((s) => s.slug === karen.stylist)?.name || '';
   const row = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
+  const priced = kAll().filter((s) => s.price != null);
   return `<div class="kd-card"><dl>${row('Client', karen.name)}${row('Phone', karen.phone)}${row('Email', karen.email)}`
-    + `${row('Service', karen.svc.name)}${row('With', who)}`
+    + `${row(karen.extras.length ? 'Services' : 'Service', kVisit())}${row('With', who)}`
     + `${row('When', `${kDate(karen.date)}, ${bookTimeLabel(karen.time)}`)}`
-    + `${karen.svc.price != null ? row('From', `$${karen.svc.price}`) : ''}</dl></div>`;
+    + `${priced.length === kAll().length && priced.length ? row('From', `$${priced.reduce((n, s) => n + Number(s.price), 0)}`) : ''}</dl></div>`;
 }
 
 function kConfirm() {
@@ -6805,27 +7043,34 @@ function kConfirm() {
     { label: 'Book it', solid: true, run: kDoBook },
     { label: 'Change something', run: kChange },
   ], (t) => {
-    if (/\b(yes|yep|yeah|sure|ok(ay)?|book|confirm|go|do it|perfect|great)\b/.test(t)) { kDoBook(); return true; }
-    if (/\b(no|change|edit|wrong|wait)\b/.test(t)) { kChange(); return true; }
+    if (/\b(yes|yep|yeah|sure|ok(ay)?|book|confirm|go ahead|do it|perfect|great|sounds good|looks good)\b/.test(t) && !/\b(no|not|change|wrong)\b/.test(t)) { kDoBook(); return true; }
+    if (/\b(no|change|edit|wrong|fix|actually)\b/.test(t)) { kChange(); return true; }
     return false;
-  }, 'Say "book it", or "change" to fix something.');
+  }, 'Say "book it" when it looks right, or "change" to fix something.', 'confirm');
 }
 
 function kChange() {
+  const svc = () => { Object.assign(karen, { svc: null, kind: null, extras: [], extrasAsked: false, multi: false, date: null, time: null, days: null }); if (karen.stylist !== 'any') karen.stylist = null; kNext(); };
+  const sty = () => { Object.assign(karen, { stylist: null, date: null, time: null, days: null }); kNext(); };
+  const when = () => { Object.assign(karen, { date: null, time: null }); kNext(); };
+  const who = () => { Object.assign(karen, { name: '', phone: null, email: null }); kNext(); };
+  const add = () => { Object.assign(karen, { extrasAsked: false, multi: true, date: null, time: null, days: null }); kNext(); };
   kSay('<p>No problem. What would you like to change?</p>');
   kAsk([
-    { label: 'Service', run: () => { Object.assign(karen, { svc: null, kind: null, date: null, time: null, days: null }); if (karen.stylist !== 'any') karen.stylist = null; kNext(); } },
-    { label: 'Stylist', run: () => { Object.assign(karen, { stylist: null, date: null, time: null, days: null }); kNext(); } },
-    { label: 'Day and time', run: () => { Object.assign(karen, { date: null, time: null }); kNext(); } },
-    { label: 'Client details', run: () => { Object.assign(karen, { name: '', phone: null, email: null }); kNext(); } },
+    { label: 'Service', run: svc },
+    { label: 'Add a service', run: add },
+    { label: 'Stylist', run: sty },
+    { label: 'Day and time', run: when },
+    { label: 'Client details', run: who },
     { label: 'Nothing, book it', solid: true, run: kDoBook },
   ], (t) => {
-    if (/servic/.test(t)) { Object.assign(karen, { svc: null, kind: null, date: null, time: null, days: null }); if (karen.stylist !== 'any') karen.stylist = null; kNext(); return true; }
-    if (/stylist|who|person/.test(t)) { Object.assign(karen, { stylist: null, date: null, time: null, days: null }); kNext(); return true; }
-    if (/day|date|time|when/.test(t)) { Object.assign(karen, { date: null, time: null }); kNext(); return true; }
-    if (/client|name|phone|email|detail/.test(t)) { Object.assign(karen, { name: '', phone: null, email: null }); kNext(); return true; }
+    if (/\badd\b|another service|also/.test(t)) { add(); return true; }
+    if (/servic/.test(t)) { svc(); return true; }
+    if (/stylist|\bwho\b|person/.test(t)) { sty(); return true; }
+    if (/\bday\b|date|time|when/.test(t)) { when(); return true; }
+    if (/client|name|phone|email|detail|number/.test(t)) { who(); return true; }
     return false;
-  }, 'Tap what to change: service, stylist, day and time, or client details.');
+  }, 'Tap what to change: the service, the stylist, the day and time, or the client details.', 'change');
 }
 
 async function kDoBook() {
@@ -6840,6 +7085,7 @@ async function kDoBook() {
         phone: karen.phone || '',
         email: karen.email || '',
         service: karen.svc.slug,
+        with: karen.extras.map((s) => s.slug),
         stylist: karen.stylist,
         start: karen.time,
         notes: '',
@@ -6847,10 +7093,10 @@ async function kDoBook() {
     });
     if (run !== karenRun) return;
     karen.done = true;
-    const when = r?.startsAt ? `${kDate(karen.date)}, ${bookTimeLabel(r.startsAt)}` : `${kDate(karen.date)}, ${bookTimeLabel(karen.time)}`;
+    const when = `${kDate(karen.date)}, ${bookTimeLabel(r?.startsAt || karen.time)}`;
     const row = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
     kSay('<p class="kd-ok"><svg class="ic"><use href="#i-check"/></svg>You\'re all set!</p>'
-      + `<div class="kd-card"><dl>${row('Reference', r?.ref)}${row('Client', karen.name)}${row('Service', karen.svc.name)}`
+      + `<div class="kd-card"><dl>${row('Reference', r?.ref)}${row('Client', karen.name)}${row(karen.extras.length ? 'Services' : 'Service', kVisit())}`
       + `${row('With', r?.stylist || (karen.stylist === 'any' ? '' : me.stylists.find((s) => s.slug === karen.stylist)?.name))}`
       + `${row('When', when)}</dl></div>`
       + (karen.email ? `<p>A confirmation email is on its way to ${esc(karen.email)}.</p>` : ''));
@@ -6862,7 +7108,12 @@ async function kDoBook() {
       { label: 'See it on Appt. Book', solid: true, run: () => { closeDialog($('karenDlg')); day = date; go('appointments'); } },
       { label: 'Book another', run: kStart },
       { label: "That's all", run: () => { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); kAsk([{ label: 'Close', run: () => closeDialog($('karenDlg')) }]); } },
-    ]);
+    ], (t) => {
+      if (/another|again|new|book/.test(t)) { kStart(); return true; }
+      if (/see|show|view|diary|calendar|appt/.test(t)) { closeDialog($('karenDlg')); day = date; go('appointments'); return true; }
+      if (/\b(no|that'?s all|done|bye|close)\b/.test(t)) { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); return 'keep'; }
+      return false;
+    }, 'Tap "Book another" to start a new one, or "See it on Appt. Book".', 'done');
   } catch (err) {
     if (run !== karenRun) return;
     if (/taken|available|free/i.test(err.message)) {
@@ -6877,7 +7128,7 @@ async function kDoBook() {
       { label: 'Try again', solid: true, run: kDoBook },
       { label: 'Change something', run: kChange },
       { label: 'Start over', run: kStart },
-    ]);
+    ], null, '', 'confirm');
   }
 }
 
@@ -6887,18 +7138,19 @@ function kServices() {
   kSay(kinds.length
     ? '<p>Here is what we offer:</p>' + kinds.map(([k, list]) => `<p><b>${esc(bookKindLabel(k))}</b>: ${list.map((s) =>
       esc(s.name) + (s.price != null ? ` (from $${esc(s.price)})` : '')).join(', ')}</p>`).join('')
+      + '<p>They can have more than one in the same visit, too.</p>'
     : '<p>No services are switched on for booking yet.</p>');
-  kSay('<p>Would you like me to book one?</p>');
+  kSay('<p>Would you like me to book something?</p>');
   kAsk([
     { label: 'Yes, book an appointment', solid: true, run: kBook },
     { label: 'Who can I book with?', run: kTeam },
     { label: "That's all", run: () => { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); kMenu(); } },
   ], (t) => {
-    if (/\b(yes|yep|sure|book|ok)\b/.test(t) || kFindService(t) || kFindKind(t)) { kBookFrom(t); return true; }
+    if (/\b(yes|yep|sure|book|ok)\b/.test(t) || kFindServices(t).length || kFindKind(t)) { kBookFrom(t); return true; }
     if (/\bwho\b|stylist|team/.test(t)) { kTeam(); return true; }
-    if (/\b(no|nope|that.?s all|thanks)\b/.test(t)) { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); kMenu(); return true; }
+    if (/\b(no|nope|that'?s all|thanks)\b/.test(t)) { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); kMenu(); return true; }
     return false;
-  }, 'Say "book" to start, or tap an option.');
+  }, 'Say "book" to start, or tap an option below.', 'menu');
 }
 
 function kTeam() {
@@ -6911,10 +7163,10 @@ function kTeam() {
     { label: 'Book an appointment', solid: true, run: kBook },
     { label: 'What services do you offer?', run: kServices },
   ], (t) => {
-    if (/servic|offer|price/.test(t)) { kServices(); return true; }
-    if (/\b(yes|book|ok|sure)\b/.test(t) || kFindStylist(t) || kFindService(t) || kFindKind(t)) { kBookFrom(t); return true; }
+    if (/servic|offer/.test(t)) { kServices(); return true; }
+    if (/\b(yes|book|ok|sure)\b/.test(t) || kFindStylist(t) || kFindServices(t).length || kFindKind(t)) { kBookFrom(t); return true; }
     return false;
-  }, 'Say "book" to start, or tap an option.');
+  }, 'Say "book" to start, or tap an option below.', 'menu');
 }
 
 $('karenBtnPic').src = KAREN_PIC;

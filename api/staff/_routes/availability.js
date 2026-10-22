@@ -1,5 +1,9 @@
 /**
- * GET /api/staff/availability?service=&stylist=&date=YYYY-MM-DD[&to=YYYY-MM-DD]
+ * GET /api/staff/availability?service=&stylist=&date=YYYY-MM-DD[&to=YYYY-MM-DD][&with=a,b]
+ *
+ * &with lists the visit's other services, as on the public page: the times
+ * then fit all of them with one stylist who does every one (Karen's "anything
+ * else in the same visit?").
  *
  * With &to, every day from date to to (six weeks at most, what a month view
  * shows), so New appointment's calendar can grey out the days with nothing
@@ -30,11 +34,14 @@ export default handler({
     const to = url.searchParams.get('to') ? requireDate(url.searchParams.get('to'), 'End date') : date;
     const span = (Date.parse(to) - Date.parse(date)) / 86_400_000;
     if (!(span >= 0 && span <= 42)) throw new HttpError(400, 'Ask for six weeks at most, ending after it starts.');
+    const extraServiceSlugs = String(url.searchParams.get('with') || '')
+      .split(',').map((x) => x.trim()).filter(Boolean).slice(0, 5)
+      .map((x) => requireId(x, 'Service'));
 
     const client = await pool().connect();
     try {
       const { service, visit, stylists, days } = await availableSlots(client, tenant, {
-        serviceSlug, stylistSlug, fromDate: date, toDate: to, minLeadMin: 0,
+        serviceSlug, stylistSlug, fromDate: date, toDate: to, minLeadMin: 0, extraServiceSlugs,
       });
       return json(res, 200, {
         timezone: tenant.timezone,

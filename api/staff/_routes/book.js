@@ -55,6 +55,11 @@ export default handler({
 
       const booked = await createBooking(client, tenant, {
         serviceSlug: requireId(body.service, 'Service'),
+        // The visit's other services, for one stylist end to end (Karen's
+        // "anything else in the same visit?"); none, as before, when absent.
+        extraServiceSlugs: (Array.isArray(body.with) ? body.with : String(body.with || '').split(','))
+          .map((x) => String(x).trim()).filter(Boolean).slice(0, 5)
+          .map((x) => requireId(x, 'Service')),
         stylistSlug: body.stylist && body.stylist !== 'any'
           ? requireId(body.stylist, 'Stylist')
           : null,
