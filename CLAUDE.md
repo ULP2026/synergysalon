@@ -167,6 +167,9 @@ bundle swaps its document in): on touch screens a card looks picked only
 when it is (`@media (hover: none)`, the tap that opens the popup used to
 leave a sticky hover on the card under it), the day's label has room above
 its times (space under the calendar), and "Get directions" and "Done" share the row on one line each.
+The "coming soon" notice's panel counts its padding in its width
+(`box-sizing:border-box`, 2026-10-22): before, it was 414px wide on a 390px
+phone and ran off the right edge, the only thing a guest saw on tapping Book.
 While the popup is open the test-mode bar sits at the top of the screen;
 at the bottom it covered Continue and a tester could not leave step 1.
 
