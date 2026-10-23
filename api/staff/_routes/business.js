@@ -164,18 +164,24 @@ async function recipients(kind, tenant) {
  * JavaScript Date would round it to the millisecond and lose rows.
  */
 const HISTORY_PAGE = 50;
-export async function history(tenant, cursor) {
+export async function history(tenant, cursor, { kind = null, q = null } = {}) {
   const [at, id] = String(cursor || '').split('|');
   const after = at && id && !Number.isNaN(Date.parse(at)) && /^[0-9a-f-]{36}$/i.test(id);
+  // The Email history module's filters (2026-10-23): one kind of message,
+  // and a name or address. % and _ are escaped so they match themselves.
+  const search = q ? String(q).trim().slice(0, 80).replace(/[\\%_]/g, '\\$&') : '';
   const { rows } = await query(
     `SELECT m.id, m.kind, m.to_name, m.to_email, m.sent_at, m.sent_at::text AS at, a.ref
        FROM message_sends m
        LEFT JOIN appointments a ON a.id = m.appointment_id
       WHERE m.tenant_id = $1
         AND ($2::timestamptz IS NULL OR (m.sent_at, m.id) < ($2::timestamptz, $3::uuid))
+        AND ($5::text IS NULL OR m.kind = $5::text)
+        AND ($6::text = '' OR m.to_name ILIKE '%' || $6::text || '%' OR m.to_email ILIKE '%' || $6::text || '%')
       ORDER BY m.sent_at DESC, m.id DESC
       LIMIT $4::int`,
-    [tenant.id, after ? at : null, after ? id : null, HISTORY_PAGE + 1],
+    [tenant.id, after ? at : null, after ? id : null, HISTORY_PAGE + 1,
+      kind ? String(kind).slice(0, 40) : null, search],
   ).catch(() => ({ rows: [] }));
   const page = rows.slice(0, HISTORY_PAGE);
   const last = page[page.length - 1];
@@ -191,6 +197,71 @@ export async function history(tenant, cursor) {
   };
 }
 
+/**
+ * GET ?finance=1[&from=YYYY-MM-DD&to=YYYY-MM-DD]: what the salon's visits
+ * were worth over a period, in total and by stylist, for Marketing, Finance.
+ *
+ * The app records no payments yet (nothing does until Stripe), so this is
+ * the value of the visits, not money received, and the console says so.
+ * Counted exactly as Home counts value: a visit is kept unless it was
+ * cancelled or a no-show, and it is worth the price booked on it, else its
+ * service's. Visits with neither are counted and named, never guessed.
+ * Past visits are "earned"; the rest of the period is "booked ahead".
+ *
+ * Owners, admins and managers only: what each stylist brings in is not for
+ * the whole team. The period defaults to this month on the salon's clock.
+ */
+export async function finance(tenant, fromParam, toParam, now = new Date()) {
+  const zone = tenant.timezone || 'America/New_York';
+  const today = DateTime.fromJSDate(now).setZone(zone);
+  const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
+  const from = (isDate(fromParam) ? DateTime.fromISO(fromParam, { zone }) : today).startOf(isDate(fromParam) ? 'day' : 'month');
+  const to = (isDate(toParam) ? DateTime.fromISO(toParam, { zone }) : today).endOf(isDate(toParam) ? 'day' : 'month');
+  if (!from.isValid || !to.isValid || to < from) throw new HttpError(400, 'Those dates are not valid.');
+  if (to.diff(from, 'days').days > 400) throw new HttpError(400, 'Pick a period of a year or less.');
+
+  const { rows } = await query(
+    `SELECT s.id, s.name,
+            count(*) FILTER (WHERE a.starts_at < $4::timestamptz)::int AS visits,
+            COALESCE(sum(COALESCE(a.price_cents, v.price_cents))
+                     FILTER (WHERE a.starts_at < $4::timestamptz), 0)::bigint AS earned,
+            count(*) FILTER (WHERE a.starts_at < $4::timestamptz
+                              AND a.price_cents IS NULL AND v.price_cents IS NULL)::int AS unpriced,
+            count(*) FILTER (WHERE a.starts_at >= $4::timestamptz)::int AS ahead_visits,
+            COALESCE(sum(COALESCE(a.price_cents, v.price_cents))
+                     FILTER (WHERE a.starts_at >= $4::timestamptz), 0)::bigint AS ahead,
+            count(*) FILTER (WHERE a.starts_at >= $4::timestamptz
+                              AND a.price_cents IS NULL AND v.price_cents IS NULL)::int AS ahead_unpriced
+       FROM appointments a
+       JOIN stylists s ON s.id = a.stylist_id
+       JOIN services v ON v.id = a.service_id
+      WHERE a.tenant_id = $1 AND a.starts_at >= $2::timestamptz AND a.starts_at <= $3::timestamptz
+        AND a.status::text NOT IN ('cancelled', 'no_show')
+      GROUP BY s.id, s.name
+      ORDER BY earned DESC, s.name`,
+    [tenant.id, from.toISO(), to.toISO(), now.toISOString()],
+  );
+  const stylists = rows.map((r) => ({
+    name: r.name,
+    visits: r.visits,
+    earnedCents: Number(r.earned),
+    unpriced: r.unpriced,
+    aheadVisits: r.ahead_visits,
+    aheadCents: Number(r.ahead),
+    aheadUnpriced: r.ahead_unpriced,
+  }));
+  const sum = (k) => stylists.reduce((n, s) => n + s[k], 0);
+  return {
+    from: from.toISODate(),
+    to: to.toISODate(),
+    total: {
+      visits: sum('visits'), earnedCents: sum('earnedCents'), unpriced: sum('unpriced'),
+      aheadVisits: sum('aheadVisits'), aheadCents: sum('aheadCents'), aheadUnpriced: sum('aheadUnpriced'),
+    },
+    stylists,
+  };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
@@ -199,7 +270,15 @@ export default handler({
     const kind = q.get('preview');
     if (kind) return json(res, 200, await preview(kind, tenant));
     if (q.has('automations')) return json(res, 200, await automations(tenant));
-    if (q.has('history')) return json(res, 200, await history(tenant, q.get('before')));
+    if (q.has('history')) {
+      return json(res, 200, await history(tenant, q.get('before'), { kind: q.get('kind'), q: q.get('q') }));
+    }
+    if (q.has('finance')) {
+      if (!CAN_EDIT.includes(user.role)) {
+        throw new HttpError(403, 'Only owners, admins and managers can see Finance.');
+      }
+      return json(res, 200, await finance(tenant, q.get('from'), q.get('to')));
+    }
     const who = q.get('recipients');
     if (who) return json(res, 200, await recipients(who, tenant));
     const { rows } = await query(
