@@ -1476,6 +1476,21 @@
   .bw-visit { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
   .bw-visit .tk-add { margin-top: 12px; }
   .bw-sum .bw-svcs { margin: 0 0 8px; font-weight: 600; }
+  /* Step 4 side by side: the dialog widens for it, and the times column is
+     taken out of the flow so the calendar alone sets the row's height and a
+     long day scrolls inside it rather than stretching the dialog. */
+  dialog.bw.wide { max-width: 860px; }
+  .bw-when { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 22px; }
+  .bw-when .bw-cal { margin-bottom: 0; }
+  .bw-when-r { position: relative; min-width: 0; min-height: 240px; }
+  .bw-when-r .bw-sub { margin-top: 2px; }
+  .bw-when-r .bw-times { position: absolute; inset: 30px 0 0; overflow-y: auto; align-content: start;
+                         grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); padding: 2px 4px 2px 2px; }
+  @media (max-width: 719px) {
+    .bw-when { grid-template-columns: 1fr; gap: 18px; }
+    .bw-when-r { min-height: 0; }
+    .bw-when-r .bw-times { position: static; overflow: visible; padding: 0; }
+  }
   @media (max-width: 420px) {
     .bw-count { display: none; }       /* the bar says it; room for Help me book */
     .bw-people { grid-template-columns: 1fr; }
@@ -2845,10 +2860,16 @@
       <section class="bw-pane" data-step="when" hidden>
         <h3 class="bw-q">When?</h3>
         <p class="bw-have" id="bookWhenHint"></p>
-        <!-- The whole month at once, days with nothing free greyed out. -->
-        <div class="bw-cal" id="bookCal"></div>
-        <h4 class="bw-sub" id="bookTimesHead"></h4>
-        <div class="bw-times" id="bookTimes"></div>
+        <!-- Two columns from 720px (asked for 2026-10-23): the month on the
+             left, days with nothing free greyed out; the day's times on the
+             right, scrolling within the calendar's height. -->
+        <div class="bw-when">
+          <div class="bw-cal" id="bookCal"></div>
+          <div class="bw-when-r">
+            <h4 class="bw-sub" id="bookTimesHead"></h4>
+            <div class="bw-times" id="bookTimes"></div>
+          </div>
+        </div>
       </section>
 
       <section class="bw-pane" data-step="client" hidden>
@@ -6690,6 +6711,7 @@ function bookGo(i, dir = 'fwd') {
   $('bookCount').textContent = `Step ${bookStep + 1} of ${BOOK_STEPS.length}`;
   $('bookBar').style.width = `${((bookStep + 1) / BOOK_STEPS.length) * 100}%`;
   $('bookBack').classList.toggle('off', bookStep === 0);
+  $('bookDlg').classList.toggle('wide', step === 'when');
   ({
     stylist: paintBookStylists, kind: paintBookKinds, service: paintBookServices,
     when: paintBookWhen, client: paintBookSummary,
