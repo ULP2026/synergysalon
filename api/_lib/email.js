@@ -108,7 +108,9 @@ export function calendarUrl(appt, shop, zone = DEFAULT_TZ) {
     action: 'TEMPLATE',
     text: `${appt.service_name} at ${shop.name}`,
     dates: `${stamp(start)}/${stamp(start.plus({ minutes }))}`,
-    details: `With ${appt.stylist_name}. Reference ${appt.ref}.`,
+    // No booking reference (2026-10-23): guests never need it, and the
+    // confirmation's main button is now this calendar entry.
+    details: `With ${appt.stylist_name}.`,
     location: shop.addressLines.join(', '),
     ctz: zone,
   });
@@ -134,7 +136,7 @@ const TINT = '#E6E8F7';
 const MUTED = '#6E6E85';
 const PAPER = '#F4F5FA';
 
-function layout({ heading, intro, rows, action, secondary, steps, footnote }, shop) {
+function layout({ heading, intro, rows, action, secondary, where, change, steps, footnote }, shop) {
   const cells = rows
     .map(([label, value]) => `
       <tr>
@@ -160,6 +162,22 @@ function layout({ heading, intro, rows, action, secondary, steps, footnote }, sh
          <a href="${escapeHtml(secondary.href)}" style="color:${BRAND};font-size:14px;">
            ${escapeHtml(secondary.label)}
          </a>
+       </p>`
+    : '';
+
+  // Under the button: where the salon is, then how to change the booking,
+  // with the manage link on "this link" and the number tappable. Asked for
+  // on the booking confirmation, 2026-10-23.
+  const whereLine = where
+    ? `<p style="margin:24px 0 0;color:#4A4A57;font-size:14px;line-height:1.55;">${escapeHtml(where)}</p>`
+    : '';
+  const changeLine = change
+    ? `<p style="margin:12px 0 0;color:#4A4A57;font-size:14px;line-height:1.55;">
+         Need to change something? Use
+         <a href="${escapeHtml(change.href)}" style="color:${BRAND};font-weight:600;">this link</a>
+         or ${change.phone
+           ? `call us at <a href="${escapeHtml(change.phoneHref)}" style="color:${BRAND};font-weight:600;text-decoration:none;">${escapeHtml(change.phone)}</a>`
+           : 'give us a call'}.
        </p>`
     : '';
 
@@ -197,6 +215,8 @@ function layout({ heading, intro, rows, action, secondary, steps, footnote }, sh
       <table style="border-collapse:collapse;">${cells}</table>
       ${button}
       ${extra}
+      ${whereLine}
+      ${changeLine}
       ${list}
       ${footnote ? `<p style="margin:28px 0 0;color:${MUTED};font-size:13px;line-height:1.55;">${escapeHtml(footnote)}</p>` : ''}
       <hr style="border:none;border-top:1px solid ${TINT};margin:28px 0 16px;">
@@ -210,7 +230,7 @@ function layout({ heading, intro, rows, action, secondary, steps, footnote }, sh
 </body></html>`;
 }
 
-function plain({ heading, intro, rows, action, secondary, steps, footnote }, shop) {
+function plain({ heading, intro, rows, action, secondary, where, change, steps, footnote }, shop) {
   return [
     heading,
     '',
@@ -219,6 +239,9 @@ function plain({ heading, intro, rows, action, secondary, steps, footnote }, sho
     ...rows.map(([label, value]) => `${label}: ${value}`),
     ...(action ? ['', `${action.label}: ${action.href}`] : []),
     ...(secondary ? [`${secondary.label}: ${secondary.href}`] : []),
+    ...(where ? ['', where] : []),
+    ...(change ? [`Need to change something? Use this link: ${change.href}${
+      change.phone ? ` or call us at ${change.phone}` : ' or give us a call'}.`] : []),
     ...(steps && steps.items && steps.items.length
       ? ['', steps.title || 'What to do next', ...steps.items.map((it, i) => `${i + 1}. ${it.title}: ${it.text}`)]
       : []),
@@ -258,13 +281,15 @@ function first(name) {
   return String(name || '').trim().split(/\s+/)[0] || 'there';
 }
 
-function detailRows(appt, zone) {
+function detailRows(appt, zone, { ref = true } = {}) {
   const rows = [
     ['Service', appt.service_name],
     ['With', appt.stylist_name],
     ['When', prettyWhen(appt.starts_at, zone)],
-    ['Reference', appt.ref],
   ];
+  // The booking confirmation leaves it out (asked for 2026-10-23): guests
+  // never need it, since the change link carries the booking itself.
+  if (ref) rows.push(['Reference', appt.ref]);
   if (appt.price_cents != null) {
     rows.splice(1, 0, ['Price', `$${(appt.price_cents / 100).toFixed(2)}`]);
   }
@@ -374,14 +399,21 @@ const MESSAGES = {
     subject: `You are booked in: ${prettyWhen(appt.starts_at, zone)}`,
     content: {
       heading: `See you soon, ${appt.guest_name.split(' ')[0]}`,
-      intro: `You are all set. Here are your details${
-        shop.addressLines.length ? `, and we are at ${shop.addressLines.join(', ')}` : ''}.`,
-      rows: detailRows(appt, zone),
-      action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
-      secondary: calUrl(appt, shop, zone),
-      footnote: 'Need to change something? Use the link above, '
-        + `${shop.phone ? `or call us on ${shop.phone}` : 'or give us a call'}. `
-        + 'We just ask for at least 24 hours notice so we can offer the time to another guest.',
+      intro: 'You are all set. Here are your details.',
+      rows: detailRows(appt, zone, { ref: false }),
+      // Add to my calendar is the button now (2026-10-23); changing the
+      // booking is a link in the line under it. A service with no length
+      // gets no calendar link, so it falls back to the change link rather
+      // than to no button at all.
+      action: calUrl(appt, shop, zone)
+        || { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
+      where: shop.addressLines.length ? `We are at ${shop.addressLines.join(', ')}.` : '',
+      change: {
+        href: manageUrl(shop, appt.ref, appt.manage_token),
+        phone: shop.phone,
+        phoneHref: shop.phoneHref,
+      },
+      footnote: 'We just ask for at least 24 hours notice so we can offer the time to another guest.',
     },
   }),
   reschedule: (appt, shop, zone, previousStart) => ({
