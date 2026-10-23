@@ -756,9 +756,12 @@ made that way are real: name them ZZ and remove them.
   the same modal, then an "Add a team member" row. A card (`memberRow`,
   redesigned on request 2026-10-16) is the picture, the name with the role
   chip beside it, the phone under it (not the email, not the services), and
-  on the right one status only: "Calendar connected" (green, `chip ok`) or
-  "Calendar not connected" (red, `chip warn`) from `m.google.connected`,
-  which is what decides whether a guest can book them online. A stylist
+  on the right two status boxes (`.tm-stat`, 2026-10-23, replacing one
+  "Calendar connected" chip): Connected (green, a tick) or Disconnected
+  (red, a no-entry sign) over CALENDAR, from `m.google.connected`, which is
+  what decides whether a guest can book them online; and the same over
+  PAYROLL, which is Stripe and reads Disconnected for everyone until
+  something connects it. A stylist
   without a sign in reads as not connected. Everybody can read the
   team (name, picture, email, phone, role, services, hours: `GET
   /api/staff/team` is `requireStaff`), as the salon asked, but only the admin

@@ -1884,6 +1884,14 @@
   .tm-who b { display: block; font-size: .9rem; font-weight: 600; }
   .tm-who span { display: block; font-size: .8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tm-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  /* Connected / Disconnected boxes, the word over what it is about. */
+  .tm-stat { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; min-width: 112px; padding: 5px 10px 6px;
+             border: 1px solid; border-radius: 8px; line-height: 1.2; }
+  .tm-stat .st-top { display: inline-flex; align-items: center; gap: 5px; font-size: .7rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+  .tm-stat .st-top .ic { width: 13px; height: 13px; stroke-width: 2.6; }
+  .tm-stat .st-lbl { font-size: .68rem; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); opacity: .78; }
+  .tm-stat.ok { color: var(--ok); background: rgba(47, 125, 79, .08); border-color: rgba(47, 125, 79, .45); }
+  .tm-stat.off { color: var(--warn); background: rgba(196, 43, 55, .07); border-color: rgba(196, 43, 55, .42); }
   .chip.role { color: var(--indigo); background: var(--peri-pale); border-color: transparent; font-weight: 600; }
   .tm-svc { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
   .tm-svc i { font-style: normal; font-size: .72rem; padding: 1px 7px; border-radius: 999px; background: var(--raise); color: var(--muted); }
@@ -1895,7 +1903,9 @@
   .tm-pend select.role { width: 130px; height: 32px; }
   @media (max-width: 560px) {
     .tm-row { grid-template-columns: 40px minmax(0, 1fr); }
-    .tm-badges { grid-column: 2; justify-content: flex-start; }
+    .tm-badges { grid-column: 2; justify-content: flex-start; flex-wrap: nowrap; }
+    .tm-stat { min-width: 0; flex: 0 1 auto; padding: 4px 8px 5px; }
+    .tm-stat .st-top { font-size: .64rem; letter-spacing: .04em; }
   }
 
   /* Services and prices in the team modal: a switch, the kind of work, a price. */
@@ -8984,14 +8994,17 @@ let teamOthers = [];        // everyone else on the team, visible to everybody, 
 
 function memberRow(m, self) {
   // Asked for 2026-10-16: the name with the role beside it, the phone under
-  // it (not the email, not the services), and on the right one thing only:
-  // whether their calendar is connected. That is what decides whether a guest
-  // can book them online, so it is the status worth a glance. A stylist
-  // without a sign in cannot connect one, so they read as not connected.
-  const connected = Boolean(m.google && m.google.connected);
-  const cal = connected
-    ? '<span class="chip ok">Calendar connected</span>'
-    : '<span class="chip warn">Calendar not connected</span>';
+  // it (not the email, not the services), and on the right their
+  // connections. Since 2026-10-23 that is two boxes, Calendar and Payroll,
+  // each Connected or Disconnected. The calendar decides whether a guest can
+  // book them online; a stylist without a sign in cannot connect one, so
+  // they read as disconnected. Payroll is Stripe, which nothing connects
+  // yet, so it reads Disconnected for everyone until it does.
+  const stat = (on, what, title = '') => `<span class="tm-stat ${on ? 'ok' : 'off'}"${title ? ` title="${esc(title)}"` : ''}>`
+    + `<span class="st-top">${ic(on ? 'check' : 'ban')}${on ? 'Connected' : 'Disconnected'}</span>`
+    + `<span class="st-lbl">${what}</span></span>`;
+  const cal = stat(Boolean(m.google && m.google.connected), 'Calendar')
+    + stat(false, 'Payroll', 'Payroll is paid through Stripe, coming soon.');
   const role = m.noLogin ? 'Stylist' : (ROLE_LABEL[m.role] || m.role);
   return `<button type="button" class="tm-row${self ? ' me' : ''}${m.status === 'disabled' ? ' off' : ''}" data-member="${self ? 'me' : esc(m.id)}"
       aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
