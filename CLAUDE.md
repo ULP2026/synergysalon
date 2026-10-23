@@ -536,7 +536,7 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: one Salon & Team tab (Appearance, Where do you want people to reply to, Team Members, then Salon Profile, merged into one page on request on 2026-10-15; the tab key is still `team`), and Billing and Payroll for owners, admins and managers (Payroll, right
+  for everyone: a Salon tab (Where do you want people to reply to, then Salon Profile; key `salon`, where Settings opens) and a Team tab (Team Members, Appearance, Sign out; key `team`, where the person chip and `/account` open), split on request on 2026-10-23 after a week as one "Salon & Team" page, and Billing and Payroll for owners, admins and managers (Payroll, right
   of Billing, is a "Coming soon" card like Billing's, added 2026-10-16). It has no Calendars tab:
   calendars are made from Appt. Book's "Create a calendar" note (shown only
   while there are none) or `/staff/calendars`, without choosing members for now
@@ -544,7 +544,7 @@ made that way are real: name them ZZ and remove them.
   unchanged and no longer shows a picker), and the New calendar form offers the
   calendar apps (Google by sign-in, and any other app by subscribing
   to the person's private feed, links from `GET /api/staff/calendars`), Outlook is left out of the form on request (`calAppRows()`). The person chip
-  and `/staff/account` open Settings on Salon & Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
+  and `/staff/account` open Settings on Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM"; the API keeps its `centro`
   names, which nobody sees.

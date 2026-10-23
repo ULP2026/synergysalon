@@ -2767,29 +2767,36 @@
 
     <section class="view hidden" id="view-settings">
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
-        <button type="button" data-set="team" aria-pressed="true">Salon &amp; Team</button>
+        <button type="button" data-set="salon" aria-pressed="true">Salon</button>
+        <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="billing" aria-pressed="false" data-admin>Billing</button>
         <button type="button" data-set="payroll" aria-pressed="false" data-admin>Payroll</button>
         <button type="button" data-set="karen" aria-pressed="false">Karen AI</button>
       </div>
 
-      <!-- Salon & Team: how the app looks, where replies go, the team and the
-           salon's own details, as stacked cards (RocketOS's settings). Salon
-           Profile was its own tab until it was merged in here on request. The
-           person chip opens this tab. -->
-      <div class="setpane" id="set-team">
+      <!-- Salon: what clients see of the salon and where their replies go.
+           Salon and Team were one "Salon & Team" tab from 2026-10-15 until
+           they were split again on request on 2026-10-23. The gear opens it. -->
+      <div class="setpane" id="set-salon">
       <div class="acct">
-          <section class="acard">
-            <h2 class="ahead"><svg class="ic"><use href="#i-sun"/></svg>Appearance</h2>
-            <div class="arow">
-              <div><b>Dark Mode</b><span>Toggle between light and dark theme</span></div>
-              <button type="button" class="switch" id="darkSwitch" role="switch" aria-checked="false" aria-label="Dark Mode"><span></span></button>
-            </div>
-          </section>
-
-          <!-- The inbox guests' replies land in; built in paintReplyTo(). -->
+          <!-- The inbox guests' replies land in; built in paintReplyTo(). First:
+               it is short, and below the profile form it was out of sight. -->
           <section class="acard" id="replyCard"></section>
 
+          <section class="acard">
+            <h2 class="ahead"><svg class="ic"><use href="#i-store"/></svg>Salon Profile</h2>
+            <p class="asub">What clients see: the salon&rsquo;s name, logo and how to reach you. The logo
+              is also the mark in the menu at the top of this app.</p>
+            <div id="business"></div>
+          </section>
+
+      </div>
+      </div>
+
+      <!-- Team: the people, then what is yours alone (how the app looks in
+           this browser, and signing out). The person chip opens this tab. -->
+      <div class="setpane hidden" id="set-team">
+      <div class="acct">
           <section class="acard">
             <h2 class="ahead"><svg class="ic"><use href="#i-shield"/></svg>Team Members</h2>
             <p class="asub">Your profile and the people who work here. Click your picture to edit it and your prices.</p>
@@ -2797,10 +2804,11 @@
           </section>
 
           <section class="acard">
-            <h2 class="ahead"><svg class="ic"><use href="#i-store"/></svg>Salon Profile</h2>
-            <p class="asub">What clients see: the salon&rsquo;s name, logo and how to reach you. The logo
-              is also the mark in the menu at the top of this app.</p>
-            <div id="business"></div>
+            <h2 class="ahead"><svg class="ic"><use href="#i-sun"/></svg>Appearance</h2>
+            <div class="arow">
+              <div><b>Dark Mode</b><span>Toggle between light and dark theme</span></div>
+              <button type="button" class="switch" id="darkSwitch" role="switch" aria-checked="false" aria-label="Dark Mode"><span></span></button>
+            </div>
           </section>
 
           <!-- Sign out, at the foot of the page the person chip opens. It had
@@ -5675,7 +5683,7 @@ function renderDiary(d) {
   const colCount = team.length + extra.size + lanesEnd.length;
   const colHtml = teamHtml + extraHtml + looseHtml
     || `<div class="dg-col dg-c1 dg-gcol dg-teamwait dg-tfirst" style="height:${height}px">
-      <p>Stylists appear here once they connect their Google Calendar in Settings, Salon &amp; Team.</p>${nowLine}</div>`;
+      <p>Stylists appear here once they connect their Google Calendar in Settings, Team.</p>${nowLine}</div>`;
 
   $('diary').innerHTML = `
     ${dgDemo ? `<div class="note dg-demo">${ic('info')}<span>Sample day for a walkthrough. Nothing here is real, and nothing you do here is saved.</span></div>` : ''}
@@ -9198,7 +9206,6 @@ $('replyCard').addEventListener('submit', async (e) => {
 
 function loadAccount() {
   paintDarkSwitch();
-  loadReplyTo();
   // No Integrations card any more: calendars are connected per person, in
   // Connect your tools on their own profile, and the CRM and email are set
   // up by the web team rather than switched on here.
@@ -9207,18 +9214,20 @@ function loadAccount() {
 
 // ─────────────────────── settings sections ───────────────────────
 
-let setTab = 'team';
-const SET_TABS = ['team', 'billing', 'payroll', 'karen'];
+// Settings opens on Salon; the person chip and /account open Team.
+let setTab = 'salon';
+const SET_TABS = ['salon', 'team', 'billing', 'payroll', 'karen'];
 
 function showSetting(name) {
-  if (!SET_TABS.includes(name)) name = 'team';
-  if ((name === 'billing' || name === 'payroll') && !me?.user?.canAdmin) name = 'team';
+  if (!SET_TABS.includes(name)) name = 'salon';
+  if ((name === 'billing' || name === 'payroll') && !me?.user?.canAdmin) name = 'salon';
   setTab = name;
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
   }
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
-  if (name === 'team') { loadAccount(); loadBusiness(); }
+  if (name === 'salon') { loadBusiness(); loadReplyTo(); }
+  if (name === 'team') loadAccount();
   if (name === 'payroll') paintPayday();
   if (name === 'karen') loadKarenSettings();
   // The person chip is "you": lit while your Team Settings are open.
