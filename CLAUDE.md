@@ -665,6 +665,15 @@ made that way are real: name them ZZ and remove them.
   `time_off`, the table availability already subtracts, so a block on the
   grid really stops the time being sold.
   `?demo` on the address shows a sample day that saves nothing.
+- Marketing has three tabs (2026-10-23): Automation; **Email history**, its
+  own module now, with a search by name or address and a filter by message
+  (`?history=1&q=&kind=`); and **Finance**, owners, admins and managers only
+  (hidden tab, and a 403 from `?finance=1&from=&to=`): what visits were
+  worth in a period, total and by stylist -- earned so far, average visit,
+  booked ahead -- counted as Home counts value (kept = not cancelled and not
+  a no-show; the booked price, else the service's; unpriced visits named, not
+  guessed). The app records no payments yet, and Finance says so on the
+  page. The old `/marketing/email` address opens Email history.
 - Marketing, Automation (checklist of 2026-10-22): no search box; compact
   rows, about half their old height, two columns, all twelve on one screen,
   each with On/Off in words beside its switch. Turning one **off** opens a
