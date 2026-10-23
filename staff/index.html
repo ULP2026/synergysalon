@@ -1363,30 +1363,11 @@
   .pay-sched { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 14px 0 0; font-size: var(--fs-sm); }
   .pay-sched dt { color: var(--muted); } .pay-sched dd { margin: 0; font-weight: 600; }
 
-  /* New appointment as one ticket: when at the top, the client, the services. */
-  dialog.tk { max-width: 640px; padding: 0; overflow: hidden; }
-  dialog.tk[open] { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
-  .tk form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-  .tk-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 14px 22px;
-             background: var(--peri-pale); border-bottom: 1px solid rgba(85, 96, 166, .16); }
-  .tk-head h2 { margin: 0; }
-  .tk-head-r { display: flex; align-items: center; gap: 6px; flex: none; }
+  /* New appointment's client search and the services on the visit (from the
+     one-page form of 2026-10-22, kept by the survey). */
   #bookKarenBtn { padding-left: 5px; }
-
-  .tk-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 22px 18px; }
-  .tk-sec { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
-  .tk-h { margin: 0 0 10px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-  .tk-when { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 0 12px; }
-  .tk-when label, .tk-sec .two label, .tk-search label { margin-bottom: 0; }
-  .tk-field { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 42px;
-              padding: 0 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--field); color: var(--ink);
-              font: inherit; cursor: pointer; text-align: left; }
-  .tk-field[aria-expanded="true"] { border-color: var(--periwinkle); box-shadow: 0 0 0 3px rgba(85, 96, 166, .15); }
-  .tk-field .ic { color: var(--muted); flex: none; }
-  .tk-cal { margin: 12px 0 0; }
-  .tk-hint { margin: 8px 0 0; font-size: var(--fs-xs); color: var(--muted); }
-  .tk-hint:empty { display: none; }
   .tk-search { position: relative; margin-bottom: 12px; }
+  .tk-search label { margin-bottom: 0; }
   .tk-sugg { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); max-height: 260px; overflow-y: auto;
              padding: 6px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--card); box-shadow: var(--e2); }
   .tk-sug { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: none; color: var(--ink);
@@ -1404,31 +1385,17 @@
   .tk-line { display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
   .tk-line span { flex: 1; min-width: 0; }
   .tk-line b { display: block; font-weight: 600; }
-  .tk-line small, .tk-opt small { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--muted); }
+  .tk-line small { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--muted); }
   .tk-x { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 50%;
           background: none; color: var(--muted); cursor: pointer; }
   .tk-x:hover { background: var(--raise); color: var(--warn); }
-  .tk-empty { margin: 0; padding: 4px 0; font-size: var(--fs-sm); color: var(--muted); }
   .tk-add { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 8px 14px; border: 1px dashed var(--periwinkle);
             border-radius: 999px; background: none; color: var(--periwinkle); font: inherit; font-weight: 600; cursor: pointer; }
-  .tk-add:hover, .tk-add[aria-expanded="true"] { background: var(--peri-pale); }
+  .tk-add:hover { background: var(--peri-pale); }
   .tk-add[hidden] { display: none; }
-  .tk-picker { margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--raise); }
-  .tk-kind + .tk-kind { margin-top: 12px; }
-  .tk-kind h4 { margin: 0 0 8px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-  .tk-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
-  .tk-opt { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink);
-            font: inherit; text-align: left; cursor: pointer; transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
-  .tk-opt:hover { border-color: var(--periwinkle); box-shadow: var(--e1); }
-  .tk-opt b { display: block; font-weight: 600; }
   .tk-total { margin-top: 10px; text-align: right; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
   .tk-total:empty { display: none; }
-  .tk-x:focus-visible, .tk-add:focus-visible, .tk-opt:focus-visible, .tk-field:focus-visible, .tk-link:focus-visible {
-    outline: 2px solid var(--periwinkle); outline-offset: 2px; }
-  @media (max-width: 560px) {
-    .tk-when { grid-template-columns: 1fr 1fr; }
-    .tk-when label:first-child { grid-column: 1 / -1; margin-bottom: 12px; }
-  }
+  .tk-x:focus-visible, .tk-add:focus-visible, .tk-link:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
   /* New appointment: one question at a time, each answer a card. */
   dialog.bw { max-width: 600px; padding: 0; overflow: hidden; }
   dialog.bw[open] { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
@@ -1500,6 +1467,19 @@
   .bw-sum .bw-facts { display: flex; flex-wrap: wrap; gap: 6px 16px; }
   .bw-sum em { font-style: normal; color: var(--muted); }
   .bw-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 22px; border-top: 1px solid var(--line); background: var(--card); }
+  /* Karen's button sits by the close, as it did on the one-page form. */
+  .bw-top-r { display: flex; align-items: center; gap: 6px; }
+  .bw-have { margin: -6px 0 14px; font-size: var(--fs-sm); color: var(--muted); }
+  .bw-have:empty { display: none; }
+  .bw-have b { color: var(--ink); font-weight: 600; }
+  .bw-list .bw-opt .ok { flex: none; width: 22px; height: 22px; color: var(--periwinkle); }
+  .bw-visit { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .bw-visit .tk-add { margin-top: 12px; }
+  .bw-sum .bw-svcs { margin: 0 0 8px; font-weight: 600; }
+  @media (max-width: 420px) {
+    .bw-count { display: none; }       /* the bar says it; room for Help me book */
+    .bw-people { grid-template-columns: 1fr; }
+  }
   @media (max-width: 520px) { .bw-kinds .bw-opt { min-height: 96px; } .bw-kinds .bw-opt b { font-size: 1.2rem; } }
   @media (prefers-reduced-motion: reduce) { .bw-pane.fwd, .bw-pane.bwd { animation: none; } .bw-bar span { transition: none; } }
 
@@ -2816,37 +2796,64 @@
 <div id="pop" class="pop hidden" role="menu"></div>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-<!-- New appointment, one ticket on one page (asked for 2026-10-22): the
-     stylist, day and time at the top; the client under them, found as their
-     name is typed; then as many services as the visit has. Times always fit
-     the services on the ticket. -->
-<dialog id="bookDlg" class="tk" aria-labelledby="bookTitle">
+<!-- New appointment, one question at a time (the survey of 2026-10-22,
+     brought back on request 2026-10-23 after a day as one page): the
+     stylist, the kind of service, the service, then "Add another service"
+     for as many as the visit has, the day and time for the whole visit, and
+     last the client, found from the third letter of their name. A stylist
+     or kind moves on by itself; Back keeps every answer. -->
+<dialog id="bookDlg" class="bw" aria-labelledby="bookTitle">
   <form method="dialog" id="bookForm" novalidate>
-    <header class="tk-head">
-      <h2 id="bookTitle">New appointment</h2>
-      <div class="tk-head-r">
-        <button type="button" class="btn sm karen-cta" id="bookKarenBtn" title="Karen asks what is missing, one step at a time, and books it">
-          <span class="kc-pic" aria-hidden="true"><img id="bookKarenPic" alt=""><i></i></span><span>Help me book</span></button>
-        <button type="button" class="bw-x" data-book-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    <header class="bw-head">
+      <div class="bw-top">
+        <button type="button" class="bw-back" id="bookBack"><svg class="ic"><use href="#i-left"/></svg>Back</button>
+        <span class="bw-count" id="bookCount">Step 1 of 5</span>
+        <div class="bw-top-r">
+          <button type="button" class="btn sm karen-cta" id="bookKarenBtn" title="Karen asks what is missing, one step at a time, and books it">
+            <span class="kc-pic" aria-hidden="true"><img id="bookKarenPic" alt=""><i></i></span><span>Help me book</span></button>
+          <button type="button" class="bw-x" data-book-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+        </div>
       </div>
+      <h2 id="bookTitle">New appointment</h2>
+      <div class="bw-bar" aria-hidden="true"><span id="bookBar"></span></div>
     </header>
-    <div class="tk-body">
+    <div class="bw-body">
       <div id="bookNote" class="note bad hidden"></div>
 
-      <section class="tk-sec">
-        <div class="tk-when">
-          <label><span>Stylist</span><select id="bookStylist"></select></label>
-          <label><span>Day</span>
-            <button type="button" class="tk-field" id="bookDayBtn" aria-expanded="false">
-              <span id="bookDayLbl"></span><svg class="ic"><use href="#i-calendar"/></svg></button></label>
-          <label><span>Time</span><select id="bookTime"></select></label>
-        </div>
-        <div class="bw-cal tk-cal" id="bookCal" hidden></div>
-        <p class="tk-hint" id="bookWhenHint"></p>
+      <section class="bw-pane" data-step="stylist">
+        <h3 class="bw-q">Who is the stylist?</h3>
+        <div class="bw-people" id="bookStylists"></div>
       </section>
 
-      <section class="tk-sec">
-        <h3 class="tk-h">Client</h3>
+      <section class="bw-pane" data-step="kind" hidden>
+        <h3 class="bw-q" id="bookKindQ">What type of service?</h3>
+        <p class="bw-have" id="bookKindHave"></p>
+        <div class="bw-kinds" id="bookKinds"></div>
+      </section>
+
+      <section class="bw-pane" data-step="service" hidden>
+        <h3 class="bw-q" id="bookServiceQ">Which service?</h3>
+        <div class="bw-list" id="bookServices"></div>
+        <div class="bw-visit" id="bookVisit" hidden>
+          <h4 class="bw-sub">This visit</h4>
+          <div class="tk-lines" id="bookLines"></div>
+          <div class="tk-total" id="bookTotal"></div>
+          <button type="button" class="tk-add" id="bookAdd"><svg class="ic"><use href="#i-plus"/></svg>Add another service</button>
+        </div>
+      </section>
+
+      <section class="bw-pane" data-step="when" hidden>
+        <h3 class="bw-q">When?</h3>
+        <p class="bw-have" id="bookWhenHint"></p>
+        <!-- The whole month at once, days with nothing free greyed out. -->
+        <div class="bw-cal" id="bookCal"></div>
+        <h4 class="bw-sub" id="bookTimesHead"></h4>
+        <div class="bw-times" id="bookTimes"></div>
+      </section>
+
+      <section class="bw-pane" data-step="client" hidden>
+        <h3 class="bw-q">Who is the client?</h3>
+        <div class="bw-sum" id="bookSummary"></div>
         <div class="tk-search">
           <label><span>Name</span>
             <input id="bookName" autocomplete="off" placeholder="Type 3 letters to find a client" role="combobox"
@@ -2858,22 +2865,14 @@
           <label><span>Phone</span><input id="bookPhone" type="tel" autocomplete="off"></label>
           <label><span>Email</span><input type="email" id="bookEmail" autocomplete="off"></label>
         </div>
+        <label><span>Notes</span><textarea id="bookNotes" rows="2" placeholder="Optional"></textarea></label>
       </section>
-
-      <section class="tk-sec">
-        <h3 class="tk-h">Services</h3>
-        <div class="tk-lines" id="bookLines"></div>
-        <button type="button" class="tk-add" id="bookAdd" aria-expanded="false"><svg class="ic"><use href="#i-plus"/></svg>Add service</button>
-        <div class="tk-picker" id="bookPicker" hidden></div>
-        <div class="tk-total" id="bookTotal"></div>
-      </section>
-
-      <label><span>Notes</span><textarea id="bookNotes" rows="2" placeholder="Optional"></textarea></label>
     </div>
-    <input type="hidden" id="bookDate">
+    <input type="hidden" id="bookStylist" value="any"><input type="hidden" id="bookDate"><input type="hidden" id="bookTime">
     <footer class="bw-foot">
       <button type="button" class="btn quiet" data-book-close>Cancel</button>
-      <button class="btn" id="bookSubmit" value="book">Book appointment</button>
+      <button type="button" class="btn" id="bookNext">Next</button>
+      <button class="btn hidden" id="bookSubmit" value="book">Book appointment</button>
     </footer>
   </form>
 </dialog>
@@ -6613,19 +6612,23 @@ $('contactForm').onsubmit = async (e) => {
 // ───────────────────────────── booking ─────────────────────────────
 
 /**
- * New appointment, one ticket on one page (asked for 2026-10-22, replacing
- * the five-step survey): stylist, day and time at the top; the client under
- * them, found from the third letter of their name and filled in; then as
- * many services as the visit has, booked as one appointment with one
- * stylist end to end (the engine's "with", as on the public page).
+ * New appointment, one question at a time: the stylist, the kind of
+ * service, the service, the day and time, then the client. The five-step
+ * survey of 2026-10-22 was made one page the same day and brought back on
+ * request on 2026-10-23, keeping what the page had added: as many services
+ * as the visit has ("Add another service" goes round kind and service
+ * again), booked as one appointment with one stylist end to end (the
+ * engine's "with", as on the public page), and the client found from the
+ * third letter of their name.
  *
- * The free times are always for the services on the ticket. Until the first
- * is added they are the stylist's times for their shortest service, so a
- * time can be picked first; adding services re-checks it, and a time that no
- * longer fits is cleared with a note rather than booked short.
+ * The free times are always for every service on the visit. Changing the
+ * stylist or the services after a time was picked re-checks it on the
+ * times step, and a time that no longer fits is cleared with a note rather
+ * than booked short.
  *
- * preset, from a click on the day grid: { stylist, date, minutes }. That
- * stylist, day and time are already chosen, as long as the time fits.
+ * preset, from a click on the day grid: { stylist, date, minutes }. The
+ * stylist is answered, so it opens on the kind of service, and the clicked
+ * time is chosen for them when it fits.
  */
 const BOOK_KINDS = [['color', 'Color'], ['treatments', 'Treatments'], ['cuts', 'Cuts'], ['styling', 'Styling']];
 const bookKindOf = (s) => (BOOK_KINDS.some(([k]) => k === s.category) ? s.category : 'other');
@@ -6638,75 +6641,146 @@ const bookYmd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).pad
 const bookLongDate = (iso) => new Date(`${iso}T12:00:00`)
   .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
+const BOOK_STEPS = ['stylist', 'kind', 'service', 'when', 'client'];
 let bookPreset = null;
-let bookLines = [];        // the services on the ticket, the first leading
-let bookMonth = '';        // 'YYYY-MM', the month the calendar shows
-let bookContact = null;    // the client picked from the search, if any
-let bookChosen = '';       // the time picked, kept while the times reload
+let bookStep = 0;
+let bookStylistSet = false;   // the stylist question has an answer (First available counts)
+let bookKind = null;          // the kind the next service is picked from
+let bookLines = [];           // the services on the visit, the first leading
+let bookMonth = '';           // 'YYYY-MM', the month the calendar shows
+let bookContact = null;       // the client picked from the search, if any
 // Free times by day, a month at a time, for one set of services and one
 // stylist: one request a month, which also says which days to grey out. The
-// calendar and the time list share it, so paging the calendar never loses
-// the chosen day's times.
+// calendar and the times share it, so paging the calendar never loses the
+// chosen day's times.
 const bookCache = new Map();   // key -> { day: slots } (or the request in flight)
 let bookSuggSeq = 0;
 let bookSuggTimer = null;
 
-/** Stylists who do every service on the ticket (anybody, while it is empty). */
+/** Stylists who do every service on the visit (anybody, while it is empty). */
 const bookStylistsFor = (lines) => (me.stylists || []).filter((s) => !Array.isArray(s.services)
   || lines.every((x) => s.services.includes(x.slug)));
+const bookStylistDoes = (slug, lines) => bookStylistsFor(lines).some((p) => slug === 'any' || p.slug === slug);
 
-/** Services that could join the ticket: the chosen stylist does them, alongside the rest. */
+/** Services that could join the visit: the chosen stylist does them, alongside the rest. */
 function bookAddable() {
   const st = $('bookStylist').value;
   const taken = new Set(bookLines.map((s) => s.slug));
-  return me.services.filter((s) => !taken.has(s.slug)
-    && bookStylistsFor([...bookLines, s]).some((p) => st === 'any' || p.slug === st));
+  return me.services.filter((s) => !taken.has(s.slug) && bookStylistDoes(st, [...bookLines, s]));
 }
 
-/** What the times are worked out for: the ticket's services, or a short stand-in. */
-function bookQuery() {
-  if (bookLines.length) return { service: bookLines[0].slug, with: bookLines.slice(1).map((s) => s.slug).join(',') };
-  const st = $('bookStylist').value;
-  const offered = me.services.filter((s) => bookStylistsFor([s]).some((p) => st === 'any' || p.slug === st));
-  const shortest = [...offered].sort((a, b) => a.durationMin - b.durationMin)[0];
-  return shortest ? { service: shortest.slug, with: '' } : null;
+/** What the times are worked out for: every service on the visit. */
+const bookQuery = () => (bookLines.length
+  ? { service: bookLines[0].slug, with: bookLines.slice(1).map((s) => s.slug).join(',') } : null);
+const bookVisitName = () => bookLines.map((s) => s.name).join(' + ');
+const bookVisitMins = () => bookLines.reduce((n, s) => n + s.durationMin, 0);
+/** "from $N" only when every service has a price: a part-priced total would be a guess. */
+const bookVisitPrice = () => (bookLines.length && bookLines.every((s) => s.price != null)
+  ? bookLines.reduce((n, s) => n + Number(s.price), 0) : null);
+
+function bookGo(i, dir = 'fwd') {
+  bookStep = Math.max(0, Math.min(BOOK_STEPS.length - 1, i));
+  const step = BOOK_STEPS[bookStep];
+  for (const pane of $('bookDlg').querySelectorAll('.bw-pane')) {
+    const here = pane.dataset.step === step;
+    pane.hidden = !here;
+    pane.classList.remove('fwd', 'bwd');
+    if (here) { void pane.offsetWidth; pane.classList.add(dir); }   // restart the slide
+  }
+  $('bookCount').textContent = `Step ${bookStep + 1} of ${BOOK_STEPS.length}`;
+  $('bookBar').style.width = `${((bookStep + 1) / BOOK_STEPS.length) * 100}%`;
+  $('bookBack').classList.toggle('off', bookStep === 0);
+  ({
+    stylist: paintBookStylists, kind: paintBookKinds, service: paintBookServices,
+    when: paintBookWhen, client: paintBookSummary,
+  })[step]();
+  paintBookFoot();
+  $('bookDlg').querySelector('.bw-body').scrollTop = 0;
+  // Focus follows the question, for the keyboard and for a screen reader.
+  requestAnimationFrame(() => {
+    const pane = $('bookDlg').querySelector(`.bw-pane[data-step="${step}"]`);
+    const target = step === 'client' ? $('bookName') : pane.querySelector('.on') || pane.querySelector('button:not(:disabled), input');
+    target?.focus({ preventScroll: true });
+  });
+}
+// A beat before moving on, so the choice is seen to be made.
+const bookNextStep = () => setTimeout(() => bookGo(bookStep + 1, 'fwd'), 160);
+
+/** The picked time, still free for this visit on the month already loaded. */
+function bookTimeFits() {
+  const t = $('bookTime').value;
+  const date = $('bookDate').value;
+  const days = bookReady(bookKey(date.slice(0, 7)));
+  return Boolean(t && days && (days[date] || []).some((s) => s.start === t));
+}
+
+/** Next where the question is answered, Book on the last. */
+function paintBookFoot() {
+  const step = BOOK_STEPS[bookStep];
+  const answered = {
+    stylist: bookStylistSet, kind: Boolean(bookKind), service: bookLines.length > 0, when: bookTimeFits(),
+  }[step];
+  $('bookNext').classList.toggle('hidden', step === 'client');
+  $('bookSubmit').classList.toggle('hidden', step !== 'client');
+  $('bookNext').disabled = !answered;
+  $('bookNext').textContent = step === 'service' ? 'Next: day and time' : 'Next';
 }
 
 function paintBookStylists() {
-  const cur = $('bookStylist').value || 'any';
-  const list = bookStylistsFor(bookLines);
-  $('bookStylist').innerHTML = '<option value="any">First available</option>'
-    + list.map((s) => `<option value="${esc(s.slug)}">${esc(s.name)}</option>`).join('');
-  $('bookStylist').value = list.some((s) => s.slug === cur) ? cur : 'any';
+  const cur = bookStylistSet ? $('bookStylist').value : '';
+  const card = (slug, pic, name, sub) =>
+    `<button type="button" class="bw-opt${cur === slug ? ' on' : ''}" data-stylist="${esc(slug)}">${pic}`
+    + `<span><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></button>`;
+  $('bookStylists').innerHTML =
+    card('any', '<span class="bw-any"><svg class="ic"><use href="#i-user"/></svg></span>', 'First available', 'Whoever is free')
+    + (me.stylists || []).map((s) => card(s.slug, `<img src="${esc(personPhoto(s))}" alt="">`, s.name, s.title || '')).join('');
+}
+
+function paintBookKinds() {
+  const can = bookAddable();
+  const kinds = [...BOOK_KINDS.map(([k]) => k), 'other'].filter((k) => can.some((s) => bookKindOf(s) === k));
+  $('bookKindQ').textContent = bookLines.length ? 'What type of service is next?' : 'What type of service?';
+  $('bookKindHave').innerHTML = bookLines.length ? `On this visit: <b>${esc(bookVisitName())}</b>` : '';
+  const st = (me.stylists || []).find((s) => s.slug === $('bookStylist').value);
+  // Just the kind, large (asked for 2026-10-22): the services come next.
+  $('bookKinds').innerHTML = kinds.length
+    ? kinds.map((k) =>
+      `<button type="button" class="bw-opt${bookKind === k ? ' on' : ''}" data-kind="${k}"><b>${esc(bookKindLabel(k))}</b></button>`).join('')
+    : `<p class="bw-empty">${bookLines.length ? 'Nothing else can go with this visit for one stylist.'
+      : `${esc(st?.name || 'Nobody')} has no services switched on yet. Go back and pick someone else.`}</p>`;
+}
+
+function paintBookServices() {
+  $('bookServiceQ').textContent = `Which ${bookKindLabel(bookKind).toLowerCase()} service?`;
+  const taken = new Set(bookLines.map((s) => s.slug));
+  const can = new Set(bookAddable().map((s) => s.slug));
+  const list = me.services.filter((s) => bookKindOf(s) === bookKind && (taken.has(s.slug) || can.has(s.slug)));
+  // A service on the visit stays in the list, ticked; pressing it again takes it off.
+  $('bookServices').innerHTML = list.map((s) => {
+    const on = taken.has(s.slug);
+    return `<button type="button" class="bw-opt${on ? ' on' : ''}" data-service="${esc(s.slug)}" aria-pressed="${on}">`
+      + `<span><b>${esc(s.name)}</b>${s.consultFirst ? '<small>Consultation first</small>' : ''}</span>`
+      + `<span class="meta">${esc(bookMins(s.durationMin))}${s.price != null ? `<br>from $${esc(s.price)}` : ''}</span>`
+      + `${on ? '<svg class="ic ok"><use href="#i-check"/></svg>' : ''}</button>`;
+  }).join('') || '<p class="bw-empty">Nothing here yet.</p>';
+  paintBookLines();
 }
 
 function paintBookLines() {
-  $('bookLines').innerHTML = bookLines.length
-    ? bookLines.map((s, i) => `<div class="tk-line"><span><b>${esc(s.name)}</b><small>${esc(bookMins(s.durationMin))}`
-      + `${s.price != null ? ` · from $${esc(s.price)}` : ''}</small></span>`
-      + `<button type="button" class="tk-x" data-remove="${i}" aria-label="Remove ${esc(s.name)}"><svg class="ic"><use href="#i-x"/></svg></button></div>`).join('')
-    : '<p class="tk-empty">No services yet. Add the first one.</p>';
-  const mins = bookLines.reduce((n, s) => n + s.durationMin, 0);
-  const priced = bookLines.filter((s) => s.price != null);
+  $('bookVisit').hidden = !bookLines.length;
+  $('bookLines').innerHTML = bookLines.map((s, i) => `<div class="tk-line"><span><b>${esc(s.name)}</b><small>${esc(bookMins(s.durationMin))}`
+    + `${s.price != null ? ` · from $${esc(s.price)}` : ''}</small></span>`
+    + `<button type="button" class="tk-x" data-remove="${i}" aria-label="Remove ${esc(s.name)}"><svg class="ic"><use href="#i-x"/></svg></button></div>`).join('');
+  const price = bookVisitPrice();
   $('bookTotal').innerHTML = bookLines.length > 1
-    ? `About ${esc(bookMins(mins))}${priced.length === bookLines.length ? ` · from $${priced.reduce((n, s) => n + Number(s.price), 0)}` : ''}` : '';
+    ? `About ${esc(bookMins(bookVisitMins()))}${price != null ? ` · from $${price}` : ''}` : '';
   $('bookAdd').hidden = !bookAddable().length;
 }
 
-function paintBookPicker() {
-  const can = bookAddable();
-  const kinds = [...BOOK_KINDS.map(([k]) => k), 'other'].map((k) => [k, can.filter((s) => bookKindOf(s) === k)]).filter(([, l]) => l.length);
-  $('bookPicker').innerHTML = kinds.length
-    ? kinds.map(([k, list]) => `<div class="tk-kind"><h4>${esc(bookKindLabel(k))}</h4><div class="tk-opts">${list.map((s) =>
-      `<button type="button" class="tk-opt" data-add="${esc(s.slug)}"><b>${esc(s.name)}</b><small>${esc(bookMins(s.durationMin))}`
-      + `${s.price != null ? ` · $${esc(s.price)}` : ''}</small></button>`).join('')}</div></div>`).join('')
-    : '<p class="tk-empty">Nothing else can go with these for one stylist.</p>';
-}
-
-function toggleBookPicker(open = $('bookPicker').hidden) {
-  if (open) paintBookPicker();
-  $('bookPicker').hidden = !open;
-  $('bookAdd').setAttribute('aria-expanded', String(open));
+function paintBookWhen() {
+  if (!bookMonth) bookMonth = $('bookDate').value.slice(0, 7);
+  $('bookWhenHint').innerHTML = `Free times for <b>${esc(bookVisitName())}</b>, about ${esc(bookMins(bookVisitMins()))}.`;
+  loadBookTimes();
 }
 
 /** The month as a grid: past days and days with nothing free can't be picked. */
@@ -6731,47 +6805,42 @@ function paintBookCal(known = null) {
     + `<div class="bw-cal-g">${cells.join('')}</div>`;
 }
 
-function paintBookDay() {
-  const d = $('bookDate').value;
-  $('bookDayLbl').textContent = new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-}
-
 /** The chosen day's free times, from the month already loaded. */
 function paintBookTimes(days = null) {
-  const sel = $('bookTime');
+  const box = $('bookTimes');
   const date = $('bookDate').value;
-  const want = bookChosen;
-  const hint = (text) => { $('bookWhenHint').textContent = text; };
-  if (!bookQuery()) {
-    sel.innerHTML = '<option value="">No services to book</option>';
-    sel.disabled = true;
-    hint('Nobody has services switched on for booking yet.');
-    return;
-  }
-  sel.disabled = false;
+  $('bookTimesHead').textContent = bookLongDate(date);
   if (!days) {
-    sel.innerHTML = '<option value="">Finding free times…</option>';
+    box.innerHTML = '<p class="bw-empty">Finding free times…</p>';
+    paintBookFoot();
     return;
   }
   const slots = days[date] || [];
-  sel.innerHTML = slots.length
-    ? '<option value="">Pick a time</option>' + slots.map((s) => `<option value="${esc(s.start)}">${bookTimeLabel(s.start)}</option>`).join('')
-    : `<option value="">${date < salonToday() ? 'That day has passed' : 'Nothing free that day'}</option>`;
+  const want = $('bookTime').value;
   // The grid's time, once, if it fits.
   const pre = bookPreset?.minutes;
   if (pre != null && date === bookPreset.date) {
     const hit = slots.find((s) => salonMinutes(s.start) === pre);
-    if (hit) { sel.value = hit.start; bookChosen = hit.start; }
-    else if (slots.length) note($('bookNote'), `${clock(pre)} is not free for this. Pick another time.`, 'bad');
+    if (hit) $('bookTime').value = hit.start;
+    else if (slots.length) note($('bookNote'), `${clock(pre)} is not free for ${bookVisitName()}. Pick another time.`, 'bad');
     bookPreset = { ...bookPreset, minutes: null };
-  } else if (want && slots.some((s) => s.start === want)) {
-    sel.value = want;
-  } else if (want) {
-    bookChosen = '';
-    note($('bookNote'), `${bookTimeLabel(want)} no longer fits ${bookLines.map((s) => s.name).join(' + ') || 'this'}. Pick another time.`, 'bad');
+  } else if (want && !slots.some((s) => s.start === want)) {
+    $('bookTime').value = '';
+    note($('bookNote'), `${bookTimeLabel(want)} no longer fits ${bookVisitName()}. Pick another time.`, 'bad');
   }
-  hint(bookLines.length ? (slots.length ? '' : 'Try another day: tap the day to see the month.')
-    : 'Times for a short visit. Adding services re-checks the time so it fits.');
+  box.innerHTML = slots.length
+    ? slots.map((s) => `<button type="button" class="bw-time" data-time="${esc(s.start)}">${bookTimeLabel(s.start)}</button>`).join('')
+    : `<p class="bw-empty">${date < salonToday() ? 'That day has passed.' : 'Nothing free that day.'} Pick another day.</p>`;
+  markBookTime();
+  paintBookFoot();
+}
+
+function markBookTime() {
+  for (const b of $('bookTimes').querySelectorAll('.bw-time')) {
+    const on = b.dataset.time === $('bookTime').value;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  }
 }
 
 const bookKey = (month) => {
@@ -6779,11 +6848,11 @@ const bookKey = (month) => {
   return q ? [q.service, q.with, $('bookStylist').value, month].join('|') : '';
 };
 const bookReady = (key) => {
-  const v = bookCache.get(key);
+  const v = key && bookCache.get(key);
   return v && !(v instanceof Promise) ? v : null;
 };
 
-/** A month's free times for what is on the ticket, asked once. */
+/** A month's free times for the visit, asked once. */
 async function bookMonthDays(month) {
   const key = bookKey(month);
   if (!key) return null;
@@ -6803,39 +6872,47 @@ async function bookMonthDays(month) {
   return bookCache.get(key);
 }
 
-/** The chosen day's times, and the calendar's month when it is open. */
+/** The chosen day's times, and the month the calendar shows. */
 async function loadBookTimes() {
-  if (!bookQuery()) { paintBookTimes(null); return; }
+  if (!bookQuery()) return;
   const month = $('bookDate').value.slice(0, 7);
   const key = bookKey(month);
   paintBookTimes(bookReady(key));
   refreshBookCal();
   try {
     const days = await bookMonthDays(month);
-    if (key !== bookKey($('bookDate').value.slice(0, 7))) return;   // something changed meanwhile
+    if (key !== bookKey($('bookDate').value.slice(0, 7)) || BOOK_STEPS[bookStep] !== 'when') return;   // something changed meanwhile
     paintBookTimes(days);
   } catch (err) {
-    $('bookTime').innerHTML = '<option value="">Could not load times</option>';
+    $('bookTimes').innerHTML = '<p class="bw-empty">Could not load times.</p>';
     if (err.message !== 'signed out') note($('bookNote'), err.message);
   }
 }
 
 async function refreshBookCal() {
-  if ($('bookCal').hidden) return;
   const key = bookKey(bookMonth);
   paintBookCal(bookReady(key));
   try {
     const days = await bookMonthDays(bookMonth);
-    if (!$('bookCal').hidden && key === bookKey(bookMonth)) paintBookCal(days);
-  } catch { /* the times line says so */ }
+    if (BOOK_STEPS[bookStep] === 'when' && key === bookKey(bookMonth)) paintBookCal(days);
+  } catch { /* the times say so */ }
 }
 
-/** Something on the ticket changed: who can do it, what can join it, when it fits. */
-function bookChanged() {
-  paintBookStylists();
-  paintBookLines();
-  if (!$('bookPicker').hidden) paintBookPicker();
-  loadBookTimes();
+function paintBookSummary() {
+  const st = $('bookStylist').value;
+  const person = (me.stylists || []).find((x) => x.slug === st);
+  const pic = person ? `<img src="${esc(personPhoto(person))}" alt="">`
+    : '<span class="bw-any"><svg class="ic"><use href="#i-user"/></svg></span>';
+  const date = new Date(`${$('bookDate').value}T12:00:00`)
+    .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const time = $('bookTime').value ? `, ${bookTimeLabel($('bookTime').value)}` : '';
+  const price = bookVisitPrice();
+  $('bookSummary').innerHTML = `<div class="bw-with">${pic}<span><small>Booked with</small>`
+    + `<b>${esc(person?.name || 'First available')}</b></span></div>`
+    + `<p class="bw-svcs">${esc(bookVisitName())}</p>`
+    + `<div class="bw-facts"><span><em>When</em> ${esc(date + time)}</span>`
+    + `<span><em>About</em> ${esc(bookMins(bookVisitMins()))}</span>`
+    + (price != null ? `<span><em>From</em> $${price}</span>` : '') + '</div>';
 }
 
 // ── the client: found from the third letter ──────────────────────────────
@@ -6927,11 +7004,11 @@ $('bookDlg').addEventListener('click', (e) => {
 // ── opening, and every control ────────────────────────────────────────────
 
 // ── Karen on the ticket ──────────────────────────────────────────────────
-// "Help me book" opens Karen's chat already holding what the ticket has.
+// "Help me book" opens Karen's chat already holding what the survey has.
 // (A "Karen · Step n of 4" strip sat on the ticket too; removed on request,
 // 2026-10-22.)
 
-/** Karen's chat, starting from what the ticket already has, so she asks only the rest. */
+/** Karen's chat, starting from what the survey already has, so she asks only the rest. */
 function openKarenFromTicket() {
   karenRun += 1;
   karenQueue = Promise.resolve();
@@ -6961,7 +7038,7 @@ function openKarenFromTicket() {
   }
   const st = $('bookStylist').value;
   if (st !== 'any') karen.stylist = st;
-  if ($('bookTime').value) {
+  if (bookTimeFits()) {
     // The time was found for this stylist choice, so it comes with it.
     karen.stylist = st;
     karen.date = $('bookDate').value;
@@ -6969,7 +7046,7 @@ function openKarenFromTicket() {
     have.push(esc(`${kDate(karen.date)} at ${bookTimeLabel(karen.time)}`));
   }
   kSay(have.length
-    ? `<p>Hi! I'll help you finish this one. From the ticket I have ${have.join(', ')}. I'll ask for the rest, one step at a time.</p>`
+    ? `<p>Hi! I'll help you finish this one. So far I have ${have.join(', ')}. I'll ask for the rest, one step at a time.</p>`
     : "<p>Hi! I'll walk you through it one step at a time: the services first, then who and when, then the client's details. Then I'll book it.</p>");
   kNext();
   openDialog($('karenDlg'));
@@ -6980,7 +7057,7 @@ $('bookKarenBtn').onclick = openKarenFromTicket;
 function openBooking(contact, preset = null) {
   bookPreset = preset;
   bookLines = [];
-  bookChosen = '';
+  bookKind = null;
   bookCache.clear();
   note($('bookNote'), '');
   $('bookTitle').textContent = contact?.name ? `Book ${contact.name}` : 'New appointment';
@@ -6990,33 +7067,82 @@ function openBooking(contact, preset = null) {
   $('bookNotes').value = '';
   linkBookContact(contact?.id ? contact : null);
   hideBookSugg();
-  $('bookStylist').value = 'any';
-  paintBookStylists();
-  if ([...$('bookStylist').options].some((o) => o.value === preset?.stylist)) $('bookStylist').value = preset.stylist;
-  $('bookTime').innerHTML = '';
-  // A past day can't be booked, so the ticket starts no earlier than today.
+  // A column on the grid answers the stylist; anything else asks.
+  const st = (me.stylists || []).find((s) => s.slug === preset?.stylist);
+  $('bookStylist').value = st ? st.slug : 'any';
+  bookStylistSet = Boolean(st);
+  $('bookTime').value = '';
+  // A past day can't be booked, so the calendar starts no earlier than today.
   const start = preset?.date || (page === 'appointments' && day) || salonToday();
   $('bookDate').value = start < salonToday() ? salonToday() : start;
   bookMonth = $('bookDate').value.slice(0, 7);
-  $('bookCal').hidden = true;
-  $('bookDayBtn').setAttribute('aria-expanded', 'false');
-  toggleBookPicker(false);
-  paintBookDay();
-  paintBookLines();
   openDialog($('bookDlg'));
-  loadBookTimes();
-  // Straight to what is still unknown.
-  setTimeout(() => (contact?.name ? $('bookAdd') : $('bookName')).focus({ preventScroll: true }), 60);
+  bookGo(st ? 1 : 0);
 }
 
-$('bookStylist').onchange = () => { note($('bookNote'), ''); bookChanged(); };
-$('bookTime').onchange = () => { bookChosen = $('bookTime').value; note($('bookNote'), ''); };
-$('bookDayBtn').onclick = () => {
-  const open = $('bookCal').hidden;
-  if (open) bookMonth = $('bookDate').value.slice(0, 7);
-  $('bookCal').hidden = !open;
-  $('bookDayBtn').setAttribute('aria-expanded', String(open));
-  refreshBookCal();
+$('bookStylists').onclick = (e) => {
+  const b = e.target.closest('[data-stylist]');
+  if (!b) return;
+  note($('bookNote'), '');
+  const slug = b.dataset.stylist;
+  if (slug !== $('bookStylist').value) {
+    $('bookStylist').value = slug;
+    // What the new stylist does not do comes off the visit, said plainly.
+    const kept = [];
+    for (const s of bookLines) if (bookStylistDoes(slug, [...kept, s])) kept.push(s);
+    const dropped = bookLines.filter((s) => !kept.includes(s));
+    bookLines = kept;
+    if (dropped.length) {
+      const who = (me.stylists || []).find((s) => s.slug === slug)?.name || 'They';
+      note($('bookNote'), `${who} does not do ${dropped.map((s) => s.name).join(' or ')} with this visit, so it came off.`, 'bad');
+    }
+    if (bookKind && !bookAddable().some((s) => bookKindOf(s) === bookKind)
+      && !bookLines.some((s) => bookKindOf(s) === bookKind)) bookKind = null;
+  }
+  bookStylistSet = true;
+  paintBookStylists();
+  bookNextStep();
+};
+$('bookKinds').onclick = (e) => {
+  const b = e.target.closest('[data-kind]');
+  if (!b) return;
+  bookKind = b.dataset.kind;
+  note($('bookNote'), '');
+  paintBookKinds();
+  bookNextStep();
+};
+$('bookServices').onclick = (e) => {
+  const b = e.target.closest('[data-service]');
+  if (!b) return;
+  const at = bookLines.findIndex((s) => s.slug === b.dataset.service);
+  const s = at < 0 && me.services.find((x) => x.slug === b.dataset.service);
+  if (at >= 0) bookLines.splice(at, 1);
+  else if (s) bookLines.push(s);
+  note($('bookNote'), '');
+  paintBookServices();
+  paintBookFoot();
+  // Under a long list (Color has seven) the visit and "Add another service"
+  // would sit out of sight, so the first sign of the pick is shown.
+  if (s) $('bookVisit').scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+};
+$('bookLines').onclick = (e) => {
+  const b = e.target.closest('[data-remove]');
+  if (!b) return;
+  bookLines.splice(Number(b.dataset.remove), 1);
+  note($('bookNote'), '');
+  paintBookServices();
+  paintBookFoot();
+};
+// Round again: kind, then service, the visit kept.
+$('bookAdd').onclick = () => { note($('bookNote'), ''); bookGo(BOOK_STEPS.indexOf('kind'), 'bwd'); };
+$('bookTimes').onclick = (e) => {
+  const b = e.target.closest('[data-time]');
+  if (!b) return;
+  $('bookTime').value = b.dataset.time;
+  note($('bookNote'), '');
+  markBookTime();
+  paintBookFoot();
+  bookNextStep();
 };
 $('bookCal').onclick = (e) => {
   const mo = e.target.closest('[data-month]');
@@ -7030,38 +7156,21 @@ $('bookCal').onclick = (e) => {
   const b = e.target.closest('[data-day]');
   if (!b || b.disabled) return;
   $('bookDate').value = b.dataset.day;
-  bookChosen = '';
+  $('bookTime').value = '';
   note($('bookNote'), '');
-  paintBookDay();
-  $('bookCal').hidden = true;
-  $('bookDayBtn').setAttribute('aria-expanded', 'false');
   loadBookTimes();
 };
-$('bookAdd').onclick = () => toggleBookPicker();
-$('bookPicker').onclick = (e) => {
-  const b = e.target.closest('[data-add]');
-  if (!b) return;
-  const s = me.services.find((x) => x.slug === b.dataset.add);
-  if (!s) return;
-  bookLines.push(s);
-  toggleBookPicker(false);
-  note($('bookNote'), '');
-  bookChanged();
-};
-$('bookLines').onclick = (e) => {
-  const b = e.target.closest('[data-remove]');
-  if (!b) return;
-  bookLines.splice(Number(b.dataset.remove), 1);
-  note($('bookNote'), '');
-  bookChanged();
-};
+$('bookBack').onclick = () => { note($('bookNote'), ''); bookGo(bookStep - 1, 'bwd'); };
+$('bookNext').onclick = () => { if (!$('bookNext').disabled) bookGo(bookStep + 1, 'fwd'); };
 for (const b of $('bookDlg').querySelectorAll('[data-book-close]')) b.onclick = () => closeDialog($('bookDlg'));
 
 $('bookForm').onsubmit = async (e) => {
   e.preventDefault();
+  // Enter in a field submits the form: only the last question books.
+  if (BOOK_STEPS[bookStep] !== 'client') return;
   if (e.submitter && e.submitter.value !== 'book') return;
-  if (!bookLines.length) { note($('bookNote'), 'Add at least one service.'); toggleBookPicker(true); return; }
-  if (!$('bookTime').value) { note($('bookNote'), 'Pick a time.'); $('bookTime').focus(); return; }
+  if (!bookLines.length) { note($('bookNote'), 'Add at least one service.'); bookGo(BOOK_STEPS.indexOf('kind'), 'bwd'); return; }
+  if (!bookTimeFits()) { note($('bookNote'), 'Pick a time.'); bookGo(BOOK_STEPS.indexOf('when'), 'bwd'); return; }
   if (!$('bookName').value.trim()) { note($('bookNote'), 'Type the client’s name.'); $('bookName').focus(); return; }
   if (!bookContact && !$('bookPhone').value.trim() && !$('bookEmail').value.trim()) {
     note($('bookNote'), 'Add a phone number or an email, so the salon can reach them.');
@@ -7090,11 +7199,12 @@ $('bookForm').onsubmit = async (e) => {
     go('appointments');
   } catch (err) {
     note($('bookNote'), err.message);
-    // Somebody took it while this was open: the times again, fresh.
+    // Somebody took it while this was open: back to the times, fresh, with
+    // everything else answered kept.
     if (/taken|available|free/i.test(err.message)) {
-      bookChosen = '';
+      $('bookTime').value = '';
       bookCache.clear();
-      loadBookTimes();
+      bookGo(BOOK_STEPS.indexOf('when'), 'bwd');
     }
   } finally { $('bookSubmit').disabled = false; }
 };

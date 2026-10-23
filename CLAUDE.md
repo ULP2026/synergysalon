@@ -455,8 +455,23 @@ made that way are real: name them ZZ and remove them.
   corner and stays there while the page scrolls (2026-10-22): 52px tall,
   clear of the safe-area insets, with room left at the page's foot and the
   toast lifted above it. On wider screens it stays in the page head.
+- **New appointment is five steps again** (asked for 2026-10-23, after a
+  day as one page): stylist, kind of service, service, day and time, client
+  (`BOOK_STEPS`, `bookGo`). It keeps what the one-page form added: "Add
+  another service" goes round kind and service again, and the visit
+  (`bookLines`) is booked as one appointment with one stylist end to end;
+  the times are always for the whole visit, and a time picked before the
+  stylist or services changed is re-checked on the times step and cleared
+  with a note if it no longer fits. The client step finds existing clients
+  from the third letter (`bookContact`). A click on Appt. Book's grid opens
+  on step 2 with that stylist, and the clicked time is chosen once the
+  services are in, if it fits; Book from a client opens on step 1 with the
+  client already filled in. The values sit in hidden `bookStylist`,
+  `bookDate` and `bookTime`, which is all Karen and the booking read.
+  Picking a stylist who does not do a service already on the visit takes
+  it off and says so.
 - Karen on the ticket (2026-10-22): "Help me book" in New appointment's
-  header opens Karen's chat holding what the ticket has
+  header opens Karen's chat holding what the survey has
   (`openKarenFromTicket`), so she asks only the rest; she books for the
   linked client (`karen.contact`) and closes the ticket. A "Karen · Step n
   of 4" strip that sat on the ticket was removed on request the same day.
