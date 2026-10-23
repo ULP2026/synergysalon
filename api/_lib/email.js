@@ -420,8 +420,13 @@ const MESSAGES = {
     subject: `Moved: you are now booked for ${prettyWhen(appt.starts_at, zone)}`,
     content: {
       heading: 'Your appointment has moved',
-      intro: `You were booked for ${prettyWhen(previousStart, zone)}. That is now cancelled and `
-        + 'you are booked in at the new time below.',
+      // Every send knows the old time. Email history rebuilds a sent one from
+      // the log, which does not keep it, and says the rest without it rather
+      // than "1 January 1970".
+      intro: previousStart
+        ? `You were booked for ${prettyWhen(previousStart, zone)}. That is now cancelled and `
+          + 'you are booked in at the new time below.'
+        : 'Your earlier time is now cancelled and you are booked in at the new time below.',
       rows: detailRows(appt, zone),
       action: { label: 'Reschedule or cancel', href: manageUrl(shop, appt.ref, appt.manage_token) },
       // The old time is already in their calendar, so the new one has to be

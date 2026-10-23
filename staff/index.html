@@ -1617,7 +1617,18 @@
   .ml-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
   .ml-top h2 { margin: 0; font-size: 1.05rem; }
   .ml-top p { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
-  .ml-head, .ml-row { display: grid; grid-template-columns: 150px minmax(0, 1.3fr) minmax(0, 1fr) 90px; gap: 14px; align-items: center; }
+  .ml-head, .ml-row { display: grid; grid-template-columns: 136px minmax(0, 1.1fr) minmax(0, 1.25fr) 76px 16px; gap: 14px; align-items: center; }
+  /* A row opens its email: a button, the width of the table. */
+  /* Not "font: inherit" or "border: 0": either would undo the row's own
+     size and divider above, and the names would cut off. */
+  button.ml-row { width: 100%; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; color: var(--ink);
+                  font-family: inherit; text-align: left; cursor: pointer; transition: background-color var(--t) var(--ease); }
+  button.ml-row:last-child { border-bottom: 0; }
+  button.ml-row:hover { background: var(--raise); }
+  button.ml-row:hover .what span:last-child { color: var(--periwinkle); text-decoration: underline; text-underline-offset: 3px; }
+  button.ml-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .ml-row .go { color: var(--faint); display: grid; place-items: center; }
+  .ml-row .go .ic { width: 16px; height: 16px; }
   .ml-head { padding: 8px 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); }
   .ml-row { padding: 11px 6px; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
   .ml-row:last-child { border-bottom: 0; }
@@ -1638,6 +1649,7 @@
     .ml-row .when { grid-column: 2; grid-row: 1; font-size: var(--fs-xs); }
     .ml-row .what { grid-column: 1; grid-row: 2; }
     .ml-row .ref { grid-column: 2; grid-row: 2; text-align: right; }
+    .ml-row .go { display: none; }
   }
   .au-row .go { display: grid; color: var(--faint); transition: transform var(--t) var(--ease), color var(--t) var(--ease); }
   .au-row:hover .go { transform: translateX(3px); color: var(--indigo); }
@@ -3361,7 +3373,7 @@
 <dialog id="msgDlg" class="au msg" aria-labelledby="msgTitle">
   <header class="au-head">
     <span class="au-ic" id="msgIc"><svg class="ic"><use href="#i-mail"/></svg></span>
-    <div class="grow"><h2 id="msgTitle"></h2><p>Shown with a sample appointment. Clients see their own details.</p></div>
+    <div class="grow"><h2 id="msgTitle"></h2><p id="msgSub"></p></div>
     <button type="button" class="iconbtn lg" id="msgClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </header>
   <div class="au-body" id="msgBody"></div>
@@ -4563,12 +4575,13 @@ function paintMailLog(note) {
   const row = (s) => {
     const a = names[s.kind];
     return `
-      <div class="ml-row">
+      <button type="button" class="ml-row" data-sent="${esc(s.id)}" aria-label="Open the ${esc(a ? a.name : 'email')} sent to ${esc(s.name)}">
         <span class="when">${esc(fmtWhen(s.sentAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span>
         <span class="who"><b>${esc(s.name)}</b><span>${esc(s.email)}</span></span>
         <span class="what"><span class="au-ic">${ic(a ? a.icon : 'mail')}</span><span>${esc(a ? a.name : 'Email')}</span></span>
         <span class="ref">${esc(s.ref || '')}</span>
-      </div>`;
+        <span class="go">${ic('right')}</span>
+      </button>`;
   };
   const filtered = mailLog.q || mailLog.kind;
   list.innerHTML = note && !mailLog.rows.length
@@ -4651,6 +4664,8 @@ async function renderFinance() {
 }
 
 $('mktCard').addEventListener('click', (e) => {
+  const sent = e.target.closest('[data-sent]');
+  if (sent) { openSentEmail(sent.dataset.sent); return; }
   const more = e.target.closest('[data-ml-more]');
   if (!more) return;
   more.disabled = true;
@@ -4706,6 +4721,7 @@ let msgView = 'email';
 // text-only version as "Plain text", which read as a text message.
 async function openMessage(kind, title, withSms = false) {
   $('msgTitle').textContent = title;
+  $('msgSub').textContent = 'Shown with a sample appointment. Clients see their own details.';
   $('msgBody').innerHTML = skeleton(4);
   openDialog($('msgDlg'));
   try {
@@ -4715,9 +4731,10 @@ async function openMessage(kind, title, withSms = false) {
     if (err.message !== 'signed out') $('msgBody').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this message', text: err.message });
   }
 }
-function paintMessage(m, types) {
+function paintMessage(m, types, { sent = false } = {}) {
   if (!types.includes(msgView)) msgView = types[0];
-  const emailOn = Boolean(me?.features?.email);
+  // One that was sent went out, whatever the email switch says today.
+  const emailOn = sent || Boolean(me?.features?.email);
   $('msgBody').innerHTML = `
     ${types.length > 1 ? `<div class="seg mp-tabs" id="msgSeg" role="group" aria-label="Message type">
       ${types.map((t) => `<button type="button" data-v="${t}" aria-pressed="${msgView === t}">${ic(t === 'sms' ? 'message' : 'mail')}${t === 'sms' ? 'SMS' : 'Email'}</button>`).join('')}
@@ -4743,6 +4760,7 @@ function paintMessage(m, types) {
     // of this page's, exactly as an inbox would render it.
     $('msgView').innerHTML = `
       ${emailOn ? '' : `<div class="note mp-note">${ic('info')}<span>Email is not connected yet, so this is not being sent. It is exactly what clients will get once it is.</span></div>`}
+      ${m.note ? `<div class="note mp-note">${ic('info')}<span>${esc(m.note)}</span></div>` : ''}
       <dl class="mp-env">
         <dt>From</dt><dd>${esc(m.from)}</dd>
         <dt>To</dt><dd>${esc(m.to)}</dd>
@@ -4762,6 +4780,27 @@ function paintMessage(m, types) {
   };
 }
 $('msgClose').onclick = () => closeDialog($('msgDlg'));
+
+/** Email history: a row opens the email that client was sent (asked for 2026-10-23). */
+async function openSentEmail(id) {
+  $('msgTitle').textContent = 'Email';
+  $('msgSub').textContent = '';
+  $('msgIc').innerHTML = ic('mail');
+  $('msgBody').innerHTML = skeleton(4);
+  openDialog($('msgDlg'));
+  try {
+    const m = await api(`/api/staff/business?sent=${encodeURIComponent(id)}`);
+    const a = mailNames()[m.kind];
+    $('msgTitle').textContent = a ? a.name : 'Email';
+    $('msgSub').textContent = `Sent to ${m.toName}, ${fmtWhen(m.sentAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+      + `${m.ref ? ` · Booking ${m.ref}` : ''}`;
+    if (a) $('msgIc').innerHTML = ic(a.icon);
+    msgView = 'email';
+    paintMessage(m, ['email'], { sent: true });
+  } catch (err) {
+    if (err.message !== 'signed out') $('msgBody').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this email', text: err.message });
+  }
+}
 
 /**
  * Every section go() can show, read from the page rather than listed here.

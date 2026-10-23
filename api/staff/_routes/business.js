@@ -50,8 +50,7 @@ function logoFrom(value) {
  * a sample: tomorrow at 10, the shop's first service and stylist, and a price
  * only if the shop has set one, so the preview never shows a made-up figure.
  */
-async function preview(kind, tenant) {
-  if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such message.');
+async function sampleAppt(tenant) {
   const [svc, sty] = await Promise.all([
     // duration_min as well as the price: without it the sample has no length,
     // so the preview drops the "How long" row and the add-to-calendar link,
@@ -63,7 +62,7 @@ async function preview(kind, tenant) {
   ]);
   const start = DateTime.now().setZone(tenant.timezone || 'America/New_York')
     .plus({ days: 1 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
-  const appt = {
+  return {
     guest_name: 'Jamie Sample',
     guest_email: 'jamie@example.com',
     service_name: svc.rows[0]?.name || 'Your service',
@@ -74,6 +73,12 @@ async function preview(kind, tenant) {
     ref: 'SAMPLE',
     manage_token: 'preview',
   };
+}
+
+async function preview(kind, tenant) {
+  if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such message.');
+  const appt = await sampleAppt(tenant);
+  const start = DateTime.fromJSDate(appt.starts_at);
   const out = previewMessage(kind, appt, tenant, start.minus({ days: 1 }).toJSDate());
   // The text that goes with it, where there is one: from Karen at the
   // salon's connected number (Settings, Karen AI), to the client's phone.
@@ -93,6 +98,59 @@ async function preview(kind, tenant) {
     };
   }
   return { kind, to: `${appt.guest_name} <${appt.guest_email}>`, ...out, sms };
+}
+
+/**
+ * GET ?sent=<id>: one email from Email history, for the window a row opens
+ * (asked for 2026-10-23).
+ *
+ * The log records who was sent which message and when, not the email itself,
+ * so it is rendered again by the code that sends it, from the booking as it
+ * is now, and the console says so: a booking moved since shows its new time.
+ * The manage link carries a dummy token, never the guest's own, so this
+ * window cannot hand anybody a working link into a client's booking. A
+ * booking deleted since gets the sample's details under the client's name.
+ */
+export async function sentMessage(id, tenant) {
+  if (!/^[0-9a-f-]{36}$/i.test(String(id))) throw new HttpError(404, 'No such email.');
+  const { rows } = await query(
+    `SELECT m.kind, m.to_name, m.to_email, m.sent_at,
+            a.ref, a.starts_at, a.duration_min, a.price_cents,
+            v.name AS service_name, s.name AS stylist_name
+       FROM message_sends m
+       LEFT JOIN appointments a ON a.id = m.appointment_id
+       LEFT JOIN services v ON v.id = a.service_id
+       LEFT JOIN stylists s ON s.id = a.stylist_id
+      WHERE m.tenant_id = $1 AND m.id = $2::uuid`,
+    [tenant.id, id],
+  );
+  const r = rows[0];
+  if (!r || !MESSAGE_KINDS.includes(r.kind)) throw new HttpError(404, 'No such email.');
+  const name = r.to_name || r.to_email;
+  const appt = r.ref
+    ? {
+      service_name: r.service_name || 'Your appointment',
+      stylist_name: r.stylist_name || 'your stylist',
+      price_cents: r.price_cents ?? null,
+      duration_min: r.duration_min ?? null,
+      starts_at: r.starts_at,
+      ref: r.ref,
+    }
+    : await sampleAppt(tenant);
+  Object.assign(appt, { guest_name: name, guest_email: r.to_email, manage_token: 'preview' });
+  const out = previewMessage(r.kind, appt, tenant);
+  return {
+    kind: r.kind,
+    sentAt: r.sent_at,
+    toName: name,
+    to: r.to_name ? `${r.to_name} <${r.to_email}>` : r.to_email,
+    ref: r.ref || null,
+    ...out,
+    note: r.ref
+      ? 'The app keeps a record of each email, not a copy, so this is rebuilt from the booking as it is now. '
+        + 'If the booking changed after it was sent, the details here are the new ones.'
+      : 'The booking has since been deleted, so the details below are a sample. The rest is the message that was sent.',
+  };
 }
 
 /**
@@ -187,6 +245,7 @@ export async function history(tenant, cursor, { kind = null, q = null } = {}) {
   const last = page[page.length - 1];
   return {
     sends: page.map((r) => ({
+      id: r.id,
       kind: r.kind,
       name: r.to_name || r.to_email,
       email: r.to_email,
@@ -269,6 +328,7 @@ export default handler({
     const q = new URL(req.url, 'http://localhost').searchParams;
     const kind = q.get('preview');
     if (kind) return json(res, 200, await preview(kind, tenant));
+    if (q.has('sent')) return json(res, 200, await sentMessage(q.get('sent'), tenant));
     if (q.has('automations')) return json(res, 200, await automations(tenant));
     if (q.has('history')) {
       return json(res, 200, await history(tenant, q.get('before'), { kind: q.get('kind'), q: q.get('q') }));

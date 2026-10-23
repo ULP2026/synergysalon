@@ -682,7 +682,11 @@ made that way are real: name them ZZ and remove them.
   `?demo` on the address shows a sample day that saves nothing.
 - Marketing has three tabs (2026-10-23): Automation; **Email history**, its
   own module now, with a search by name or address and a filter by message
-  (`?history=1&q=&kind=`); and **Finance**, owners, admins and managers only
+  (`?history=1&q=&kind=`), each row opening that email (`?sent=<id>`,
+  `sentMessage`). The log keeps who, which message and when, not a copy, so
+  the email is rendered again from the booking as it is now and the window
+  says so; the manage link carries a dummy token, never the guest's; a
+  booking deleted since shows sample details; and **Finance**, owners, admins and managers only
   (hidden tab, and a 403 from `?finance=1&from=&to=`): what visits were
   worth in a period, total and by stylist -- earned so far, average visit,
   booked ahead -- counted as Home counts value (kept = not cancelled and not
