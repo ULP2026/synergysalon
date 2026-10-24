@@ -1579,6 +1579,8 @@
   .au-sw:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .au-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; border: 0; background: none;
              font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0; }
+  /* Marketing inside Settings: room between its own switch and its card. */
+  #set-marketing #mktSeg { margin-bottom: 14px; }
   /* Finance on Home, under the widgets. */
   .hm-fin { margin-top: 18px; }
   /* Email History, its own module in Marketing. */
@@ -2647,9 +2649,7 @@
         <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appt. Book</span></a>
       <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
         <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Clients</span></a>
-      <a class="grn-item" href="/staff/marketing" data-page="automation" data-group="marketing" title="Marketing">
-        <svg class="grn-ic"><use href="#l-megaphone"/></svg><span class="lbl">Marketing</span></a>
-      <a class="grn-item icon-only" href="/staff/settings" data-page="settings" title="Settings" aria-label="Settings" id="navSettings">
+      <a class="grn-item icon-only" href="/staff/settings" data-page="settings" data-group="settings" title="Settings" aria-label="Settings" id="navSettings">
         <svg class="grn-ic"><use href="#l-settings"/></svg></a>
     </nav>
     <!-- The person: their picture and first name. A click opens their own
@@ -2745,16 +2745,6 @@
       </div>
     </section>
 
-    <!-- Marketing: Automation only. Promotions, SMS and Email were "coming
-         soon" placeholders and were removed on request (2026-10-22). -->
-    <section class="view hidden" id="view-marketing">
-      <div class="seg wrapseg" id="mktSeg" role="group" aria-label="Marketing sections">
-        <button type="button" data-page="automation" aria-pressed="true">Automations</button>
-        <button type="button" data-page="history" aria-pressed="false">Email History</button>
-      </div>
-      <div class="card" id="mktCard"></div>
-    </section>
-
     <!-- Settings -->
     <!-- Calendars: the ways a shop can be booked. Empty until it makes one. -->
     <section class="view hidden" id="view-calendars">
@@ -2772,6 +2762,7 @@
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
         <button type="button" data-set="salon" aria-pressed="true">Salon</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
+        <button type="button" data-set="marketing" aria-pressed="false">Marketing</button>
         <button type="button" data-set="billing" aria-pressed="false" data-admin>Billing</button>
         <button type="button" data-set="payroll" aria-pressed="false" data-admin>Payroll</button>
         <button type="button" data-set="karen" aria-pressed="false">Karen AI</button>
@@ -2821,6 +2812,18 @@
             <svg class="ic"><use href="#i-signout"/></svg>Sign out</button>
 
         </div>
+      </div>
+
+      <!-- Marketing: Automations and Email History. It was its own item in
+           the top menu until it moved into Settings on request (2026-10-24);
+           its addresses (/marketing/automation, /marketing/history) still
+           work and open this tab. -->
+      <div class="setpane hidden" id="set-marketing">
+        <div class="seg wrapseg" id="mktSeg" role="group" aria-label="Marketing sections">
+          <button type="button" data-page="automation" aria-pressed="true">Automations</button>
+          <button type="button" data-page="history" aria-pressed="false">Email History</button>
+        </div>
+        <div class="card" id="mktCard"></div>
       </div>
 
       <!-- Billing -->
@@ -4248,7 +4251,8 @@ const PAGES = {
   settings: {
     path: `${BASE}/settings`, title: 'Settings',
     sub: 'Your salon, your team and how the app looks.',
-    load: () => showSetting(setTab),
+    // Marketing has pages of its own, so the gear opens on Salon instead.
+    load: () => showSetting(setTab === 'marketing' ? 'salon' : setTab),
   },
   // Opened from the person in the corner, for every role: how the app looks,
   // the CRM link (owners and managers), the team, and the way out.
@@ -4258,16 +4262,16 @@ const PAGES = {
     load: () => loadAccount(),
   },
   automation: {
-    path: `${BASE}/marketing/automation`, title: 'Marketing', group: 'marketing', view: 'marketing',
+    path: `${BASE}/marketing/automation`, title: 'Settings', group: 'settings', view: 'settings',
     sub: 'What happens on its own, before and after a client books.',
-    load: () => { markMarketingTab('automation'); renderAutomations(); },
+    load: () => { showSetting('marketing'); markMarketingTab('automation'); renderAutomations(); },
   },
   // Email history as a module of its own (2026-10-23): it was a card under
   // the automations; now it has the page, a search and a filter by message.
   history: {
-    path: `${BASE}/marketing/history`, title: 'Marketing', group: 'marketing', view: 'marketing',
+    path: `${BASE}/marketing/history`, title: 'Settings', group: 'settings', view: 'settings',
     sub: 'Every email the app has sent to clients.',
-    load: () => { markMarketingTab('history'); renderMailHistory(); },
+    load: () => { showSetting('marketing'); markMarketingTab('history'); renderMailHistory(); },
   },
 };
 
@@ -4872,7 +4876,7 @@ function go(name, { push = true } = {}) {
     else a.removeAttribute('aria-current');
   });
   $('meBtn').removeAttribute('aria-current');
-  document.querySelector('.main').classList.toggle('narrow', name === 'settings' || p.group === 'marketing');
+  document.querySelector('.main').classList.toggle('narrow', name === 'settings' || p.group === 'settings');
   moveRing();
   const view = p.view || name;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
@@ -9214,7 +9218,7 @@ function loadAccount() {
 
 // Settings opens on Salon; the person chip and /account open Team.
 let setTab = 'salon';
-const SET_TABS = ['salon', 'team', 'billing', 'payroll', 'karen'];
+const SET_TABS = ['salon', 'team', 'marketing', 'billing', 'payroll', 'karen'];
 
 function showSetting(name) {
   if (!SET_TABS.includes(name)) name = 'salon';
@@ -9234,7 +9238,11 @@ function showSetting(name) {
 }
 $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
-  if (b && b.dataset.set !== setTab) showSetting(b.dataset.set);
+  if (!b) return;
+  const k = b.dataset.set;
+  if (k === 'marketing') { if (page !== 'automation' && page !== 'history') go('automation'); return; }
+  if (page !== 'settings') { setTab = k; go('settings'); return; }
+  if (k !== setTab) showSetting(k);
 };
 
 /** Karen AI, Phone Number Settings: her number for everyone, the form and setup for the admin. */

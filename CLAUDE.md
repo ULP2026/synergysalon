@@ -420,7 +420,7 @@ made that way are real: name them ZZ and remove them.
   `*.vercel.app` or local address, where those names belong to the public
   site), `HOME_PATH` is `/` or `/staff`, and the menu's links are rewritten
   to match. Invite links from `team.js` follow the same rule.
-- Nav: Home, Appt. Book, Clients, Marketing, Settings (addresses above). Clients has "Choose your stylist"
+- Nav: Home, Appt. Book, Clients, Settings (addresses above; Marketing is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
   (2026-10-22): All, then every stylist record from `contacts?stylists=1`
   (`stylistChoices`), with or without a login, calendar or payroll, so long
   as they are active or have ever been booked; one who has left stays,
@@ -680,8 +680,12 @@ made that way are real: name them ZZ and remove them.
   `time_off`, the table availability already subtracts, so a block on the
   grid really stops the time being sold.
   `?demo` on the address shows a sample day that saves nothing.
-- Marketing has two tabs, **Automations** and **Email History** (so
-  spelled on request, 2026-10-24). Email History is its
+- Marketing is a **Settings tab** since 2026-10-24 (it was an item in the
+  top menu): `set-marketing`, after Team. Its own two tabs, **Automations**
+  and **Email History** (so spelled on request, 2026-10-24), keep their
+  addresses (`/marketing/automation`, `/marketing/history`; `group:
+  'settings'`, `view: 'settings'`), which open Settings on that tab; the
+  gear opens Salon, not Marketing. Email History is its
   own module now, with a search by name or address and a filter by message
   (`?history=1&q=&kind=`), each row opening that email (`?sent=<id>`,
   `sentMessage`). The log keeps who, which message and when, not a copy, so
