@@ -680,19 +680,28 @@ made that way are real: name them ZZ and remove them.
   `time_off`, the table availability already subtracts, so a block on the
   grid really stops the time being sold.
   `?demo` on the address shows a sample day that saves nothing.
-- Marketing has three tabs (2026-10-23): Automation; **Email history**, its
+- Marketing has two tabs, **Automations** and **Email History** (so
+  spelled on request, 2026-10-24). Email History is its
   own module now, with a search by name or address and a filter by message
   (`?history=1&q=&kind=`), each row opening that email (`?sent=<id>`,
   `sentMessage`). The log keeps who, which message and when, not a copy, so
   the email is rendered again from the booking as it is now and the window
   says so; the manage link carries a dummy token, never the guest's; a
-  booking deleted since shows sample details; and **Finance**, owners, admins and managers only
-  (hidden tab, and a 403 from `?finance=1&from=&to=`): what visits were
+  booking deleted since shows sample details. **Finance** moved to Home on
+  2026-10-24 (`#homeFin`, under the widgets; `/marketing/finance` now lands
+  on Home), owners, admins and managers only (the card stays hidden for
+  anyone else, and a 403 from `?finance=1&from=&to=`): what visits were
   worth in a period, total and by stylist -- earned so far, average visit,
   booked ahead -- counted as Home counts value (kept = not cancelled and not
   a no-show; the booked price, else the service's; unpriced visits named, not
   guessed). The app records no payments yet, and Finance says so on the
-  page. The old `/marketing/email` address opens Email history.
+  page. The old `/marketing/email` address opens Email History.
+- **Booking references are not shown** (asked for 2026-10-24), except in a
+  client's contact details (the timeline's "Ref" on each booking event): not
+  in Email History or its email window, the appointment window, Karen's
+  "all set" card, any guest email (`detailRows` has no Reference row) or the
+  guest's manage page. The ref still travels in links and addresses, where
+  it finds the booking.
 - Marketing, Automation (checklist of 2026-10-22): no search box; compact
   rows, about half their old height, two columns, all twelve on one screen,
   each with On/Off in words beside its switch. Turning one **off** opens a

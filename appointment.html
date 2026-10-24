@@ -77,7 +77,6 @@
       <div class="row"><span>When</span><b id="when"></b></div>
       <div class="row"><span>Service</span><b id="service"></b></div>
       <div class="row"><span>With</span><b id="stylist"></b></div>
-      <div class="row"><span>Reference</span><b id="ref"></b></div>
     </div>
     <div class="actions" id="actions">
       <button type="button" class="btn" id="moveBtn">Choose a new time</button>
@@ -151,7 +150,6 @@
     $('when').textContent = whenText(appt.startsAt);
     $('service').textContent = appt.service;
     $('stylist').textContent = appt.stylist;
-    $('ref').textContent = appt.ref;
     $('actions').classList.toggle('hidden', off || past);
     $('view').classList.remove('hidden');
   }

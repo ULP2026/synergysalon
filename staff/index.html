@@ -1579,7 +1579,9 @@
   .au-sw:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .au-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; border: 0; background: none;
              font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0; }
-  /* Email history, its own module in Marketing. */
+  /* Finance on Home, under the widgets. */
+  .hm-fin { margin-top: 18px; }
+  /* Email History, its own module in Marketing. */
   .ml-filters { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 12px; }
   .ml-filters .search { flex: 1 1 220px; }
   .ml-filters .search input { height: 38px; font-size: var(--fs-sm); }
@@ -1617,7 +1619,7 @@
   .ml-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
   .ml-top h2 { margin: 0; font-size: 1.05rem; }
   .ml-top p { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
-  .ml-head, .ml-row { display: grid; grid-template-columns: 136px minmax(0, 1.1fr) minmax(0, 1.25fr) 76px 16px; gap: 14px; align-items: center; }
+  .ml-head, .ml-row { display: grid; grid-template-columns: 136px minmax(0, 1.1fr) minmax(0, 1.25fr) 16px; gap: 14px; align-items: center; }
   /* A row opens its email: a button, the width of the table. */
   /* Not "font: inherit" or "border: 0": either would undo the row's own
      size and divider above, and the names would cut off. */
@@ -1640,7 +1642,6 @@
   .ml-row .what .au-ic { width: 26px; height: 26px; border-radius: 8px; }
   .ml-row .what .au-ic .ic { width: 14px; height: 14px; }
   .ml-row .what span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ml-row .ref { color: var(--faint); font-family: var(--mono, ui-monospace, monospace); font-size: var(--fs-xs); }
   .ml-more { display: flex; justify-content: center; padding-top: 12px; }
   @media (max-width: 760px) {
     .ml-head { display: none; }
@@ -1648,7 +1649,6 @@
     .ml-row .who { grid-column: 1; grid-row: 1; }
     .ml-row .when { grid-column: 2; grid-row: 1; font-size: var(--fs-xs); }
     .ml-row .what { grid-column: 1; grid-row: 2; }
-    .ml-row .ref { grid-column: 2; grid-row: 2; text-align: right; }
     .ml-row .go { display: none; }
   }
   .au-row .go { display: grid; color: var(--faint); transition: transform var(--t) var(--ease), color var(--t) var(--ease); }
@@ -2697,6 +2697,10 @@
       <div id="hmPending"></div>
       <!-- The widgets, in the admin's order (GET /api/staff/home: layout). -->
       <div class="hm-grid" id="hmGrid"></div>
+      <!-- Finance, under the widgets (moved here from Marketing on request,
+           2026-10-24). Owners, admins and managers only, here and on the
+           server; filled by renderFinance(). -->
+      <section class="card hm-fin hidden" id="homeFin" aria-label="Finance"></section>
       <div class="hm-tip hidden" id="hmTip" role="tooltip"></div>
     </section>
 
@@ -2745,9 +2749,8 @@
          soon" placeholders and were removed on request (2026-10-22). -->
     <section class="view hidden" id="view-marketing">
       <div class="seg wrapseg" id="mktSeg" role="group" aria-label="Marketing sections">
-        <button type="button" data-page="automation" aria-pressed="true">Automation</button>
-        <button type="button" data-page="history" aria-pressed="false">Email history</button>
-        <button type="button" data-page="finance" aria-pressed="false" data-admin>Finance</button>
+        <button type="button" data-page="automation" aria-pressed="true">Automations</button>
+        <button type="button" data-page="history" aria-pressed="false">Email History</button>
       </div>
       <div class="card" id="mktCard"></div>
     </section>
@@ -4218,7 +4221,7 @@ const PAGES = {
   // No primary button on Home: booking starts from Appt. Book.
   home: {
     path: HOME_PATH, title: 'Home', action: null,
-    load: () => loadHome(),
+    load: () => { loadHome(); renderFinance(); },
   },
   appointments: {
     path: `${BASE}/appointments`, title: 'Appt. Book', action: 'New appointment',
@@ -4265,11 +4268,6 @@ const PAGES = {
     path: `${BASE}/marketing/history`, title: 'Marketing', group: 'marketing', view: 'marketing',
     sub: 'Every email the app has sent to clients.',
     load: () => { markMarketingTab('history'); renderMailHistory(); },
-  },
-  finance: {
-    path: `${BASE}/marketing/finance`, title: 'Marketing', group: 'marketing', view: 'marketing',
-    sub: 'What the salon’s visits were worth, in total and by stylist.',
-    load: () => { markMarketingTab('finance'); renderFinance(); },
   },
 };
 
@@ -4544,7 +4542,7 @@ function mailNames() {
 function renderMailHistory() {
   const names = mailNames();
   $('mktCard').innerHTML = `
-    <div class="ml-top"><h2>Email history</h2>
+    <div class="ml-top"><h2>Email History</h2>
       <p>Every email the automations have sent, newest first.</p></div>
     <div class="ml-filters">
       <div class="search"><svg class="ic"><use href="#i-search"/></svg>
@@ -4597,7 +4595,6 @@ function paintMailLog(note) {
         <span class="when">${esc(fmtWhen(s.sentAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span>
         <span class="who"><b>${esc(s.name)}</b><span>${esc(s.email)}</span></span>
         <span class="what"><span class="au-ic">${ic(a ? a.icon : 'mail')}</span><span>${esc(a ? a.name : 'Email')}</span></span>
-        <span class="ref">${esc(s.ref || '')}</span>
         <span class="go">${ic('right')}</span>
       </button>`;
   };
@@ -4605,7 +4602,7 @@ function paintMailLog(note) {
   list.innerHTML = note && !mailLog.rows.length
     ? `<div class="au-empty">${esc(note)}</div>`
     : mailLog.rows.length
-      ? `<div class="ml-head"><span>Sent</span><span>To</span><span>Email</span><span>Booking</span></div>
+      ? `<div class="ml-head"><span>Sent</span><span>To</span><span>Email</span><span></span></div>
          <div class="ml-list">${mailLog.rows.map(row).join('')}</div>
          ${mailLog.next ? '<div class="ml-more"><button type="button" class="btn quiet sm" data-ml-more>Show more</button></div>' : ''}`
       : `<div class="au-empty">${filtered ? 'No email matches that.' : 'No emails sent yet. They appear here as the automations send them.'}</div>`;
@@ -4634,12 +4631,13 @@ function finRange(key) {
 /** Cents as dollars with cents, for Finance. */
 const finMoney = (cents) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 async function renderFinance() {
-  if (!me?.user?.canAdmin) {
-    $('mktCard').innerHTML = emptyState({ icon: 'info', title: 'Finance is for owners and managers', text: 'Ask the salon’s owner or a manager if you need these figures.' });
-    return;
-  }
+  // On Home since 2026-10-24, for owners, admins and managers only; anybody
+  // else never sees the card (and the server answers them 403 anyway).
+  const host = $('homeFin');
+  host.classList.toggle('hidden', !me?.user?.canAdmin);
+  if (!me?.user?.canAdmin) { host.innerHTML = ''; return; }
   const periods = [['month', 'This month'], ['last', 'Last month'], ['30', 'Last 30 days'], ['year', 'This year']];
-  $('mktCard').innerHTML = `
+  host.innerHTML = `
     <div class="ml-top"><h2>Finance</h2>
       <p>What visits were worth, by stylist.</p></div>
     <div class="seg wrapseg fin-seg" id="finSeg" role="group" aria-label="Period">
@@ -4810,8 +4808,7 @@ async function openSentEmail(id) {
     const m = await api(`/api/staff/business?sent=${encodeURIComponent(id)}`);
     const a = mailNames()[m.kind];
     $('msgTitle').textContent = a ? a.name : 'Email';
-    $('msgSub').textContent = `Sent to ${m.toName}, ${fmtWhen(m.sentAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
-      + `${m.ref ? ` · Booking ${m.ref}` : ''}`;
+    $('msgSub').textContent = `Sent to ${m.toName}, ${fmtWhen(m.sentAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
     if (a) $('msgIc').innerHTML = ic(a.icon);
     msgView = 'email';
     paintMessage(m, ['email'], { sent: true });
@@ -4847,6 +4844,8 @@ const PAGE_ALIASES = {
   // Marketing's removed tabs (2026-10-22): a bookmark or a shared link to one
   // opens Automation, and the address is corrected, rather than landing on Home.
   promotions: 'automation', sms: 'automation', email: 'history',
+  // Finance moved to Home (2026-10-24).
+  finance: 'home',
 };
 
 function pageFromUrl() {
@@ -5914,7 +5913,6 @@ function paintTicket(a) {
     row('Next appt', esc(a.nextStartsAt ? fmtWhen(a.nextStartsAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')),
     row('Booked', esc(a.channel === 'staff' ? `By ${a.bookedBy || 'staff'}` : 'Online')),
     row('Notes', a.notes ? `<span style="white-space:pre-line">${esc(a.notes)}</span>` : ''),
-    row('Ref', esc(a.ref)),
   ].join('');
   $('adLines').innerHTML = ticketLines(a);
   $('adPay').innerHTML = ticketPayment(a);
@@ -8254,7 +8252,7 @@ async function kDoBook() {
     const when = `${kDate(karen.date)}, ${bookTimeLabel(r?.startsAt || karen.time)}`;
     const row = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
     kSay('<p class="kd-ok"><svg class="ic"><use href="#i-check"/></svg>You\'re all set!</p>'
-      + `<div class="kd-card"><dl>${row('Reference', r?.ref)}${row('Client', karen.name)}${row(karen.extras.length ? 'Services' : 'Service', kVisit())}`
+      + `<div class="kd-card"><dl>${row('Client', karen.name)}${row(karen.extras.length ? 'Services' : 'Service', kVisit())}`
       + `${row('With', r?.stylist || (karen.stylist === 'any' ? '' : me.stylists.find((s) => s.slug === karen.stylist)?.name))}`
       + `${row('When', when)}</dl></div>`
       + (karen.email ? `<p>A confirmation email is on its way to ${esc(karen.email)}.</p>` : ''));

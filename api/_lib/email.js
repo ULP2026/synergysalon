@@ -281,15 +281,15 @@ function first(name) {
   return String(name || '').trim().split(/\s+/)[0] || 'there';
 }
 
-function detailRows(appt, zone, { ref = true } = {}) {
+function detailRows(appt, zone) {
+  // No Reference row (asked for 2026-10-23 on the confirmation, 2026-10-24 on
+  // every email): guests never need it, since the manage link carries the
+  // booking itself. Staff see it only in a client's contact details.
   const rows = [
     ['Service', appt.service_name],
     ['With', appt.stylist_name],
     ['When', prettyWhen(appt.starts_at, zone)],
   ];
-  // The booking confirmation leaves it out (asked for 2026-10-23): guests
-  // never need it, since the change link carries the booking itself.
-  if (ref) rows.push(['Reference', appt.ref]);
   if (appt.price_cents != null) {
     rows.splice(1, 0, ['Price', `$${(appt.price_cents / 100).toFixed(2)}`]);
   }
@@ -400,7 +400,7 @@ const MESSAGES = {
     content: {
       heading: `See you soon, ${appt.guest_name.split(' ')[0]}`,
       intro: 'You are all set. Here are your details.',
-      rows: detailRows(appt, zone, { ref: false }),
+      rows: detailRows(appt, zone),
       // Add to my calendar is the button now (2026-10-23); changing the
       // booking is a link in the line under it. A service with no length
       // gets no calendar link, so it falls back to the change link rather
