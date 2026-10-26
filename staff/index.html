@@ -293,7 +293,7 @@
     display: flex; align-items: stretch; gap: 12px; max-width: calc(100vw - 16px);
   }
   .grn-pill { position: relative; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 18px; }
-  .grn-logo { display: grid; place-items: center; padding: 0 12px 0 8px; align-self: stretch; border-radius: 12px; }
+  .grn-logo { display: grid; place-items: center; padding: 0 16px; border-radius: 16px; }
   .grn-mark {
     display: block; width: 22px; height: 22px; background: var(--periwinkle);
     -webkit-mask: url(/favicon-512x512.png) center / contain no-repeat;
@@ -344,11 +344,11 @@
   /* sm: labels show from 640px up, as RocketOS's "hidden sm:inline". */
   @media (max-width: 639px) {
     .grn-item .lbl { display: none; }
+    .grn .grn-logo { display: none; }
   }
   @media (max-width: 420px) {
     .grn { gap: 8px; }
     .grn-item, .grn-item.icon-only { padding: 9px 11px; }
-    .grn-logo { padding: 0 4px; }
     .grn-me { padding: 0 12px; }
     .grn-me .me-name { max-width: 8ch; }
   }
@@ -2410,7 +2410,19 @@
   .hm-w.w-full, .hm-grid > .w-full { grid-column: 1 / -1; }
   .tiles.one { grid-template-columns: minmax(0, 1fr); margin-bottom: 16px; }
   #hmPending:empty { display: none; }
-  @media (max-width: 760px) { .hm-grid { grid-template-columns: minmax(0, 1fr); } }
+  /* Phones keep the two figures side by side, half each (asked for
+     2026-10-26), with the icon above the figure so both fit; every other
+     widget takes the whole row. */
+  @media (max-width: 760px) {
+    .hm-grid { gap: 12px; }
+    .hm-w:not(.hm-num) { grid-column: 1 / -1; }
+    .hm-num > .tile { flex-direction: column-reverse; align-items: flex-start; justify-content: flex-end; gap: 10px; padding: 14px; }
+    .hm-num .tile .num { font-size: 1.5rem; }
+    .hm-num .tile .num .unit { display: block; margin-top: 2px; font-size: .9rem; }
+    .hm-num .tile .lbl { margin-top: 6px; font-size: .78rem; line-height: 1.35; }
+    .hm-num .tile .t-ic { width: 36px; height: 36px; border-radius: 10px; }
+    .hm-num .tile .t-ic .ic { width: 18px; height: 18px; }
+  }
 
   .hm-card { display: flex; flex-direction: column; min-height: 0; }
   .hm-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 16px; }
@@ -2640,9 +2652,6 @@
   <header class="grn">
     <nav class="grn-pill glass-strong" id="grnPill" aria-label="Main">
       <span class="grn-ring" id="grnRing" aria-hidden="true"><span class="grn-ring-fill"></span></span>
-      <a class="grn-logo" id="navLogo" href="/staff" data-page="home" aria-label="Synergy Salon, go to Home">
-        <span class="grn-mark" aria-hidden="true"></span>
-      </a>
       <a class="grn-item" href="/staff" data-page="home" title="Home">
         <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Home</span></a>
       <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Appt. Book">
@@ -2652,6 +2661,12 @@
       <a class="grn-item icon-only" href="/staff/settings" data-page="settings" data-group="settings" title="Settings" aria-label="Settings" id="navSettings">
         <svg class="grn-ic"><use href="#l-settings"/></svg></a>
     </nav>
+    <!-- The salon's logo, a chip of its own on the right of the menu like the
+         person's (asked for 2026-10-26): inside the pill it read as a menu
+         item. Phones leave it out so the menu fits the width. -->
+    <a class="grn-logo glass-strong" id="navLogo" href="/staff" data-page="home" aria-label="Synergy Salon, go to Home">
+      <span class="grn-mark" aria-hidden="true"></span>
+    </a>
     <!-- The person: their picture and first name. A click opens their own
          profile in place, the dialog Team Members opens for them; it stays a
          link to Settings, so a new-tab click still goes there. -->
@@ -2763,7 +2778,6 @@
         <button type="button" data-set="salon" aria-pressed="true">Salon</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="marketing" aria-pressed="false">Marketing</button>
-        <button type="button" data-set="billing" aria-pressed="false" data-admin>Billing</button>
         <button type="button" data-set="payroll" aria-pressed="false" data-admin>Payroll</button>
         <button type="button" data-set="karen" aria-pressed="false">Karen AI</button>
       </div>
@@ -2776,6 +2790,14 @@
           <!-- The inbox guests' replies land in; built in paintReplyTo(). First:
                it is short, and below the profile form it was out of sight. -->
           <section class="acard" id="replyCard"></section>
+
+          <!-- Billing sits under the reply-to address (asked for 2026-10-26);
+               it was a tab of its own. Owners, admins and managers only. -->
+          <section class="acard hidden" id="billingCard" data-admin>
+            <h2 class="ahead"><svg class="ic"><use href="#i-card"/></svg>Billing</h2>
+            <p class="asub">Plans, invoices and payment details will live here. Nothing is being charged today.</p>
+            <span class="chip">Coming soon</span>
+          </section>
 
           <section class="acard">
             <h2 class="ahead"><svg class="ic"><use href="#i-store"/></svg>Salon Profile</h2>
@@ -2826,7 +2848,6 @@
         <div class="card" id="mktCard"></div>
       </div>
 
-      <!-- Billing -->
       <!-- Karen AI (asked for 2026-10-22): the number clients call or text to
            reach her, and what she does there. Everybody reads it; the admin
            sets it. -->
@@ -2863,17 +2884,6 @@
             </ol>
           </div>
         </section>
-      </div>
-
-      <div class="card setpane hidden" id="set-billing">
-        <div class="card-head" style="margin-bottom:4px"><h2>Billing</h2></div>
-        <div class="soon">
-          <span class="chip">Coming soon</span>
-          <p class="small muted" style="margin:12px 0 0;max-width:46ch">
-            Plans, invoices and payment details will live here. Nothing is being
-            charged today.
-          </p>
-        </div>
       </div>
 
       <!-- Payroll: a placeholder beside Billing (asked for 2026-10-16), for
@@ -3413,7 +3423,6 @@
     </div>
     <div class="acts">
       <button type="button" class="btn" id="pxBook"><svg class="ic"><use href="#i-calendar-plus"/></svg>Book appointment</button>
-      <button type="button" class="btn quiet" id="pxEdit"><svg class="ic"><use href="#i-edit"/></svg>Edit</button>
       <button type="button" class="iconbtn lg" id="pxClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
     </div>
   </header>
@@ -3692,9 +3701,6 @@ function paintLogo() {
   a.innerHTML = logo
     ? `<img src="${esc(logo)}" alt="">`
     : '<span class="grn-mark" aria-hidden="true"></span>';
-  // The logo's width moves every item after it; measure again once it has one.
-  a.querySelector('img')?.addEventListener('load', () => moveRing(true), { once: true });
-  moveRing(true);
   paintFavicon(logo);
 }
 
@@ -5130,7 +5136,7 @@ function widgetHtml(item, i) {
       lbl = `${f} new ${f === 1 ? 'client' : 'clients'} in the last 30 days`;
       href = 'clients'; icon = 'contacts';
     }
-    return `<div class="hm-w${size}" data-i="${i}">${strip}${tile(num, lbl, href, icon)}</div>`;
+    return `<div class="hm-w hm-num${size}" data-i="${i}">${strip}${tile(num, lbl, href, icon)}</div>`;
   }
   if (item.view === 'list') {
     return `<div class="hm-w${size}" data-i="${i}">${strip}<div class="card fill hm-card">
@@ -6690,10 +6696,6 @@ function bookFromPerson() {
   closePerson(); setTimeout(() => openBooking(c), 170);
 }
 $('pxBook').onclick = bookFromPerson;
-$('pxEdit').onclick = () => {
-  const c = currentPerson(); if (!c) return;
-  closePerson(); setTimeout(() => openContact(c), 150);
-};
 $('pxLeft').onclick = (e) => {
   const edit = e.target.closest('[data-px-edit]');
   if (edit) {
@@ -9218,11 +9220,12 @@ function loadAccount() {
 
 // Settings opens on Salon; the person chip and /account open Team.
 let setTab = 'salon';
-const SET_TABS = ['salon', 'team', 'marketing', 'billing', 'payroll', 'karen'];
+const SET_TABS = ['salon', 'team', 'marketing', 'payroll', 'karen'];
 
 function showSetting(name) {
+  // Billing is a card on Salon now; an old billing link lands there.
   if (!SET_TABS.includes(name)) name = 'salon';
-  if ((name === 'billing' || name === 'payroll') && !me?.user?.canAdmin) name = 'salon';
+  if (name === 'payroll' && !me?.user?.canAdmin) name = 'salon';
   setTab = name;
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
@@ -9921,9 +9924,9 @@ async function start(landing) {
   $('app').classList.remove('hidden');
 
   paintMe();
-  // Settings is everyone's now (Team Settings lives there); Billing and
-  // Payroll are the tabs only owners, admins and managers see.
-  for (const b of document.querySelectorAll('#setSeg [data-admin], #mktSeg [data-admin]')) b.classList.toggle('hidden', !me.user.canAdmin);
+  // Settings is everyone's now (Team Settings lives there); the Billing
+  // card and the Payroll tab are only for owners, admins and managers.
+  for (const b of document.querySelectorAll('#setSeg [data-admin], #mktSeg [data-admin], #billingCard')) b.classList.toggle('hidden', !me.user.canAdmin);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
 
