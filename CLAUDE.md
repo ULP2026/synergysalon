@@ -840,8 +840,8 @@ made that way are real: name them ZZ and remove them.
   no spin. Primary buttons use `--cta-grad` and `--cta-shadow`, hover is
   opacity .9, and only the page's one primary carries `--cta-glow` (capped at
   RocketOS's gold-glow strength). Ambient page light stays at about 5%.
-- The salon's logo is a chip of its own right of the menu pill, before the
-  person chip (2026-10-26); it used to be inside the pill. Under 640px it is
+- The salon's logo is a chip of its own left of the menu pill (2026-10-26;
+  briefly on the right that day); it used to be inside the pill. Under 640px it is
   hidden so the menu fits a phone. The client profile has no header Edit
   button: each card's pencil edits in place. On Home under 760px the two
   figure tiles (`.hm-num`) stay side by side, half each.
