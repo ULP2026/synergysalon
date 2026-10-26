@@ -369,9 +369,11 @@ made that way are real: name them ZZ and remove them.
 
 ## Staff console
 
-- Home (`/staff`) is a grid of widgets the admin arranges: Customize (top
-  right, only for `canManageTeam`, the same "admin" as team management)
-  turns each card into an editor (move earlier or later, Bars/Line/Table
+- Home (`/staff`) is a grid of widgets the admin arranged. The Customize
+  button (top right, only for `canManageTeam`) was removed on request on
+  2026-10-26, so Home shows the saved layout and nobody can change it from
+  the console; the editor code is still there, unreachable. Customize
+  turned each card into an editor (move earlier or later, Bars/Line/Table
   where the widget has them, Half or Full width, remove), with Add widget,
   Reset (to the default, not saved until Save), Cancel and Save. The layout
   is one per salon, `tenants.home_layout` (019, also in ensure-schema), saved

@@ -2683,10 +2683,6 @@
         <h1 id="pageTitle">Home</h1>
         <p class="sub" id="pageSub"></p>
       </div>
-      <!-- Home only, and only for the admin: arrange the dashboard. -->
-      <button type="button" class="btn quiet hidden" id="homeEdit">
-        <svg class="ic"><use href="#i-settings"/></svg><span>Customize</span>
-      </button>
       <button class="btn primary" id="primaryBtn">
         <svg class="ic"><use href="#i-plus"/></svg><span id="primaryLbl">New appointment</span>
       </button>
@@ -4891,7 +4887,6 @@ function go(name, { push = true } = {}) {
   $('pageSub').textContent = name === 'home' ? greeting() : p.sub;
   // One primary action per view, and none where there is nothing to do yet.
   $('primaryBtn').classList.toggle('hidden', !p.action);
-  $('homeEdit').classList.toggle('hidden', !(name === 'home' && homeData?.canCustomize) || homeEditing);
   // Leaving Home ends customizing without saving, as Cancel would.
   if (name !== 'home' && homeEditing) { homeLayout = JSON.parse(homeBefore || '[]'); homeEditing = false; }
   if (p.action) $('primaryLbl').textContent = p.action;
@@ -5086,7 +5081,6 @@ async function loadHome() {
     if (seq !== homeSeq) return;
     homeData = h;
     if (!homeEditing) homeLayout = h.layout.map((x) => ({ ...x }));
-    $('homeEdit').classList.toggle('hidden', !(h.canCustomize && page === 'home') || homeEditing);
 
     const pending = me.user.canManageTeam ? (me.pendingApprovals || 0) : 0;
     $('hmPending').innerHTML = pending
@@ -5107,7 +5101,7 @@ function renderHome() {
   if (!homeLayout.length) {
     $('hmGrid').innerHTML = `<div class="card w-full">${emptyState({
       icon: 'dashboard', title: 'Home is empty',
-      text: homeEditing ? 'Add a widget to start.' : (h.canCustomize ? 'Choose Customize to add widgets.' : 'Your admin has not added anything here yet.'),
+      text: homeEditing ? 'Add a widget to start.' : 'Nothing has been added here yet.',
     })}</div>`;
     return;
   }
@@ -5364,18 +5358,12 @@ $('hmGrid').addEventListener('focusin', (e) => { const c = e.target.closest('.hm
 $('hmGrid').addEventListener('focusout', hideTip);
 
 // ── Customize: the admin only, saved for the whole team ───────────────────
-
-$('homeEdit').onclick = () => {
-  if (!homeData?.canCustomize) return;
-  homeEditing = true;
-  homeBefore = JSON.stringify(homeLayout);
-  $('homeEdit').classList.add('hidden');
-  renderHome();
-};
+// The Customize button was removed on request (2026-10-26), so nothing
+// starts editing now and Home shows the salon's saved layout. The editor
+// below is kept, unreachable, so it can come back with a button.
 
 function stopEditing() {
   homeEditing = false;
-  $('homeEdit').classList.toggle('hidden', !homeData?.canCustomize);
   renderHome();
 }
 
