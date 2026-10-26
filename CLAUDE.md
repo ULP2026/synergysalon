@@ -536,8 +536,9 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: a Salon tab (Where do you want people to reply to, then Salon Profile; key `salon`, where Settings opens) and a Team tab (Team Members, Appearance, Sign out; key `team`, where the person chip and `/account` open), split on request on 2026-10-23 after a week as one "Salon & Team" page, and Billing and Payroll for owners, admins and managers (Payroll, right
-  of Billing, is a "Coming soon" card like Billing's, added 2026-10-16). It has no Calendars tab:
+  for everyone: a Salon tab (Where do you want people to reply to, then Salon Profile; key `salon`, where Settings opens) and a Team tab (Team Members, Appearance, Sign out; key `team`, where the person chip and `/account` open), split on request on 2026-10-23 after a week as one "Salon & Team" page, and Payroll for owners, admins and managers (a "Coming soon"
+  card, added 2026-10-16). Billing, also "Coming soon" and for the same people, is a card on Salon
+  under the reply-to address since 2026-10-26, no longer a tab of its own. It has no Calendars tab:
   calendars are made from Appt. Book's "Create a calendar" note (shown only
   while there are none) or `/staff/calendars`, without choosing members for now
   (stylists are not on the app yet; calendar settings saves members back
@@ -839,6 +840,11 @@ made that way are real: name them ZZ and remove them.
   no spin. Primary buttons use `--cta-grad` and `--cta-shadow`, hover is
   opacity .9, and only the page's one primary carries `--cta-glow` (capped at
   RocketOS's gold-glow strength). Ambient page light stays at about 5%.
+- The salon's logo is a chip of its own right of the menu pill, before the
+  person chip (2026-10-26); it used to be inside the pill. Under 640px it is
+  hidden so the menu fits a phone. The client profile has no header Edit
+  button: each card's pencil edits in place. On Home under 760px the two
+  figure tiles (`.hm-num`) stay side by side, half each.
 
 ## Small screens
 
