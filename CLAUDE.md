@@ -946,6 +946,42 @@ marketing). What the campaign describes must stay true on the site:
   (`0502ac51…png`, Geist `fe9fff11…`, Anton `3828f8dd…`); after an export,
   check those still exist.
 
+## Karen on Claude (Opus 5.5), from 2026-10-27
+
+With `ANTHROPIC_API_KEY` set (Production, since 2026-10-27), a **client's**
+texts are read by `claude-opus-5-5` at low effort (`api/_lib/karen-ai.js`);
+the team's still go to the rules, which answer schedule questions exactly.
+What keeps it safe is outside the model, so keep it there:
+
+- **The model only proposes.** Its tools look up free times or *propose* a
+  booking, move or cancellation; the proposal waits on `karen_threads.state`.
+  `smart()` in `karen-sms.js` carries it out only when the client's next text
+  is a plain yes (`PLAIN_YES`), through the rules' own `bookIt`/`moveIt`/
+  `cancelIt`, and a plain no drops it. **A proposal lives for one reply:**
+  anything else drops it, so "no wait, keep it" and a later "yes" cancel
+  nothing. Do not let the model's text, or a tool, commit a change.
+- Times come only from `availableSlots` (`openTimes`, `stillFree`), checked
+  at proposal and again on yes. Appointments are a numbered list of the
+  texter's own, so the model can neither name nor reach anybody else's.
+- No prices reach it (its service list has none); its rules give the one
+  cleared figure, AI scalp analysis $40.
+- `alert_salon` emails the reply-to inbox (`sendKarenAlert`, hair@ for
+  Synergy) once a conversation, with the conversation in it.
+- Every change leaves a dated line on the client's notes.
+- The STOP/HELP line on a conversation's first reply is added by code, never
+  left to the model. Changes the system made are told back to the model
+  ("Done in this conversation"), because without that it read the system's
+  "All set!" as its own mistake and told the client nothing had moved.
+- If the model fails (error, refusal, timeout at 30s, six tool rounds), the
+  rules answer that text.
+- **Replies are sent after the webhook returns.** The model takes 2 to 7
+  seconds and Twilio gives up at 15, so with the key and
+  `TWILIO_ACCOUNT_SID` set the SMS webhook answers empty at once and
+  `waitUntil` sends Karen's reply through Twilio's Messages API
+  (`sendText`). Without either it answers inline with the rules, as before.
+- Tests use a scripted stand-in for Claude (`tests/karen-ai.integration.test.js`):
+  they cost nothing and test the guarantees above, not the wording.
+
 ## Local setup
 
 ```bash

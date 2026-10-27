@@ -22,6 +22,11 @@
  * booking is paused, Karen says so and gives the salon's number. Moving and
  * cancelling an appointment that exists works either way, as on the manage
  * page.
+ *
+ * Since 2026-10-27, when ANTHROPIC_API_KEY is set, a client's texts are read
+ * by Claude Opus 5.5 instead (karen-ai.js), and these rules are what answers
+ * if the model cannot: the model only proposes, and a change is still made
+ * here, by the same functions, once the client replies yes.
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
@@ -31,8 +36,9 @@ import { availableSlots } from './availability.js';
 import { createBooking } from './booking.js';
 import { ONLINE_BOOKING } from './config.js';
 import { EXCLUSION_VIOLATION, query, transaction } from './db.js';
-import { sendCancellation, sendConfirmation, sendReschedule } from './email.js';
+import { sendCancellation, sendConfirmation, sendKarenAlert, sendReschedule } from './email.js';
 import { mirrorToGoogle } from './google-mirror.js';
+import { aiReply, karenAi } from './karen-ai.js';
 
 /** A conversation left this long is a new one: "2" no longer means the old list. */
 const THREAD_TTL_MIN = 30;
@@ -73,6 +79,31 @@ export function twilioSignatureOk(url, params, signature, token) {
   const want = Buffer.from(createHmac('sha1', token).update(Buffer.from(data, 'utf-8')).digest('base64'));
   const got = Buffer.from(String(signature));
   return want.length === got.length && timingSafeEqual(want, got);
+}
+
+/**
+ * Send a text from Karen's number through the phone provider's API: how a
+ * reply goes out when it is not the webhook's own answer (Karen on Claude
+ * answers after the webhook has returned). Needs TWILIO_ACCOUNT_SID beside
+ * the auth token.
+ */
+export async function sendText({ to, from, body }, fetchImpl = fetch) {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  if (!sid || !token) throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are needed to send a text');
+  const res = await fetchImpl(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(sid)}/Messages.json`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({ To: to, From: from, Body: body }),
+  });
+  if (!res.ok) {
+    const why = await res.text().catch(() => '');
+    throw new Error(`Twilio refused the text (${res.status}): ${why.slice(0, 300)}`);
+  }
+  return res.json();
 }
 
 /** The salon whose Karen number this text was sent to. */
@@ -191,7 +222,11 @@ const CARRIER_KEYWORDS = new Set(['stop', 'stopall', 'unsubscribe', 'cancel', 'e
   'help', 'info', 'start', 'unstop']);
 export const isCarrierKeyword = (text) => CARRIER_KEYWORDS.has(String(text || '').trim().toLowerCase().replace(/[^a-z]/g, ''));
 
-export async function karenReply(tenant, from, text, db = { query }) {
+/**
+ * `ai` is the Anthropic client (a stand-in in tests); by default the real
+ * one when ANTHROPIC_API_KEY is set, else none and the rules answer.
+ */
+export async function karenReply(tenant, from, text, db = { query }, { ai = karenAi() } = {}) {
   if (isCarrierKeyword(text)) return '';
   const key = phoneKey(from);
   const t = String(text || '').trim().toLowerCase().replace(/[’']/g, "'").slice(0, 400);
@@ -199,20 +234,179 @@ export async function karenReply(tenant, from, text, db = { query }) {
   const state = key ? await loadThread(db, tenant.id, key) : null;
   // A name the first time in a while: "Hi Dina!" once, not on every reply.
   const hello = state ? '' : who.name ? `Hi ${first(who.name)}! ` : "Hi! I'm Karen, the assistant at " + `${tenant.name}. `;
-  const ctx = { tenant, who, key, t, raw: String(text || '').trim(), db };
+  const ctx = { tenant, who, key, t, raw: String(text || '').trim().slice(0, 600), db };
 
   let out;
   try {
-    out = await route(ctx, state || {});
+    // The team asks about the schedule, which the rules answer exactly.
+    out = ai && who.kind !== 'staff' ? await smart(ctx, state || {}, ai) : await route(ctx, state || {});
   } catch (err) {
     console.error('karen-sms failed', err);
     out = { say: `Sorry, something went wrong on my end. Please call the salon${tenant.phone ? ` at ${prettyPhone(tenant.phone) || tenant.phone}` : ''}.`, state: {} };
   }
   if (key) await saveThread(db, tenant.id, key, out.state || {});
   // The first reply in a conversation says how to stop and get help, as the
-  // salon's texting registration (A2P 10DLC) promises the carriers.
-  return hello + out.say + (state ? '' : '\n\nReply STOP to opt out, HELP for help.');
+  // salon's texting registration (A2P 10DLC) promises the carriers. That
+  // line is added here, never left to the model.
+  return (out.greeted ? '' : hello) + out.say + (state ? '' : '\n\nReply STOP to opt out, HELP for help.');
 }
+
+// ── Karen on Claude (karen-ai.js) ────────────────────────────────────────
+
+/** A whole message that only says yes, or only says no: anything more is read by the model. */
+const PLAIN_YES = /^(y|yes|yeah|yep|yup|ya|sure|ok|okay|k|confirm|confirmed|please do|do it|go ahead|correct|sounds good|perfect|great)( please| thanks| thank you)?[\s!.]*$/;
+const PLAIN_NO = /^(n|no|nope|nah|no thanks|no thank you|never ?mind|keep it|don'?t)[\s!.]*$/;
+
+/**
+ * A client's text with the model in charge of the conversation. A plain yes
+ * to what it proposed is carried out here, not by the model; so is a plain no.
+ * If the model fails, the rules answer this one text.
+ */
+async function smart(ctx, st, ai) {
+  const base = st.ai ? st : { ai: true, history: [] };
+  const remember = (say, next) => ({
+    ...next,
+    history: [...(next.history || base.history), { role: 'user', text: ctx.raw }, { role: 'assistant', text: say }].slice(-16),
+  });
+
+  if (base.pending && PLAIN_YES.test(ctx.t)) {
+    const done = await carryOut(ctx, base.pending);
+    // Told to the model next time, so it knows the "All set" was real.
+    const record = done.taken ? base.done || [] : [...(base.done || []), base.pending.summary].slice(-5);
+    return { say: done.say, greeted: true, state: remember(done.say, { ...base, pending: null, done: record }) };
+  }
+  if (base.pending && PLAIN_NO.test(ctx.t)) {
+    const say = 'No problem, nothing has changed. Anything else I can help with?';
+    return { say, greeted: true, state: remember(say, { ...base, pending: null }) };
+  }
+  try {
+    const out = await aiReply(ctx, base, { ...AI_DEPS, describe: (a) => describe(a, ctx.tenant.timezone) }, ai);
+    return { say: out.say, greeted: true, state: remember(out.say, out.state) };
+  } catch (err) {
+    console.error('karen-ai failed; the rules answer instead', err);
+    return route(ctx, {});
+  }
+}
+
+/** The yes: the proposal made by the very functions the rules use. */
+async function carryOut(ctx, p) {
+  const zone = ctx.tenant.timezone;
+  if (p.kind === 'book') {
+    const { rows: [service] } = await ctx.db.query(
+      'SELECT slug, name, category FROM services WHERE tenant_id = $1::uuid AND slug = $2::text AND active',
+      [ctx.tenant.id, p.service],
+    );
+    if (!service || !ONLINE_BOOKING) return { say: 'Sorry, I can\'t book that by text right now. Please call the salon.' };
+    const out = await bookIt(ctx, service, p.start, p.name, { stylistSlug: p.stylist, offerAgain: false });
+    if (!out.taken) await noteOnClient(ctx, `Booked by text with Karen: ${service.name}, ${when(p.start, zone)}.`);
+    return out;
+  }
+  const a = await appointmentById(ctx, p.id);
+  if (!a) return { say: 'That appointment has already been changed. Ask me "what are my appointments?" to see where things stand.' };
+  if (p.kind === 'cancel') {
+    const out = await cancelIt(ctx, a);
+    await noteOnClient(ctx, `Cancelled by text with Karen: ${describe(a, zone)}.`);
+    return out;
+  }
+  const out = await moveIt(ctx, a, p.start, { offerAgain: false });
+  if (!out.taken) await noteOnClient(ctx, `Moved by text with Karen: ${describe(a, zone)} to ${when(p.start, zone)}.`);
+  return out;
+}
+
+/** A dated line on the client's notes, newest first, as the contact form leaves one. */
+async function noteOnClient(ctx, text) {
+  if (ctx.who.kind !== 'client') return;
+  const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
+  await ctx.db.query(
+    `UPDATE contacts
+        SET notes = CASE WHEN coalesce(notes, '') = '' THEN $2 ELSE $2 || E'\\n\\n' || notes END,
+            updated_at = now()
+      WHERE id = $1::uuid`,
+    [ctx.who.id, `${stamp} UTC · ${text}`],
+  ).catch((err) => console.error('karen note failed', err));
+}
+
+/**
+ * The free times for a new visit, or for moving `a` (same stylist, its own
+ * length), as availableSlots gives them to a guest. A service nobody offers
+ * online is no times rather than an error.
+ */
+async function freeDays(client, tenant, { appointment: a, serviceSlug, stylistSlug, from, to }) {
+  try {
+    const { days } = await availableSlots(client, tenant, a ? {
+      serviceSlug: a.service_slug,
+      stylistSlug: a.stylist_slug,
+      fromDate: from,
+      toDate: to,
+      excludeAppointmentId: a.id,
+      google: true,
+      length: { durationMin: a.duration_min, bufferMin: a.buffer_min, breaks: a.breaks },
+    } : { serviceSlug, stylistSlug, fromDate: from, toDate: to, google: true });
+    return days;
+  } catch (err) {
+    if (err.status === 404 || err.status === 400) return [];
+    throw err;
+  }
+}
+
+/** Times as the model is shown them: a few a day across the range, and who has each. */
+async function openTimes(ctx, opts) {
+  return inTx(ctx.db, async (client) => {
+    const days = await freeDays(client, ctx.tenant, opts);
+    const picked = [];
+    for (const d of days) {
+      const slots = d.slots || [];
+      // Morning, middle and end of the day, so "after work" has something.
+      const idx = [...new Set([0, Math.floor(slots.length / 2), slots.length - 1])].filter((i) => i >= 0 && i < slots.length);
+      for (const i of idx) if (picked.length < 12) picked.push(slots[i]);
+      if (picked.length >= 12) break;
+    }
+    const ids = [...new Set(picked.flatMap((s) => s.stylistIds || []))];
+    const { rows } = ids.length
+      ? await client.query('SELECT id, name FROM stylists WHERE id = ANY($1::uuid[])', [ids])
+      : { rows: [] };
+    const names = new Map(rows.map((r) => [r.id, first(r.name)]));
+    return picked.map((s) => ({ start: s.start, with: (s.stylistIds || []).map((id) => names.get(id)).filter(Boolean).join(', ') }));
+  });
+}
+
+/** Is this exact start still free? Asked again at proposal, and again by bookIt and moveIt on yes. */
+async function stillFree(ctx, { appointment: a, serviceSlug, stylistSlug, start }) {
+  const at = DateTime.fromISO(String(start || ''), { setZone: true });
+  if (!at.isValid) return false;
+  const day = at.setZone(ctx.tenant.timezone).toISODate();
+  const days = await inTx(ctx.db, (client) => freeDays(client, ctx.tenant, { appointment: a, serviceSlug, stylistSlug, from: day, to: day }));
+  return days.flatMap((d) => d.slots || []).some((s) => DateTime.fromISO(s.start).toMillis() === at.toMillis());
+}
+
+/** What the model may know: the menu (no prices), who can be booked, and this texter's own visits. */
+async function facts(ctx) {
+  const { tenant, db } = ctx;
+  const { rows: services } = await db.query(
+    'SELECT slug, name, category FROM services WHERE tenant_id = $1::uuid AND active ORDER BY category, name',
+    [tenant.id],
+  );
+  const { rows: stylists } = await db.query(
+    `SELECT slug, name FROM stylists
+      WHERE tenant_id = $1::uuid AND active AND (to_jsonb(stylists) ->> 'removed_at') IS NULL
+      ORDER BY name`,
+    [tenant.id],
+  );
+  return { services, stylists, upcoming: await upcoming(ctx), bookingOpen: ONLINE_BOOKING };
+}
+
+async function alert(ctx, { reason, summary, transcript }) {
+  await sendKarenAlert({
+    name: ctx.who.name || '',
+    phone: prettyPhone(ctx.key) || '',
+    known: ctx.who.kind === 'client',
+    reason,
+    summary,
+    transcript,
+  }, ctx.tenant);
+}
+
+const AI_DEPS = { facts, openTimes, stillFree, alert };
 
 async function route(ctx, state) {
   const { t, who } = ctx;
@@ -431,7 +625,7 @@ async function cancelIt(ctx, a) {
   return { say: `Done: your ${describe(a, tenant.timezone)} is cancelled. Text "book" whenever you'd like to come back in.`, state: {} };
 }
 
-async function moveIt(ctx, a, start) {
+async function moveIt(ctx, a, start, { offerAgain = true } = {}) {
   const { tenant } = ctx;
   const zone = tenant.timezone;
   const startsAt = DateTime.fromISO(start, { setZone: true }).setZone(zone);
@@ -468,6 +662,9 @@ async function moveIt(ctx, a, start) {
     appt = null;
   }
   if (!appt) {
+    // With the model talking, a numbered list would be a step it knows
+    // nothing about: it is asked to look again instead.
+    if (!offerAgain) return { say: 'Sorry, that time was just taken. Want me to find you another one?', taken: true, state: {} };
     const again = await offerMove(ctx, a);
     return { say: `Sorry, that time was just taken. ${again.say}`, state: again.state };
   }
@@ -548,13 +745,13 @@ async function offerBook(ctx, service, day = null) {
   };
 }
 
-async function bookIt(ctx, service, start, name) {
+async function bookIt(ctx, service, start, name, { stylistSlug = null, offerAgain = true } = {}) {
   const { tenant, who, key } = ctx;
   let appt;
   try {
     appt = await inTx(ctx.db, (client) => createBooking(client, tenant, {
       serviceSlug: service.slug,
-      stylistSlug: null,
+      stylistSlug,
       start,
       guestName: name,
       guestEmail: who.email || '',
@@ -565,6 +762,7 @@ async function bookIt(ctx, service, start, name) {
     }));
   } catch (err) {
     if (err.status !== 409) throw err;
+    if (!offerAgain) return { say: 'Sorry, that time was just taken. Want me to find you another one?', taken: true, state: {} };
     const again = await offerBook(ctx, service);
     return { say: `Sorry, that time was just taken. ${again.say}`, state: again.state };
   }
@@ -574,7 +772,7 @@ async function bookIt(ctx, service, start, name) {
   await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', appt.ref, err));
   return {
     say: `You're booked, ${first(name)}! ${service.name} with ${first(appt.stylist_name)} on ${when(appt.starts_at, tenant.timezone)}. `
-      + `Your reference is ${appt.ref}. Text me any time to move or cancel it.`,
+      + 'Text me any time to move or cancel it.',
     state: {},
   };
 }

@@ -141,7 +141,7 @@ function layout({ heading, intro, rows, action, secondary, where, change, steps,
     .map(([label, value]) => `
       <tr>
         <td style="padding:7px 16px 7px 0;color:${MUTED};font-size:14px;">${escapeHtml(label)}</td>
-        <td style="padding:7px 0;color:${INK};font-size:14px;font-weight:600;">${escapeHtml(value)}</td>
+        <td style="padding:7px 0;color:${INK};font-size:14px;font-weight:600;white-space:pre-line;">${escapeHtml(value)}</td>
       </tr>`)
     .join('');
 
@@ -407,6 +407,35 @@ export function sendContactNotice({ name, email, phone, message, consent }, tena
       ['Mobile', pretty],
       ['Texts', consent ? 'Agreed to appointment texts' : 'Did not agree to texts'],
       ['Message', message],
+    ],
+  });
+}
+
+/**
+ * Karen asking for a person (karen-ai.js, alert_salon): a complaint, a
+ * consultation, somebody who wants to talk to the salon. Goes to the same
+ * inbox as client replies (the reply-to set in Settings, else the salon's
+ * email), with the conversation so the team need not ask again. Not a guest
+ * message, so not in MESSAGES or Email History.
+ */
+export function sendKarenAlert({ name, phone, known, reason, summary, transcript = [] }, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const to = shop.replyTo;
+  if (!to) return Promise.resolve({ skipped: true });
+  const who = name || phone || 'A client';
+  const said = transcript.slice(-10)
+    .map((m) => `${m.role === 'user' ? (first(name) === 'there' ? 'Client' : first(name)) : 'Karen'}: ${m.text}`)
+    .join('\n');
+  return send(shop, to, `Karen needs you: ${who} (${reason})`, {
+    heading: 'A client needs a person',
+    intro: `${who} texted Karen, and Karen has handed this to you. Please call or text them back.`,
+    rows: [
+      ['Name', name || 'Not on file'],
+      ['Mobile', phone || 'Unknown'],
+      ['On file', known ? 'Yes, a client of the salon' : 'No, a new number'],
+      ['Why', reason],
+      ['Summary', summary],
+      ...(said ? [['Conversation', said]] : []),
     ],
   });
 }

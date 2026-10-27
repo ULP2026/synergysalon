@@ -12,7 +12,10 @@
  * Point the number's "A message comes in" webhook at .../karen-sms and its
  * "A call comes in" webhook at .../karen-voice, both HTTP POST.
  */
-import { karenReply, tenantIdForKarenNumber, twilioSignatureOk, whoIsTexting } from '../../_lib/karen-sms.js';
+import { waitUntil } from '@vercel/functions';
+
+import { karenAi } from '../../_lib/karen-ai.js';
+import { karenReply, sendText, tenantIdForKarenNumber, twilioSignatureOk, whoIsTexting } from '../../_lib/karen-sms.js';
 import { query } from '../../_lib/db.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
@@ -68,6 +71,15 @@ export default async function karenWebhook(req, res) {
       return twiml(res, 200, `<Say voice="Polly.Joanna">${hi}This is Karen, the assistant at ${xml(tenant.name)}. `
         + 'You can text this number any time to book, move or cancel an appointment.'
         + `${salon ? ' Let me put you through to the salon now.</Say>' + `<Dial>${xml(salon)}</Dial>` : ' Talk soon!</Say>'}`);
+    }
+    if (karenAi() && process.env.TWILIO_ACCOUNT_SID) {
+      // Karen on Claude can take several seconds and the phone provider gives
+      // up on a webhook at fifteen, so this one answers at once and her
+      // reply goes out as its own text when it is ready.
+      waitUntil(karenReply(tenant, params.From, params.Body || '')
+        .then((say) => say && sendText({ to: params.From, from: params.To, body: say }))
+        .catch((err) => console.error('karen reply not sent', err)));
+      return twiml(res, 200, '');
     }
     const say = await karenReply(tenant, params.From, params.Body || '');
     // Nothing to say to STOP, HELP and the like: the provider answers those.
