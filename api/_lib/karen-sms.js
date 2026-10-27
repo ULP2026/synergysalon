@@ -180,7 +180,19 @@ async function saveThread(db, tenantId, key, state) {
  * Karen's answer to one text. `tenant` is the salon's row (tenantForUser's
  * columns), `from` the sender's number, `text` what they wrote.
  */
+/**
+ * The carriers' own keywords, sent as a whole message. The phone provider
+ * answers these itself (unsubscribe, help, resubscribe) and blocks texts to
+ * a number that has opted out, so Karen stays quiet rather than talk over
+ * it. "cancel" alone is one of them: it unsubscribes, which is why Karen
+ * asks people to say "cancel my appointment" instead.
+ */
+const CARRIER_KEYWORDS = new Set(['stop', 'stopall', 'unsubscribe', 'cancel', 'end', 'quit', 'revoke', 'optout',
+  'help', 'info', 'start', 'unstop']);
+export const isCarrierKeyword = (text) => CARRIER_KEYWORDS.has(String(text || '').trim().toLowerCase().replace(/[^a-z]/g, ''));
+
 export async function karenReply(tenant, from, text, db = { query }) {
+  if (isCarrierKeyword(text)) return '';
   const key = phoneKey(from);
   const t = String(text || '').trim().toLowerCase().replace(/[’']/g, "'").slice(0, 400);
   const who = await whoIsTexting(db, tenant.id, from);
@@ -197,7 +209,9 @@ export async function karenReply(tenant, from, text, db = { query }) {
     out = { say: `Sorry, something went wrong on my end. Please call the salon${tenant.phone ? ` at ${prettyPhone(tenant.phone) || tenant.phone}` : ''}.`, state: {} };
   }
   if (key) await saveThread(db, tenant.id, key, out.state || {});
-  return hello + out.say;
+  // The first reply in a conversation says how to stop and get help, as the
+  // salon's texting registration (A2P 10DLC) promises the carriers.
+  return hello + out.say + (state ? '' : '\n\nReply STOP to opt out, HELP for help.');
 }
 
 async function route(ctx, state) {
@@ -237,7 +251,7 @@ function menu({ who }, unsure = false) {
     return { say: `${lead}I can tell you what's on your schedule. Try "today", "tomorrow", "Friday" or "this week".`, state: {} };
   }
   return {
-    say: `${lead}I can book an appointment, tell you when yours is, or move or cancel it. Just say "book", "my appointments", "reschedule" or "cancel".`,
+    say: `${lead}I can book an appointment, tell you when yours is, or move or cancel it. Just say "book", "my appointments", "reschedule" or "cancel my appointment".`,
     state: {},
   };
 }
@@ -308,7 +322,7 @@ async function myAppointments(ctx) {
   }
   if (!list.length) return { say: 'You have no upcoming appointments. Text "book" to make one!', state: {} };
   return {
-    say: `Here's what you have coming up:\n${list.map((a) => `• ${describe(a, zone)}`).join('\n')}\nText "reschedule" or "cancel" to change one.`,
+    say: `Here's what you have coming up:\n${list.map((a) => `• ${describe(a, zone)}`).join('\n')}\nText "reschedule" or "cancel my appointment" to change one.`,
     state: {},
   };
 }

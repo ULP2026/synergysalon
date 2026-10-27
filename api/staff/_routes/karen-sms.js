@@ -70,7 +70,8 @@ export default async function karenWebhook(req, res) {
         + `${salon ? ' Let me put you through to the salon now.</Say>' + `<Dial>${xml(salon)}</Dial>` : ' Talk soon!</Say>'}`);
     }
     const say = await karenReply(tenant, params.From, params.Body || '');
-    return twiml(res, 200, `<Message>${xml(say)}</Message>`);
+    // Nothing to say to STOP, HELP and the like: the provider answers those.
+    return twiml(res, 200, say ? `<Message>${xml(say)}</Message>` : '');
   } catch (err) {
     console.error('karen webhook failed', err);
     return twiml(res, 200, voice ? '<Say>Sorry, something went wrong. Please call the salon.</Say>'

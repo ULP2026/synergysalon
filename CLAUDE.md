@@ -913,6 +913,39 @@ Tracking on and no failed build to show for it. Confirm what is live by
 fetching the page and counting something you changed, rather than trusting
 the dashboard; recover by creating the production deployment from the sha.
 
+## Texting (A2P 10DLC), from 2026-10-27
+
+The salon is registering a Twilio number for texting (account under
+support@unclelouieproductions.com; brand "SYNERGY SALON OF TAMPA BAY INC",
+campaign Low Volume Mixed: customer care and appointment notifications, no
+marketing). What the campaign describes must stay true on the site:
+
+- **`/contact`** (`contact.html`) is the registered opt-in: name, email, an
+  optional mobile number, a message, and an **optional, unticked** consent
+  box whose wording was registered with the carriers. Do not make the box
+  required, pre-tick it, or add marketing to its wording. It posts to
+  `/api/enquiry` with `kind: 'contact'` (`api/_lib/contact-form.js`; no
+  new function, the project is at twelve): the contact is saved with a
+  dated note saying where and how they agreed, `sms_ok` goes on only for a
+  ticked box with a 10-digit number, an unticked box never turns a yes off,
+  and the salon is emailed (`sendContactNotice`, reply goes to the guest).
+  A hidden field and a 2.5-second floor quietly drop bots.
+- **Privacy Policy section 4 and Terms section 11** are the texting terms
+  (`#sms`), including "No mobile information will be shared with third
+  parties or affiliates for marketing or promotional purposes."
+- **Karen** stays silent on a whole-message carrier keyword (STOP, CANCEL,
+  END, QUIT, HELP, START and the rest, `isCarrierKeyword`): the provider
+  answers those, and "cancel" alone unsubscribes, so she tells people to say
+  "cancel my appointment". Her first reply in a conversation ends "Reply STOP
+  to opt out, HELP for help."
+- `contacts.sms_ok` **defaults to true** (031) and so is not consent. Anything
+  that starts sending texts must decide what counts as opted in first.
+- The standalone pages (contact, privacy, terms) once pointed at a logo and
+  fonts a site export deleted, so the live Privacy and Terms showed a broken
+  logo for weeks. They now use the homepage's own files
+  (`0502ac51…png`, Geist `fe9fff11…`, Anton `3828f8dd…`); after an export,
+  check those still exist.
+
 ## Local setup
 
 ```bash

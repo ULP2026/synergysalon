@@ -388,6 +388,30 @@ export function sendInvite({ name, email, link, appUrl, expiresDays }, tenant = 
 }
 
 /**
+ * A message from the website's contact form, to the salon's own inbox (the
+ * reply-to set in Settings, else the salon's email). Replying answers the
+ * guest, because their address is the reply-to. Not a guest message, so it
+ * is not in MESSAGES, not logged in Email History and not switchable.
+ */
+export function sendContactNotice({ name, email, phone, message, consent }, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const to = shop.replyTo;
+  if (!to) return Promise.resolve({ skipped: true });
+  const pretty = phone ? `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}` : 'Not given';
+  return send({ ...shop, replyTo: email }, to, `New website message from ${name}`, {
+    heading: 'New message from the website',
+    intro: `${name} sent this through the contact form on your website. Reply to this email to answer them.`,
+    rows: [
+      ['Name', name],
+      ['Email', email],
+      ['Mobile', pretty],
+      ['Texts', consent ? 'Agreed to appointment texts' : 'Did not agree to texts'],
+      ['Message', message],
+    ],
+  });
+}
+
+/**
  * Each guest message as data: its subject and what goes in it.
  *
  * Kept apart from sending so the staff app can show the very message a guest

@@ -85,6 +85,8 @@ test('Karen greets people by name, reads a stylist\'s day, and cancels and moves
     assert.match(day, /^Hi ZZ!/);
     assert.match(day, /Tomorrow you have 1 appointment/);
     assert.match(day, /2:00 PM ZZ C\., Haircut/);
+    // The first reply of a conversation says how to stop and get help; later ones do not.
+    assert.match(day, /Reply STOP to opt out, HELP for help\.$/);
 
     // The client: recognised by name, and her one appointment cancelled
     // only after she says yes.
@@ -93,7 +95,13 @@ test('Karen greets people by name, reads a stylist\'s day, and cancels and moves
     const kept = await karenReply(tenant, CLIENT_PHONE, 'no', client);
     assert.match(kept, /stays as it is/);
     assert.doesNotMatch(kept, /^Hi/, 'the greeting is once a conversation');
-    await karenReply(tenant, CLIENT_PHONE, 'cancel', client);
+    assert.doesNotMatch(kept, /Reply STOP/, 'the opt-out line is once a conversation');
+    // "cancel" alone is a carrier keyword (it unsubscribes), so Karen stays
+    // quiet on it; "cancel my appointment" is how she asks to be told.
+    assert.equal(await karenReply(tenant, CLIENT_PHONE, 'cancel', client), '');
+    assert.equal(await karenReply(tenant, CLIENT_PHONE, 'STOP', client), '');
+    assert.equal(await karenReply(tenant, CLIENT_PHONE, 'Help', client), '');
+    await karenReply(tenant, CLIENT_PHONE, 'cancel my appointment', client);
     const done = await karenReply(tenant, CLIENT_PHONE, 'YES', client);
     assert.match(done, /is cancelled/);
     const { rows: [gone] } = await client.query("SELECT status FROM appointments WHERE ref = 'ZZKAR1'");

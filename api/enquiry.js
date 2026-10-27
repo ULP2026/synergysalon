@@ -23,7 +23,8 @@ import { createBooking } from './_lib/booking.js';
 import { ONLINE_BOOKING } from './_lib/config.js';
 import { previewAllowed } from './_lib/preview.js';
 import { transaction } from './_lib/db.js';
-import { sendConfirmation } from './_lib/email.js';
+import { saveContactMessage } from './_lib/contact-form.js';
+import { sendConfirmation, sendContactNotice } from './_lib/email.js';
 import { mirrorToGoogle } from './_lib/google-mirror.js';
 import {
   handler, json, readJson, requireString,
@@ -156,6 +157,16 @@ export default handler({
   async POST(req, res) {
     const tenant = await tenantForRequest(req);
     const body = await readJson(req);
+    // The contact page's form (synergysalon.com/contact) comes in here too,
+    // because a file of its own would be a thirteenth function. It is a
+    // message and an optional texting consent, not a booking.
+    if (body.kind === 'contact') {
+      const saved = await saveContactMessage(tenant, body);
+      if (saved.contactId) {
+        try { await sendContactNotice(saved, tenant); } catch (err) { console.error('contact notice email failed', err); }
+      }
+      return json(res, 200, { saved: true });
+    }
     // Staff testing the paused popup with a pass from the console.
     const preview = previewAllowed(req, tenant);
 
