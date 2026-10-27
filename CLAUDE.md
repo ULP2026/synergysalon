@@ -937,6 +937,12 @@ marketing). What the campaign describes must stay true on the site:
   should read the same. Karen's first reply in a conversation ends
   "<salon name>: Reply STOP to opt out, HELP for help." so every
   conversation names the brand.
+- Every page's footer links it ("Contact & Text Updates", beside Privacy
+  Policy, 2026-10-27), because the carriers' reviewer looks for the opt-in
+  from the site itself and rejected the campaign once ("issues verifying the
+  Call to Action") while nothing linked to it. It sits in the design
+  template of the six bundled pages, so **a new export drops it**: re-add it,
+  or add it in Claude Design.
 - **Privacy Policy section 4 and Terms section 11** are the texting terms
   (`#sms`), including "No mobile information will be shared with third
   parties or affiliates for marketing or promotional purposes."
