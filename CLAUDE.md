@@ -929,7 +929,14 @@ marketing). What the campaign describes must stay true on the site:
   dated note saying where and how they agreed, `sms_ok` goes on only for a
   ticked box with a 10-digit number, an unticked box never turns a yes off,
   and the salon is emailed (`sendContactNotice`, reply goes to the guest).
-  A hidden field and a 2.5-second floor quietly drop bots.
+  A hidden field and a 2.5-second floor quietly drop bots. A ticked box
+  also texts the opt-in confirmation (`optInText`, from Karen's number) that
+  carriers require of every recurring programme and that the resubmitted
+  message flow (2026-10-27, after rejection 30909) says is sent; it fails
+  quietly until the number is approved. Twilio's own opt-in reply (START)
+  should read the same. Karen's first reply in a conversation ends
+  "<salon name>: Reply STOP to opt out, HELP for help." so every
+  conversation names the brand.
 - **Privacy Policy section 4 and Terms section 11** are the texting terms
   (`#sms`), including "No mobile information will be shared with third
   parties or affiliates for marketing or promotional purposes."

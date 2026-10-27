@@ -245,10 +245,10 @@ export async function karenReply(tenant, from, text, db = { query }, { ai = kare
     out = { say: `Sorry, something went wrong on my end. Please call the salon${tenant.phone ? ` at ${prettyPhone(tenant.phone) || tenant.phone}` : ''}.`, state: {} };
   }
   if (key) await saveThread(db, tenant.id, key, out.state || {});
-  // The first reply in a conversation says how to stop and get help, as the
-  // salon's texting registration (A2P 10DLC) promises the carriers. That
-  // line is added here, never left to the model.
-  return (out.greeted ? '' : hello) + out.say + (state ? '' : '\n\nReply STOP to opt out, HELP for help.');
+  // The first reply in a conversation names the salon and says how to stop
+  // and get help, as the salon's texting registration (A2P 10DLC) promises
+  // the carriers. That line is added here, never left to the model.
+  return (out.greeted ? '' : hello) + out.say + (state ? '' : `\n\n${tenant.name}: Reply STOP to opt out, HELP for help.`);
 }
 
 // ── Karen on Claude (karen-ai.js) ────────────────────────────────────────

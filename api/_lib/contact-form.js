@@ -17,6 +17,7 @@
  */
 import { query, transaction, hasColumn } from './db.js';
 import { HttpError, requireString } from './http.js';
+import { sendText } from './karen-sms.js';
 
 const clean = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
@@ -31,6 +32,36 @@ function mobileFrom(value) {
   let d = clean(value, 40).replace(/\D/g, '');
   if (d.length === 11 && d.startsWith('1')) d = d.slice(1);
   return d.length === 10 ? d : '';
+}
+
+/**
+ * The text a guest gets the moment they tick the box: what they signed up
+ * for, in the words the carriers require of every recurring programme's
+ * opt-in confirmation (brand, frequency, rates, HELP, STOP). The A2P
+ * registration's message flow says this is sent, and Twilio's own opt-in
+ * reply (START) should read the same.
+ */
+export function optInText(tenant = {}) {
+  const shop = tenant.name || 'the salon';
+  return `${shop}: You're signed up for appointment texts (reminders, confirmations and replies). `
+    + 'Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out.';
+}
+
+/**
+ * Send that confirmation from Karen's number. Nothing is sent without both
+ * a number connected in Settings and the provider's keys, and a failure
+ * (until the carriers approve the number, every send fails) never loses
+ * the message the guest wrote.
+ */
+export async function sendOptInConfirmation(tenant, phone, send = sendText) {
+  if (!phone) return { skipped: 'no number' };
+  const { rows } = await query(
+    "SELECT to_jsonb(tenants) ->> 'karen_phone' AS karen_phone FROM tenants WHERE id = $1::uuid", [tenant.id],
+  );
+  const from = rows[0]?.karen_phone;
+  if (!from || !process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) return { skipped: 'texting not connected' };
+  await send({ to: `+1${phone}`, from, body: optInText(tenant) });
+  return { sent: true };
 }
 
 /**

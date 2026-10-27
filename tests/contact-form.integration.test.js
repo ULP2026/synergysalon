@@ -13,7 +13,7 @@ import test from 'node:test';
 
 import pg from 'pg';
 
-import { saveContactMessage } from '../api/_lib/contact-form.js';
+import { optInText, saveContactMessage, sendOptInConfirmation } from '../api/_lib/contact-form.js';
 
 const url = process.env.DATABASE_URL;
 const skip = url ? false : 'DATABASE_URL is not set';
@@ -76,5 +76,37 @@ test('a contact message is saved, and consent only when the box is ticked with a
       await c.query('DELETE FROM tenants WHERE id = $1', [tenantId]);
     }
     await c.end();
+  }
+});
+
+test("ticking the box texts the carriers' opt-in confirmation, from Karen's number", { skip }, async () => {
+  const text = optInText({ name: 'Synergy Salon' });
+  assert.match(text, /^Synergy Salon: /, 'the brand first');
+  for (const must of [/Msg frequency varies/, /Msg & data rates may apply/, /Reply HELP for help/, /STOP to opt out/]) assert.match(text, must);
+  assert.ok(text.length <= 320, 'two texts at most');
+
+  const client = new pg.Client({ connectionString: url, ssl: isLocal ? false : { rejectUnauthorized: false } });
+  await client.connect();
+  const saved = { sid: process.env.TWILIO_ACCOUNT_SID, token: process.env.TWILIO_AUTH_TOKEN };
+  let tenantId;
+  try {
+    ({ rows: [{ id: tenantId }] } = await client.query(
+      "INSERT INTO tenants (slug, name, karen_phone) VALUES ('zz-optin-text', 'ZZ Opt-in Salon', '+18138514556') RETURNING id",
+    ));
+    const sent = [];
+    const send = async (m) => { sent.push(m); };
+    delete process.env.TWILIO_ACCOUNT_SID;
+    assert.deepEqual(await sendOptInConfirmation({ id: tenantId, name: 'ZZ Opt-in Salon' }, '8135550142', send),
+      { skipped: 'texting not connected' });
+    process.env.TWILIO_ACCOUNT_SID = 'ACzz';
+    process.env.TWILIO_AUTH_TOKEN = 'zz';
+    await sendOptInConfirmation({ id: tenantId, name: 'ZZ Opt-in Salon' }, '8135550142', send);
+    assert.deepEqual(sent, [{ to: '+18135550142', from: '+18138514556', body: optInText({ name: 'ZZ Opt-in Salon' }) }]);
+  } finally {
+    for (const [k, v] of [['TWILIO_ACCOUNT_SID', saved.sid], ['TWILIO_AUTH_TOKEN', saved.token]]) {
+      if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    }
+    if (tenantId) await client.query('DELETE FROM tenants WHERE id = $1', [tenantId]);
+    await client.end();
   }
 });
