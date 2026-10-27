@@ -920,7 +920,8 @@ support@unclelouieproductions.com; brand "SYNERGY SALON OF TAMPA BAY INC",
 campaign Low Volume Mixed: customer care and appointment notifications, no
 marketing). What the campaign describes must stay true on the site:
 
-- **`/contact`** (`contact.html`) is the registered opt-in: name, email, an
+- **`/sms-opt-in`** (`sms-opt-in.html`; `/contact` until 2026-10-27, which
+  now redirects there) is the registered opt-in: name, email, an
   optional mobile number, a message, and an **optional, unticked** consent
   box whose wording was registered with the carriers. Do not make the box
   required, pre-tick it, or add marketing to its wording. It posts to

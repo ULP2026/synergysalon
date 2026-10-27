@@ -41,7 +41,7 @@ test('a contact message is saved, and consent only when the box is ticked with a
     assert.equal(r.source, 'Website contact form');
     assert.equal(r.status, 'new');
     assert.equal(r.sms_ok, false);
-    assert.match(r.notes, /Website contact form \(synergysalon\.com\/contact\): Do you do balayage\?/);
+    assert.match(r.notes, /Website contact form \(synergysalon\.com\/sms-opt-in\): Do you do balayage\?/);
     assert.match(r.notes, /Text messages: not agreed/);
 
     // Again, ticked, with a number: the same client, consent on, newest note on top.

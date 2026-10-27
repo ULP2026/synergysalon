@@ -1,5 +1,5 @@
 /**
- * The website's contact form (synergysalon.com/contact, asked for
+ * The website's contact form (synergysalon.com/sms-opt-in, asked for
  * 2026-10-27): a message for the salon, and the place a guest can agree to
  * appointment texts. It is the opt-in the salon's A2P 10DLC registration
  * describes to the carriers, so the rules here are theirs:
@@ -86,7 +86,7 @@ export async function saveContactMessage(tenant, body, db = { query, transaction
   }
 
   const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
-  const line = `${stamp} UTC · Website contact form (synergysalon.com/contact): ${message}`
+  const line = `${stamp} UTC · Website contact form (synergysalon.com/sms-opt-in): ${message}`
     + `\nText messages: ${consent
       ? `agreed (ticked the optional consent box) for ${phone}`
       : 'not agreed (box left unticked)'}`;

@@ -87,6 +87,17 @@
       "source": "/join/:path(.*)",
       "destination": "https://join.synergysalon.com/:path",
       "permanent": false
+    },
+    {
+      "source": "/contact",
+      "has": [
+        {
+          "type": "host",
+          "value": "synergysalon.com"
+        }
+      ],
+      "destination": "/sms-opt-in",
+      "permanent": true
     }
   ],
   "headers": [

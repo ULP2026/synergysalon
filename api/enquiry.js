@@ -157,7 +157,7 @@ export default handler({
   async POST(req, res) {
     const tenant = await tenantForRequest(req);
     const body = await readJson(req);
-    // The contact page's form (synergysalon.com/contact) comes in here too,
+    // The contact page's form (synergysalon.com/sms-opt-in) comes in here too,
     // because a file of its own would be a thirteenth function. It is a
     // message and an optional texting consent, not a booking.
     if (body.kind === 'contact') {
