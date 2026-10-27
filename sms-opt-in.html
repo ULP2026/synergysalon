@@ -208,7 +208,7 @@ gtag('config', 'G-JR6491GP6D');
       done.className = 'done';
       done.setAttribute('role', 'status');
       done.innerHTML = '<h2>Thank you!</h2><p>Your message is on its way to the salon. We&rsquo;ll reply by email during salon hours.</p>'
-        + (f.smsConsent.checked ? '<p>You&rsquo;ve agreed to appointment texts. Reply STOP to any text to unsubscribe, or HELP for help.</p>' : '');
+        + (f.smsConsent.checked ? '<p>You&rsquo;ve agreed to appointment texts, and we&rsquo;ll text you a confirmation. Reply STOP to any text to unsubscribe, or HELP for help.</p>' : '');
       form.replaceWith(done);
       done.scrollIntoView({ block: 'center' });
     }).catch(function (err) {
