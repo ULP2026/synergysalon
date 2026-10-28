@@ -70,6 +70,18 @@ export function phoneFrom(value) {
   return s;
 }
 
+/**
+ * A stylist's mobile number is required (asked for 2026-10-28): it is how
+ * Karen knows a text is from them and not a client, and so what lets a
+ * stylist move or cancel their clients' appointments by text. Ten digits,
+ * the area code included. Other roles may leave it empty.
+ */
+export function assertStylistPhone(role, phone) {
+  if (role === 'stylist' && String(phone || '').replace(/\D/g, '').length < 10) {
+    throw new HttpError(400, 'A stylist needs a mobile number with the area code: it is how Karen knows a text is from them.');
+  }
+}
+
 /** Friendlier than the unique index's own error. */
 export async function assertUsernameFree(tenantId, username, exceptId) {
   if (!username) return;
@@ -245,7 +257,11 @@ export default handler({
     const add = (sql, value) => { params.push(value); sets.push(`${sql} = $${params.length}`); };
 
     if (body.name !== undefined) add('name', requireString(body.name, 'Name', { max: 120 }));
-    if (body.phone !== undefined) add('phone', phoneFrom(body.phone));
+    if (body.phone !== undefined) {
+      const phone = phoneFrom(body.phone);
+      assertStylistPhone(user.role, phone);
+      add('phone', phone);
+    }
 
     if (body.email !== undefined) {
       const email = requireEmail(body.email);

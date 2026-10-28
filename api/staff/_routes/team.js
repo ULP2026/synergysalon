@@ -33,7 +33,7 @@ import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { googleStatus } from './calendars.js';
 import {
-  assertUsernameFree, avatarFrom, avatarStyleFrom, phoneFrom, servicesFrom, usernameFrom,
+  assertStylistPhone, assertUsernameFree, avatarFrom, avatarStyleFrom, phoneFrom, servicesFrom, usernameFrom,
 } from './profile.js';
 
 const ROLES = ['owner', 'admin', 'manager', 'front_desk', 'stylist'];
@@ -190,6 +190,7 @@ export default handler({
       if (TEAM_ADMIN_ROLES.includes(role) && !canManageTeam(user)) {
         throw new HttpError(403, 'Only an owner can make someone else an owner.');
       }
+      assertStylistPhone(role, phoneFrom(body.phone));
 
       const { rows: exists } = await query(
         'SELECT id FROM staff_users WHERE tenant_id = $1 AND lower(email) = $2',
@@ -278,7 +279,7 @@ export default handler({
     }
 
     const { rows } = await query(
-      'SELECT id, name, email, role, status FROM staff_users WHERE id = $1 AND tenant_id = $2',
+      'SELECT id, name, email, role, status, phone FROM staff_users WHERE id = $1 AND tenant_id = $2',
       [id, tenant.id],
     );
     const target = rows[0];
@@ -398,6 +399,7 @@ export default handler({
         if (TEAM_ADMIN_ROLES.includes(role) && !canManageTeam(user)) {
           throw new HttpError(403, 'Only an owner can make someone else an owner.');
         }
+        assertStylistPhone(role, target.phone);
         await query('UPDATE staff_users SET role = $2 WHERE id = $1', [target.id, role]);
         break;
       }
@@ -424,6 +426,8 @@ export default handler({
           add('email', email);
         }
         if (body.phone !== undefined) add('phone', phoneFrom(body.phone));
+        // Whatever role they end up with, a stylist leaves with a mobile number.
+        assertStylistPhone(body.role ?? target.role, body.phone !== undefined ? phoneFrom(body.phone) : target.phone);
         if (body.username !== undefined) {
           const username = usernameFrom(body.username);
           await assertUsernameFree(tenant.id, username, target.id);

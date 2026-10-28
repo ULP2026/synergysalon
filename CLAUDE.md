@@ -998,6 +998,12 @@ in the app, not by text. A yes cancels or moves it through the same
 functions, leaves a note on the client ("asked by <stylist>"), and the
 client gets the usual email, plus a text if they opted in. Calls to Karen's
 number still greet and forward to the salon (decided 2026-10-28).
+Karen knows a stylist only by the phone on their team profile, so **a
+stylist's mobile number is required** (`assertStylistPhone` in profile.js,
+enforced by team.js on add, edit and role change and by your own profile;
+the team window says so before saving, and a stylist's card reads "Mobile
+number needed" in red until it is set). Stylists without a sign-in (the
+four kept by slug) have no phone and are not covered.
 What keeps it safe is outside the model, so keep it there:
 
 - **The model only proposes.** Its tools look up free times or *propose* a

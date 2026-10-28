@@ -53,8 +53,8 @@ test('a removed member stays removed, with or without a sign-in', { skip }, asyn
 
     // A stylist with a login and a live stylist row, as Team makes one.
     const member = (await query(
-      `INSERT INTO staff_users (tenant_id, email, password_hash, name, role)
-       VALUES ($1, 'zz-remove-stylist@example.com', 'x', 'ZZ Remove Stylist', 'stylist') RETURNING id`, [t.id],
+      `INSERT INTO staff_users (tenant_id, email, password_hash, name, role, phone)
+       VALUES ($1, 'zz-remove-stylist@example.com', 'x', 'ZZ Remove Stylist', 'stylist', '(813) 555-0190') RETURNING id`, [t.id],
     )).rows[0];
     await query(
       `INSERT INTO stylists (tenant_id, slug, name, staff_user_id, active)
@@ -112,8 +112,8 @@ test('price, timing and the shared notes are kept, with or without a sign-in', {
     await createSession(res, owner);
     const cookie = String(res.headers['set-cookie']).split(';')[0];
     const member = (await query(
-      `INSERT INTO staff_users (tenant_id, email, password_hash, name, role)
-       VALUES ($1, 'zz-remove-stylist@example.com', 'x', 'ZZ Remove Stylist', 'stylist') RETURNING id`, [t.id],
+      `INSERT INTO staff_users (tenant_id, email, password_hash, name, role, phone)
+       VALUES ($1, 'zz-remove-stylist@example.com', 'x', 'ZZ Remove Stylist', 'stylist', '(813) 555-0190') RETURNING id`, [t.id],
     )).rows[0];
     const solo = (await query(
       `INSERT INTO stylists (tenant_id, slug, name, active)
@@ -125,6 +125,10 @@ test('price, timing and the shared notes are kept, with or without a sign-in', {
       cuts: { on: false, price: null, duration: 45 },
       notes: '  Patch test 48 hours before.  ',
     };
+    // A stylist cannot be left without a mobile number (2026-10-28): Karen knows them by it.
+    const cleared = await call('POST', cookie, { id: member.id, action: 'update', phone: '' });
+    assert.equal(cleared.status, 400);
+    assert.match(cleared.body.error, /A stylist needs a mobile number/);
     for (const id of [member.id, `st_${solo.id}`]) {
       assert.equal((await call('POST', cookie, { id, action: 'update', services })).status, 200);
     }

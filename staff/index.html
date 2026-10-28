@@ -2144,6 +2144,8 @@
   .tm-who .tm-line .chip { display: inline-flex; font-size: .72rem; padding: 2px 8px; }
   .tm-who .tm-line .tm-you { margin-left: 0; }
   .tm-who .tm-phone { margin-top: 2px; font-size: .82rem; font-variant-numeric: tabular-nums; }
+  /* A stylist with no mobile: Karen cannot tell their texts from a client's. */
+  .tm-who .tm-phone .warn-text { color: var(--warn); font-weight: 600; }
   .tm-who .tm-phone .muted { display: inline; }
   .tm-addrow { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 12px; border-radius: 12px;
                border: 1px dashed var(--line-2); background: var(--raise); }
@@ -8575,6 +8577,17 @@ function hoursOpen() {
  */
 function paintWorkVisibility() {
   $('memberWork').classList.remove('hidden');
+  paintPhoneRequired();
+}
+
+/** A stylist with a sign-in must give a mobile number (asked for 2026-10-28). */
+function stylistNeedsPhone() {
+  const f = $('memberForm');
+  return f.elements.role.value === 'stylist' && !$('memberPhoneRow').classList.contains('hidden');
+}
+function paintPhoneRequired() {
+  const input = $('memberForm').elements.phone;
+  input.placeholder = stylistNeedsPhone() ? 'Mobile number (required)' : 'Phone number';
 }
 
 /** The roles only an owner may hand out (the role picker in Add Team Member). */
@@ -8715,6 +8728,7 @@ async function openMember(who) {
   for (const k of ['email', 'role']) f.elements[k].closest('label').classList.toggle('hidden', noLogin);
   // A stylist without a sign-in has no phone kept for them, so none is offered.
   $('memberPhoneRow').classList.toggle('hidden', noLogin);
+  paintPhoneRequired();
   $('memberPersonal').classList.toggle('hidden', noLogin);
   f.elements.email.required = !noLogin;
   f.elements.name.readOnly = noLogin;
@@ -8913,6 +8927,12 @@ $('memberForm').onsubmit = async (e) => {
     const username = String(f.get('username') || '').trim().replace(/^@/, '');
     if (username !== memberOrig.username) fields.username = username || null;
     const phone = String(f.get('phone') || '').trim();
+    // Required for a stylist (2026-10-28): Karen knows their texts by it. The
+    // server refuses too; this just says so before the round trip.
+    if (stylistNeedsPhone() && phone.replace(/\D/g, '').length < 10) {
+      note($('memberNote'), 'A stylist needs a mobile number with the area code, under their name: it is how Karen knows a text is from them.');
+      el.phone.focus(); return;
+    }
     if (phone !== memberOrig.phone) fields.phone = phone;
     const services = readServices();
     for (const [key, label] of SERVICE_KINDS) {
@@ -9010,7 +9030,8 @@ function memberRow(m, self) {
       aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
     <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""><span class="pen">${ic('edit')}</span></span>
     <span class="tm-who"><span class="tm-line"><b>${esc(m.name)}</b><span class="chip role">${esc(role)}</span>${self ? '<i class="tm-you">You</i>' : ''}</span>
-      <span class="tm-phone">${m.phone ? esc(m.phone) : '<span class="muted">No phone number</span>'}</span></span>
+      <span class="tm-phone">${m.phone ? esc(m.phone) : m.role === 'stylist' && !m.noLogin
+        ? '<span class="warn-text">Mobile number needed</span>' : '<span class="muted">No phone number</span>'}</span></span>
     <span class="tm-badges">${cal}</span>
   </button>`;
 }
