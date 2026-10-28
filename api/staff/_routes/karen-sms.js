@@ -22,6 +22,14 @@ import { recordConsent, revokeConsent } from '../../_lib/sms-notify.js';
 import { query } from '../../_lib/db.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
+/**
+ * Karen's speaking voice: Amazon Polly's Danielle, the generative version,
+ * young, warm and natural (chosen 2026-10-28, in place of Joanna, which read
+ * as robotic). Names as Twilio lists them for <Say>; every line she speaks
+ * uses it, so an error does not suddenly sound like somebody else.
+ */
+const SAY = '<Say voice="Polly.Danielle-Generative" language="en-US">';
+
 const xml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function twiml(res, status, inner) {
@@ -62,7 +70,7 @@ export default async function karenWebhook(req, res) {
     const tenantId = await tenantIdForKarenNumber(params.To);
     if (!tenantId) {
       console.warn('karen webhook: no salon has this number as Karen\'s', params.To);
-      return twiml(res, 200, voice ? '<Say>Sorry, this number is not set up yet.</Say>' : '');
+      return twiml(res, 200, voice ? `${SAY}Sorry, this number is not set up yet.</Say>` : '');
     }
     const tenant = await tenantForUser({ tenant_id: tenantId });
     if (voice) {
@@ -71,7 +79,7 @@ export default async function karenWebhook(req, res) {
       const who = await whoIsTexting({ query }, tenant.id, params.From);
       const hi = who.name ? `Hi ${xml(String(who.name).split(/\s+/)[0])}! ` : 'Hi! ';
       const salon = String(tenant.phone || '').replace(/[^\d+]/g, '');
-      return twiml(res, 200, `<Say voice="Polly.Joanna">${hi}This is Karen, the assistant at ${xml(tenant.name)}. `
+      return twiml(res, 200, `${SAY}${hi}This is Karen, the assistant at ${xml(tenant.name)}. `
         + 'You can text this number any time to book, move or cancel an appointment.'
         + `${salon ? ' Let me put you through to the salon now.</Say>' + `<Dial>${xml(salon)}</Dial>` : ' Talk soon!</Say>'}`);
     }
@@ -99,7 +107,7 @@ export default async function karenWebhook(req, res) {
     return twiml(res, 200, say ? `<Message>${xml(say)}</Message>` : '');
   } catch (err) {
     console.error('karen webhook failed', err);
-    return twiml(res, 200, voice ? '<Say>Sorry, something went wrong. Please call the salon.</Say>'
+    return twiml(res, 200, voice ? `${SAY}Sorry, something went wrong. Please call the salon.</Say>`
       : '<Message>Sorry, something went wrong on my end. Please call the salon.</Message>');
   }
 }
