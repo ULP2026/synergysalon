@@ -349,7 +349,7 @@ export default handler({
       }
     });
 
-    if (result.booked?.guest_email) {
+    if (result.booked) {
       try {
         await sendConfirmation(result.booked, tenant);
       } catch (err) {

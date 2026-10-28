@@ -13,6 +13,7 @@ import { DEFAULT_TZ, shopFrom } from './config.js';
 // Safe to import without a database: db.js builds its pool lazily, so the
 // template functions and previewMessage still work with no DATABASE_URL.
 import { query } from './db.js';
+import { textGuest } from './sms-notify.js';
 
 const senderAddress = (v) => { const m = String(v).match(/<([^>]+)>/); return (m ? m[1] : String(v)).trim(); };
 
@@ -727,6 +728,11 @@ async function record(kind, appt, tenant) {
 async function sendMessage(kind, appt, tenant, extra) {
   const shop = shopFrom(tenant);
   if (!automationOn(kind, tenant)) return { skipped: true, off: true };
+  // The text of the same kind, to a client who agreed to texts (sms-notify.js).
+  // First, and never throwing, so a guest with no email still gets it and a
+  // refused email does not stop it.
+  const texted = await textGuest(kind, appt, tenant);
+  if (!appt.guest_email) return { skipped: true, noEmail: true, texted: Boolean(texted.texted) };
   const { subject, content } = MESSAGES[kind](appt, shop, shop.timezone, extra);
   const out = await send(shop, appt.guest_email, subject, content);
   if (out.sent) await record(kind, appt, tenant);

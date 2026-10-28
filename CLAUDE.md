@@ -960,11 +960,44 @@ marketing). What the campaign describes must stay true on the site:
   (`0502ac51…png`, Geist `fe9fff11…`, Anton `3828f8dd…`); after an export,
   check those still exist.
 
+## Appointment texts, from 2026-10-28
+
+Karen texts a client the confirmation, a move, a cancellation and the
+day-before reminder (`api/_lib/sms-notify.js`, from Karen's number, through
+`api/_lib/twilio.js`). They ride on the email of the same kind:
+`sendMessage` in `email.js` texts first (never throwing), then emails if
+there is an address, so the Marketing switches govern both and every place
+that books or changes a visit reaches them. A desk booking with only a
+phone now goes through `sendConfirmation` too, and the reminder cron picks
+up visits with a client but no email.
+
+**Only to a client whose consent is on record** (`contacts.sms_consent_at`,
+`_source`, `_phone`; migration 034, also in ensure-schema). The website
+opt-in box sets it ("Website opt-in form"); a START/UNSTOP/OPTIN reply sets
+it ("Replied START"); STOP and the other opt-out words clear it
+(`consentKeyword`, recorded by the SMS webhook before anything else, the
+provider answering the keyword itself). Never use `sms_ok` for this: it
+defaults to true. The A2P registration says texts go only to people who
+opted in on the website, so a client booked at the chair is **not** texted
+until the salon adds a "client agreed to texts" box at booking **and** the
+campaign is updated to include that method (decided 2026-10-28: after the
+first approval). Texts: the salon's name first, "Reply STOP to opt out." last
+(`appointmentText`, also what Marketing's preview shows). Follow-ups such
+as review requests are never texted: they read as marketing.
+
 ## Karen on Claude (Opus 5.5), from 2026-10-27
 
-With `ANTHROPIC_API_KEY` set (Production, since 2026-10-27), a **client's**
-texts are read by `claude-opus-5-5` at low effort (`api/_lib/karen-ai.js`);
-the team's still go to the rules, which answer schedule questions exactly.
+With `ANTHROPIC_API_KEY` set (Production, since 2026-10-27), texts are read
+by `claude-opus-5-5` at low effort (`api/_lib/karen-ai.js`). Since
+2026-10-28 that includes **the team**: a stylist texts Karen to cancel or
+move a client's appointment (asked for: "Karen manages appointments when
+the stylist asks by text"). A stylist sees and changes only their own
+chair's next two weeks (`chairAhead`); the admin (`canManageTeam`) the
+whole salon's; a team member with no chair, nothing. They book new clients
+in the app, not by text. A yes cancels or moves it through the same
+functions, leaves a note on the client ("asked by <stylist>"), and the
+client gets the usual email, plus a text if they opted in. Calls to Karen's
+number still greet and forward to the salon (decided 2026-10-28).
 What keeps it safe is outside the model, so keep it there:
 
 - **The model only proposes.** Its tools look up free times or *propose* a

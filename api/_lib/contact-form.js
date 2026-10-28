@@ -91,6 +91,7 @@ export async function saveContactMessage(tenant, body, db = { query, transaction
       ? `agreed (ticked the optional consent box) for ${phone}`
       : 'not agreed (box left unticked)'}`;
   const canPrefs = await hasColumn('contacts', 'sms_ok');
+  const canConsent = await hasColumn('contacts', 'sms_consent_at');
 
   return db.transaction(async (client) => {
     const { rows: found } = await client.query(
@@ -126,6 +127,16 @@ export async function saveContactMessage(tenant, body, db = { query, transaction
       id = rows[0].id;
       // A new client is texted only if they said so here.
       if (canPrefs) await client.query('UPDATE contacts SET sms_ok = $2::boolean WHERE id = $1', [id, consent]);
+    }
+    // The consent appointment texts are sent on (sms-notify.js): when, how,
+    // and the number agreed for. Only a yes writes it.
+    if (consent && canConsent) {
+      await client.query(
+        `UPDATE contacts SET sms_consent_at = now(), sms_consent_source = 'Website opt-in form',
+                             sms_consent_phone = $2::text
+          WHERE id = $1::uuid`,
+        [id, phone],
+      );
     }
     return { saved: true, contactId: id, name, email, phone, message, consent };
   });

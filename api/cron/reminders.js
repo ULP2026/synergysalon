@@ -21,7 +21,7 @@ export default handler({
 
     const { rows } = await query(
       `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.price_cents,
-              a.guest_name, a.guest_email, a.manage_token,
+              a.guest_name, a.guest_email, a.manage_token, a.contact_id,
               s.name AS stylist_name, v.name AS service_name,
               -- The shop each guest is being reminded about, so one run can
               -- cover several and each email speaks for the right one.
@@ -42,7 +42,9 @@ export default handler({
           AND a.reminder_sent_at IS NULL
           AND a.starts_at > now()
           AND a.starts_at <= now() + make_interval(hours => $1::int)
-          AND a.guest_email <> ''
+          -- Emailed, or texted to a client who agreed (sms-notify.js): a
+          -- desk booking with only a phone still gets its text.
+          AND (a.guest_email <> '' OR a.contact_id IS NOT NULL)
         ORDER BY a.starts_at
         LIMIT 200`,
       [REMINDER_LEAD_HOURS],

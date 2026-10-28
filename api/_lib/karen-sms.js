@@ -38,7 +38,12 @@ import { ONLINE_BOOKING } from './config.js';
 import { EXCLUSION_VIOLATION, query, transaction } from './db.js';
 import { sendCancellation, sendConfirmation, sendKarenAlert, sendReschedule } from './email.js';
 import { mirrorToGoogle } from './google-mirror.js';
+import { canManageTeam } from './auth.js';
 import { aiReply, karenAi } from './karen-ai.js';
+import { appointmentText } from './sms-notify.js';
+import { sendText } from './twilio.js';
+
+export { sendText };
 
 /** A conversation left this long is a new one: "2" no longer means the old list. */
 const THREAD_TTL_MIN = 30;
@@ -81,31 +86,6 @@ export function twilioSignatureOk(url, params, signature, token) {
   return want.length === got.length && timingSafeEqual(want, got);
 }
 
-/**
- * Send a text from Karen's number through the phone provider's API: how a
- * reply goes out when it is not the webhook's own answer (Karen on Claude
- * answers after the webhook has returned). Needs TWILIO_ACCOUNT_SID beside
- * the auth token.
- */
-export async function sendText({ to, from, body }, fetchImpl = fetch) {
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  if (!sid || !token) throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are needed to send a text');
-  const res = await fetchImpl(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(sid)}/Messages.json`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({ To: to, From: from, Body: body }),
-  });
-  if (!res.ok) {
-    const why = await res.text().catch(() => '');
-    throw new Error(`Twilio refused the text (${res.status}): ${why.slice(0, 300)}`);
-  }
-  return res.json();
-}
-
 /** The salon whose Karen number this text was sent to. */
 export async function tenantIdForKarenNumber(to, db = { query }) {
   const key = phoneKey(to);
@@ -127,7 +107,7 @@ export async function whoIsTexting(db, tenantId, from) {
   const key = phoneKey(from);
   if (!key) return { kind: 'unknown' };
   const { rows: staff } = await db.query(
-    `SELECT u.id, u.name, s.id AS stylist_id
+    `SELECT u.id, u.name, u.role, u.email, s.id AS stylist_id
        FROM staff_users u
        LEFT JOIN stylists s ON s.staff_user_id = u.id AND s.tenant_id = u.tenant_id
       WHERE u.tenant_id = $1::uuid AND u.status = 'active' AND u.phone <> ''
@@ -136,7 +116,9 @@ export async function whoIsTexting(db, tenantId, from) {
       LIMIT 1`,
     [tenantId, key],
   );
-  if (staff[0]) return { kind: 'staff', ...staff[0] };
+  // The admin (the app's one rule, canManageTeam) may change any client's
+  // appointment by text; a stylist only those in their own chair.
+  if (staff[0]) return { kind: 'staff', ...staff[0], admin: canManageTeam(staff[0]) };
   const { rows: clients } = await db.query(
     `SELECT id, name, email, phone FROM contacts
       WHERE tenant_id = $1::uuid AND phone <> '' AND ${SAME_PHONE('phone', '$2')}
@@ -218,9 +200,21 @@ async function saveThread(db, tenantId, key, state) {
  * it. "cancel" alone is one of them: it unsubscribes, which is why Karen
  * asks people to say "cancel my appointment" instead.
  */
-const CARRIER_KEYWORDS = new Set(['stop', 'stopall', 'unsubscribe', 'cancel', 'end', 'quit', 'revoke', 'optout',
-  'help', 'info', 'start', 'unstop']);
-export const isCarrierKeyword = (text) => CARRIER_KEYWORDS.has(String(text || '').trim().toLowerCase().replace(/[^a-z]/g, ''));
+const OPT_OUT = new Set(['stop', 'stopall', 'unsubscribe', 'cancel', 'end', 'quit', 'revoke', 'optout']);
+const OPT_IN = new Set(['start', 'unstop', 'optin']);
+const CARRIER_KEYWORDS = new Set([...OPT_OUT, ...OPT_IN, 'help', 'info']);
+const keyword = (text) => String(text || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+export const isCarrierKeyword = (text) => CARRIER_KEYWORDS.has(keyword(text));
+/**
+ * What a carrier keyword does to texting consent: 'out' for STOP and the
+ * rest, 'in' for START, UNSTOP and OPTIN (the opt-in keywords registered
+ * with the carriers), else null. The provider answers them; the webhook
+ * records them, so appointment texts stop when the client says so.
+ */
+export function consentKeyword(text) {
+  const k = keyword(text);
+  return OPT_OUT.has(k) ? 'out' : OPT_IN.has(k) ? 'in' : null;
+}
 
 /**
  * `ai` is the Anthropic client (a stand-in in tests); by default the real
@@ -238,8 +232,10 @@ export async function karenReply(tenant, from, text, db = { query }, { ai = kare
 
   let out;
   try {
-    // The team asks about the schedule, which the rules answer exactly.
-    out = ai && who.kind !== 'staff' ? await smart(ctx, state || {}, ai) : await route(ctx, state || {});
+    // Clients and, since 2026-10-28, the team: a stylist texts Karen to
+    // cancel or move their clients' appointments. Without the model, the
+    // rules answer (the team's schedule questions exactly).
+    out = ai ? await smart(ctx, state || {}, ai) : await route(ctx, state || {});
   } catch (err) {
     console.error('karen-sms failed', err);
     out = { say: `Sorry, something went wrong on my end. Please call the salon${tenant.phone ? ` at ${prettyPhone(tenant.phone) || tenant.phone}` : ''}.`, state: {} };
@@ -258,7 +254,7 @@ const PLAIN_YES = /^(y|yes|yeah|yep|yup|ya|sure|ok|okay|k|confirm|confirmed|plea
 const PLAIN_NO = /^(n|no|nope|nah|no thanks|no thank you|never ?mind|keep it|don'?t)[\s!.]*$/;
 
 /**
- * A client's text with the model in charge of the conversation. A plain yes
+ * A client's or a team member's text with the model in charge of the conversation. A plain yes
  * to what it proposed is carried out here, not by the model; so is a plain no.
  * If the model fails, the rules answer this one text.
  */
@@ -303,26 +299,35 @@ async function carryOut(ctx, p) {
   }
   const a = await appointmentById(ctx, p.id);
   if (!a) return { say: 'That appointment has already been changed. Ask me "what are my appointments?" to see where things stand.' };
+  const staff = ctx.who.kind === 'staff';
+  const by = staff ? `, asked by ${ctx.who.name}` : '';
   if (p.kind === 'cancel') {
     const out = await cancelIt(ctx, a);
-    await noteOnClient(ctx, `Cancelled by text with Karen: ${describe(a, zone)}.`);
+    await noteOnClient(ctx, `Cancelled by text with Karen${by}: ${describe(a, zone)}.`, a.contact_id);
+    // cancelIt speaks to the client; the stylist is told the client was.
+    if (staff && !/already/.test(out.say)) {
+      return { ...out, say: `Done: ${a.client}'s ${describe(a, zone)} is cancelled. The client gets the usual notice (email, and a text if they opted in).` };
+    }
     return out;
   }
   const out = await moveIt(ctx, a, p.start, { offerAgain: false });
-  if (!out.taken) await noteOnClient(ctx, `Moved by text with Karen: ${describe(a, zone)} to ${when(p.start, zone)}.`);
+  if (!out.taken) await noteOnClient(ctx, `Moved by text with Karen${by}: ${describe(a, zone)} to ${when(p.start, zone)}.`, a.contact_id);
+  if (staff && !out.taken) {
+    return { ...out, say: `All set: ${a.client}'s ${serviceOf(a)} with ${first(a.stylist)} is now ${when(p.start, zone)}. The client gets the usual notice (email, and a text if they opted in).` };
+  }
   return out;
 }
 
 /** A dated line on the client's notes, newest first, as the contact form leaves one. */
-async function noteOnClient(ctx, text) {
-  if (ctx.who.kind !== 'client') return;
+async function noteOnClient(ctx, text, contactId = ctx.who.kind === 'client' ? ctx.who.id : null) {
+  if (!contactId) return;
   const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
   await ctx.db.query(
     `UPDATE contacts
         SET notes = CASE WHEN coalesce(notes, '') = '' THEN $2 ELSE $2 || E'\\n\\n' || notes END,
             updated_at = now()
       WHERE id = $1::uuid`,
-    [ctx.who.id, `${stamp} UTC · ${text}`],
+    [contactId, `${stamp} UTC · ${text}`],
   ).catch((err) => console.error('karen note failed', err));
 }
 
@@ -489,6 +494,7 @@ async function staffSchedule({ tenant, who, t, db }) {
 // ── clients: their appointments ──────────────────────────────────────────
 
 async function upcoming({ tenant, who, db }) {
+  if (who.kind === 'staff') return chairAhead({ tenant, who, db });
   if (who.kind !== 'client') return [];
   const { rows } = await db.query(
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.buffer_min, a.breaks, a.notes,
@@ -502,6 +508,31 @@ async function upcoming({ tenant, who, db }) {
       ORDER BY a.starts_at
       LIMIT 5`,
     [tenant.id, who.id],
+  );
+  return rows;
+}
+
+/**
+ * The two weeks ahead a team member may change by text: their own chair's,
+ * or the whole salon's for the admin. A stylist with no chair (the front
+ * desk) who is not the admin sees none: nothing to change, nobody else's
+ * clients to read. Same columns as a client's list, plus the client.
+ */
+async function chairAhead({ tenant, who, db }) {
+  if (!who.admin && !who.stylist_id) return [];
+  const { rows } = await db.query(
+    `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.buffer_min, a.breaks, a.notes, a.contact_id,
+            to_jsonb(a) -> 'services' AS lines, a.guest_name AS client,
+            s.name AS stylist, s.slug AS stylist_slug, v.name AS service, v.slug AS service_slug
+       FROM appointments a
+       JOIN stylists s ON s.id = a.stylist_id
+       JOIN services v ON v.id = a.service_id
+      WHERE a.tenant_id = $1::uuid AND a.status = 'booked'
+        AND a.starts_at > now() AND a.starts_at < now() + interval '14 days'
+        AND ($2::uuid IS NULL OR a.stylist_id = $2::uuid)
+      ORDER BY a.starts_at
+      LIMIT 30`,
+    [tenant.id, who.admin ? null : who.stylist_id],
   );
   return rows;
 }
@@ -766,9 +797,7 @@ async function bookIt(ctx, service, start, name, { stylistSlug = null, offerAgai
     const again = await offerBook(ctx, service);
     return { say: `Sorry, that time was just taken. ${again.say}`, state: again.state };
   }
-  if (appt.guest_email) {
-    try { await sendConfirmation(appt, tenant); } catch (err) { console.error('karen-sms confirmation failed for', appt.ref, err); }
-  }
+  try { await sendConfirmation(appt, tenant); } catch (err) { console.error('karen-sms confirmation failed for', appt.ref, err); }
   await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', appt.ref, err));
   return {
     say: `You're booked, ${first(name)}! ${service.name} with ${first(appt.stylist_name)} on ${when(appt.starts_at, tenant.timezone)}. `
@@ -853,19 +882,11 @@ const STEPS = {
  * The text that goes with a message kind, in Karen's voice and short enough
  * for one or two texts. Shown in Marketing's message preview; replies to it
  * land with Karen, which is why it invites them. Kinds with no text return
- * null. Nothing sends these yet: texts go out once a sending number is
- * connected.
+ * null. Sent by sms-notify.js beside each email, to clients who agreed.
  */
 export function smsText(kind, appt, tenant) {
-  const zone = tenant.timezone;
-  const at = when(appt.starts_at, zone);
-  const name = first(appt.guest_name) || 'there';
-  const visit = `${appt.service_name} with ${first(appt.stylist_name)}`;
-  const shop = tenant.name || 'the salon';
-  const texts = {
-    // Kept to one text (160 characters) for a usual name and service.
-    confirmation: `Hi ${name}! You're booked at ${shop}: ${visit}, ${at}. Reply here to move or cancel. See you soon! - Karen`,
-  };
-  return texts[kind] || null;
+  // The texts that really go out (sms-notify.js), so Marketing's preview
+  // shows the message a client receives, not a description of it.
+  return appointmentText(kind, appt, tenant);
 }
 

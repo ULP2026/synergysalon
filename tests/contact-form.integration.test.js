@@ -29,7 +29,7 @@ test('a contact message is saved, and consent only when the box is ticked with a
     tenantId = t.id;
     const tenant = { id: tenantId };
     const row = async (email) => (await c.query(
-      `SELECT name, phone, source, status, notes, to_jsonb(contacts) -> 'sms_ok' AS sms_ok
+      `SELECT id, name, phone, source, status, notes, to_jsonb(contacts) -> 'sms_ok' AS sms_ok
          FROM contacts WHERE tenant_id = $1 AND lower(email) = $2`, [tenantId, email])).rows[0];
 
     // No box ticked: saved as a new client, not textable, and the note says so.
@@ -51,6 +51,13 @@ test('a contact message is saved, and consent only when the box is ticked with a
     r = await row('zz-ana@example.com');
     assert.equal(r.sms_ok, true);
     assert.equal(r.phone, '8135550142');
+    // The consent appointment texts go on (sms-notify.js): when, how, which number.
+    const { rows: [consent] } = await c.query(
+      'SELECT sms_consent_at, sms_consent_source, sms_consent_phone FROM contacts WHERE id = $1', [r.id],
+    );
+    assert.ok(consent.sms_consent_at);
+    assert.equal(consent.sms_consent_source, 'Website opt-in form');
+    assert.equal(consent.sms_consent_phone, '8135550142');
     assert.match(r.notes, /^.*Texts are fine\nText messages: agreed \(ticked the optional consent box\) for 8135550142/);
     assert.match(r.notes, /Do you do balayage/, 'the earlier message is kept');
     assert.equal((await c.query('SELECT count(*)::int AS n FROM contacts WHERE tenant_id = $1', [tenantId])).rows[0].n, 1);

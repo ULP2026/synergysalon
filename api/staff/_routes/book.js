@@ -77,14 +77,12 @@ export default handler({
       return booked;
     });
 
-    // Only if we have somewhere to send it. A phone-only booking is normal at
-    // a front desk and must not be treated as a failure.
-    if (appointment.guest_email) {
-      try {
-        await sendConfirmation(appointment, tenant);
-      } catch (err) {
-        console.error('confirmation email failed for', appointment.ref, err);
-      }
+    // A phone-only booking is normal at a front desk: sendConfirmation then
+    // only texts, and only a client who agreed to texts (sms-notify.js).
+    try {
+      await sendConfirmation(appointment, tenant);
+    } catch (err) {
+      console.error('confirmation email failed for', appointment.ref, err);
     }
 
     await queueWelcome(appointment, tenant);

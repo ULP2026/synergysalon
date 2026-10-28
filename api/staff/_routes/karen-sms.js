@@ -15,7 +15,10 @@
 import { waitUntil } from '@vercel/functions';
 
 import { karenAi } from '../../_lib/karen-ai.js';
-import { karenReply, sendText, tenantIdForKarenNumber, twilioSignatureOk, whoIsTexting } from '../../_lib/karen-sms.js';
+import {
+  consentKeyword, karenReply, phoneKey, sendText, tenantIdForKarenNumber, twilioSignatureOk, whoIsTexting,
+} from '../../_lib/karen-sms.js';
+import { recordConsent, revokeConsent } from '../../_lib/sms-notify.js';
 import { query } from '../../_lib/db.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
@@ -71,6 +74,16 @@ export default async function karenWebhook(req, res) {
       return twiml(res, 200, `<Say voice="Polly.Joanna">${hi}This is Karen, the assistant at ${xml(tenant.name)}. `
         + 'You can text this number any time to book, move or cancel an appointment.'
         + `${salon ? ' Let me put you through to the salon now.</Say>' + `<Dial>${xml(salon)}</Dial>` : ' Talk soon!</Say>'}`);
+    }
+    // STOP and START: the provider replies to them itself; what is kept here
+    // is the consent appointment texts go on (sms-notify.js).
+    const consent = !voice && consentKeyword(params.Body);
+    if (consent) {
+      try {
+        if (consent === 'out') await revokeConsent({ query }, tenant.id, phoneKey(params.From));
+        else await recordConsent({ query }, tenant.id, phoneKey(params.From), 'Replied START');
+      } catch (err) { console.error('texting consent not recorded', err); }
+      return twiml(res, 200, '');
     }
     if (karenAi() && process.env.TWILIO_ACCOUNT_SID) {
       // Karen on Claude can take several seconds and the phone provider gives
