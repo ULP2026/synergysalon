@@ -1318,17 +1318,30 @@
   .kc-pic, .kd-pic { position: relative; flex: none; display: grid; place-items: center; border-radius: 50%; background: #fff; }
   .kc-pic { width: 28px; height: 28px; }
   .kc-pic img { width: 28px; height: 28px; border-radius: 50%; }
+  .kc-pic video { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .kc-vid { opacity: 0; transition: opacity .15s var(--ease); }
+  .kc-vid.on { opacity: 1; }
   .kc-pic i, .kd-pic i { position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%;
                          background: #2fb36b; border: 2px solid #fff; }
-  /* About a fifth larger than it was (2026-10-30), with a soft glow whose
-     colours drift slowly round the brand's periwinkle, pink and teal, so
-     she reads as present. Slow on purpose: alive, not flashing. */
+  /* About a fifth larger than it was (2026-10-30). Her edge is alive (asked
+     for 2026-10-30): a ring in the brand's periwinkle, pink and teal travels
+     round the card every 6 seconds, and the glow outside it shifts through
+     the same colours, so she reads as online and ready. The ring is the
+     border itself (a conic gradient behind a card-coloured padding box,
+     turned by an animated angle), because the card's overflow is hidden and
+     would clip anything drawn outside it. Where @property is missing the
+     ring simply stands still. */
+  @property --kd-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
   dialog.kd { max-width: 552px; width: calc(100% - 24px); height: min(816px, calc(100dvh - 24px)); padding: 0; overflow: hidden;
-              animation: kd-glow 9s ease-in-out infinite; }
+              border: 3px solid transparent;
+              background: linear-gradient(var(--card), var(--card)) padding-box,
+                          conic-gradient(from var(--kd-a), #6f7bd8, #e07ac4, #4fc0cc, #9aa3f0, #6f7bd8) border-box;
+              animation: dlg-zoom .22s var(--ease), kd-spin 6s linear infinite, kd-glow 6s ease-in-out infinite; }
+  @keyframes kd-spin { to { --kd-a: 360deg; } }
   @keyframes kd-glow {
-    0%, 100% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 0 1px rgba(125, 136, 214, .35), 0 0 34px 2px rgba(125, 136, 214, .38); }
-    33% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 0 1px rgba(214, 125, 190, .32), 0 0 34px 2px rgba(214, 125, 190, .32); }
-    66% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 0 1px rgba(96, 186, 196, .32), 0 0 34px 2px rgba(96, 186, 196, .32); }
+    0%, 100% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 16px 1px rgba(125, 136, 214, .7), 0 0 64px 10px rgba(125, 136, 214, .55); }
+    33% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 16px 1px rgba(214, 125, 190, .65), 0 0 64px 10px rgba(214, 125, 190, .5); }
+    66% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 16px 1px rgba(96, 186, 196, .65), 0 0 64px 10px rgba(96, 186, 196, .5); }
   }
   @keyframes kd-drift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
   dialog.kd[open] { display: flex; flex-direction: column; }
@@ -1387,7 +1400,8 @@
   .ka-sec h3 { margin: 6px 0 12px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
   .ka-num { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px;
             background: var(--peri-pale); border: 1px solid rgba(85, 96, 166, .16); }
-  .ka-pic, .ka-pic img { width: 44px; height: 44px; }
+  .ka-pic { width: 88px; height: 88px; box-shadow: 0 0 0 3px #fff, 0 6px 18px -6px rgba(30, 31, 92, .35); }
+  @media (max-width: 480px) { .ka-pic { width: 64px; height: 64px; } }
   .ka-num small { display: block; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
   .ka-num b { display: block; font-size: 1.45rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
   .ka-num b a { color: inherit; text-decoration: none; }
@@ -2733,7 +2747,10 @@
          place the person chip had). On a phone she still floats in the
          bottom-right corner. -->
     <button type="button" class="btn karen-cta" id="karenBtn" title="Call Karen, the booking assistant">
-      <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span>
+      <!-- Her picture is still until the pointer is on the button, then she
+           waves (asked for 2026-10-30): the clip sits over the picture and
+           shows only while it plays. -->
+      <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><video id="karenBtnVid" class="kc-vid" muted playsinline loop preload="none"></video><i></i></span>
       <!-- Her number under the name (asked for 2026-10-30), the one clients
            call or text; paintKarenNumber() fills it, and it stays empty
            until a number is connected in Settings, Karen AI. -->
@@ -2917,7 +2934,9 @@
         <section class="ka-sec">
           <h3>Phone Number Settings</h3>
           <div class="ka-num" id="kaNum">
-            <span class="kc-pic ka-pic" aria-hidden="true"><img id="kaPic" alt=""></span>
+            <!-- Larger, and always waving (asked for 2026-10-30), unless the
+                 device asks for less motion: then the still picture. -->
+            <span class="kc-pic ka-pic" aria-hidden="true"><video id="kaVid" muted playsinline loop preload="auto"></video></span>
             <div><small>Karen's number</small><b id="kaNumber">Loading…</b>
               <span id="kaNumberSub" class="small muted"></span></div>
           </div>
@@ -7568,7 +7587,10 @@ $('bookForm').onsubmit = async (e) => {
 // Karen's face (2026-10-30): the illustrated woman the salon picked, cropped
 // to head and shoulders for the small circles she sits in. Before that she
 // was a drawn robot in the console's periwinkle and pink (2026-10-22).
-const KAREN_PIC = '/assets/karen/karen.webp';
+// Her picture is the first frame of her wave (2026-10-30), so the still and
+// the moving Karen are the same person in the same place.
+const KAREN_PIC = '/assets/karen/karen-still.webp';
+const KAREN_WAVE = '/assets/karen/karen-wave.mp4';
 const KAREN_KINDS = {
   color: /colou?r|balayage|highlight|foil|toner|gloss|dye/,
   treatments: /treatment|keratin|olaplex|k18|bond|scalp|brazilian/,
@@ -8434,6 +8456,23 @@ function kTeam() {
 }
 
 $('karenBtnPic').src = KAREN_PIC;
+// The header button waves only while a mouse is on it, or it has the
+// keyboard's focus; a tap opens her chat straight away, so touch never
+// starts it. Leaving puts her back on her first frame, the still picture.
+{
+  const v = $('karenBtnVid');
+  const on = () => {
+    if (kQuiet()) return;
+    if (!v.src) v.src = KAREN_WAVE;
+    v.play().then(() => v.classList.add('on')).catch(() => {});
+  };
+  const off = () => { v.classList.remove('on'); v.pause(); if (v.readyState) v.currentTime = 0; };
+  $('karenBtn').addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') on(); });
+  $('karenBtn').addEventListener('pointerleave', off);
+  $('karenBtn').addEventListener('focus', () => { if ($('karenBtn').matches(':focus-visible')) on(); });
+  $('karenBtn').addEventListener('blur', off);
+  $('karenBtn').addEventListener('click', off);
+}
 $('karenPic').src = KAREN_PIC;
 $('bookKarenPic').src = KAREN_PIC;
 $('karenBtn').onclick = openKaren;
@@ -9412,7 +9451,12 @@ $('setSeg').onclick = (e) => {
  * sets it.
  */
 async function loadKarenSettings() {
-  $('kaPic').src = KAREN_PIC;
+  const v = $('kaVid');
+  if (!v.poster) { v.poster = KAREN_PIC; }
+  if (!kQuiet()) {
+    if (!v.src) v.src = KAREN_WAVE;
+    v.play().catch(() => { /* the still poster stays */ });
+  }
   try {
     paintKarenSettings(await api('/api/staff/karen'));
   } catch (err) {

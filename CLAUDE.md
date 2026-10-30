@@ -498,8 +498,14 @@ made that way are real: name them ZZ and remove them.
   (`openKarenFromTicket`), so she asks only the rest; she books for the
   linked client (`karen.contact`) and closes the ticket. A "Karen · Step n
   of 4" strip that sat on the ticket was removed on request the same day.
-  Karen's picture is a friendly assistant's face drawn as an inline SVG
-  (`KAREN_PIC`), not a stylist's avatar, on request.
+  Karen's picture is the first frame of the salon's own clip of her waving
+  (2026-10-30, from karen.mp4: `assets/karen/karen-still.webp`, `KAREN_PIC`,
+  and `karen-wave.mp4`, `KAREN_WAVE`, 256px, 11.5s, played forward then
+  backward so the loop never jumps, 180 KB), not a stylist's avatar. The
+  header button is still and waves only while a mouse is on it or it has
+  keyboard focus (`#karenBtnVid` over the picture; leaving puts her back on
+  the first frame; touch never starts it). Settings, Karen AI shows her at
+  88px (64 on a phone), waving on a loop. Neither moves for reduced motion.
 - **Karen by text** (2026-10-22): Settings, Karen AI, Phone Number Settings
   shows the number clients call or text (`tenants.karen_phone`, migration
   033, also in ensure-schema; `GET/PATCH /api/staff/karen`, the admin
@@ -524,8 +530,11 @@ made that way are real: name them ZZ and remove them.
   the number: the form to change it and the Twilio setup steps were
   removed, and `PATCH /api/staff/karen` still sets it.
 - Karen's chat window (2026-10-30) is about 20% larger (552px by up to
-  816px), with a slow colour-shifting glow and a drifting header gradient
-  (off for reduced motion), a compact ask area (smaller chips, summary
+  816px), with a live edge (2026-10-30: a 3px ring of periwinkle, pink and
+  teal travelling round the card every 6 seconds, the border itself as a
+  conic gradient turned by the `--kd-a` @property, and a glow outside it
+  shifting through the same colours) and a drifting header gradient (all
+  off for reduced motion), a compact ask area (smaller chips, summary
   card and message box, a send icon), and a varied hello (`kHello`: by
   the salon's time of day and weekday, with the first name, never the
   same line twice running). The line under her name is "<number> · Booking Assistant ·
