@@ -624,8 +624,9 @@ made that way are real: name them ZZ and remove them.
   page, Karen (app and text), the Google copy and the calendar feed. The
   booking returns its own lines, so the confirmation lists every service
   even on a database without 031. Emails show "Services", one per line
-  with its price, then "Total" (`detailRows`); one service reads "Service"
-  and "Price" as before. The ticket has Service, Qty, Time and Price, and
+  (`detailRows`); one service reads "Service" as before. While
+  `CLIENT_PRICES` is off no price is in them; on, each line carries its
+  price and "Total" follows (one service: "Price"). The ticket has Service, Qty, Time and Price, and
   "Total · n services"; a visit of several services booked before the
   lines existed shows its services and only the total, never a split. A
   website guest who changes services mid-survey moves their booking with
