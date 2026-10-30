@@ -53,6 +53,14 @@ export async function makeBookable(client, tenantId, slug = 'dina') {
   );
   if (!rows[0]) throw new Error(`No stylist "${slug}" in this salon to make bookable.`);
   const stylistId = rows[0].id;
+  // The flexible lunch (timing.js) off: these tests each check another rule
+  // and book around midday; the lunch has its own tests. Rolled back with
+  // the rest of the fixture.
+  await client.query(
+    `UPDATE stylists SET service_details = COALESCE(service_details, '{}'::jsonb) || '{"lunch": false}'::jsonb
+      WHERE id = $1`,
+    [stylistId],
+  );
 
   // Every active service, so a test can book whichever one it needs without
   // naming them here and drifting the first time the menu changes.

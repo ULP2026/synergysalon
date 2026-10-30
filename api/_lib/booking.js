@@ -21,7 +21,7 @@ export const SLOT_TAKEN = 'SLOT_TAKEN';
 async function insertFor(client, stylistId, ctx) {
   const {
     tenant, service, visits, startsAt, guestName, guestEmail, guestPhone, notes,
-    channel, bookedBy, contactId,
+    channel, bookedBy, contactId, via,
   } = ctx;
 
   // How long it is depends on who does it (timing.js), so each stylist tried
@@ -59,6 +59,12 @@ async function insertFor(client, stylistId, ctx) {
         ],
       );
       await client.query('RELEASE SAVEPOINT try_slot');
+
+      // Booked by Karen rather than a person (036). Asked first, like the
+      // services below, so a database without the column books as before.
+      if (via && await hasColumn('appointments', 'booked_via', client)) {
+        await client.query('UPDATE appointments SET booked_via = $2 WHERE id = $1::uuid', [rows[0].id, via]);
+      }
 
       // Every service of the visit, itemized, for its ticket (migration 031).
       // Asked first, so a database without the column books as it always has.
@@ -141,7 +147,7 @@ async function contactFor(client, tenant, { contactId, guestName, guestEmail, gu
 export async function createBooking(client, tenant, {
   serviceSlug, stylistSlug, start, guestName, guestEmail = '', guestPhone = '',
   notes = '', channel = 'online', bookedBy = null, contactId = null, minLeadMin,
-  extraServiceSlugs = [],
+  extraServiceSlugs = [], via = null,
 }) {
   const startsAt = DateTime.fromISO(start, { setZone: true }).setZone(tenant.timezone);
   if (!startsAt.isValid) throw new HttpError(400, 'That appointment time is not valid.');
@@ -182,7 +188,7 @@ export async function createBooking(client, tenant, {
 
   const ctx = {
     tenant, service, visits, startsAt, guestName, guestEmail, guestPhone, notes,
-    channel, bookedBy, contactId: contact,
+    channel, bookedBy, contactId: contact, via,
   };
 
   for (const stylistId of order) {

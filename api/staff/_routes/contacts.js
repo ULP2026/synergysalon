@@ -76,6 +76,7 @@ export async function stylistChoices(tenantId, db = null) {
  */
 const TONE = {
   'Booked by staff': 'booked',
+  'Booked by Karen': 'booked',
   'Booked online': 'booked',
   'Checked in': 'checkin',
   'Appointment cancelled': 'cancel',
@@ -146,7 +147,7 @@ export async function contactDetail(tenantId, id, db = null) {
 
   const { rows: appts } = await q(
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.status, a.channel,
-            a.created_at, a.updated_at, a.cancelled_at, a.checked_in_at,
+            to_jsonb(a) ->> 'booked_via' AS via, a.created_at, a.updated_at, a.cancelled_at, a.checked_in_at,
             a.reminder_sent_at,
             s.name AS stylist, s.slug AS stylist_slug, v.name AS service
        FROM appointments a
@@ -204,7 +205,9 @@ export async function contactDetail(tenantId, id, db = null) {
 
   for (const a of appts) {
     const what = `${a.service} with ${a.stylist}`;
-    add('appointment', a.created_at, a.channel === 'staff' ? 'Booked by staff' : 'Booked online',
+    // Karen's bookings say so (036), in the app or by text.
+    add('appointment', a.created_at,
+        a.via === 'karen' ? 'Booked by Karen' : a.channel === 'staff' ? 'Booked by staff' : 'Booked online',
         what, a.ref);
     add('appointment', a.checked_in_at, 'Checked in', what, a.ref);
     add('appointment', a.cancelled_at, 'Appointment cancelled', what, a.ref);
@@ -251,6 +254,7 @@ export async function contactDetail(tenantId, id, db = null) {
       durationMin: a.duration_min,
       status: a.status,
       channel: a.channel,
+      via: a.via || null,
       checkedInAt: a.checked_in_at,
       service: a.service,
       stylist: a.stylist,

@@ -584,6 +584,14 @@ made that way are real: name them ZZ and remove them.
   A sent email's window no longer carries the rebuilt-from-the-booking
   note (`note` is null unless the booking was deleted): the Email History
   header's info button says it once.
+- **Booked by Karen** (2026-10-31): `appointments.booked_via` (migration
+  036, also in ensure-schema) is `'karen'` for her bookings, in the app
+  (`via: 'karen'` to `/api/staff/book`) and by text (`createBooking`'s
+  `via`; earlier text bookings marked from her note). A client's activity
+  says "Booked by Karen", the ticket "By Karen, for <who asked>", the
+  diary card's chip too. Phones are shown as (813) 555-0170 wherever a
+  stored number is printed (`showPhone`: a whole US number formatted,
+  anything else as it is).
 - Clients, Activity: each kind of event has its own colour (asked for
   2026-10-22): booked green, emails (and texts, when there are any) yellow,
   checked in blue, done teal, no-show orange, cancelled red, the website
@@ -762,6 +770,10 @@ made that way are real: name them ZZ and remove them.
   expect it, or they press "Back to safety" and report a broken link.
   `TOKEN_KEY` must be at least 16 characters or `secrets.js` throws, and
   `canStoreSecrets()` turns that into a polite refusal instead of a crash.
+  Working hours (2026-10-31) is only the hours and the Lunch break switch:
+  its description sits under the title, and the connected calendar's week
+  that was written under each day (`?busy=week`) is no longer shown or
+  fetched.
   The tools card shows which Google account is connected under its
   "Connected" badge (2026-10-31; it was only the hover text), for you and
   for the admin; a colleague sees just the badge.
@@ -811,6 +823,29 @@ made that way are real: name them ZZ and remove them.
   also in ensure-schema) records each copy. Working hours themselves are
   not written to Google: its API has no working-hours setting to write, and
   a week of "not working" events would bury the stylist's own calendar.
+  **The flexible lunch** (asked for 2026-10-31): half an hour somewhere
+  between 11:00 and 1:00 for every stylist (`LUNCH`, `lunchGap` and
+  `flexLunchOn` in timing.js), with no fixed place. `availableSlots` offers
+  a time only if 30 minutes of that window are still free after it (where
+  bookings already leave none, as a desk booking can, it stops nothing
+  else), so a booking may take the lunch's current time and the lunch
+  moves. Off for a day with a lunch put on the grid by hand. The switch is
+  `lunch` in the stylist's own settings object (`staff_users.services`, or
+  `stylists.service_details` for the four without a sign-in; `servicesFrom`
+  keeps it, on unless switched off), shown as "Lunch break" under Working
+  hours and set by the admin like the hours (a stylist saving their own
+  prices keeps theirs). diary.js sends `lunch` (where it falls now) and the
+  grid draws it as a dashed "Lunch · flexible" band clicks pass through.
+  Test fixtures switch it off (`makeBookable`, availability.test.js's stub)
+  so each tests its own rule; `tests/hours.integration.test.js` tests it.
+  **Passed time** is greyed out on the grid (`.dg-past`, a day before
+  today whole, today up to now) and a click there says so; New
+  appointment's calendar strikes out past days (`.bw-day.past`) and its
+  time list shows every time in the working day (`open` from
+  `/api/staff/availability`, each date's earliest start and latest finish),
+  the free ones to pick and the rest struck through, "Passed" or "Taken".
+  Each column's header shows the person's role (`ROLE_LABEL`), not "Team
+  member".
   `?demo` on the address shows a sample day that saves nothing.
 - **Automation** is a **Settings tab** since 2026-10-24 (it was an item in
   the top menu called Marketing): `set-marketing`, after Team; the key is

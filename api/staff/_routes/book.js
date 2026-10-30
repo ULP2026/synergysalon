@@ -69,6 +69,9 @@ export default handler({
         guestPhone,
         notes: typeof body.notes === 'string' ? body.notes.trim().slice(0, 1000) : '',
         channel: 'staff',
+        // Karen in the app books on the signed-in person's behalf; the
+        // history says it was her (036). Anything else is the person.
+        via: body.via === 'karen' ? 'karen' : null,
         bookedBy: user.id,
         contactId,
         minLeadMin: 0,

@@ -50,7 +50,9 @@ function stubClient({
           }],
         };
       }
-      if (sql.includes('FROM stylists s')) return { rows: stylists };
+      // The flexible lunch (timing.js) is off in these fixtures, each of
+      // which tests one other rule; the lunch has its own tests.
+      if (sql.includes('FROM stylists s')) return { rows: stylists.map((x) => ({ details: { lunch: false }, ...x })) };
       if (sql.includes('FROM stylist_hours')) {
         return {
           rows: stylists.flatMap((s) => weekdays.map((weekday) => ({

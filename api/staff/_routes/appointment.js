@@ -44,6 +44,7 @@ const CAN_DELETE = ['owner', 'admin', 'manager'];
 export async function ticketFor(tenant, ref, db = null) {
   const { rows } = await (db ? db.query.bind(db) : query)(
     `SELECT a.ref, a.starts_at, a.duration_min, a.status, a.channel, a.checked_in_at,
+            to_jsonb(a) ->> 'booked_via' AS via,
             a.cancelled_at, a.created_at, a.price_cents, a.notes, a.contact_id,
             a.guest_name, a.guest_email, a.guest_phone,
             to_jsonb(a) -> 'services' AS lines, to_jsonb(a) -> 'breaks' AS breaks,
@@ -87,6 +88,7 @@ export async function ticketFor(tenant, ref, db = null) {
     durationMin: r.duration_min,
     breaks: Array.isArray(r.breaks) ? r.breaks : [],
     channel: r.channel,
+    via: r.via || null,
     bookedBy: r.booked_by_name,
     createdAt: r.created_at,
     notes: r.notes,

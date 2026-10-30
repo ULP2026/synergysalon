@@ -163,6 +163,8 @@ test('a contact\'s detail shows what really happened, newest first, and nothing 
     await client.query("UPDATE appointments SET reminder_sent_at = $1::timestamptz WHERE ref = 'ZZDELD'",
                        [PAST.minus({ days: 1 }).toISO()]);
     await addAppointment(client, id, { ref: 'ZZDELE', start: FUTURE });
+    // Karen made this one (036): the history says so, not "Booked by staff".
+    await client.query("UPDATE appointments SET booked_via = 'karen' WHERE ref = 'ZZDELE'");
     await client.query(
       `INSERT INTO sync_outbox (tenant_id, kind, contact_id, state, done_at)
        VALUES ($1, 'contact.created', $2, 'done', now())`,
@@ -178,7 +180,9 @@ test('a contact\'s detail shows what really happened, newest first, and nothing 
     assert.ok(titles.includes('Reminder email sent'));
     assert.ok(titles.includes('Marked as done'));
     assert.ok(titles.includes('Synced to the CRM'));
-    assert.equal(titles.filter((t) => t === 'Booked by staff' || t === 'Booked online').length, 2);
+    assert.equal(titles.filter((t) => t === 'Booked by staff' || t === 'Booked online').length, 1);
+    assert.ok(titles.includes('Booked by Karen'), 'a booking Karen made reads as hers');
+    assert.equal(d.appointments.find((a) => a.ref === 'ZZDELE').via, 'karen');
     // No messaging history exists yet, so none is shown.
     assert.ok(!d.activity.some((e) => e.type === 'sms' || e.type === 'automation'));
     const times = d.activity.map((e) => new Date(e.at).getTime());

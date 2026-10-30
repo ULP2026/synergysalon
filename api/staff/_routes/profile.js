@@ -192,6 +192,8 @@ export function servicesFrom(value) {
       .filter(Boolean).join('\n');
   }
   out.notes = notes.trim().slice(0, 2000);
+  // The flexible lunch (timing.js): on unless switched off.
+  out.lunch = src.lunch !== false;
   return out;
 }
 
@@ -290,6 +292,15 @@ export default handler({
     // owner too, who can be a stylist as well as run the place; with every
     // service off they are simply not on the booking page (syncStylist).
     const services = servicesFrom(body.services);
+    if (services !== undefined && !canManageTeam(user)) {
+      // The lunch belongs with the working hours, which are the admin's to
+      // set: a stylist saving their own prices keeps the lunch they have.
+      const { rows: was } = await query(
+        "SELECT (to_jsonb(u) -> 'services' ->> 'lunch') AS lunch FROM staff_users u WHERE id = $1",
+        [user.id],
+      );
+      services.lunch = was[0]?.lunch !== 'false';
+    }
     if (services !== undefined) add('services', JSON.stringify(services));
     if (body.pricing !== undefined && CAN_PRICE.includes(user.role)) {
       add('pricing', String(body.pricing || '').trim().slice(0, 120));

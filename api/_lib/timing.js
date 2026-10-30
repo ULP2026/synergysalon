@@ -171,3 +171,37 @@ export function cleanBreaks(breaks, durationMin) {
       && at > 0 && len > 0 && at + len < durationMin)
     .sort((a, b) => a[0] - b[0]);
 }
+
+/**
+ * The flexible lunch (asked for 2026-10-31): 30 minutes, somewhere between
+ * 11:00 and 1:00, wherever the bookings leave room. It has no fixed place:
+ * a booking may take the time it happens to be sitting in, and the lunch
+ * moves, as long as 30 minutes of that window are still free afterwards.
+ * Each stylist's switch is `lunch` in their own settings (the same object
+ * as their service times); it is on unless switched off.
+ */
+export const LUNCH = { from: 11 * 60, to: 13 * 60, minutes: 30 };
+
+export function flexLunchOn(details) {
+  return details?.lunch !== false;
+}
+
+/**
+ * The earliest start of `len` free units inside any of `windows`, given the
+ * `taken` spans, or null when there is none. Units are whatever the caller
+ * uses (minutes for the grid, milliseconds for availability).
+ */
+export function lunchGap(windows, taken, len) {
+  const busy = [...taken].sort((a, b) => a[0] - b[0]);
+  for (const [ws, we] of windows) {
+    let t = ws;
+    for (const [s, e] of busy) {
+      if (e <= t) continue;
+      if (s >= we) break;
+      if (s - t >= len) return t;
+      t = Math.max(t, e);
+    }
+    if (we - t >= len) return t;
+  }
+  return null;
+}

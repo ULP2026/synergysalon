@@ -159,6 +159,11 @@ const STATEMENTS = [
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_at timestamptz',
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_source text',
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_phone text',
+  // 036: who booked it when it was not a person ('karen'), and her text
+  // bookings from before, which carry her note.
+  'ALTER TABLE appointments ADD COLUMN IF NOT EXISTS booked_via text',
+  `UPDATE appointments SET booked_via = 'karen'
+    WHERE booked_via IS NULL AND notes = 'Booked by text with Karen.'`,
   // 035: the Google copy of each lunch and block, so a stylist's calendar
   // shows the time the app has blocked. Additive and empty until used.
   `CREATE TABLE IF NOT EXISTS google_blocks (

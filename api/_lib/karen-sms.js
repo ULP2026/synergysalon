@@ -790,6 +790,7 @@ async function bookIt(ctx, service, start, name, { stylistSlug = null, offerAgai
       contactId: who.kind === 'client' ? who.id : null,
       notes: 'Booked by text with Karen.',
       channel: 'online',
+      via: 'karen',
     }));
   } catch (err) {
     if (err.status !== 409) throw err;

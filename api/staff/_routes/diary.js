@@ -36,7 +36,9 @@ import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
-import { cleanBreaks } from '../../_lib/timing.js';
+import {
+  LUNCH, cleanBreaks, cleanDown, flexLunchOn, lunchGap, workSpans,
+} from '../../_lib/timing.js';
 
 export default handler({
   async GET(req, res) {
@@ -63,7 +65,8 @@ export default handler({
     const to = month ? month.endOf('month') : day.endOf('day');
 
     const { rows } = await query(
-      `SELECT a.ref, a.starts_at, a.duration_min, a.status, to_jsonb(a) -> 'breaks' AS breaks, a.channel, a.checked_in_at,
+      `SELECT a.ref, a.starts_at, a.duration_min, a.buffer_min, a.status, to_jsonb(a) -> 'breaks' AS breaks, a.channel, a.checked_in_at,
+              to_jsonb(a) ->> 'booked_via' AS via,
               a.guest_name, a.guest_email, a.guest_phone, a.notes,
               a.price_cents, a.created_at,
               -- The guest's next visit after this one, for the day card.
@@ -95,11 +98,13 @@ export default handler({
         time: starts.toFormat('h:mm a'),
         endTime: starts.plus({ minutes: r.duration_min }).toFormat('h:mm a'),
         durationMin: r.duration_min,
+        bufferMin: r.buffer_min || 0,
         // Processing breaks, [minutes from the start, minutes long]: the
         // stylist is free in them, so the day draws them open and bookable.
         breaks: cleanBreaks(r.breaks, r.duration_min),
         status: r.status,
         channel: r.channel,
+        via: r.via || null,
         checkedInAt: r.checked_in_at,
         service: r.service_name,
         stylist: r.stylist_name,
@@ -146,10 +151,14 @@ export default handler({
     // stylist with no hours that day is listed with none: off all day.
     // Somebody with no chair is not listed, and their column is not greyed.
     let hours = {};
+    const lunch = {};
+    const lunchOff = new Set();
     if (!month) {
       const { rows: shifts } = await query(
-        `SELECT s.slug, to_char(h.starts_at, 'HH24:MI') AS opens, to_char(h.ends_at, 'HH24:MI') AS closes
+        `SELECT s.slug, to_char(h.starts_at, 'HH24:MI') AS opens, to_char(h.ends_at, 'HH24:MI') AS closes,
+                COALESCE(to_jsonb(u) -> 'services', to_jsonb(s) -> 'service_details', '{}'::jsonb) AS details
            FROM stylists s
+           LEFT JOIN staff_users u ON u.id = s.staff_user_id
            LEFT JOIN stylist_hours h ON h.stylist_id = s.id AND h.weekday = $2::int
           WHERE s.tenant_id = $1::uuid AND s.active
           ORDER BY s.slug, h.starts_at`,
@@ -159,6 +168,40 @@ export default handler({
       for (const r of shifts) {
         hours[r.slug] ||= [];
         if (r.opens && r.closes) hours[r.slug].push([mins(r.opens), mins(r.closes)]);
+        if (!flexLunchOn(r.details)) lunchOff.add(r.slug);
+      }
+
+      // Where each stylist's flexible lunch falls today (timing.js): the
+      // earliest half hour left free between 11 and 1, around their
+      // bookings and blocks, drawn on the grid as a dashed band. It is not
+      // a block: a booking may take that time and the lunch moves, which is
+      // the rule availability.js applies when it offers times. None for a
+      // stylist who switched it off, who has a lunch put on by hand that
+      // day, or whose bookings already leave no room.
+      const onDay = (iso) => {
+        const t = DateTime.fromJSDate(new Date(iso)).setZone(tenant.timezone);
+        if (t < day.startOf('day')) return 0;
+        if (t > day.endOf('day')) return 24 * 60;
+        return t.hour * 60 + t.minute;
+      };
+      for (const [slug, list] of Object.entries(hours)) {
+        if (!list.length || lunchOff.has(slug)) continue;
+        if (blocks.some((b) => b.stylistSlug === slug && b.kind === 'lunch')) continue;
+        const windows = list.map(([a, b]) => [Math.max(LUNCH.from, a), Math.min(LUNCH.to, b)])
+          .filter(([a, b]) => b - a >= LUNCH.minutes);
+        if (!windows.length) continue;
+        const taken = [
+          ...appointments.filter((a) => a.stylistSlug === slug && a.status !== 'cancelled')
+            .flatMap((a) => {
+              const s0 = onDay(a.startsAt);
+              const visit = { durationMin: a.durationMin, bufferMin: a.bufferMin, breaks: a.breaks };
+              return [...workSpans(visit), ...cleanDown(visit)].map(([x, y]) => [s0 + x, s0 + y]);
+            }),
+          ...blocks.filter((b) => !b.stylistSlug || b.stylistSlug === slug)
+            .map((b) => [onDay(b.startsAt), onDay(b.endsAt)]),
+        ];
+        const at = lunchGap(windows, taken, LUNCH.minutes);
+        if (at != null) lunch[slug] = [at, at + LUNCH.minutes];
       }
     }
 
@@ -217,6 +260,7 @@ export default handler({
       date,
       blocks,
       hours,
+      lunch,
       team,
       month: month ? month.toFormat('yyyy-MM') : null,
       timezone: tenant.timezone,

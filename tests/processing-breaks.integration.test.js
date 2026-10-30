@@ -54,7 +54,8 @@ async function setup(c, details = DINA) {
   await makeBookable(c, tenant.id, 'micah');
   await c.query(
     "UPDATE stylists SET service_details = $2::jsonb WHERE tenant_id = $1 AND slug = 'dina'",
-    [tenant.id, JSON.stringify(details)],
+    // The flexible lunch off, as makeBookable leaves it: these book around midday.
+    [tenant.id, JSON.stringify({ lunch: false, ...details })],
   );
   return tenant;
 }

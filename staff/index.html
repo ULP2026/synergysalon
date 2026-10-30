@@ -1208,7 +1208,15 @@
   .dg-offhrs span { font-size: var(--fs-xs); font-weight: 600; color: var(--faint); white-space: nowrap; text-align: center; }
   .dg-offhrs span b { display: block; font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
   .dg-offhrs span small { display: block; font-size: .7rem; font-weight: 500; }
-  .dg-col:has(.dg-offhrs:hover) .ghost { display: none; }
+  .dg-col:has(.dg-offhrs:hover) .ghost, .dg-col:has(.dg-past:hover) .ghost { display: none; }
+  .dg-lunch { position: absolute; left: 6px; right: 6px; z-index: 0; pointer-events: none; border-radius: 10px;
+              border: 1.5px dashed color-mix(in srgb, var(--periwinkle) 60%, transparent);
+              background: color-mix(in srgb, var(--periwinkle) 8%, transparent); padding: 4px 10px; overflow: hidden; }
+  .dg-lunch span { font-size: var(--fs-xs); font-weight: 650; color: var(--periwinkle); white-space: nowrap; }
+  /* Passed time: a flat darker grey over everything under it but the cards,
+     so the day's bookings still read (2026-10-31). */
+  .dg-past { position: absolute; left: 0; right: 0; z-index: 0; cursor: not-allowed;
+             background: color-mix(in srgb, var(--ink) 7%, transparent); }
   .dg-busy { position: absolute; left: 6px; right: 6px; z-index: 1; border-radius: 10px; padding: 6px 10px;
              font-size: var(--fs-xs); font-weight: 600; color: #4b4f86; overflow: hidden; line-height: 1.3;
              border-left: 4px solid #9aa3e0;
@@ -1507,7 +1515,10 @@
   .bw-day:hover:not(:disabled) { background: var(--peri-pale); }
   .bw-day.today { box-shadow: inset 0 0 0 1.5px var(--periwinkle); }
   .bw-day.on { background: var(--periwinkle); color: #fff; }
-  .bw-day:disabled { background: none; color: var(--faint); cursor: default; }
+  .bw-day:disabled { background: none; color: var(--faint); cursor: not-allowed; }
+  /* A day that has passed reads as gone, not merely quiet (2026-10-31). */
+  .bw-day.past { background: color-mix(in srgb, var(--line) 45%, transparent); color: color-mix(in srgb, var(--faint) 80%, transparent);
+                 text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--faint) 50%, transparent); }
   .bw-day:focus-visible, .bw-icon:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
   .bw-sub { margin: 0 0 10px; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
   .bw-with { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
@@ -1520,7 +1531,12 @@
              transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease); }
   .bw-time:hover { border-color: var(--line-2); }
   .bw-time.on { background: var(--periwinkle); border-color: var(--periwinkle); color: #fff; }
+  /* Gone (passed or taken): grey, struck through, not pickable. */
+  .bw-time.gone { background: var(--raise); border-color: transparent; color: var(--faint); cursor: not-allowed;
+                  text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent); }
+  .bw-time.gone:hover { border-color: transparent; }
   .bw-empty { padding: 6px 0; font-size: var(--fs-sm); color: var(--muted); }
+  .bw-times > .bw-empty, .bw-times > .bw-times { grid-column: 1 / -1; }
   .bw-sum { margin-bottom: 16px; padding: 14px; border-radius: 12px; background: var(--raise); font-size: var(--fs-sm); color: var(--ink); }
   .bw-sum .bw-facts { display: flex; flex-wrap: wrap; gap: 6px 16px; }
   .bw-sum em { font-style: normal; color: var(--muted); }
@@ -2322,12 +2338,14 @@
              border-radius:9px; font:inherit; font-size:var(--fs-sm); background:var(--bg); color:inherit; }
   .hrs .hr input[disabled] { opacity:.5; }
   .hrs .hr .dash { color:var(--muted); font-size:var(--fs-sm); }
+  .hrs .wh-lunch b { flex: none; }
+  .hrs .wh-lunch .wh-lunch-d { flex: 1; min-width: 0; color: var(--muted); font-size: var(--fs-sm); }
+  #memberHours + .hrs { margin-top: -8px; }
   /* Phones: the switch and the day on one line, the two times under it. */
   @media (max-width:520px) {
     .hrs .hr { gap: 8px 10px; }
     .hrs .hr b { flex-basis: calc(100% - 64px); }
     .hrs .hr input[type=time] { flex: 1; width: auto; min-width: 0; }
-    .hr .gday { padding-left: 0; }
   }
 
   /* ── Team member window: the name is the heading, edited in place ───── */
@@ -2467,18 +2485,13 @@
   }
 
   /* Working hours: grey and disabled unless the admin is setting a stylist's (hoursOpen()). */
-  .wh { display: block; margin-bottom: 8px; }
-  .wh-note { margin: 0 0 16px; }
+  .wh { display: block; margin-bottom: 16px; }
+  .wh-note { margin: -6px 0 10px; }
   /* Closed: every day grey and inert (the controls are disabled as well). */
   .wh-off .hrs .hr { background: var(--raise); border-color: var(--line); }
   .wh-off .hrs .hr > * { opacity: .5; filter: grayscale(1); }
   .wh-off .hrs .hr .switch { cursor: not-allowed; }
   .hrs .hr { flex-wrap: wrap; }
-  .hr .gday { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding-left: 56px;
-              font-size: .74rem; color: var(--muted); }
-  .hr .gday i { font-style: normal; padding: 1px 7px; border-radius: 999px; background: var(--raise); }
-  .hr .gday i.busy { background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn); }
-  .hr .gday i.free { background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--ok); }
 
   /* Team window: a pencil beside the name and the username */
   .md-editrow { display: flex; align-items: center; gap: 2px; min-width: 0; }
@@ -3186,10 +3199,18 @@
         <!-- Shown, grey and disabled, for everyone for now: the salon sets
              schedules: only the admin sets a stylist's hours (hoursOpen()). -->
         <div class="md-sec">Working hours</div>
+        <p class="small muted wh-note">The times guests can book with this person. A day switched off is closed. Only the admin changes them.</p>
         <div id="memberHoursWrap" class="wh wh-off">
           <div class="hrs" id="memberHours"></div>
+          <!-- The flexible lunch (2026-10-31): half an hour between 11 and 1,
+               moved around bookings by availability.js. Saved with their
+               services object as `lunch`, set by the admin like the hours. -->
+          <div class="hrs"><div class="hr wh-lunch" id="memberLunch">
+            <button type="button" class="switch" role="switch" aria-checked="true" aria-label="Flexible lunch break"><span></span></button>
+            <b>Lunch break</b>
+            <span class="wh-lunch-d">30 min between 11 AM and 1 PM, moved around bookings</span>
+          </div></div>
         </div>
-        <p class="small muted wh-note">These are the times guests can book online with this person. Only the admin changes them, so the website never offers a time they do not work. A day switched off is closed.</p>
       </div>
 
       <div id="memberCreate">
@@ -5574,7 +5595,8 @@ function statusChips(a) {
   if (a.status === 'no_show') out.push('<span class="chip warn">No show</span>');
   if (a.status === 'completed') out.push('<span class="chip ok">Done</span>');
   if (a.checkedInAt && a.status === 'booked') out.push('<span class="chip ok">Here</span>');
-  if (a.channel === 'staff') out.push('<span class="chip">Booked by staff</span>');
+  if (a.via === 'karen') out.push('<span class="chip">Booked by Karen</span>');
+  else if (a.channel === 'staff') out.push('<span class="chip">Booked by staff</span>');
   return out.join(' ') || '<span class="chip">Booked</span>';
 }
 
@@ -5656,7 +5678,8 @@ function cardMarks(a) {
   else if (a.status === 'completed') m.push(['ok', 'thumbs', 'Done']);
   else if (a.checkedInAt) m.push(['ok', 'user-check', 'Checked in']);
   else m.push(['', 'check', 'Confirmed']);
-  m.push(a.channel === 'staff' ? ['', 'user', `Booked by ${a.bookedBy || 'staff'}`] : ['', 'link', 'Booked online']);
+  m.push(a.via === 'karen' ? ['', 'user', 'Booked by Karen']
+    : a.channel === 'staff' ? ['', 'user', `Booked by ${a.bookedBy || 'staff'}`] : ['', 'link', 'Booked online']);
   if (a.notes) m.push(['', 'doc', 'Has notes']);
   return m.map(([cls, icon, title]) => `<i class="${cls}" title="${esc(title)}">${ic(icon)}</i>`).join('');
 }
@@ -5667,7 +5690,7 @@ function dayCard(a, top, height) {
   const lines = [
     `<span class="ln">${esc(a.service)}</span>`,
     a.room ? `<span class="ln m">${esc(a.room)}</span>` : '',
-    a.guestPhone ? `<span class="ln m">${esc(a.guestPhone)}</span>` : '',
+    a.guestPhone ? `<span class="ln m">${esc(showPhone(a.guestPhone))}</span>` : '',
     a.guestEmail ? `<span class="ln m">${esc(a.guestEmail)}</span>` : '',
     a.price != null ? `<span class="ln p">${esc(money(a.price))}</span>` : '',
     a.createdAt ? `<span class="ln m">Created ${esc(shortDate(a.createdAt))}</span>` : '',
@@ -5784,6 +5807,23 @@ function renderDiary(d) {
     out += band(at, to, `Done at ${clock(sorted[sorted.length - 1][1])}`, title);
     return out;
   };
+  // Time that has passed (2026-10-31): a day before today is greyed out
+  // whole, today up to now, darker than the hours outside a shift, in every
+  // column, and a click there says so instead of opening New appointment.
+  const nowMin = d.date === d.today ? salonMinutes(new Date().toISOString()) : null;
+  const pastTo = d.date < d.today ? to : nowMin != null ? Math.min(to, Math.max(from, nowMin)) : from;
+  const pastBand = pastTo > from
+    ? `<div class="dg-past" style="top:0;height:${px(pastTo)}px" data-past title="This time has passed."></div>` : '';
+  // Where their flexible lunch falls today (diary.js): a dashed band the
+  // pointer passes through, since a booking may take that time and the
+  // lunch moves (availability.js only offers times that leave it room).
+  const lunchBand = (slug) => {
+    const l = slug && d.lunch ? d.lunch[slug] : null;
+    if (!l) return '';
+    return `<div class="dg-lunch" style="top:${px(l[0]) + 1}px;height:${Math.max(18, px(l[1]) - px(l[0]) - 3)}px"
+      title="Lunch, ${esc(clock(l[0]))} to ${esc(clock(l[1]))} for now. It moves if a booking needs this time.">
+      <span>Lunch · flexible</span></div>`;
+  };
   // A block on the whole salon (no stylist) is drawn in every column.
   const salonBlocks = blocks.filter((b) => !b.stylistSlug);
 
@@ -5814,7 +5854,8 @@ function renderDiary(d) {
       <img class="avatar" src="${esc(personPhoto(p))}" alt="">
       <div style="min-width:0"><b>${esc(p.name)}</b><span class="sub">${sub}</span></div></div>`;
   const heads = [
-    ...team.map((t, i) => personHead(t, `${GOOGLE_LOGO.replace('class="conn-logo"', '')}Team member`, !i)),
+    // Their role under the name (asked for 2026-10-31), not "Team member".
+    ...team.map((t, i) => personHead(t, `${GOOGLE_LOGO.replace('class="conn-logo"', '')}${esc(ROLE_LABEL[t.role] || 'Team member')}`, !i)),
     ...[...extra.values()].map((x) => personHead(x, 'Not connected', false)),
     ...(lanesEnd.length ? [`<div class="dg-head dg-group" style="grid-column:span ${lanesEnd.length}">
       <span class="dg-hic">${ic('calendar')}</span>
@@ -5842,7 +5883,7 @@ function renderDiary(d) {
     // Somebody who takes no appointments has no stylist row, so their
     // column books with whoever is free.
     return `<div class="dg-col dg-c1${i ? '' : ' dg-tfirst'}" data-stylist="${esc(t.stylistSlug || '')}" style="height:${height}px">
-      <span class="ghost" aria-hidden="true"></span>${offHours(t.stylistSlug, t.name)}
+      <span class="ghost" aria-hidden="true"></span>${pastBand}${offHours(t.stylistSlug, t.name)}${lunchBand(t.stylistSlug)}
       ${t.error ? `<div class="dg-gerr">${esc(t.error)}</div>` : ''}${busy}${offs}${own.map(apptCard).join('')}${nowLine}</div>`;
   }).join('');
   const extraHtml = [...extra.values()].map((x) => {
@@ -5850,13 +5891,13 @@ function renderDiary(d) {
       .map((b) => blockHtml(b, ...blkSpan(b))).join('');
     const own = live.filter((a) => a.stylistSlug === x.slug).map(apptCard).join('');
     return `<div class="dg-col dg-c0" data-stylist="${esc(x.slug)}" style="height:${height}px">
-      <span class="ghost" aria-hidden="true"></span>${offHours(x.slug, x.name)}${offs}${own}${nowLine}</div>`;
+      <span class="ghost" aria-hidden="true"></span>${pastBand}${offHours(x.slug, x.name)}${lunchBand(x.slug)}${offs}${own}${nowLine}</div>`;
   }).join('');
   const looseHtml = lanesEnd.map((_, i) => {
     const offs = salonBlocks.map((b) => blockHtml(b, ...blkSpan(b))).join('');
     const own = loose.filter((it) => it.lane === i).map((it) => apptCard(it.a)).join('');
     return `<div class="dg-col dg-c0" style="height:${height}px">
-      <span class="ghost" aria-hidden="true"></span>${offs}${own}${nowLine}</div>`;
+      <span class="ghost" aria-hidden="true"></span>${pastBand}${offs}${own}${nowLine}</div>`;
   }).join('');
   const colCount = team.length + extra.size + lanesEnd.length;
   // The page's width for this many people: its padding, the card's, the
@@ -6017,6 +6058,7 @@ $('diary').onclick = (e) => {
 
   // Outside somebody's working hours: nothing to book (the booking form
   // would find no times there either), so say why instead of opening it.
+  if (e.target.closest('[data-past]')) { toast('That time has passed. Pick a time from now on.'); return; }
   const offhrs = e.target.closest('[data-offhrs]');
   if (offhrs) { toast(`${offhrs.dataset.offhrs} Change them in Settings, Team.`); return; }
   const col = e.target.closest('.dg-col');
@@ -6094,11 +6136,15 @@ function paintTicket(a) {
       return `${clock(s0)} to ${clock(s0 + len)}`;
     }).join(', ') + ' (stylist free)')) : '',
     a.room ? row('Room', esc(a.room)) : '',
-    row('Phone', a.guestPhone ? `<a href="tel:${esc(a.guestPhone)}">${esc(a.guestPhone)}</a>` : ''),
+    row('Phone', a.guestPhone ? `<a href="tel:${esc(a.guestPhone)}">${esc(showPhone(a.guestPhone))}</a>` : ''),
     row('Email', a.guestEmail ? `<a href="mailto:${esc(a.guestEmail)}">${mail(a.guestEmail)}</a>` : ''),
     row('Created on', esc(shortDate(a.createdAt))),
     row('Next appt', esc(a.nextStartsAt ? fmtWhen(a.nextStartsAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')),
-    row('Booked', esc(a.channel === 'staff' ? `By ${a.bookedBy || 'staff'}` : 'Online')),
+    // Karen's own bookings say so (2026-10-31), with whoever asked her in
+    // the app, since she books on their behalf.
+    row('Booked', esc(a.via === 'karen'
+      ? (a.channel === 'staff' && a.bookedBy ? `By Karen, for ${a.bookedBy}` : 'By Karen')
+      : a.channel === 'staff' ? `By ${a.bookedBy || 'staff'}` : 'Online')),
     row('Notes', a.notes ? `<span style="white-space:pre-line">${esc(a.notes)}</span>` : ''),
   ].join('');
   $('adLines').innerHTML = ticketLines(a);
@@ -6226,6 +6272,7 @@ function demoDay(date) {
     appointments, blocks,
     // Sample working hours, so the greyed-out time shows too.
     hours: Object.fromEntries(stylists.map((s, i) => [s.slug, [[540, i ? 1140 : 1020]]])),
+    lunch: Object.fromEntries(stylists.slice(1).map((s) => [s.slug, [690, 720]])),
     // The first two as if they had connected Google, so the sample shows
     // both kinds of column: connected, and not yet.
     team: stylists.slice(0, 2).map((s, i) => ({
@@ -6532,7 +6579,7 @@ function renderContacts(d, filtered) {
           </div>
           ${c.cardOnFile ? `<div class="ccard">${cardChip()}</div>` : ''}
           <div class="cmeta">
-            ${c.phone ? `<span>${ic('phone')}${esc(c.phone)}</span>` : ''}
+            ${c.phone ? `<span>${ic('phone')}${esc(showPhone(c.phone))}</span>` : ''}
             ${c.email ? `<span class="email" title="${esc(c.email)}">${ic('mail')}<span>${esc(c.email).replace('@', '<wbr>@')}</span></span>` : ''}
             ${!c.phone && !c.email ? '<span>No phone or email yet</span>' : ''}
           </div>
@@ -6704,7 +6751,7 @@ function renderPerson() {
   $('pxName').textContent = c.name;
   // Name and phone at the top (asked for 2026-10-22); the stylist is the
   // headshot on their circle and a row in Contact details (2026-10-31).
-  $('pxSub').innerHTML = c.phone ? `${ic('phone')}<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : '';
+  $('pxSub').innerHTML = c.phone ? `${ic('phone')}<a href="tel:${esc(c.phone)}">${esc(showPhone(c.phone))}</a>` : '';
   $('pxChips').innerHTML = personChips(c);
 
   const dash = '<span class="muted">–</span>';
@@ -7256,7 +7303,7 @@ function paintBookCal(known = null) {
     const iso = bookYmd(y, m, d);
     const past = iso < today;
     const full = Boolean(known) && !past && !(known[iso] || []).length;
-    const cls = ['bw-day', iso === $('bookDate').value && 'on', iso === today && 'today'].filter(Boolean).join(' ');
+    const cls = ['bw-day', iso === $('bookDate').value && 'on', iso === today && 'today', past && 'past'].filter(Boolean).join(' ');
     cells.push(`<button type="button" class="${cls}" data-day="${iso}"${past || full ? ' disabled' : ''}`
       + ` aria-label="${esc(bookLongDate(iso))}${full ? ', nothing free' : ''}">${d}</button>`);
   }
@@ -7292,9 +7339,29 @@ function paintBookTimes(days = null) {
     $('bookTime').value = '';
     note($('bookNote'), `${bookTimeLabel(want)} no longer fits ${bookVisitName()}. Pick another time.`, 'bad');
   }
+  // Every time in the working day, so it is plain which are gone (asked for
+  // 2026-10-31): the free ones to pick, the rest greyed out and disabled,
+  // "Passed" before now today and "Taken" otherwise. Without the day's hours
+  // (an older server) just the free ones, as before.
+  const today = salonToday();
+  const span = (bookOpen.get(bookKey(date.slice(0, 7))) || {})[date];
+  const nowMin = date === today ? salonMinutes(new Date().toISOString()) : -1;
+  const free = new Map(slots.map((s) => [salonMinutes(s.start), s]));
+  const len = bookVisitMins() || 15;
+  const steps = [];
+  if (span && date >= today) for (let m = span[0]; m + len <= span[1]; m += 15) steps.push(m);
+  for (const m of free.keys()) if (!steps.includes(m)) steps.push(m);
+  steps.sort((a, b) => a - b);
+  const timeBtn = (m) => {
+    const s = free.get(m);
+    if (s) return `<button type="button" class="bw-time" data-time="${esc(s.start)}">${bookTimeLabel(s.start)}</button>`;
+    const why = m < nowMin ? 'Passed' : 'Taken';
+    return `<button type="button" class="bw-time gone" disabled title="${why}" aria-label="${esc(clock(m))}, ${why.toLowerCase()}">${esc(clock(m))}</button>`;
+  };
   box.innerHTML = slots.length
-    ? slots.map((s) => `<button type="button" class="bw-time" data-time="${esc(s.start)}">${bookTimeLabel(s.start)}</button>`).join('')
-    : `<p class="bw-empty">${date < salonToday() ? 'That day has passed.' : 'Nothing free that day.'} Pick another day.</p>`;
+    ? steps.map(timeBtn).join('')
+    : `<p class="bw-empty">${date < today ? 'That day has passed.' : span ? 'Nothing free that day.' : 'Not working that day.'} Pick another day.</p>`
+      + (span && date >= today ? `<div class="bw-times">${steps.map(timeBtn).join('')}</div>` : '');
   markBookTime();
   paintBookFoot();
 }
@@ -7317,6 +7384,9 @@ const bookReady = (key) => {
 };
 
 /** A month's free times for the visit, asked once. */
+/** Each month's working day per date ([start, finish] in minutes), by the
+    same key as its times: what the time list draws greyed out. */
+const bookOpen = new Map();
 async function bookMonthDays(month) {
   const key = bookKey(month);
   if (!key) return null;
@@ -7329,7 +7399,10 @@ async function bookMonthDays(month) {
     const from = first < today ? today : first;
     const ask = from > last ? Promise.resolve({}) : api('/api/staff/availability?' + new URLSearchParams({
       service: q.service, stylist: $('bookStylist').value, date: from, to: last, ...(q.with ? { with: q.with } : {}),
-    })).then((d) => Object.fromEntries(d.days.map((x) => [x.date, x.slots])));
+    })).then((d) => {
+      bookOpen.set(key, d.open || {});
+      return Object.fromEntries(d.days.map((x) => [x.date, x.slots]));
+    });
     bookCache.set(key, ask);
     ask.then((days) => bookCache.set(key, days), () => bookCache.delete(key));
   }
@@ -8498,6 +8571,8 @@ async function kDoBook() {
         stylist: karen.stylist,
         start: karen.time,
         notes: '',
+        // Recorded as Karen's booking, so the client's history says so.
+        via: 'karen',
       }),
     });
     if (run !== karenRun) return;
@@ -8875,6 +8950,9 @@ function paintServices(services = {}) {
     .map(([key, label]) => (services[key]?.notes ? `${label}: ${services[key].notes}` : ''))
     .filter(Boolean).join('\n');
   $('memberNotes').value = typeof services.notes === 'string' ? services.notes : legacy;
+  const lunchOn = services.lunch !== false;
+  $('memberLunch').querySelector('.switch').setAttribute('aria-checked', String(lunchOn));
+  $('memberLunch').classList.toggle('off', !lunchOn);
 }
 
 $('memberSvcs').oninput = (e) => {
@@ -8924,61 +9002,8 @@ function paintHours(hours = []) {
       <span class="dash">to</span>
       <input type="time" step="900" value="${h ? esc(h.ends) : DEFAULT_SHIFT.ends}"
         aria-label="${label} end" ${on ? '' : 'disabled'}>
-      <span class="gday" hidden></span>
     </div>`;
   }).join('');
-  paintGoogleWeek();
-}
-
-/**
- * The coming week from the connected Google Calendar, written under each day:
- * what is busy there and what is left of the hours set for that day. Read
- * live each time the window opens (GET /api/staff/calendars?busy=week), so it
- * is what the calendar says now, not what it said when it was connected.
- */
-let hoursWeek = null;       // { google, days, error } for the member the window is open on
-
-const toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
-const fromMin = (n) => {
-  const h = Math.floor(n / 60), m = n % 60;
-  const ap = h >= 12 && h < 24 ? 'pm' : 'am';
-  const h12 = ((h + 11) % 12) + 1;
-  return m ? `${h12}:${String(m).padStart(2, '0')}${ap}` : `${h12}${ap}`;
-};
-
-function paintGoogleWeek() {
-  const week = hoursOpen() && hoursWeek?.google?.connected && !hoursWeek.error ? hoursWeek : null;
-  for (const row of $('memberHours').querySelectorAll('.hr')) {
-    const out = row.querySelector('.gday');
-    const day = week?.days.find((d) => d.weekday === Number(row.dataset.day));
-    if (!day) { out.hidden = true; out.innerHTML = ''; continue; }
-    const on = row.querySelector('.switch').getAttribute('aria-checked') === 'true';
-    const [a, b] = row.querySelectorAll('input[type=time]');
-    const date = new Date(`${day.date}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    const busy = day.busy.map((x) => (x.allDay ? [0, 1440] : [toMin(x.starts), toMin(x.ends)]))
-      .sort((x, y) => x[0] - y[0]);
-    let chips = '';
-    if (on && a.value && b.value && toMin(b.value) > toMin(a.value)) {
-      // What is left of the shift once Google's busy times are taken out.
-      const free = [];
-      let t = toMin(a.value);
-      const end = toMin(b.value);
-      for (const [s0, e0] of busy) {
-        if (e0 <= t || s0 >= end) continue;
-        if (s0 > t) free.push([t, s0]);
-        t = Math.max(t, e0);
-      }
-      if (t < end) free.push([t, end]);
-      chips = free.length
-        ? free.map(([x, y]) => `<i class="free">Free ${fromMin(x)} to ${fromMin(y)}</i>`).join('')
-        : '<i class="busy">Busy all shift</i>';
-    }
-    const busyText = busy.length
-      ? busy.map(([x, y]) => (x === 0 && y === 1440 ? '<i class="busy">Busy all day</i>' : `<i class="busy">Busy ${fromMin(x)} to ${fromMin(y)}</i>`)).join('')
-      : '<i>Nothing in Google</i>';
-    out.innerHTML = `<span>${esc(date)}:</span>${busyText}${chips}`;
-    out.hidden = false;
-  }
 }
 
 /**
@@ -9031,6 +9056,14 @@ function usPhone(raw) {
   if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 }
+/** A stored phone for reading (asked for 2026-10-31): a whole US number as
+    (813) 555-0170, however it was saved (the website and Karen keep bare
+    digits), anything else exactly as it is. */
+function showPhone(raw) {
+  const s = String(raw ?? '').trim();
+  const d = s.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+  return d.length === 10 && !(s.startsWith('+') && !s.startsWith('+1')) ? usPhone(d) : s;
+}
 /** Formats while typing, keeping the caret after the same digit. Deleting is
     left alone until the field is left, or a bracket could never be removed. */
 function phoneAsTyped(e) {
@@ -9065,28 +9098,23 @@ function paintHoursState() {
     sw.disabled = !open;
     for (const input of row.querySelectorAll('input')) input.disabled = !open || !on;
   }
-  paintGoogleWeek();
+  $('memberLunch').querySelector('.switch').disabled = !open;
 }
 
-/** Ask Google about the coming week for whoever the window is open on. */
-async function loadHoursWeek() {
-  const m = toolsFor;
-  hoursWeek = null;
-  // Nothing to show the week beside while the section is closed.
-  if (!hoursOpen() || !m || !m.google?.connected) { paintHoursState(); return; }
-  paintHoursState();
-  try {
-    const q = memberEdit === 'me' ? '' : `&member=${encodeURIComponent(m.id)}`;
-    const w = await api(`/api/staff/calendars?busy=week${q}`);
-    if (toolsFor !== m) return;
-    hoursWeek = w;
-  } catch (err) {
-    if (toolsFor !== m) return;
-    hoursWeek = { google: m.google, days: [], error: err.message || 'Google did not answer.' };
-  }
-  if ($('memberDlg').open) paintHoursState();
-}
+/**
+ * Working hours are only the hours (asked for 2026-10-31): the connected
+ * calendar's week that used to be written under each day was taken off the
+ * card, so opening the window no longer asks Google about it.
+ */
+function loadHoursWeek() { paintHoursState(); }
 
+$('memberLunch').onclick = (e) => {
+  const sw = e.target.closest('.switch');
+  if (!sw || sw.disabled) return;
+  const on = sw.getAttribute('aria-checked') !== 'true';
+  sw.setAttribute('aria-checked', String(on));
+  $('memberLunch').classList.toggle('off', !on);
+};
 $('memberHours').onclick = (e) => {
   const sw = e.target.closest('.switch');
   if (!sw || sw.disabled) return;
@@ -9095,10 +9123,7 @@ $('memberHours').onclick = (e) => {
   sw.setAttribute('aria-checked', String(on));
   row.classList.toggle('off', !on);
   for (const input of row.querySelectorAll('input')) input.disabled = !on;
-  paintGoogleWeek();
 };
-// A changed start or end changes what is left of that day.
-$('memberHours').addEventListener('change', () => paintGoogleWeek());
 
 /** What the rows say, in the shape the API validates. */
 function readHoursUI() {
@@ -9134,6 +9159,7 @@ function readServices() {
     out[row.dataset.svc] = v;
   }
   out.notes = $('memberNotes').value.trim();
+  out.lunch = $('memberLunch').querySelector('.switch').getAttribute('aria-checked') === 'true';
   return out;
 }
 
@@ -9178,7 +9204,6 @@ async function openMember(who) {
   memberPicPaint(m?.avatar || null, m?.photo || null);
   memberOrig.avatar = m?.avatar || null;
   toolsFor = m;
-  hoursWeek = null;
   paintServices(m?.services || {});
   // Compared as the form reads it back, so opening and saving untouched
   // sends nothing, however the stored copy was shaped.

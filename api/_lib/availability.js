@@ -17,7 +17,9 @@ import { centroWindows, fitsIn } from './centro-hours.js';
 import { MAX_ADVANCE_DAYS, MIN_LEAD_MIN, SLOT_STEP_MIN } from './config.js';
 import { googleBusyFor, googleOptional } from './google-busy.js';
 import { HttpError } from './http.js';
-import { cleanBreaks, cleanDown, timedService, workSpans } from './timing.js';
+import {
+  LUNCH, cleanBreaks, cleanDown, flexLunchOn, lunchGap, timedService, workSpans,
+} from './timing.js';
 
 /** Luxon counts Monday as 1 and Sunday as 7; the schema counts Sunday as 0. */
 function weekdayOf(dt) {
@@ -131,7 +133,7 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
       [stylistIds, range, excludeId ?? null],
     ),
     client.query(
-      `SELECT stylist_id, lower(during) AS from_ts, upper(during) AS to_ts
+      `SELECT stylist_id, lower(during) AS from_ts, upper(during) AS to_ts, reason
          FROM time_off
         WHERE tenant_id = $1 AND during && $2::tstzrange
           AND (stylist_id IS NULL OR stylist_id = ANY($3))`,
@@ -158,9 +160,11 @@ async function loadWindow(client, tenantId, stylistIds, windowStart, windowEnd, 
   }
   for (const row of off.rows) {
     const span = [+row.from_ts, +row.to_ts];
-    // Time off has no holes in it: lunch is not a processing break.
+    // Time off has no holes in it: lunch is not a processing break. A lunch
+    // put on the grid by hand is marked, so the flexible one stands aside
+    // that day rather than taking a second half hour.
     if (row.stylist_id === null) closed.push(span);
-    else busy.get(row.stylist_id)?.push({ spans: [span], breaks: [] });
+    else busy.get(row.stylist_id)?.push({ spans: [span], breaks: [], lunch: /lunch/i.test(row.reason || '') });
   }
 
   const shifts = new Map(stylistIds.map((id) => [id, []]));
@@ -304,6 +308,10 @@ export async function availableSlots(client, tenant, {
     : null;
 
   const days = [];
+  // The working day per date, earliest start to latest finish of whoever
+  // could take it, as minutes: the desk's time list draws every time in it
+  // and greys out the ones that are not free (2026-10-31).
+  const open = {};
   for (let day = from; day <= to; day = day.plus({ days: 1 })) {
     const weekday = weekdayOf(day);
     /** @type {Map<number, string[]>} start instant -> stylist ids free then */
@@ -320,6 +328,16 @@ export async function availableSlots(client, tenant, {
       const dayShifts = windows
         ? [{ starts_at: '00:00', ends_at: '23:59' }]
         : (shifts.get(stylist.id) ?? []).filter((sh) => sh.weekday === weekday);
+
+      if (!windows) {
+        for (const sh of dayShifts) {
+          const [oh, om] = String(sh.starts_at).split(':').map(Number);
+          const [ch, cm] = String(sh.ends_at).split(':').map(Number);
+          const key = day.toISODate();
+          const was = open[key];
+          open[key] = [Math.min(was ? was[0] : 1440, oh * 60 + om), Math.max(was ? was[1] : 0, ch * 60 + cm)];
+        }
+      }
 
       const own = visits.get(stylist.id);
       // The time the guest is in the chair, and that plus the turnaround
@@ -346,6 +364,36 @@ export async function availableSlots(client, tenant, {
        * colour develops. The turnaround still counts against everything else
        * in the day, that same guest's next appointment included.
        */
+      // The flexible lunch: half an hour free somewhere between 11 and 1
+      // (timing.js). A time is offered only if the lunch still fits after
+      // it; where it has already been booked over (at the desk), it does
+      // not stop the rest of the day. Off for a stylist who switched it off,
+      // a day with a lunch put on the grid by hand, or no shift across it.
+      const lunchWindows = !windows && flexLunchOn(stylist.details) ? dayShifts.map((sh) => {
+        const [oh, om] = String(sh.starts_at).split(':').map(Number);
+        const [ch, cm] = String(sh.ends_at).split(':').map(Number);
+        const a = Math.max(LUNCH.from, oh * 60 + om);
+        const b = Math.min(LUNCH.to, ch * 60 + cm);
+        return b - a >= LUNCH.minutes
+          ? [day.startOf('day').plus({ minutes: a }).toMillis(), day.startOf('day').plus({ minutes: b }).toMillis()]
+          : null;
+      }).filter(Boolean) : [];
+      const dayStart = day.startOf('day').toMillis();
+      const dayEnd = day.endOf('day').toMillis();
+      const handLunch = (busy.get(stylist.id) ?? []).some((e) => e.lunch
+        && e.spans.some(([a, b]) => a < dayEnd && b > dayStart));
+      const takenToday = [
+        ...(busy.get(stylist.id) ?? []).flatMap((e) => e.spans),
+        ...closed,
+        ...(gb && gb !== 'unreachable' ? gb : []),
+      ];
+      const lunchMs = LUNCH.minutes * 60_000;
+      const keepLunch = lunchWindows.length && !handLunch
+        && lunchGap(lunchWindows, takenToday, lunchMs) != null;
+      const lunchStillFits = (startMs) => !keepLunch || lunchGap(lunchWindows, [
+        ...takenToday, ...turnaround.map(([a, b]) => [startMs + a * 60_000, startMs + b * 60_000]),
+      ], lunchMs) != null;
+
       const freeFor = (startMs) => {
         const guestEnd = startMs + own.durationMin * 60_000;
         return (busy.get(stylist.id) ?? []).every((entry) => {
@@ -381,6 +429,8 @@ export async function availableSlots(client, tenant, {
           // Google: the guest's own time must be clear where the stylist is
           // working; the turnaround is ours.
           if (gb && clash(startMs, working, gb)) continue;
+          // And the stylist still gets their half hour of lunch.
+          if (!lunchStillFits(startMs)) continue;
 
           const who = found.get(startMs);
           if (who) who.push(stylist.id);
@@ -403,7 +453,7 @@ export async function availableSlots(client, tenant, {
     }
   }
 
-  return { service, extras, visit, visits, stylists, days };
+  return { service, extras, visit, visits, stylists, days, open };
 }
 
 /**

@@ -191,7 +191,63 @@ test("Appt. Book's day carries each stylist's hours, and none on a day off", { s
 
     const sun = await get(DAY.plus({ days: 1 }).toISODate());
     assert.deepEqual(sun.body.hours['zz-tami'], [], 'listed with no hours: off all day');
+
+    // The flexible lunch is drawn where it falls: 11:00 on an empty day,
+    // after an 11:00 booking's clean-down once there is one.
+    assert.deepEqual(sat.body.lunch['zz-tami'], [660, 690]);
+    const c = await db.connect();
+    try {
+      await c.query('BEGIN');
+      await createBooking(c, tenant, {
+        serviceSlug: 'zz-cut', stylistSlug: 'zz-tami', start: at(11).toISO(),
+        guestName: 'ZZ Lunch', guestPhone: '8135550101', channel: 'staff', minLeadMin: 0,
+      });
+      await c.query('COMMIT');
+    } finally { c.release(); }
+    const moved = await get(DAY.toISODate());
+    assert.deepEqual(moved.body.lunch['zz-tami'], [735, 765], 'after the 11:00 cut and its clean-down');
+    assert.equal(sun.body.lunch['zz-tami'], undefined, 'no lunch on a day off');
   } finally {
+    await cleanup();
+  }
+});
+
+test('the flexible lunch keeps half an hour free between 11 and 1, and moves for bookings', { skip }, async () => {
+  await cleanup();
+  const { tenant } = await setup();
+  const client = await pool().connect();
+  try {
+    await client.query('BEGIN');
+    const startsFor = async () => (await availableSlots(client, tenant, {
+      serviceSlug: 'zz-cut', stylistSlug: 'zz-tami', fromDate: DAY.toISODate(), toDate: DAY.toISODate(), minLeadMin: 0,
+    })).days.flatMap((d) => d.slots).map((x) => hhmm(x.start));
+
+    // Nothing booked: an 11:00 cut is fine, the lunch just moves after it.
+    assert.ok((await startsFor()).includes('11:00'));
+
+    // The desk books 11:30 (the cut and its clean-down run to 12:45), which
+    // the lunch moves out of the way of: 11:00 to 11:30 is still free.
+    await createBooking(client, tenant, {
+      serviceSlug: 'zz-cut', stylistSlug: 'zz-tami', start: at(11, 30).toISO(),
+      guestName: 'ZZ Lunch', guestPhone: '8135550101', channel: 'staff', minLeadMin: 0,
+    });
+    const after = await startsFor();
+    // 09:45 ends with its clean-down at 11:00, so the lunch still fits.
+    assert.ok(after.includes('09:45'), `09:45 should still be offered: ${after.join(' ')}`);
+    // 10:00 and 10:15 would leave less than half an hour between 11 and 1.
+    assert.ok(!after.includes('10:00') && !after.includes('10:15'),
+      `nothing may take the last half hour of lunch: ${after.join(' ')}`);
+    assert.ok(after.includes('12:45'), 'the afternoon is open again');
+
+    // Switched off for her, the time is bookable.
+    await client.query(
+      `UPDATE stylists SET service_details = '{"lunch": false}'::jsonb WHERE tenant_id = $1 AND slug = 'zz-tami'`,
+      [tenant.id],
+    );
+    assert.ok((await startsFor()).includes('10:15'), 'with the lunch off, 10:15 is bookable');
+    await client.query('ROLLBACK');
+  } finally {
+    client.release();
     await cleanup();
   }
 });
@@ -201,6 +257,12 @@ test('time off takes the chair out of the day', { skip }, async () => {
   const { tenant, ids } = await setup();
   const client = await pool().connect();
   try {
+    // The flexible lunch off: this is about the block, and with it on, 12:00
+    // would take the last half hour between 11 and 1 (its own test above).
+    await client.query(
+      `UPDATE stylists SET service_details = '{"lunch": false}'::jsonb WHERE tenant_id = $1 AND slug = 'zz-tami'`,
+      [tenant.id],
+    );
     await client.query(
       `INSERT INTO time_off (tenant_id, stylist_id, during, reason)
        VALUES ($1, $2, tstzrange($3::timestamptz, $4::timestamptz), 'ZZ training')`,

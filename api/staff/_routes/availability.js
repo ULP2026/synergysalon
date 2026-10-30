@@ -40,7 +40,7 @@ export default handler({
 
     const client = await pool().connect();
     try {
-      const { service, visit, stylists, days } = await availableSlots(client, tenant, {
+      const { service, visit, stylists, days, open } = await availableSlots(client, tenant, {
         serviceSlug, stylistSlug, fromDate: date, toDate: to, minLeadMin: 0, extraServiceSlugs,
       });
       return json(res, 200, {
@@ -48,6 +48,9 @@ export default handler({
         // The visit as the stylist would do it (timing.js), not the table's estimate.
         service: { slug: service.slug, name: service.name, durationMin: visit.durationMin },
         stylists: stylists.map(({ slug, name }) => ({ slug, name })),
+        // Each date's working day in minutes, [start, finish]: the time list
+        // shows every time in it, the ones not free greyed out.
+        open,
         days: days.map((d) => ({
           date: d.date,
           slots: d.slots.map(({ start, stylists: who }) => ({ start, stylists: who })),
