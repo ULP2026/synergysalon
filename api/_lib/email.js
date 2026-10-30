@@ -719,15 +719,29 @@ export function automationOn(kind, tenant = {}) {
  * which is deliberate -- the feature is a count on a page, and it is not
  * worth taking the booking path down for.
  */
-async function record(kind, appt, tenant) {
+async function record(kind, appt, tenant, { subject = null, status = 'sent', error = null } = {}) {
   if (!tenant?.id) return;
+  const base = [tenant.id, kind, appt.id ?? null, appt.guest_name ?? null, appt.guest_email];
   try {
+    // With its subject, whether it went, and the client (037), so their
+    // Activity lists every email they were sent, failed ones included.
     await query(
-      `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [tenant.id, kind, appt.id ?? null, appt.guest_name ?? null, appt.guest_email],
+      `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email,
+                                  subject, status, error, contact_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+               COALESCE($9::uuid, (SELECT contact_id FROM appointments WHERE id = $3::uuid)))`,
+      [...base, subject, status, error ? String(error).slice(0, 500) : null, appt.contact_id ?? null],
     );
   } catch (err) {
+    // A database without 037: the row as it was always written, for a sent
+    // one (a failure was never logged before it).
+    if (err.code === '42703' && status === 'sent') {
+      await query(
+        `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email)
+         VALUES ($1, $2, $3, $4, $5)`, base,
+      ).catch((e) => console.warn('message_sends insert failed', kind, e.message));
+      return;
+    }
     console.warn('message_sends insert failed', kind, err.message);
   }
 }
@@ -741,8 +755,16 @@ async function sendMessage(kind, appt, tenant, extra) {
   const texted = await textGuest(kind, appt, tenant);
   if (!appt.guest_email) return { skipped: true, noEmail: true, texted: Boolean(texted.texted) };
   const { subject, content } = MESSAGES[kind](appt, shop, shop.timezone, extra);
-  const out = await send(shop, appt.guest_email, subject, content);
-  if (out.sent) await record(kind, appt, tenant);
+  let out;
+  try {
+    out = await send(shop, appt.guest_email, subject, content);
+  } catch (err) {
+    // Refused by the provider: on the client's record as failed, with why,
+    // and the caller still hears about it as before.
+    await record(kind, appt, tenant, { subject, status: 'failed', error: err.message });
+    throw err;
+  }
+  if (out.sent) await record(kind, appt, tenant, { subject });
   return out;
 }
 

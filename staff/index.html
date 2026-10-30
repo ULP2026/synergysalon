@@ -866,6 +866,10 @@
 
   .tl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
   .tl-head h3 { margin: 0; font-size: var(--fs-lg); }
+  /* An email's Sent or Failed, beside its subject. */
+  .tl .what .tl-st { display: inline-flex; margin: 0 0 0 6px; padding: 1px 8px; font-size: 11px; font-weight: 600; vertical-align: 2px; }
+  .tl .what .tl-st.ok { color: var(--ok); }
+  .tl .what .tl-st.warn { color: var(--warn); }
   .tl-filters { display: flex; flex-wrap: wrap; gap: 6px; }
   .tl-filters button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px;
     border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--muted);
@@ -1731,7 +1735,7 @@
   .ml-row .au-ic .ic { width: 14px; height: 14px; }
   .ml-row .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ml-row .who b { font-weight: 600; }
-  .ml-row .who span { color: var(--muted); }
+  .ml-row .who span:not(.chip) { color: var(--muted); }
   .ml-row .when { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
   .ml-row .go { color: var(--faint); display: grid; place-items: center; }
   .ml-row .go .ic { width: 16px; height: 16px; }
@@ -4769,7 +4773,7 @@ function paintMailLog(note) {
     return `
       <button type="button" class="ml-row" data-sent="${esc(s.id)}" aria-label="Open the ${esc(what)} sent to ${esc(s.name)}" title="${esc(s.email)}">
         <span class="au-ic">${ic(a ? a.icon : 'mail')}</span>
-        <span class="who"><b>${esc(s.name)}</b> <span>· ${esc(what)}</span></span>
+        <span class="who"><b>${esc(s.name)}</b> <span>· ${esc(what)}</span>${s.status === 'failed' ? ' <span class="chip warn tl-st">Failed</span>' : ''}</span>
         <span class="when">${esc(fmtWhen(s.sentAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span>
         <span class="go">${ic('right')}</span>
       </button>`;
@@ -4995,7 +4999,11 @@ async function openSentEmail(id) {
     const m = await api(`/api/staff/business?sent=${encodeURIComponent(id)}`);
     const a = mailNames()[m.kind];
     $('msgTitle').textContent = a ? a.name : 'Email';
-    $('msgSub').textContent = `Sent to ${m.toName}, ${fmtWhen(m.sentAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
+    // Whether it went, as the client's Activity and Email History say (037).
+    const at = fmtWhen(m.sentAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    $('msgSub').textContent = m.status === 'failed'
+      ? `Not delivered to ${m.toName}, ${at}${m.error ? `. ${m.error}` : ''}`
+      : `Sent to ${m.toName}, ${at}`;
     if (a) $('msgIc').innerHTML = ic(a.icon);
     msgView = 'email';
     paintMessage(m, ['email'], { sent: true });
@@ -6856,6 +6864,15 @@ function renderPerson() {
   renderTimeline();
 }
 
+/** An email's status on the client's Activity: Sent, or Failed with the
+    provider's reason on hover (2026-10-31). */
+function emailStatus(e) {
+  if (e.type !== 'email' || !e.status) return '';
+  return e.status === 'failed'
+    ? ` <span class="chip warn tl-st" title="${esc(e.error || 'The email provider refused it.')}">Failed</span>`
+    : ' <span class="chip ok tl-st">Sent</span>';
+}
+
 function renderTimeline() {
   const all = person.activity;
   const count = (t) => (t === 'all' ? all.length : all.filter((e) => e.type === t).length);
@@ -6874,7 +6891,7 @@ function renderTimeline() {
     const why = {
       sms: 'Texting clients from this app is coming soon, so there are no messages to show yet.',
       automation: 'Automations are coming soon. Nothing has run for this person.',
-      email: 'No emails have been sent to this person yet.',
+      email: 'No emails have been sent to this person yet. Every one the app sends them appears here.',
       form: 'This person did not come in through the website form.',
       appointment: 'No appointments yet.',
     }[tlFilter];
@@ -6889,7 +6906,7 @@ function renderTimeline() {
     body = `<ol class="tl">${shown.map((e) => `
       <li class="t-${esc(e.type)} k-${esc(e.tone || e.type)}"${opens(e)}>
         <span class="dot">${ic(TL_ICON[e.type] || 'info')}</span>
-        <div class="what"><b>${esc(e.title)}</b>
+        <div class="what"><b>${esc(e.title)}${emailStatus(e)}</b>
           ${e.detail ? `<span>${esc(e.detail)}</span>` : ''}
           ${e.ref ? `<span class="ref">Ref ${esc(e.ref)}</span>` : ''}</div>
         <time datetime="${esc(e.at)}"><b>${esc(ago(e.at))}</b>${esc(fmtWhen(e.at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))}</time>

@@ -126,7 +126,9 @@ export default handler({
               to_jsonb(t) -> 'automations_off' AS automations_off,
               to_jsonb(t) ->> 'review_url' AS review_url,
               -- The client's own say (migration 031); yes where unset.
-              COALESCE((to_jsonb(c) ->> 'email_ok')::boolean, true) AS email_ok
+              COALESCE((to_jsonb(c) ->> 'email_ok')::boolean, true) AS email_ok,
+              -- The client, so the email lands on their Activity (037).
+              c.id AS contact_id
          FROM scheduled_messages m
          JOIN tenants t ON t.id = m.tenant_id
          LEFT JOIN appointments a ON a.id = m.appointment_id
@@ -199,6 +201,7 @@ export default handler({
         stylist_name: row.stylist_name || 'the team',
         service_name: row.service_name || 'your appointment',
         lines: row.lines,
+        contact_id: row.contact_id,
       };
 
       try {

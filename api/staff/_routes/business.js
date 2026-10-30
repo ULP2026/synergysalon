@@ -116,6 +116,8 @@ export async function sentMessage(id, tenant) {
   if (!/^[0-9a-f-]{36}$/i.test(String(id))) throw new HttpError(404, 'No such email.');
   const { rows } = await query(
     `SELECT m.kind, m.to_name, m.to_email, m.sent_at,
+            to_jsonb(m) ->> 'subject' AS subject,
+            COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status, to_jsonb(m) ->> 'error' AS error,
             a.ref, a.starts_at, a.duration_min, a.price_cents,
             ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines, s.name AS stylist_name
        FROM message_sends m
@@ -148,6 +150,11 @@ export async function sentMessage(id, tenant) {
     to: r.to_name ? `${r.to_name} <${r.to_email}>` : r.to_email,
     ref: r.ref || null,
     ...out,
+    // The subject as it was sent, where the log kept it (037), and whether
+    // it went: the same as the client's Activity says.
+    subject: r.subject || out.subject,
+    status: r.status === 'failed' ? 'failed' : 'sent',
+    error: r.status === 'failed' ? r.error || null : null,
     // That a sent email is rebuilt from its booking is said once, by the
     // info button on Email History's header (2026-10-30), not in every
     // email's window. A deleted booking still says so: its details are a
@@ -169,7 +176,10 @@ export async function sentMessage(id, tenant) {
 async function automations(tenant) {
   const counts = await query(
     `SELECT kind, count(*)::int AS sent, max(sent_at) AS last_sent
-       FROM message_sends WHERE tenant_id = $1 GROUP BY kind`,
+       FROM message_sends
+      -- What went out: a send the provider refused is logged (037), not sent.
+      WHERE tenant_id = $1 AND COALESCE(to_jsonb(message_sends) ->> 'status', 'sent') = 'sent'
+      GROUP BY kind`,
     [tenant.id],
   ).catch(() => ({ rows: [] }));
 
@@ -217,8 +227,9 @@ async function recipients(kind, tenant) {
  * GET ?history=1[&before=<cursor>]: every email the automations have sent,
  * newest first, a page at a time, for the history under Marketing.
  *
- * From the send log, so it lists what actually went out: a message Resend
- * refused, or one whose automation was switched off, was never recorded.
+ * From the send log, so it lists what was sent: one whose automation was
+ * switched off was never recorded, and since 037 one the provider refused
+ * is, marked failed (as on the client's Activity).
  * The log starts the day migration 024 ran; there is nothing earlier to show.
  *
  * Paged by (sent_at, id) rather than by time alone, so two emails sent in the
@@ -234,7 +245,9 @@ export async function history(tenant, cursor, { kind = null, q = null } = {}) {
   // and a name or address. % and _ are escaped so they match themselves.
   const search = q ? String(q).trim().slice(0, 80).replace(/[\\%_]/g, '\\$&') : '';
   const { rows } = await query(
-    `SELECT m.id, m.kind, m.to_name, m.to_email, m.sent_at, m.sent_at::text AS at, a.ref
+    `SELECT m.id, m.kind, m.to_name, m.to_email, m.sent_at, m.sent_at::text AS at, a.ref,
+            to_jsonb(m) ->> 'subject' AS subject,
+            COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status
        FROM message_sends m
        LEFT JOIN appointments a ON a.id = m.appointment_id
       WHERE m.tenant_id = $1
@@ -256,6 +269,9 @@ export async function history(tenant, cursor, { kind = null, q = null } = {}) {
       email: r.to_email,
       sentAt: r.sent_at,
       ref: r.ref || null,
+      subject: r.subject || null,
+      // A send the provider refused is on the log too (037), marked.
+      status: r.status === 'failed' ? 'failed' : 'sent',
     })),
     next: rows.length > HISTORY_PAGE && last ? `${last.at}|${last.id}` : null,
   };

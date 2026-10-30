@@ -592,6 +592,21 @@ made that way are real: name them ZZ and remove them.
   diary card's chip too. Phones are shown as (813) 555-0170 wherever a
   stored number is printed (`showPhone`: a whole US number formatted,
   anything else as it is).
+- **Every email is on the client's Activity** (asked for 2026-10-31).
+  `message_sends` keeps the subject as sent, `status` ('sent', or
+  'failed' with the provider's `error`) and `contact_id` (migration 037,
+  also in ensure-schema, which links older rows to their client through
+  their appointment). `sendMessage` logs a refused email as failed before
+  throwing as it always did. `contactDetail` lists every row that is the
+  client's (by client, by one of their appointments, or by their address
+  for a row with neither) under Email: the subject (`EMAIL_KIND`'s name
+  for a row logged before subjects were kept), the visit, when, and a Sent
+  or Failed chip, each opening the email. An appointment's
+  `reminder_sent_at` adds a line only for a reminder from before the log,
+  so nothing is listed twice. Email History and the email's window show
+  the same status and subject; the automations' counts are of sent ones
+  only; Karen's `client_history` reads the Activity's own list.
+  `tests/client-email-activity.integration.test.js`.
 - Clients, Activity: each kind of event has its own colour (asked for
   2026-10-22): booked green, emails (and texts, when there are any) yellow,
   checked in blue, done teal, no-show orange, cancelled red, the website

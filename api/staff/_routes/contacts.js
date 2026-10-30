@@ -75,6 +75,29 @@ export async function stylistChoices(tenantId, db = null) {
  * What kind of thing happened, finer than its type, so the timeline can
  * colour a check-in apart from a cancellation.
  */
+/**
+ * What each kind of email is, for one logged before its subject was kept
+ * (037): the name its automation goes by.
+ */
+// Every kind email.js sends (MESSAGES); tests/client-email-activity checks
+// none is missing.
+export const EMAIL_KIND = {
+  confirmation: 'Booking confirmation',
+  reschedule: 'Appointment moved',
+  cancellation: 'Appointment cancelled',
+  reminder: 'Appointment reminder',
+  welcome_new: 'Welcome before the first visit',
+  no_show_1: 'We missed you today',
+  no_show_2: 'Still happy to see you',
+  late_cancel: 'Your appointment is cancelled',
+  post_visit: 'How do you love it?',
+  aftercare: 'Making it last',
+  review_ask: 'Review request',
+  rebook_due: 'Time for a refresh?',
+  second_visit: 'Come back and see us',
+  win_back: 'It has been a while',
+};
+
 const TONE = {
   'Booked by staff': 'booked',
   'Booked by Karen': 'booked',
@@ -174,26 +197,38 @@ export async function contactDetail(tenantId, id, db = null) {
     [id, tenantId],
   );
 
-  // The reminder each booking was sent, from the email log, so its line in
-  // the timeline opens the email itself (asked for 2026-10-31) rather than
-  // the appointment. A reminder sent before the log existed has no row and
-  // still opens the appointment. Without the table (before 024) there are
-  // none.
-  const reminderOf = new Map();
-  if (appts.length) {
-    try {
-      const { rows: sent } = await q(
-        `SELECT DISTINCT ON (m.appointment_id) m.id, m.appointment_id
-           FROM message_sends m
-          WHERE m.tenant_id = $2::uuid AND m.kind = 'reminder' AND m.appointment_id = ANY($1::uuid[])
-          ORDER BY m.appointment_id, m.sent_at DESC`,
-        [appts.map((a) => a.id), tenantId],
-      );
-      for (const r of sent) reminderOf.set(String(r.appointment_id), r.id);
-    } catch (err) {
-      if (err.code !== '42P01') throw err;
-    }
+  // Every email this client was sent, from the email log (asked for
+  // 2026-10-31): theirs by client (037), by one of their appointments, or,
+  // for a row with neither, by their address. Each is one line under Email
+  // with its subject, when and whether it went, and opens the email itself.
+  // Without the table (before 024) there are none; without 037's columns,
+  // the same rows without subject or status.
+  let emails = [];
+  try {
+    const { rows } = await q(
+      `SELECT m.id, m.kind, m.sent_at, m.appointment_id, m.to_email,
+              to_jsonb(m) ->> 'subject' AS subject,
+              COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status,
+              to_jsonb(m) ->> 'error' AS error
+         FROM message_sends m
+        WHERE m.tenant_id = $2::uuid
+          AND ((to_jsonb(m) ->> 'contact_id')::uuid = $1::uuid
+               OR m.appointment_id IN (SELECT id FROM appointments WHERE contact_id = $1::uuid)
+               OR (m.appointment_id IS NULL AND (to_jsonb(m) ->> 'contact_id') IS NULL
+                   AND $3::text <> '' AND lower(m.to_email) = lower($3::text)))
+        ORDER BY m.sent_at DESC
+        LIMIT 200`,
+      [id, tenantId, c.email || ''],
+    );
+    emails = rows;
+  } catch (err) {
+    if (err.code !== '42P01') throw err;
   }
+  // A reminder in the log is listed from there; the appointment's own
+  // reminder_sent_at is used only for one sent before the log existed, so
+  // the same reminder is never listed twice.
+  const logged = new Set(emails.filter((m) => m.kind === 'reminder' && m.status === 'sent')
+    .map((m) => String(m.appointment_id)));
 
   const activity = [];
   const add = (type, at, title, detail = '', ref = null, extra = {}) => {
@@ -217,8 +252,19 @@ export async function contactDetail(tenantId, id, db = null) {
     // somebody marked them.
     if (a.status === 'completed') add('appointment', a.updated_at, 'Marked as done', what, a.ref);
     if (a.status === 'no_show') add('appointment', a.updated_at, 'Didn’t show up', what, a.ref);
-    add('email', a.reminder_sent_at, 'Reminder email sent', what, a.ref,
-        reminderOf.has(String(a.id)) ? { sentId: reminderOf.get(String(a.id)) } : {});
+    if (!logged.has(String(a.id))) add('email', a.reminder_sent_at, 'Reminder email sent', what, a.ref);
+  }
+  const visitOf = new Map(appts.map((a) => [String(a.id), a]));
+  for (const m of emails) {
+    const a = visitOf.get(String(m.appointment_id));
+    add('email', m.sent_at, m.subject || EMAIL_KIND[m.kind] || 'Email', a ? `${a.service} with ${a.stylist}` : m.to_email, null, {
+      sentId: m.id,
+      kind: m.kind,
+      subject: m.subject || null,
+      status: m.status === 'failed' ? 'failed' : 'sent',
+      error: m.status === 'failed' ? m.error || null : null,
+      tone: m.status === 'failed' ? 'cancel' : 'email',
+    });
   }
   for (const s of synced) {
     add('sync', s.done_at, 'Synced to the CRM', s.kind.replace('.', ' ').replace(/_/g, ' '));

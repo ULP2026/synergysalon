@@ -166,6 +166,17 @@ const STATEMENTS = [
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_at timestamptz',
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_source text',
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_phone text',
+  // 037: the email log complete enough for a client's Activity: subject,
+  // sent or failed (and why), and the client. Older rows get their client
+  // from their appointment.
+  'ALTER TABLE message_sends ADD COLUMN IF NOT EXISTS subject text',
+  "ALTER TABLE message_sends ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'sent'",
+  'ALTER TABLE message_sends ADD COLUMN IF NOT EXISTS error text',
+  'ALTER TABLE message_sends ADD COLUMN IF NOT EXISTS contact_id uuid REFERENCES contacts(id) ON DELETE SET NULL',
+  'CREATE INDEX IF NOT EXISTS message_sends_contact ON message_sends (contact_id, sent_at DESC)',
+  `UPDATE message_sends m SET contact_id = a.contact_id
+     FROM appointments a
+    WHERE a.id = m.appointment_id AND m.contact_id IS NULL AND a.contact_id IS NOT NULL`,
   // 036: who booked it when it was not a person ('karen'), and her text
   // bookings from before, which carry her note.
   'ALTER TABLE appointments ADD COLUMN IF NOT EXISTS booked_via text',

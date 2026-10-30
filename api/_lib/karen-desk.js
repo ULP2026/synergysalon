@@ -179,14 +179,9 @@ export async function deskReply(ctx, client, db = null) {
       const d = await contactDetail(tenant.id, id, db);
       if (!d) return { error: 'No client with that id.' };
       const c = d.contact;
-      const { rows: emails } = await q(
-        `SELECT m.kind, m.to_email, m.sent_at, a.ref
-           FROM message_sends m LEFT JOIN appointments a ON a.id = m.appointment_id
-          WHERE m.tenant_id = $1::uuid
-            AND (a.contact_id = $2::uuid OR ($3::text <> '' AND lower(m.to_email) = lower($3)))
-          ORDER BY m.sent_at DESC LIMIT 50`,
-        [tenant.id, id, c.email || ''],
-      ).catch((err) => (err.code === '42P01' ? { rows: [] } : Promise.reject(err)));
+      // The client's emails exactly as their Activity lists them
+      // (contactDetail), so Karen and the profile never disagree.
+      const emails = d.activity.filter((e) => e.type === 'email' && e.sentId);
       return {
         client: {
           name: c.name, email: c.email || null, phone: c.phone || null, source: c.source || null,
@@ -201,7 +196,9 @@ export async function deskReply(ctx, client, db = null) {
           service: a.service, stylist: a.stylist, booked: a.channel === 'online' ? 'online' : 'by staff',
         })),
         activity: d.activity.map((e) => ({ what: e.title, detail: e.detail || null, when: when(e.at), ref: e.ref || null })),
-        emails_sent: emails.map((m) => ({ kind: m.kind, to: m.to_email, sent: when(m.sent_at), appointment: m.ref || null })),
+        emails_sent: emails.map((e) => ({
+          kind: e.kind, subject: e.title, status: e.status, about: e.detail, sent: when(e.at),
+        })),
       };
     },
 
@@ -243,7 +240,8 @@ export async function deskReply(ctx, client, db = null) {
       if (cid && !UUID.test(cid)) return { error: 'Use a client id from find_clients.' };
       try {
         const { rows } = await q(
-          `SELECT m.kind, m.to_name, m.to_email, m.sent_at, a.ref
+          `SELECT m.kind, m.to_name, m.to_email, m.sent_at, a.ref,
+                  to_jsonb(m) ->> 'subject' AS subject, COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status
              FROM message_sends m LEFT JOIN appointments a ON a.id = m.appointment_id
             WHERE m.tenant_id = $1::uuid
               AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
@@ -256,7 +254,10 @@ export async function deskReply(ctx, client, db = null) {
         );
         return {
           count: rows.length,
-          emails: rows.map((m) => ({ kind: m.kind, to: m.to_name ? `${m.to_name} <${m.to_email}>` : m.to_email, sent: when(m.sent_at), appointment: m.ref || null })),
+          emails: rows.map((m) => ({
+            kind: m.kind, subject: m.subject || null, status: m.status,
+            to: m.to_name ? `${m.to_name} <${m.to_email}>` : m.to_email, sent: when(m.sent_at), appointment: m.ref || null,
+          })),
         };
       } catch (err) {
         if (err.code === '42P01') return { count: 0, emails: [], note: 'The email log is not set up yet.' };
