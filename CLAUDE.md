@@ -429,12 +429,13 @@ made that way are real: name them ZZ and remove them.
   as they are active or have ever been booked; one who has left stays,
   marked "left", so their clients can still be found (`?stylist=<slug>`).
   Each client's tag is their stylist, whoever they last booked with
-  (`STYLIST_OF`), not their source; the source tags ("Front desk") are gone
+  (`STYLIST_OF`), not their source (on the profile only since 2026-10-30:
+  the list's name tag was removed on request, the Book button's face says it); the source tags ("Front desk") are gone
   from the list and the profile chips, and the source is still on the
   profile. The lead-stage filters were removed on request; each row still
   shows its stage. The stylist row stays on one line (scrolls sideways).
   Each stylist button shows their face (2026-10-30), ringed in their colour
-  so it still matches their clients' tags: the photo uploaded to their login
+  (the colour of their tag on a client's profile): the photo uploaded to their login
   (`staff_users.avatar`, a `data:` URI), else the website's portrait
   (`stylistPhoto` before `stylists.photo`, whose 012 path for Tami is a
   deleted file), else the avatar they chose, else a default (`personPhoto`).

@@ -725,7 +725,7 @@
   .clist { display: grid; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--card); }
   .crow {
     position: relative; display: grid; align-items: center; gap: 14px;
-    grid-template-columns: 36px minmax(0, 1.6fr) minmax(0, .9fr) 56px 156px auto;
+    grid-template-columns: 36px minmax(0, 1fr) 56px 156px auto;
     padding: 10px 14px; background: var(--card); border-bottom: 1px solid var(--line); cursor: pointer;
     transition: background-color var(--t) var(--ease);
   }
@@ -762,7 +762,7 @@
   .crow .acts { margin: 0; gap: 4px; }
   @media (max-width: 1100px) {
     .crow { grid-template-columns: 36px minmax(0, 1fr) 150px auto; }
-    .crow .ctags, .crow .cvisits { display: none; }
+    .crow .cvisits { display: none; }
   }
   @media (max-width: 720px) {
     .crow { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; padding: 10px 12px; }
@@ -6428,7 +6428,6 @@ function renderContacts(d, filtered) {
             ${!c.phone && !c.email ? '<span>No phone or email yet</span>' : ''}
           </div>
         </div>
-        <div class="ctags">${stylistTag(c.stylist)}</div>
         <div class="cvisits"><b>${c.visits}</b><span>${c.visits === 1 ? 'visit' : 'visits'}</span></div>
         ${next}
         <div class="acts">
