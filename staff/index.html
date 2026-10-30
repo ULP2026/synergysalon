@@ -1633,37 +1633,52 @@
   .ml-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
   .ml-top h2 { margin: 0; font-size: 1.05rem; }
   .ml-top p { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
-  .ml-head, .ml-row { display: grid; grid-template-columns: 136px minmax(0, 1.1fr) minmax(0, 1.25fr) 16px; gap: 14px; align-items: center; }
-  /* A row opens its email: a button, the width of the table. */
-  /* Not "font: inherit" or "border: 0": either would undo the row's own
-     size and divider above, and the names would cut off. */
-  button.ml-row { width: 100%; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; color: var(--ink);
-                  font-family: inherit; text-align: left; cursor: pointer; transition: background-color var(--t) var(--ease); }
-  button.ml-row:last-child { border-bottom: 0; }
-  button.ml-row:hover { background: var(--raise); }
-  button.ml-row:hover .what span:last-child { color: var(--periwinkle); text-decoration: underline; text-underline-offset: 3px; }
-  button.ml-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .ml-row .go { color: var(--faint); display: grid; place-items: center; }
-  .ml-row .go .ic { width: 16px; height: 16px; }
-  .ml-head { padding: 8px 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); }
-  .ml-row { padding: 11px 6px; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
-  .ml-row:last-child { border-bottom: 0; }
-  .ml-row .when { color: var(--muted); white-space: nowrap; }
-  .ml-row .who { min-width: 0; }
-  .ml-row .who b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ml-row .who span { display: block; color: var(--muted); font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ml-row .what { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .ml-row .what .au-ic { width: 26px; height: 26px; border-radius: 8px; }
-  .ml-row .what .au-ic .ic { width: 14px; height: 14px; }
-  .ml-row .what span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ml-more { display: flex; justify-content: center; padding-top: 12px; }
+  /* Email History rows are cards that open in place (2026-10-30): closed,
+     one line (who, which email, when); open, the address and the full time
+     with View email. The list is capped in width so a row reads as one
+     glance, and the note about how a sent email is shown sits in an info
+     button beside each card, not inside it. */
+  .ml-list { display: grid; gap: 8px; max-width: 760px; }
+  .ml-item { display: flex; align-items: flex-start; gap: 8px; }
+  .ml-card { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+             transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .ml-card[open] { border-color: var(--line-2, var(--line)); background: var(--raise); }
+  .ml-card > summary { list-style: none; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto 16px; gap: 12px;
+                       align-items: center; padding: 9px 12px; cursor: pointer; font-size: var(--fs-sm); border-radius: 12px; }
+  .ml-card > summary::-webkit-details-marker { display: none; }
+  .ml-card > summary:hover { background: var(--raise); }
+  .ml-card > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .ml-card .au-ic { width: 26px; height: 26px; border-radius: 8px; }
+  .ml-card .au-ic .ic { width: 14px; height: 14px; }
+  .ml-card .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ml-card .who b { font-weight: 600; }
+  .ml-card .who span { color: var(--muted); }
+  .ml-card .when { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
+  .ml-card .chev { color: var(--faint); display: grid; place-items: center; transition: transform var(--t) var(--ease); }
+  .ml-card .chev .ic { width: 16px; height: 16px; transform: rotate(90deg); }
+  .ml-card[open] .chev { transform: rotate(180deg); }
+  .ml-body { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+             padding: 2px 12px 12px 50px; font-size: var(--fs-sm); }
+  .ml-body dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; margin: 0; min-width: 0; }
+  .ml-body dt { color: var(--muted); font-size: var(--fs-xs); align-self: center; }
+  .ml-body dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .ml-info { position: relative; flex: none; margin-top: 7px; }
+  .ml-info > button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%;
+                      background: none; color: var(--faint); cursor: pointer; transition: color var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .ml-info > button .ic { width: 16px; height: 16px; }
+  .ml-info > button:hover, .ml-info.open > button { color: var(--periwinkle); background: var(--raise); }
+  .ml-info > button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .ml-tip { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 280px; padding: 10px 12px;
+            border-radius: 10px; background: var(--indigo-deep); color: #fff; font-size: var(--fs-xs); line-height: 1.5;
+            box-shadow: 0 12px 28px -12px rgba(20, 20, 60, .45); opacity: 0; visibility: hidden; transform: translateY(-4px);
+            transition: opacity var(--t) var(--ease), transform var(--t) var(--ease), visibility var(--t); pointer-events: none; }
+  .ml-info:hover .ml-tip, .ml-info:focus-within .ml-tip, .ml-info.open .ml-tip { opacity: 1; visibility: visible; transform: none; }
+  .ml-more { display: flex; justify-content: center; max-width: 760px; padding-top: 12px; }
   @media (max-width: 760px) {
-    .ml-head { display: none; }
-    .ml-row { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
-    .ml-row .who { grid-column: 1; grid-row: 1; }
-    .ml-row .when { grid-column: 2; grid-row: 1; font-size: var(--fs-xs); }
-    .ml-row .what { grid-column: 1; grid-row: 2; }
-    .ml-row .go { display: none; }
+    .ml-card > summary { grid-template-columns: minmax(0, 1fr) auto 16px; }
+    .ml-card > summary .au-ic { display: none; }
+    .ml-body { padding-left: 12px; }
+    .ml-tip { width: min(260px, calc(100vw - 48px)); }
   }
   .au-row .go { display: grid; color: var(--faint); transition: transform var(--t) var(--ease), color var(--t) var(--ease); }
   .au-row:hover .go { transform: translateX(3px); color: var(--indigo); }
@@ -2381,7 +2396,8 @@
   }
 
   /* Working hours: grey and disabled unless the admin is setting a stylist's (hoursOpen()). */
-  .wh { display: block; margin-bottom: 16px; }
+  .wh { display: block; margin-bottom: 8px; }
+  .wh-note { margin: 0 0 16px; }
   /* Closed: every day grey and inert (the controls are disabled as well). */
   .wh-off .hrs .hr { background: var(--raise); border-color: var(--line); }
   .wh-off .hrs .hr > * { opacity: .5; filter: grayscale(1); }
@@ -3108,6 +3124,7 @@
         <div id="memberHoursWrap" class="wh wh-off">
           <div class="hrs" id="memberHours"></div>
         </div>
+        <p class="small muted wh-note">These are the times guests can book online with this person. Only the admin changes them, so the website never offers a time they do not work. A day switched off is closed.</p>
       </div>
 
       <div id="memberCreate">
@@ -4421,7 +4438,7 @@ function renderAutomations() {
   const all = automations();
   $('mktCard').innerHTML = `
     <div class="au-top">
-      <h2>Automations<span class="n">${all.length}</span></h2>
+      <h2>Automation<span class="n">${all.length}</span></h2>
     </div>
     <div class="au-list" id="autoList"></div>`;
   paintAutomationList();
@@ -4595,22 +4612,39 @@ function paintMailLog(note) {
   const list = $('mlList');
   if (!list) return;
   const names = mailNames();
+  const tip = 'The app keeps a record of each email, not a copy, so this is rebuilt from the booking as it is now. If the booking changed after it was sent, the details here are the new ones.';
   const row = (s) => {
     const a = names[s.kind];
+    const what = a ? a.name : 'Email';
     return `
-      <button type="button" class="ml-row" data-sent="${esc(s.id)}" aria-label="Open the ${esc(a ? a.name : 'email')} sent to ${esc(s.name)}">
-        <span class="when">${esc(fmtWhen(s.sentAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span>
-        <span class="who"><b>${esc(s.name)}</b><span>${esc(s.email)}</span></span>
-        <span class="what"><span class="au-ic">${ic(a ? a.icon : 'mail')}</span><span>${esc(a ? a.name : 'Email')}</span></span>
-        <span class="go">${ic('right')}</span>
-      </button>`;
+      <div class="ml-item">
+        <details class="ml-card">
+          <summary aria-label="${esc(what)} to ${esc(s.name)}">
+            <span class="au-ic">${ic(a ? a.icon : 'mail')}</span>
+            <span class="who"><b>${esc(s.name)}</b> <span>· ${esc(what)}</span></span>
+            <span class="when">${esc(fmtWhen(s.sentAt, { month: 'short', day: 'numeric' }))}</span>
+            <span class="chev">${ic('right')}</span>
+          </summary>
+          <div class="ml-body">
+            <dl>
+              <dt>To</dt><dd>${esc(s.email)}</dd>
+              <dt>Sent</dt><dd>${esc(fmtWhen(s.sentAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</dd>
+              <dt>Email</dt><dd>${esc(what)}</dd>
+            </dl>
+            <button type="button" class="btn quiet sm" data-sent="${esc(s.id)}">View email</button>
+          </div>
+        </details>
+        <span class="ml-info">
+          <button type="button" aria-label="How a sent email is shown" aria-expanded="false" data-ml-info>${ic('info')}</button>
+          <span class="ml-tip" role="tooltip">${esc(tip)}</span>
+        </span>
+      </div>`;
   };
   const filtered = mailLog.q || mailLog.kind;
   list.innerHTML = note && !mailLog.rows.length
     ? `<div class="au-empty">${esc(note)}</div>`
     : mailLog.rows.length
-      ? `<div class="ml-head"><span>Sent</span><span>To</span><span>Email</span><span></span></div>
-         <div class="ml-list">${mailLog.rows.map(row).join('')}</div>
+      ? `<div class="ml-list">${mailLog.rows.map(row).join('')}</div>
          ${mailLog.next ? '<div class="ml-more"><button type="button" class="btn quiet sm" data-ml-more>Show more</button></div>' : ''}`
       : `<div class="au-empty">${filtered ? 'No email matches that.' : 'No emails sent yet. They appear here as the automations send them.'}</div>`;
 }
@@ -4687,6 +4721,17 @@ async function renderFinance() {
 }
 
 $('mailCard').addEventListener('click', (e) => {
+  // The info button beside a card: a click pins its note open (for touch,
+  // where there is no hover), a second click or a click elsewhere closes it.
+  const info = e.target.closest('[data-ml-info]');
+  for (const o of $('mailCard').querySelectorAll('.ml-info.open')) {
+    if (!info || o !== info.parentElement) { o.classList.remove('open'); o.firstElementChild.setAttribute('aria-expanded', 'false'); }
+  }
+  if (info) {
+    const open = info.parentElement.classList.toggle('open');
+    info.setAttribute('aria-expanded', String(open));
+    return;
+  }
   const sent = e.target.closest('[data-sent]');
   if (sent) { openSentEmail(sent.dataset.sent); return; }
   const more = e.target.closest('[data-ml-more]');

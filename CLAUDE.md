@@ -708,8 +708,11 @@ made that way are real: name them ZZ and remove them.
   its name (`a.when[1]`, the line that heads its flow; 2026-10-30), e.g.
   Appointment Booking: "A client books an appointment". Email History is its
   own module now, with a search by name or address and a filter by message
-  (`?history=1&q=&kind=`), each row opening that email (`?sent=<id>`,
-  `sentMessage`). The log keeps who, which message and when, not a copy, so
+  (`?history=1&q=&kind=`), each row a card that opens in place (2026-10-30: who and which email
+  closed; address, time and View email open, which opens it, `?sent=<id>`,
+  `sentMessage`), the list capped at 760px, with an info button beside each
+  card saying the email is rebuilt from the booking. The list's heading
+  reads Automation, like the tab. The log keeps who, which message and when, not a copy, so
   the email is rendered again from the booking as it is now and the window
   says so; the manage link carries a dummy token, never the guest's; a
   booking deleted since shows sample details. **Finance** moved to Home on
