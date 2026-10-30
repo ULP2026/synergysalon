@@ -83,6 +83,7 @@ test('a visit of two services shows both on its ticket, activity, diary and emai
     // The client's activity and appointment list.
     const detail = await contactDetail(tenant.id, booked.contact_id);
     const bookedEvent = detail.activity.find((e) => e.title === 'Booked by staff');
+    assert.equal(bookedEvent.tone, 'booked');
     assert.equal(bookedEvent.detail, 'ZZ Cut + ZZ Gloss with ZZ Dina');
     assert.equal(detail.appointments[0].service, 'ZZ Cut + ZZ Gloss');
 

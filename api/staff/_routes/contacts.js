@@ -101,13 +101,26 @@ export const EMAIL_KIND = {
 const TONE = {
   'Booked by staff': 'booked',
   'Booked by Karen': 'booked',
-  'Booked online': 'booked',
+  'Booked by Client (Website)': 'booked',
   'Checked in': 'checkin',
   'Appointment cancelled': 'cancel',
   'Marked as done': 'done',
   'Didn’t show up': 'noshow',
   'Reminder email sent': 'email',
 };
+
+/**
+ * Who made a booking, in the words of the client's Activity (asked for
+ * 2026-10-31): Karen, else the team member who booked it at the desk, by
+ * name ("staff" only when their login has since been removed), else the
+ * client themselves on the website. The console's appointment window and
+ * Appt. Book say the same (bookedByLabel in the console).
+ */
+export function bookedLabel(a) {
+  if (a.via === 'karen') return 'Booked by Karen';
+  if (a.channel === 'staff') return `Booked by ${a.booked_by || 'staff'}`;
+  return 'Booked by Client (Website)';
+}
 
 /**
  * Deleting a salon's client cannot be undone, so it is kept to the people who
@@ -171,13 +184,14 @@ export async function contactDetail(tenantId, id, db = null) {
 
   const { rows: appts } = await q(
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.status, a.channel,
-            to_jsonb(a) ->> 'booked_via' AS via, a.created_at, a.updated_at, a.cancelled_at, a.checked_in_at,
+            to_jsonb(a) ->> 'booked_via' AS via, b.name AS booked_by, a.created_at, a.updated_at, a.cancelled_at, a.checked_in_at,
             a.reminder_sent_at,
             s.name AS stylist, s.slug AS stylist_slug, ${visitNameSql()} AS service,
             ${visitLinesSql()} AS lines, a.price_cents
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
+       LEFT JOIN staff_users b ON b.id = a.booked_by
       WHERE a.contact_id = $1::uuid AND a.tenant_id = $2::uuid
       ORDER BY a.starts_at DESC
       LIMIT 100`,
@@ -242,10 +256,9 @@ export async function contactDetail(tenantId, id, db = null) {
 
   for (const a of appts) {
     const what = `${a.service} with ${a.stylist}`;
-    // Karen's bookings say so (036), in the app or by text.
-    add('appointment', a.created_at,
-        a.via === 'karen' ? 'Booked by Karen' : a.channel === 'staff' ? 'Booked by staff' : 'Booked online',
-        what, a.ref);
+    // Who booked it (2026-10-31): Karen (036, in the app or by text), the
+    // team member at the desk by name, or the client on the website.
+    add('appointment', a.created_at, bookedLabel(a), what, a.ref, { tone: 'booked' });
     add('appointment', a.checked_in_at, 'Checked in', what, a.ref);
     add('appointment', a.cancelled_at, 'Appointment cancelled', what, a.ref);
     // These two have no timestamp of their own; the last update is when

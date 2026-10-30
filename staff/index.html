@@ -5597,14 +5597,22 @@ $('hmAddList').onclick = (e) => {
 
 // ───────────────────────── appointments ─────────────────────────
 
+/** Who made a booking, as the client's Activity says it (bookedLabel in
+    contacts.js, 2026-10-31): Karen, the team member by name, or the client
+    on the website. */
+function bookedByLabel(a) {
+  if (a.via === 'karen') return 'Booked by Karen';
+  if (a.channel === 'staff') return `Booked by ${a.bookedBy || 'staff'}`;
+  return 'Booked by Client (Website)';
+}
+
 function statusChips(a) {
   const out = [];
   if (a.status === 'cancelled') out.push('<span class="chip warn">Cancelled</span>');
   if (a.status === 'no_show') out.push('<span class="chip warn">No show</span>');
   if (a.status === 'completed') out.push('<span class="chip ok">Done</span>');
   if (a.checkedInAt && a.status === 'booked') out.push('<span class="chip ok">Here</span>');
-  if (a.via === 'karen') out.push('<span class="chip">Booked by Karen</span>');
-  else if (a.channel === 'staff') out.push('<span class="chip">Booked by staff</span>');
+  out.push(`<span class="chip">${esc(bookedByLabel(a))}</span>`);
   return out.join(' ') || '<span class="chip">Booked</span>';
 }
 
@@ -5686,8 +5694,7 @@ function cardMarks(a) {
   else if (a.status === 'completed') m.push(['ok', 'thumbs', 'Done']);
   else if (a.checkedInAt) m.push(['ok', 'user-check', 'Checked in']);
   else m.push(['', 'check', 'Confirmed']);
-  m.push(a.via === 'karen' ? ['', 'user', 'Booked by Karen']
-    : a.channel === 'staff' ? ['', 'user', `Booked by ${a.bookedBy || 'staff'}`] : ['', 'link', 'Booked online']);
+  m.push(['', a.channel === 'staff' || a.via === 'karen' ? 'user' : 'link', bookedByLabel(a)]);
   if (a.notes) m.push(['', 'doc', 'Has notes']);
   return m.map(([cls, icon, title]) => `<i class="${cls}" title="${esc(title)}">${ic(icon)}</i>`).join('');
 }
@@ -6156,11 +6163,11 @@ function paintTicket(a) {
     row('Email', a.guestEmail ? `<a href="mailto:${esc(a.guestEmail)}">${mail(a.guestEmail)}</a>` : ''),
     row('Created on', esc(shortDate(a.createdAt))),
     row('Next appt', esc(a.nextStartsAt ? fmtWhen(a.nextStartsAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')),
-    // Karen's own bookings say so (2026-10-31), with whoever asked her in
-    // the app, since she books on their behalf.
-    row('Booked', esc(a.via === 'karen'
-      ? (a.channel === 'staff' && a.bookedBy ? `By Karen, for ${a.bookedBy}` : 'By Karen')
-      : a.channel === 'staff' ? `By ${a.bookedBy || 'staff'}` : 'Online')),
+    // The same words as the client's Activity; Karen in the app books for
+    // whoever asked her, who is named too.
+    row('Booked by', esc(a.via === 'karen'
+      ? (a.channel === 'staff' && a.bookedBy ? `Karen, for ${a.bookedBy}` : 'Karen')
+      : bookedByLabel(a).replace(/^Booked by /, ''))),
     row('Notes', a.notes ? `<span style="white-space:pre-line">${esc(a.notes)}</span>` : ''),
   ].join('');
   $('adLines').innerHTML = ticketLines(a);

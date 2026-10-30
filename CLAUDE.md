@@ -587,9 +587,14 @@ made that way are real: name them ZZ and remove them.
 - **Booked by Karen** (2026-10-31): `appointments.booked_via` (migration
   036, also in ensure-schema) is `'karen'` for her bookings, in the app
   (`via: 'karen'` to `/api/staff/book`) and by text (`createBooking`'s
-  `via`; earlier text bookings marked from her note). A client's activity
-  says "Booked by Karen", the ticket "By Karen, for <who asked>", the
-  diary card's chip too. Phones are shown as (813) 555-0170 wherever a
+  `via`; earlier text bookings marked from her note). Every booking says
+  who made it, the same everywhere (2026-10-31; `bookedLabel` in
+  contacts.js, `bookedByLabel` in the console): "Booked by Karen", else
+  "Booked by <team member>" for a desk booking (`booked_by`'s name;
+  "staff" only when that login is gone), else "Booked by Client
+  (Website)". On the client's Activity, Appt. Book's card and the
+  appointment window ("Booked by: Karen, for <who asked>" when she booked
+  in the app). `tests/booked-by.integration.test.js`. Phones are shown as (813) 555-0170 wherever a
   stored number is printed (`showPhone`: a whole US number formatted,
   anything else as it is).
 - **Every email is on the client's Activity** (asked for 2026-10-31).

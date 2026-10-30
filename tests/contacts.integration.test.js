@@ -180,7 +180,9 @@ test('a contact\'s detail shows what really happened, newest first, and nothing 
     assert.ok(titles.includes('Reminder email sent'));
     assert.ok(titles.includes('Marked as done'));
     assert.ok(titles.includes('Synced to the CRM'));
-    assert.equal(titles.filter((t) => t === 'Booked by staff' || t === 'Booked online').length, 1);
+    // The other was booked by nobody named (no booked_by): staff at the desk
+    // whose login is gone, or the website.
+    assert.equal(titles.filter((t) => t === 'Booked by staff' || t === 'Booked by Client (Website)').length, 1);
     assert.ok(titles.includes('Booked by Karen'), 'a booking Karen made reads as hers');
     assert.equal(d.appointments.find((a) => a.ref === 'ZZDELE').via, 'karen');
     // No messaging history exists yet, so none is shown.
