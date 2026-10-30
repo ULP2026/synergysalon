@@ -543,9 +543,10 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: a My settings tab first (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to, then Billing; key `salon`; Salon Profile first since 2026-10-30) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and Payroll for owners, admins and managers (a "Coming soon"
-  card, added 2026-10-16). Billing, also "Coming soon" and for the same people, is a card on Salon
-  under the reply-to address since 2026-10-26, no longer a tab of its own. It has no Calendars tab:
+  for everyone: a My settings tab first (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to; key `salon`; Salon Profile first since 2026-10-30, and without its Salon email field since the same day: the stored address is kept, still the reply-to fallback, and the save leaves it out) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and a Payment tab for owners, admins and managers (key `payment`;
+  it was the Payroll tab until 2026-10-30): a Billing card and a Payroll card, both "Coming soon".
+  Billing was a tab of its own, then a card on Salon (2026-10-26), and moved to Payment on request
+  on 2026-10-30; old `payroll` and `billing` tab names land on Payment. It has no Calendars tab:
   calendars are made from Appt. Book's "Create a calendar" note (shown only
   while there are none) or `/staff/calendars`, without choosing members for now
   (stylists are not on the app yet; calendar settings saves members back
@@ -590,7 +591,8 @@ made that way are real: name them ZZ and remove them.
   empty and were thrown away on save.
 - **The team member window's header** is the picture, the name (edited in
   place) and the phone under it (`#memberPhoneRow`, asked for 2026-10-16).
-  The phone is edited there in place with its own pencil, like the name, and
+  The phone is edited there in place, and since 2026-10-30 one pencil
+  beside the name ("Edit name and phone") serves both, and
   Personal information no longer has a Phone field (Email and Role only).
   The phone is written as a US number while it is typed, (813) 555-0170
   (`usPhone`, 2026-10-30): a leading 1 or +1 is dropped, another country's
