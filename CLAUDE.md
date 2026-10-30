@@ -405,9 +405,10 @@ made that way are real: name them ZZ and remove them.
   (tag, guest, service with stylist, when on the salon's clock, Open);
   clicking one opens that appointment's window on Appt. Book's Day view
   (`diaryOpenRef`, opened once its day loads), with
-  "Past appointments (n)" underneath. The person chip (avatar and name) is
-  on the right of the nav; it was hidden for a day and brought back on
-  request. `.main` starts 116px down (108 and 100 on
+  "Past appointments (n)" underneath. Right of the nav is "Call Karen"
+  (since 2026-10-30); the person chip that stood there became Settings'
+  My settings tab, without its picture, and the count of people waiting
+  for approval rides on the Settings gear. `.main` starts 116px down (108 and 100 on
   smaller screens) so titles clear the fixed nav.
 - **No /staff in the app's addresses** on app.synergysalon.com (asked for
   2026-10-22): Home is `/`, then `/appointments`, `/clients`,
@@ -456,7 +457,10 @@ made that way are real: name them ZZ and remove them.
 - On a phone (720px and narrower) "Call Karen" floats in the bottom-right
   corner and stays there while the page scrolls (2026-10-22): 52px tall,
   clear of the safe-area insets, with room left at the page's foot and the
-  toast lifted above it. On wider screens it stays in the page head.
+  toast lifted above it. On wider screens it sits at the top, right of the
+  menu (2026-10-30; it was in the page head). The bar is centred by
+  margins, not `translateX`: a transform would make it the frame for the
+  phone's fixed button.
 - **New appointment is five steps again** (asked for 2026-10-23, after a
   day as one page): stylist, kind of service, service, day and time, client
   (`BOOK_STEPS`, `bookGo`). It keeps what the one-page form added: "Add
@@ -538,7 +542,7 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: a Salon tab (Where do you want people to reply to, then Salon Profile; key `salon`, where Settings opens) and a Team tab (Team Members, Appearance, Sign out; key `team`, where the person chip and `/account` open), split on request on 2026-10-23 after a week as one "Salon & Team" page, and Payroll for owners, admins and managers (a "Coming soon"
+  for everyone: a My settings tab first (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Where do you want people to reply to, then Salon Profile; key `salon`) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and Payroll for owners, admins and managers (a "Coming soon"
   card, added 2026-10-16). Billing, also "Coming soon" and for the same people, is a card on Salon
   under the reply-to address since 2026-10-26, no longer a tab of its own. It has no Calendars tab:
   calendars are made from Appt. Book's "Create a calendar" note (shown only
@@ -546,8 +550,8 @@ made that way are real: name them ZZ and remove them.
   (stylists are not on the app yet; calendar settings saves members back
   unchanged and no longer shows a picker), and the New calendar form offers the
   calendar apps (Google by sign-in, and any other app by subscribing
-  to the person's private feed, links from `GET /api/staff/calendars`), Outlook is left out of the form on request (`calAppRows()`). The person chip
-  and `/staff/account` open Settings on Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
+  to the person's private feed, links from `GET /api/staff/calendars`), Outlook is left out of the form on request (`calAppRows()`). `/staff/account`
+  opens Settings on Team. The calendar settings page has a Back button to Appt. Book, on the Day or Month view last open (`ss-cal-view` in `localStorage`). Sign out is in your own
   profile window. `/staff/dashboard` and `/staff/contacts` still land on Home and
   Clients. The UI says "CRM"; the API keeps its `centro`
   names, which nobody sees.

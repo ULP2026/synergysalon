@@ -288,8 +288,11 @@
     backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6);
   }
 
+  /* Centred by margins, not translateX: a transform makes the bar the frame
+     for position: fixed inside it, and Call Karen, which lives here now,
+     floats to the phone's bottom-right corner by being fixed. */
   .grn {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 50;
+    position: fixed; top: 16px; left: 0; right: 0; margin-inline: auto; width: max-content; z-index: 50;
     display: flex; align-items: stretch; gap: 12px; max-width: calc(100vw - 16px);
   }
   .grn-pill { position: relative; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 18px; }
@@ -1264,9 +1267,16 @@
   }
 
   /* Call Karen: the booking assistant's button and chat. */
-  /* Beside each page's title, at the right of New appointment, on every
-     page (asked for 2026-10-22). Pink by id, so dark mode keeps her pink. */
+  /* At the top of every page, right of the menu where the person chip was
+     (2026-10-30; beside each page's title before). Pink by id, so dark mode
+     keeps her pink. */
   .karen-cta { gap: 8px; padding-left: 7px; font-weight: 650; border: 1px solid rgba(85, 96, 166, .28); box-shadow: var(--e1); }
+  @media (min-width: 721px) {
+    /* As tall as the menu beside her, with its corners and lift. */
+    .grn #karenBtn { height: auto; border-radius: 18px; padding: 0 18px 0 9px; gap: 10px;
+                     box-shadow: 0 8px 32px rgba(30, 31, 92, .14); }
+    .grn #karenBtn .kc-pic, .grn #karenBtn .kc-pic img { width: 34px; height: 34px; }
+  }
   #karenBtn, #bookKarenBtn { background: linear-gradient(135deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c; }
   #karenBtn:hover:not(:disabled), #bookKarenBtn:hover:not(:disabled) { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
   .karen-cta .kc-pic { width: 28px; height: 28px; }
@@ -2666,17 +2676,19 @@
         <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appt. Book</span></a>
       <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
         <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Clients</span></a>
+      <!-- The count of people asking to join rides on the gear: it was on the
+           person chip, which became Settings' My settings tab (2026-10-30). -->
       <a class="grn-item icon-only" href="/staff/settings" data-page="settings" data-group="settings" title="Settings" aria-label="Settings" id="navSettings">
-        <svg class="grn-ic"><use href="#l-settings"/></svg></a>
+        <svg class="grn-ic"><use href="#l-settings"/></svg>
+        <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span></a>
     </nav>
-    <!-- The person: their picture and first name. A click opens their own
-         profile in place, the dialog Team Members opens for them; it stays a
-         link to Settings, so a new-tab click still goes there. -->
-    <a class="grn-me glass-strong" id="meBtn" href="/staff/settings" data-page="account" title="Your profile">
-      <span class="me-pic" id="mePic" aria-hidden="true"></span>
-      <span class="me-name" id="meName"></span>
-      <span class="count hidden" id="pendingBadge" aria-label="waiting for approval">0</span>
-    </a>
+    <!-- Call Karen, the booking assistant, at the top of every page (moved
+         here from beside each page's title on request, 2026-10-30, in the
+         place the person chip had). On a phone she still floats in the
+         bottom-right corner. -->
+    <button type="button" class="btn karen-cta" id="karenBtn" title="Call Karen, the booking assistant">
+      <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span><span>Call Karen</span>
+    </button>
   </header>
 
   <main class="main">
@@ -2687,11 +2699,6 @@
       </div>
       <button class="btn primary" id="primaryBtn">
         <svg class="ic"><use href="#i-plus"/></svg><span id="primaryLbl">New appointment</span>
-      </button>
-      <!-- Call Karen, the booking assistant: on every page, at the right of
-           New appointment where there is one. -->
-      <button type="button" class="btn karen-cta" id="karenBtn" title="Call Karen, the booking assistant">
-        <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span><span>Call Karen</span>
       </button>
     </header>
 
@@ -2773,17 +2780,47 @@
 
     <section class="view hidden" id="view-settings">
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
-        <button type="button" data-set="salon" aria-pressed="true">Salon</button>
+        <button type="button" data-set="me" aria-pressed="true">My settings</button>
+        <button type="button" data-set="salon" aria-pressed="false">Salon</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="marketing" aria-pressed="false">Marketing</button>
         <button type="button" data-set="payroll" aria-pressed="false" data-admin>Payroll</button>
         <button type="button" data-set="karen" aria-pressed="false">Karen AI</button>
       </div>
 
+      <!-- My settings, the first tab and where the gear opens (2026-10-30):
+           what the person chip in the top corner held. It is you alone: your
+           own profile, how the app looks in this browser, and signing out,
+           which moved here from Team. Text only, no picture, as asked. -->
+      <div class="setpane" id="set-me">
+      <div class="acct">
+          <section class="acard">
+            <h2 class="ahead"><svg class="ic"><use href="#i-user"/></svg>My Profile</h2>
+            <div class="arow">
+              <div><b id="myName"></b><span id="mySub"></span></div>
+              <button type="button" class="btn sm" id="myEdit">Edit my profile</button>
+            </div>
+          </section>
+
+          <section class="acard">
+            <h2 class="ahead"><svg class="ic"><use href="#i-sun"/></svg>Appearance</h2>
+            <div class="arow">
+              <div><b>Dark Mode</b><span>Toggle between light and dark theme</span></div>
+              <button type="button" class="switch" id="darkSwitch" role="switch" aria-checked="false" aria-label="Dark Mode"><span></span></button>
+            </div>
+          </section>
+
+          <!-- Sign out, at the foot of your own settings. It once lived only in
+               your own profile dialog, which nobody thinks to open to leave. -->
+          <button type="button" class="btn signout" id="signOutBtn">
+            <svg class="ic"><use href="#i-signout"/></svg>Sign out</button>
+      </div>
+      </div>
+
       <!-- Salon: what clients see of the salon and where their replies go.
            Salon and Team were one "Salon & Team" tab from 2026-10-15 until
-           they were split again on request on 2026-10-23. The gear opens it. -->
-      <div class="setpane" id="set-salon">
+           they were split again on request on 2026-10-23. -->
+      <div class="setpane hidden" id="set-salon">
       <div class="acct">
           <!-- The inbox guests' replies land in; built in paintReplyTo(). First:
                it is short, and below the profile form it was out of sight. -->
@@ -2807,8 +2844,7 @@
       </div>
       </div>
 
-      <!-- Team: the people, then what is yours alone (how the app looks in
-           this browser, and signing out). The person chip opens this tab. -->
+      <!-- Team: the people. Appearance and Sign out moved to My settings. -->
       <div class="setpane hidden" id="set-team">
       <div class="acct">
           <section class="acard">
@@ -2816,21 +2852,6 @@
             <p class="asub">Your profile and the people who work here. Click your picture to edit it and your prices.</p>
             <div id="team"></div>
           </section>
-
-          <section class="acard">
-            <h2 class="ahead"><svg class="ic"><use href="#i-sun"/></svg>Appearance</h2>
-            <div class="arow">
-              <div><b>Dark Mode</b><span>Toggle between light and dark theme</span></div>
-              <button type="button" class="switch" id="darkSwitch" role="switch" aria-checked="false" aria-label="Dark Mode"><span></span></button>
-            </div>
-          </section>
-
-          <!-- Sign out, at the foot of the page the person chip opens. It had
-               gone from here and lived only in your own profile dialog, which
-               nobody thinks to open to leave. -->
-          <button type="button" class="btn signout" id="signOutBtn">
-            <svg class="ic"><use href="#i-signout"/></svg>Sign out</button>
-
         </div>
       </div>
 
@@ -3628,25 +3649,16 @@ $('requestForm').onsubmit = async (e) => {
 
 let meSubtitle = '';
 
-/** The chip in the corner, painted from whatever `me` currently holds. */
-const ZIGGY_AVATAR = '/assets/ziggy-ai-support.png';
-
+/** My settings' profile row, painted from whatever `me` currently holds. The
+    person chip in the top corner that this used to paint became that tab
+    (2026-10-30), without its picture, as asked. */
 function paintMe() {
-  // RocketOS's chip carries the first name only.
-  $('meName').textContent = me.user.name.trim().split(/\s+/)[0] || me.user.name;
   meSubtitle = `${ROLE_LABEL[me.user.role] || me.user.role} · ${me.salon.name}`;
-  $('meBtn').title = `Your profile · ${meSubtitle}`;
-  // The chip shows Ziggy, the AI support assistant, for everyone, as asked;
-  // a person's own picture lives in their profile. Until the Ziggy image is
-  // published at ZIGGY_AVATAR the chip falls back to the person's picture
-  // rather than showing a broken image.
-  const pic = new Image();
-  pic.alt = '';
-  pic.onerror = () => { pic.onerror = null; pic.src = personPhoto(me.user); };
-  pic.src = ZIGGY_AVATAR;
-  $('mePic').replaceChildren(pic);
+  $('myName').textContent = me.user.name;
+  $('mySub').textContent = meSubtitle;
   paintLogo();
 }
+$('myEdit').onclick = () => openMember('me');
 
 /**
  * Every face in the app is a picture: an uploaded avatar, else the stylist's
@@ -4255,14 +4267,13 @@ const PAGES = {
   settings: {
     path: `${BASE}/settings`, title: 'Settings',
     sub: 'Your salon, your team and how the app looks.',
-    // Marketing has pages of its own, so the gear opens on Salon instead.
-    load: () => showSetting(setTab === 'marketing' ? 'salon' : setTab),
+    // Marketing has pages of its own, so the gear opens on My settings instead.
+    load: () => showSetting(setTab === 'marketing' ? 'me' : setTab),
   },
-  // Opened from the person in the corner, for every role: how the app looks,
-  // the CRM link (owners and managers), the team, and the way out.
+  // The old address of Team Settings; go() sends it to the Team tab.
   account: {
     path: `${BASE}/account`, title: 'Team',
-    sub: 'Your profile, your team and how the app looks.',
+    sub: 'Your profile and your team.',
     load: () => loadAccount(),
   },
   automation: {
@@ -4868,8 +4879,8 @@ function pageFromUrl() {
 
 function go(name, { push = true } = {}) {
   name = PAGE_ALIASES[name] || name;
-  // Team Settings is a tab of Settings now; its old address and the person
-  // chip both land there.
+  // Team Settings is a tab of Settings now; its old address, the approvals
+  // tile on Home and the calendar dialog's Connect all land there.
   if (name === 'account') { setTab = 'team'; name = 'settings'; }
   const p = PAGES[name];
   page = name;
@@ -4879,7 +4890,6 @@ function go(name, { push = true } = {}) {
     if (a.dataset.page === name || (p.group && a.dataset.group === p.group)) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
-  $('meBtn').removeAttribute('aria-current');
   document.querySelector('.main').classList.toggle('narrow', name === 'settings' || p.group === 'settings');
   moveRing();
   const view = p.view || name;
@@ -4905,9 +4915,6 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('a[data-page]');
   if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
   e.preventDefault();
-  // The person chip opens your own profile where you are, rather than
-  // taking you to Settings to find it in Team Members.
-  if (a.id === 'meBtn') { openMember('me'); return; }
   go(a.dataset.page);
 });
 window.addEventListener('popstate', () => { if (me) go(pageFromUrl(), { push: false }); });
@@ -9218,7 +9225,6 @@ $('replyCard').addEventListener('submit', async (e) => {
 });
 
 function loadAccount() {
-  paintDarkSwitch();
   // No Integrations card any more: calendars are connected per person, in
   // Connect your tools on their own profile, and the CRM and email are set
   // up by the web team rather than switched on here.
@@ -9227,9 +9233,9 @@ function loadAccount() {
 
 // ─────────────────────── settings sections ───────────────────────
 
-// Settings opens on Salon; the person chip and /account open Team.
-let setTab = 'salon';
-const SET_TABS = ['salon', 'team', 'marketing', 'payroll', 'karen'];
+// Settings opens on My settings, its first tab; /account opens Team.
+let setTab = 'me';
+const SET_TABS = ['me', 'salon', 'team', 'marketing', 'payroll', 'karen'];
 
 function showSetting(name) {
   // Billing is a card on Salon now; an old billing link lands there.
@@ -9240,13 +9246,11 @@ function showSetting(name) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
   }
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
+  if (name === 'me') paintDarkSwitch();
   if (name === 'salon') { loadBusiness(); loadReplyTo(); }
   if (name === 'team') loadAccount();
   if (name === 'payroll') paintPayday();
   if (name === 'karen') loadKarenSettings();
-  // The person chip is "you": lit while your Team Settings are open.
-  if (name === 'team') $('meBtn').setAttribute('aria-current', 'page');
-  else $('meBtn').removeAttribute('aria-current');
 }
 $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
