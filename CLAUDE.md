@@ -438,13 +438,14 @@ made that way are real: name them ZZ and remove them.
   desk") are gone from the list and the profile chips, and the source is
   still on the profile. The lead-stage filters were removed on request; each row still
   shows its stage. The stylist row stays on one line (scrolls sideways).
-  Each stylist button shows their face (2026-10-30), ringed in their colour
-  (the same ring as on a client's profile, `stylistPic`): the photo uploaded to their login
+  Each stylist button shows their face (2026-10-30), ringed in periwinkle
+  (one colour for everyone since 2026-10-31, no red; each stylist had a
+  colour of their own from a list of eight before; `stylistPic`): the photo uploaded to their login
   (`staff_users.avatar`, a `data:` URI), else the website's portrait
   (`stylistPhoto` before `stylists.photo`, whose 012 path for Tami is a
   deleted file), else the avatar they chose, else a default (`personPhoto`).
   A client row has no ⋯ menu any more (removed on request 2026-10-30): Book
-  is its one button (wearing their stylist's face, ringed in their colour,
+  is its one button (wearing their stylist's face, ringed in periwinkle,
   and booking with that stylist preset, `bookButton`; the calendar icon for
   a client with no stylist yet), and Edit details and Delete client are on the profile
   the row opens. So the Add client window (`#contactDlg`) only ever adds;
@@ -560,6 +561,24 @@ made that way are real: name them ZZ and remove them.
   ("right now": who is in the chair and what is still to come; a day or
   "tomorrow"; a stylist by name; "next": Home's upcoming list). Asking
   for open times ("is anything free tomorrow?") is still a booking.
+  **Karen in the app reads the records with Claude** (2026-10-31, after
+  "when did Luiz Test get created?" and "have any emails been sent?" got
+  "not sure"). A typed question (a question word, or a "?") that is not a
+  request to book, for free times or for a price (`kIsQuestion`,
+  `kWantsBooking`) goes to `POST /api/staff/karen` (`kAskAi`), as does
+  anything the rules cannot place; mid-booking, only a real question
+  does. `api/_lib/karen-desk.js` (`deskReply`) answers on the same model
+  and key as Karen by text, with four tools that only read:
+  `find_clients` (name, email, phone digits, or added between two days),
+  `client_history` (`contactDetail` plus every email sent them),
+  `appointments` (a range up to 92 days, cancelled ones marked) and
+  `emails_sent` (the `message_sends` log). Nothing it does can book or
+  write (`tests/karen-desk.integration.test.js` reads its source for SQL
+  that writes and runs every tool against ZZ data with a stand-in model).
+  It sees the whole salon, as any staff member can in the app. The last
+  12 messages travel with each question for follow-ups. Without
+  `ANTHROPIC_API_KEY` the endpoint answers 503 and the chat keeps to its
+  rules for the session.
   A sent email's window no longer carries the rebuilt-from-the-booking
   note (`note` is null unless the booking was deleted): the Email History
   header's info button says it once.

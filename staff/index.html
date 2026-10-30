@@ -686,25 +686,19 @@
   .cselect { width: auto; min-width: 150px; height: 42px; padding: 0 12px; font-size: var(--fs-sm); }
   .cstages { margin: -2px 0 12px; }
   /* One line however many stylists there are: it scrolls sideways rather
-     than wrapping into a second row. Each stylist has their own colour, a dot
-     at rest and the whole pill when chosen, so a filter is recognised by
-     colour before its name is read. */
+     than wrapping into a second row. Every stylist is ringed in the same
+     periwinkle (asked for 2026-10-31: one colour, no red); a stylist used
+     to have a colour of their own from a list of eight. */
   .cstylists { margin: -2px 0 10px; align-items: center; flex-wrap: nowrap; overflow-x: auto;
                scrollbar-width: none; padding: 2px 1px; }
   .cstylists::-webkit-scrollbar { display: none; }
   .cstylists button { flex: none; white-space: nowrap; }
-  .cstylists .dot { background: var(--c); }
-  .cstylists button[data-member]:not([data-member=""])[aria-pressed="true"] {
-    background: var(--c); border-color: var(--c); color: #fff; box-shadow: 0 6px 14px -8px var(--c); }
-  .cstylists button[aria-pressed="true"] .dot { background: #fff; box-shadow: none; }
-  /* Each stylist's face, ringed in their colour so it still matches the tag
-     their clients wear in the list. */
   .cstylists .sav { width: 22px; height: 22px; margin-left: -7px; border-radius: 50%; object-fit: cover; flex: none;
-    background: var(--peri-pale); box-shadow: 0 0 0 2px var(--c); }
+    background: var(--peri-pale); box-shadow: 0 0 0 2px var(--periwinkle); }
   .cstylists button[aria-pressed="true"] .sav { box-shadow: 0 0 0 2px #fff; }
   .iconbtn.bookface { padding: 0; }
   .iconbtn.bookface img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
-    background: var(--peri-pale); box-shadow: 0 0 0 2px var(--c); }
+    background: var(--peri-pale); box-shadow: 0 0 0 2px var(--periwinkle); }
   .cstages .n { font-variant-numeric: tabular-nums; color: var(--faint); font-weight: 600; margin-left: 2px; }
   .cstages button[aria-pressed="true"] .n { color: inherit; opacity: .8; }
   .ctags-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: -4px 0 16px; }
@@ -831,10 +825,10 @@
   .px-head .avatar { width: 54px; height: 54px; font-size: 1.1rem; box-shadow: 0 0 0 4px #fff; }
   .px-avwrap { position: relative; flex: none; align-self: flex-start; }
   .px-sty { position: absolute; right: -9px; bottom: -7px; width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
-            background: var(--peri-pale); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--c, var(--periwinkle)); }
+            background: var(--peri-pale); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--periwinkle); }
   .px-stylist { display: inline-flex; align-items: center; gap: 8px; }
   .px-stylist img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex: none;
-                    background: var(--peri-pale); box-shadow: 0 0 0 2px var(--c, var(--periwinkle)); }
+                    background: var(--peri-pale); box-shadow: 0 0 0 2px var(--periwinkle); }
   .px-head .who { flex: 1; min-width: 0; }
   .px-head h2 { margin: 0; font-size: 1.4rem; letter-spacing: -.015em; overflow-wrap: anywhere; }
   .px-head .chips { margin-top: 6px; }
@@ -6356,8 +6350,6 @@ $('dayPicker').onchange = (e) => e.target.value && loadDay(e.target.value);
 let contactList = [];
 let contactStylist = '';    // a stylist's slug, or '' for everyone
 
-const STYLIST_COLORS = ['#5560a6', '#c2547a', '#17877a', '#d0812a', '#7b4fc0', '#2f7fb8', '#9a6b1f', '#3f8f4f'];
-
 /**
  * Choose your stylist: every stylist record the salon has, from the server
  * (contacts?stylists), whether or not they have a login, a connected
@@ -6367,12 +6359,6 @@ const STYLIST_COLORS = ['#5560a6', '#c2547a', '#17877a', '#d0812a', '#7b4fc0', '
  * added as a chair without a login).
  */
 let contactStylists = [];
-/** A colour per stylist by their slug's place in the list, so it stays theirs. */
-function stylistColor(slug) {
-  const order = contactStylists.map((t) => t.slug).sort();
-  const i = order.indexOf(slug);
-  return STYLIST_COLORS[(i < 0 ? 0 : i) % STYLIST_COLORS.length];
-}
 /**
  * A client's stylist's face: the same picture as their filter button, from
  * the Choose your stylist list, else the team the app already holds, else a
@@ -6390,7 +6376,6 @@ function paintPxStylist(c) {
   if (!st) { img.removeAttribute('src'); return; }
   img.src = stylistPic(st);
   img.title = `Their stylist: ${st.name}`;
-  img.style.setProperty('--c', stylistColor(st.slug));
 }
 
 /**
@@ -6404,7 +6389,7 @@ function bookButton(c) {
   if (!st) {
     return `<button class="iconbtn" data-book="${esc(c.id)}" title="Book an appointment" aria-label="Book ${esc(c.name)}">${ic('calendar-plus')}</button>`;
   }
-  return `<button class="iconbtn bookface" data-book="${esc(c.id)}" data-with="${esc(st.slug)}" style="--c:${stylistColor(st.slug)}"
+  return `<button class="iconbtn bookface" data-book="${esc(c.id)}" data-with="${esc(st.slug)}"
     title="Book with ${esc(st.name)}" aria-label="Book ${esc(c.name)} with ${esc(st.name)}"><img src="${esc(personPhoto(st))}" alt=""></button>`;
 }
 
@@ -6415,7 +6400,7 @@ function fillStylistFilter() {
   box.classList.toggle('hidden', !list.length);
   box.innerHTML = '<span class="clabel" id="contactStylistLbl">Choose your stylist</span>'
     + `<button type="button" data-member="" aria-pressed="${contactStylist === ''}">All</button>`
-    + list.map((t) => `<button type="button" data-member="${esc(t.slug)}" style="--c:${stylistColor(t.slug)}"
+    + list.map((t) => `<button type="button" data-member="${esc(t.slug)}"
       title="${esc(t.name)}${t.left ? ' (no longer here; their clients stay)' : ''}" aria-pressed="${t.slug === contactStylist}"
       class="${t.left ? 'left' : ''}"><img class="sav" src="${esc(personPhoto(t))}" alt="">${esc(t.name)}${t.left ? ' <small>left</small>' : ''}</button>`).join('');
 }
@@ -6675,7 +6660,7 @@ function renderPerson() {
         <dt>Source</dt><dd>${esc(c.source || '') || dash}</dd>
         <dt>Added</dt><dd>${esc(short(c.createdAt))}</dd>
         <dt>Stylist</dt><dd>${c.stylist
-          ? `<span class="px-stylist" style="--c:${stylistColor(c.stylist.slug)}" title="Whoever they last booked with"><img src="${esc(stylistPic(c.stylist))}" alt="">${esc(c.stylist.name)}</span>`
+          ? `<span class="px-stylist" title="Whoever they last booked with"><img src="${esc(stylistPic(c.stylist))}" alt="">${esc(c.stylist.name)}</span>`
           : '<span class="muted">When they book</span>'}</dd>
       </dl>`;
 
@@ -7738,9 +7723,15 @@ $('karenForm').onsubmit = (e) => {
   const control = kControl(t, ask);
   if (control === 'moved') { moved(); return; }
   if (control) return;
-  // What is already booked: read from the calendar, whatever she was asking.
-  // Before the question's own answers, because the menu takes any "book"
-  // as a request to make a booking (2026-10-31).
+  // A question for the records ("when was Luiz added?", "have any emails
+  // been sent?") goes to Karen's AI, which looks it up (2026-10-31). Not
+  // mid-booking, where the question being asked gets the first go, and never
+  // a request to book or for free times, which the steps below handle.
+  const idle = !ask || ask.key === 'menu';
+  if (karenAiOn && idle && kIsQuestion(t) && !kWantsBooking(t)) { kAskAi(raw, t, ask); return; }
+  // Without the AI, what is already booked is still read from the calendar,
+  // before the question's own answers, because the menu takes any "book" as
+  // a request to make a booking (2026-10-31).
   if (kIsLookup(t)) { kLookup(t, ask); return; }
   // The question's own answers.
   const got = ask?.fn ? ask.fn(t, raw) : false;
@@ -7750,9 +7741,17 @@ $('karenForm').onsubmit = (e) => {
   const aside = kAside(t, ask);
   if (aside === 'moved') { moved(); return; }
   if (aside) return;
+  // Nothing in the rules fits: the AI may still know (and says so if not).
+  // Mid-booking only a real question goes to it; a mistyped answer to the
+  // step (a phone number too short) gets the step's own hint instead.
+  if (karenAiOn && (idle || kIsQuestion(t))) { kAskAi(raw, t, ask); return; }
+  kSorry(ask);
+};
+
+function kSorry(ask) {
   kSay(`<p>${kPick(["Hmm, I didn't quite get that.", "Sorry, I'm not sure I followed.", "I'm not sure what you mean there."])} `
     + `${esc(ask?.hint || 'Tap one of the options below, or type "start over".')}</p>`);
-};
+}
 
 // ── what the salon offers ────────────────────────────────────────────────
 
@@ -7994,6 +7993,7 @@ function kHello() {
 
 function kStart() {
   karenRun += 1;
+  karenAiLog = [];
   karenQueue = Promise.resolve();
   karenAsk = null;
   kReset();
@@ -8516,6 +8516,75 @@ function kIsLookup(t) {
   const q = t.replace(/'/g, '').trim();
   if (/availab|\bfree\b|\bopen(ings?)?\b|\bslots?\b|\b(can|could|may) (i|we|you) book\b|\bto book\b/.test(q)) return false;
   return (KAREN_ASKS.test(q) && KAREN_BOOKED.test(q)) || /\bnext (appointment|appt|booking|client)\b/.test(q);
+}
+
+/** A question rather than an answer or a request: asked, or ends with "?". */
+function kIsQuestion(t) {
+  const q = t.replace(/'/g, '').trim();
+  return /\?\s*$/.test(q)
+    || /^(are|is|was|were|any|anything|anyone|anybody|what|whats|when|whens|where|who|whos|whose|why|how|which|do|does|did|have|has|had|show|list|tell|check|find|give me|can you (tell|check|show|find|look|see|give))\b/.test(q);
+}
+/** A request to book, or for free times, or for prices: the rules' own job. */
+function kWantsBooking(t) {
+  const q = t.replace(/'/g, '').trim();
+  // "Who can I book with?" asks about the team, it is not a booking.
+  if (/^who\b/.test(q)) return false;
+  return /^(please |pls |can you |could you |would you |help me |i want to |i wanna |id like to |i would like to |lets |let me )?(book|schedule|reserve|make (an |a )?(appointment|booking))\b/.test(q)
+    || /\b(can|could|may) (i|we|you) (book|schedule)\b/.test(q)
+    || /availab|\bfree\b|\bopen(ings?)?\b|\bslots?\b/.test(q)
+    || /how much|\bprice|\bcost|\$|how long|\bduration\b/.test(q);
+}
+
+// ── Karen's AI: questions the rules cannot answer ────────────────────────
+//
+// The team's questions about clients, their history, the calendar and the
+// emails sent are answered by Claude from the salon's records (POST
+// /api/staff/karen, karen-desk.js). It only reads; booking stays with the
+// steps. Without a key (503) she goes back to her rules for the session.
+let karenAiOn = true;
+let karenAiLog = [];   // this conversation's questions and answers, for follow-ups
+
+/** Her plain-text answer as chat paragraphs: blank lines split, lines break. */
+const kPlain = (text) => String(text).trim().split(/\n\s*\n/)
+  .map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
+
+async function kAskAi(raw, t, ask) {
+  const run = karenRun;
+  await karenQueue;
+  if (run !== karenRun) return;
+  // Her typing dots while she looks it up.
+  const b = document.createElement('div');
+  b.className = 'kd-msg karen';
+  b.innerHTML = '<span class="kd-typing" aria-label="Karen is looking that up"><i></i><i></i><i></i></span>';
+  $('karenLog').append(b);
+  kScroll();
+  let res = null;
+  let data = {};
+  try {
+    res = await fetch('/api/staff/karen', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: raw, history: karenAiLog.slice(-12) }),
+    });
+    data = await res.json().catch(() => ({}));
+  } catch { /* offline: handled below as a failure */ }
+  if (run !== karenRun) { b.remove(); return; }
+  if (res?.status === 401) { b.remove(); showLogin(); return; }
+  if (res?.ok && data.say) {
+    b.innerHTML = kPlain(data.say);
+    kScroll();
+    karenAiLog.push({ role: 'user', text: raw }, { role: 'assistant', text: data.say });
+    if (ask?.hint && ask.key !== 'menu') kSay(`<p>${esc(ask.hint)}</p>`);
+    return;
+  }
+  b.remove();
+  if (res?.status === 503) karenAiOn = false;
+  // Her rules, as before the AI: the calendar if it was about that.
+  if (kIsLookup(t)) { kLookup(t, ask); return; }
+  if (res && res.status !== 503) {
+    kSay(`<p>Sorry, I couldn't look that up just now. ${esc(ask?.hint || 'Try again in a moment, or tap an option below.')}</p>`);
+    return;
+  }
+  kSorry(ask);
 }
 
 async function kLookup(t, ask) {

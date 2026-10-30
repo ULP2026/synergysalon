@@ -4,6 +4,10 @@
  *   GET    the number clients call or text to reach Karen, and whether
  *          texts can be answered yet (everyone on the team can read it)
  *   PATCH  {phone}  set or clear it (the admin)
+ *   POST   {question, history}  Karen in the app answers a question from
+ *          the salon's records (karen-desk.js; anyone on the team, who can
+ *          already see all of it in the app). 503 NO_AI without a key, and
+ *          the console falls back to its rules.
  *
  * The number is bought from the phone provider and pointed at the webhooks
  * listed here; this records which number it is, so the team can see it and
@@ -12,6 +16,8 @@
 import { assertSameOrigin, requireStaff, requireTeamAdmin } from '../../_lib/auth.js';
 import { hasColumn, query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson } from '../../_lib/http.js';
+import { karenAi } from '../../_lib/karen-ai.js';
+import { deskReply } from '../../_lib/karen-desk.js';
 import { phoneKey, prettyPhone } from '../../_lib/karen-sms.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
@@ -37,6 +43,27 @@ export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
     return json(res, 200, await settings(req, user.tenant_id));
+  },
+
+  async POST(req, res) {
+    assertSameOrigin(req);
+    const user = await requireStaff(req);
+    const body = await readJson(req);
+    const question = typeof body.question === 'string' ? body.question.trim().slice(0, 1000) : '';
+    if (!question) throw new HttpError(400, 'Ask Karen a question.');
+    const ai = karenAi();
+    if (!ai) throw new HttpError(503, "Karen's AI is not connected.", 'NO_AI');
+    const history = (Array.isArray(body.history) ? body.history : [])
+      .filter((h) => h && (h.role === 'user' || h.role === 'assistant') && typeof h.text === 'string' && h.text.trim())
+      .slice(-12)
+      .map((h) => ({ role: h.role, text: h.text.slice(0, 2000) }));
+    const tenant = await tenantForUser(user);
+    try {
+      return json(res, 200, { say: await deskReply({ tenant, user, question, history }, ai) });
+    } catch (err) {
+      console.error('karen-desk failed', err);
+      throw new HttpError(502, "Karen couldn't look that up just now.", 'AI_FAILED');
+    }
   },
 
   async PATCH(req, res) {
