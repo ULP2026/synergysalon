@@ -173,9 +173,10 @@ function counts(component) {
 
 /**
  * Busy spans overlapping [fromIso, toIso), in the same shape as busyBetween
- * in google.js, so Appt. Book draws both the same way.
+ * in google.js, so Appt. Book draws both the same way. With `titles`, each
+ * carries its event's title, except one marked private (CLASS), as there.
  */
-export async function icsBusyBetween(link, fromIso, toIso, zone) {
+export async function icsBusyBetween(link, fromIso, toIso, zone, { titles = false } = {}) {
   const text = await fetchFeed(link);
   const cal = new ICAL.Component(ICAL.parse(text));
   for (const vtz of cal.getAllSubcomponents('vtimezone')) {
@@ -190,7 +191,12 @@ export async function icsBusyBetween(link, fromIso, toIso, zone) {
     const s = instant(startT, zone).getTime();
     const e = instant(endT, zone).getTime();
     if (s < to && e > from) {
-      out.push({ allDay: Boolean(startT.isDate), startsAt: new Date(s).toISOString(), endsAt: new Date(e).toISOString() });
+      const span = { allDay: Boolean(startT.isDate), startsAt: new Date(s).toISOString(), endsAt: new Date(e).toISOString() };
+      if (titles) {
+        const hidden = /^(PRIVATE|CONFIDENTIAL)$/i.test(String(item.getFirstPropertyValue('class') || ''));
+        span.title = hidden ? null : (String(item.getFirstPropertyValue('summary') || '').trim() || null);
+      }
+      out.push(span);
     }
   };
 

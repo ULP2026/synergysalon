@@ -344,13 +344,16 @@ export async function salonCalendarFor(userId, token, salon, { verify = false } 
 /**
  * One person's Google events between two instants, as busy spans.
  *
- * Titles, attendees and descriptions are not asked for (the fields mask
- * leaves them out), so they never pass through this server at all, rather
- * than being fetched and then hidden. Free time marked "show me as available"
- * is skipped: it is in the calendar but it is not a reason to say they are
- * busy. Returns null when the person is not connected.
+ * Attendees and descriptions are never asked for (the fields mask leaves
+ * them out), so they never pass through this server at all. The event's
+ * title is asked for only with `titles` (Appt. Book's day, for the person
+ * themselves and the admin, asked for 2026-10-31), and an event marked
+ * Private in Google keeps it to itself: it is still just "Busy". Online
+ * availability and the team window never ask. Free time marked "show me as
+ * available" is skipped: it is in the calendar but it is not a reason to
+ * say they are busy. Returns null when the person is not connected.
  */
-export async function busyBetween(userId, fromIso, toIso) {
+export async function busyBetween(userId, fromIso, toIso, { titles = false } = {}) {
   const token = await accessTokenFor(userId);
   if (!token) return null;
   const p = new URLSearchParams({
@@ -359,7 +362,7 @@ export async function busyBetween(userId, fromIso, toIso) {
     singleEvents: 'true',
     orderBy: 'startTime',
     maxResults: '250',
-    fields: 'items(id,status,transparency,start,end)',
+    fields: titles ? 'items(id,status,transparency,start,end,summary,visibility)' : 'items(id,status,transparency,start,end)',
   });
   const data = await call(token, `/calendars/primary/events?${p}`);
   // Copies of salon bookings written to the main calendar (before the salon
@@ -380,5 +383,6 @@ export async function busyBetween(userId, fromIso, toIso) {
       allDay: Boolean(e.start?.date && !e.start?.dateTime),
       startsAt: e.start?.dateTime || e.start?.date,
       endsAt: e.end?.dateTime || e.end?.date,
+      ...(titles ? { title: e.visibility === 'private' || e.visibility === 'confidential' ? null : (e.summary || null) } : {}),
     }));
 }

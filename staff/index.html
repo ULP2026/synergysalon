@@ -1207,13 +1207,16 @@
                padding-top: 6px; overflow: hidden;
                background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--line) 55%, transparent) 0 1px, transparent 1px 9px),
                            color-mix(in srgb, var(--raise) 85%, transparent); }
-  .dg-offhrs span { font-size: var(--fs-xs); font-weight: 600; color: var(--faint); white-space: nowrap; }
+  .dg-offhrs span { font-size: var(--fs-xs); font-weight: 600; color: var(--faint); white-space: nowrap; text-align: center; }
+  .dg-offhrs span b { display: block; font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .dg-offhrs span small { display: block; font-size: .7rem; font-weight: 500; }
   .dg-col:has(.dg-offhrs:hover) .ghost { display: none; }
   .dg-busy { position: absolute; left: 6px; right: 6px; z-index: 1; border-radius: 10px; padding: 6px 10px;
              font-size: var(--fs-xs); font-weight: 600; color: #4b4f86; overflow: hidden; line-height: 1.3;
              border-left: 4px solid #9aa3e0;
              background: repeating-linear-gradient(135deg, #eceefb 0 7px, #e3e6f8 7px 14px); }
   .dg-busy small { display: block; font-weight: 500; opacity: .8; }
+  .dg-busy .dg-bname { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dg-gerr { position: sticky; top: 8px; margin: 8px 6px; z-index: 2; font-size: var(--fs-xs); color: var(--warn);
              background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
   :root[data-theme="dark"] .dg-busy { color: #c3c7f0; background: repeating-linear-gradient(135deg, #24253a 0 7px, #1f2033 7px 14px); }
@@ -5767,8 +5770,9 @@ function renderDiary(d) {
   const offHours = (slug, name) => {
     const shifts = slug && d.hours ? d.hours[slug] : undefined;
     if (!shifts) return '';
+    // Headed "Block · Not bookable" (asked for 2026-10-31), with why under it.
     const band = (s, e, label, title) => (e - s < 15 ? '' : `<div class="dg-offhrs" style="top:${px(s)}px;height:${px(e) - px(s)}px"
-      data-offhrs="${esc(title)}" title="${esc(title)}"><span>${esc(label)}</span></div>`);
+      data-offhrs="${esc(title)}" title="${esc(title)}"><span><b>Block · Not bookable</b><small>${esc(label)}</small></span></div>`);
     if (!shifts.length) return band(from, to, 'Not working today', `${name || 'This stylist'} does not work on this day.`);
     const sorted = [...shifts].sort((a, b) => a[0] - b[0]);
     const span = sorted.map(([a, b]) => `${clock(a)} to ${clock(b)}`).join(', ');
@@ -5829,8 +5833,11 @@ function renderDiary(d) {
       const e0 = x.allDay ? to : Math.min(to, minutesOn(x.endsAt, d.date));
       if (e0 <= s0) return '';
       const when = x.allDay ? 'All day' : `${clock(s0)} to ${clock(e0)}`;
+      // The event's own name, as in their calendar (2026-10-31), for the
+      // person and the admin; "Busy" for colleagues and private events.
+      const name = x.title || 'Busy';
       return `<div class="dg-busy" style="top:${px(s0) + 1}px;height:${Math.max(20, px(e0) - px(s0) - 3)}px"
-        title="${esc(`${t.name} is busy · ${when}`)}">Busy<small>${esc(when)}</small></div>`;
+        title="${esc(`${t.name} · ${name} · ${when}`)}"><span class="dg-bname">${esc(name)}</span><small>${esc(when)}</small></div>`;
     }).join('');
     const offs = blocks.filter((b) => !b.stylistSlug || (t.stylistSlug && b.stylistSlug === t.stylistSlug))
       .map((b) => blockHtml(b, ...blkSpan(b))).join('');

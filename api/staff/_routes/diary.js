@@ -193,12 +193,15 @@ export default handler({
           account: u.id === user.id || canManageTeam(user) ? u.google_email : null,
           busy: [], error: null,
         };
+        // What their events are called is theirs too (2026-10-31): the
+        // person and the admin see the titles, everyone else "Busy".
+        const titles = u.id === user.id || canManageTeam(user);
         try {
           // The sign-in first when there is one; the pasted address otherwise.
           const busy = u.signed_in && googleConfigured()
-            ? await busyBetween(u.id, from.toISO(), to.toISO())
+            ? await busyBetween(u.id, from.toISO(), to.toISO(), { titles })
             : u.google_ics
-              ? await icsBusyBetween(openLink(u.google_ics), from.toISO(), to.toISO(), tenant.timezone)
+              ? await icsBusyBetween(openLink(u.google_ics), from.toISO(), to.toISO(), tenant.timezone, { titles })
               : null;
           if (busy === null) col.error = 'Google disconnected. Connect it again from their profile.';
           else col.busy = busy;

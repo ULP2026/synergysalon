@@ -725,9 +725,21 @@ made that way are real: name them ZZ and remove them.
   else (`/api/oauth/google?start=1&for=<id>`) is for an owner adding a
   stylist who signs in to their own Google beside them. Each connected
   person is a column on Appt. Book's day view: their Google busy times read
-  live by `busyBetween` in `google.js` (times only, the fields mask never asks
-  Google for titles), their own salon bookings and blocks, and the salon-wide
-  ones. Clicking an empty time books with them. Google busy time blocks
+  live by `busyBetween` in `google.js` (and `icsBusyBetween` for a pasted
+  address), their own salon bookings and blocks, and the salon-wide
+  ones. Clicking an empty time books with them. Since 2026-10-31 each
+  Google event shows its own name, as in their calendar, to the person
+  and the admin (`titles` in `diary.js`; the fields mask asks for
+  `summary` only then); colleagues, and any event marked Private in Google
+  (`visibility`, or `CLASS` in a feed), still see "Busy". Online
+  availability and the team window never ask for names. The bands outside
+  a stylist's working hours (`offHours`, `.dg-offhrs`, below) are headed
+  "Block · Not bookable" with the reason under it ("Starts 9 AM", "Done at
+  3 PM", "Not working today"), on request. They cannot be clicked: the
+  desk's booking form offers only times inside working hours anyway, so a
+  click-through would have opened a form with nothing to pick (an option
+  offered to the salon on 2026-10-31 on that mistaken premise, then
+  withdrawn). Google busy time blocks
   online availability (google-busy.js). Sign-in needs `GOOGLE_CLIENT_ID`,
   `GOOGLE_CLIENT_SECRET` and `TOKEN_KEY` in Vercel; the pasted address needs
   nothing. `pushEvent` writes bookings into the Google Calendar of stylists

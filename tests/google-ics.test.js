@@ -66,6 +66,21 @@ test('a day of a Google Calendar, as busy times only', async () => {
   assert.ok(busy.every((b) => Object.keys(b).join() === 'allDay,startsAt,endsAt'));
 });
 
+test('with titles, each event is named, except one marked private', async () => {
+  const feed = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', NY,
+    ev('UID:a\nDTSTART;TZID=America/New_York:20261005T093000\nDTEND;TZID=America/New_York:20261005T110000\nSUMMARY:Dentist'),
+    ev('UID:b\nDTSTART;TZID=America/New_York:20261005T130000\nDTEND;TZID=America/New_York:20261005T140000\nSUMMARY:Therapy\nCLASS:PRIVATE'),
+    ev('UID:c\nDTSTART;TZID=America/New_York:20261005T150000\nDTEND;TZID=America/New_York:20261005T153000'),
+    'END:VCALENDAR',
+  ].join('\r\n');
+  globalThis.fetch = async () => new Response(feed, { status: 200 });
+  // Its own address: feeds are cached by address for a minute.
+  const own = LINK.replace('private-abc123', 'private-titles1');
+  const busy = await icsBusyBetween(own, '2026-10-05T04:00:00.000Z', '2026-10-06T03:59:59.999Z', ZONE, { titles: true });
+  assert.deepEqual(busy.map((b) => b.title), ['Dentist', null, null]);
+});
+
 test('only Google Calendar iCal addresses are accepted', () => {
   assert.deepEqual(parseIcsLink(LINK), { url: LINK, account: 'zz.stylist@gmail.com', isPrivate: true });
   assert.equal(parseIcsLink('https://evil.example/calendar/ical/a/private-b/basic.ics'), null);
