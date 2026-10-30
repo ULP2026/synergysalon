@@ -2382,6 +2382,9 @@
   .gcard .d { display: block; font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
   .gcard .ok { color: var(--ok); font-weight: 600; }
   .gcard .gacts { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+  .gstate { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 0; }
+  .gacct { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+           font-size: var(--fs-xs); color: var(--muted); }
   /* Coming Soon: same card, quieter, nothing to press. */
   .gcard.soon { background: var(--raise); }
   .gcard.soon .tool-ic svg { width: 26px; height: 26px; }
@@ -2391,7 +2394,8 @@
   @media (max-width: 520px) { .gcard.soon { grid-template-columns: 40px minmax(0, 1fr) auto; } }
   .btn.gbtn { gap: 8px; }
   .btn.gbtn svg { width: 18px; height: 18px; background: #fff; border-radius: 50%; padding: 2px; }
-  @media (max-width: 520px) { .gcard { grid-template-columns: 40px minmax(0, 1fr); } .gcard > .btn, .gcard > .gacts { grid-column: 1 / -1; } }
+  @media (max-width: 520px) { .gcard { grid-template-columns: 40px minmax(0, 1fr); } .gcard > .btn, .gcard > .gacts { grid-column: 1 / -1; }
+    .gcard .gacts { justify-content: space-between; } .gstate { align-items: flex-start; } }
   :root[data-theme="dark"] .gcard.on { background: rgba(85, 96, 166, .16); }
 
   /* The account chooser, after Google's own: dark, two columns */
@@ -9990,8 +9994,12 @@ function paintTools() {
       : 'Their busy times show on Appt. Book beside the salon calendar.';
     act = `<button type="button" class="btn sm gbtn" data-tool="google-open">${logo}Connect Google Calendar</button>`;
   }
+  // Connected shows which Google account under the badge (asked for
+  // 2026-10-31), not only on hover. A colleague's account is sent only to
+  // them and the admin, so for anybody else there is nothing to show.
   const badge = state === 'checking' ? '<span class="chip">Checking…</span>'
-    : state === 'on' ? '<span class="chip ok">Connected</span>'
+    : state === 'on' ? `<span class="gstate"><span class="chip ok">Connected</span>${g.account
+      ? `<small class="gacct" title="${esc(g.account)}">${esc(g.account)}</small>` : ''}</span>`
     : '<span class="chip warn">Not connected</span>';
   $('memberToolsList').innerHTML = `
     <div class="gcard${g.connected ? ' on' : ''}" data-int="google"${why ? ` title="${esc(why)}"` : ''}>

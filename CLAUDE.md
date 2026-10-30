@@ -748,6 +748,9 @@ made that way are real: name them ZZ and remove them.
   expect it, or they press "Back to safety" and report a broken link.
   `TOKEN_KEY` must be at least 16 characters or `secrets.js` throws, and
   `canStoreSecrets()` turns that into a polite refusal instead of a crash.
+  The tools card shows which Google account is connected under its
+  "Connected" badge (2026-10-31; it was only the hover text), for you and
+  for the admin; a colleague sees just the badge.
   Connected means connected either way (`googleStatus`), everywhere: the
   tools card, the New calendar form's Google row (`calAppRows`, which used to
   read only the sign-in and offered Google again to anyone connected by the
