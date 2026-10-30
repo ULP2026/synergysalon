@@ -21,6 +21,7 @@ import { mirrorToGoogle } from '../../_lib/google-mirror.js';
 import {
   HttpError, handler, json, optionalPhone, readJson, requireId, requireString,
 } from '../../_lib/http.js';
+import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
 const STATUSES = ['new', 'contacted', 'booked', 'won', 'lost'];
@@ -48,14 +49,25 @@ const STYLIST_OF = `(SELECT jsonb_build_object('name', ts.name, 'slug', ts.slug)
  */
 export async function stylistChoices(tenantId, db = null) {
   const { rows } = await (db ? db.query.bind(db) : query)(
-    `SELECT s.slug, s.name, s.active, (to_jsonb(s) ->> 'removed_at') IS NOT NULL AS removed
+    `SELECT s.slug, s.name, s.active, (to_jsonb(s) ->> 'removed_at') IS NOT NULL AS removed,
+            to_jsonb(s) ->> 'photo' AS photo, to_jsonb(u) ->> 'avatar' AS avatar, t.slug AS tenant_slug
        FROM stylists s
+       JOIN tenants t ON t.id = s.tenant_id
+       LEFT JOIN staff_users u ON u.id = s.staff_user_id
       WHERE s.tenant_id = $1::uuid
         AND (s.active OR EXISTS (SELECT 1 FROM appointments a WHERE a.stylist_id = s.id))
       ORDER BY (s.active AND (to_jsonb(s) ->> 'removed_at') IS NULL) DESC, s.sort_order, s.name`,
     [tenantId],
   );
-  return rows.map((r) => ({ slug: r.slug, name: r.name, left: r.removed || !r.active }));
+  // Their face on the filter: the picture they uploaded to their login, else
+  // the salon's portrait of them, else the avatar they chose (the console
+  // picks, in the same order as everywhere else). The website's portrait list
+  // comes before the stored one, as in me.js: 012 stored a path for Tami
+  // that was deleted when her photo was replaced.
+  return rows.map((r) => ({
+    slug: r.slug, name: r.name, left: r.removed || !r.active,
+    photo: stylistPhoto(r.tenant_slug, r.slug) || r.photo || null, avatar: r.avatar || null,
+  }));
 }
 
 /**

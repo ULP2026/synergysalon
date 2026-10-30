@@ -169,8 +169,8 @@ test('Choose your stylist lists every stylist record, and keeps one who has left
 
     const list = await stylistChoices(tenant.id, c);
     const bySlug = new Map(list.map((s) => [s.slug, s]));
-    assert.deepEqual(bySlug.get('zz-nologin'), { slug: 'zz-nologin', name: 'ZZ zz-nologin', left: false });
-    assert.deepEqual(bySlug.get('zz-left'), { slug: 'zz-left', name: 'ZZ zz-left', left: true });
+    assert.deepEqual(bySlug.get('zz-nologin'), { slug: 'zz-nologin', name: 'ZZ zz-nologin', left: false, photo: null, avatar: null });
+    assert.deepEqual(bySlug.get('zz-left'), { slug: 'zz-left', name: 'ZZ zz-left', left: true, photo: null, avatar: null });
     assert.equal(bySlug.has('zz-never'), false);
     // Whoever is here comes before whoever has left.
     assert.ok(list.findIndex((s) => s.slug === 'zz-nologin') < list.findIndex((s) => s.slug === 'zz-left'));

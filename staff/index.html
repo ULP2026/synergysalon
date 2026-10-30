@@ -697,6 +697,11 @@
   .cstylists button[data-member]:not([data-member=""])[aria-pressed="true"] {
     background: var(--c); border-color: var(--c); color: #fff; box-shadow: 0 6px 14px -8px var(--c); }
   .cstylists button[aria-pressed="true"] .dot { background: #fff; box-shadow: none; }
+  /* Each stylist's face, ringed in their colour so it still matches the tag
+     their clients wear in the list. */
+  .cstylists .sav { width: 22px; height: 22px; margin-left: -7px; border-radius: 50%; object-fit: cover; flex: none;
+    background: var(--peri-pale); box-shadow: 0 0 0 2px var(--c); }
+  .cstylists button[aria-pressed="true"] .sav { box-shadow: 0 0 0 2px #fff; }
   .cstages .n { font-variant-numeric: tabular-nums; color: var(--faint); font-weight: 600; margin-left: 2px; }
   .cstages button[aria-pressed="true"] .n { color: inherit; opacity: .8; }
   .ctags-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: -4px 0 16px; }
@@ -3476,7 +3481,22 @@
       <label><span>Phone</span><input name="phone" type="tel"></label>
       <label><span>Email</span><input type="email" name="email"></label>
     </div>
-    <label><span>Where did they hear about us?</span><input name="source" placeholder="Phone, walk-in, Facebook ad…"></label>
+    <!-- A list rather than free text (asked for 2026-10-30): the website
+         survey's own answers, then the two only the desk hears, so every
+         client's source is spelled one way and can be counted. -->
+    <label><span>Where did they hear about us?</span>
+      <select name="source" id="contactSource">
+        <option value="">Choose one</option>
+        <option>Google search</option>
+        <option>Google Maps</option>
+        <option>Instagram</option>
+        <option>Facebook</option>
+        <option>Friend or family</option>
+        <option>Drove by</option>
+        <option>Walk-in</option>
+        <option>Phone call</option>
+        <option>Other</option>
+      </select></label>
     <label class="hidden" id="contactStatusField"><span>Status</span>
       <select name="status">
         <option value="new">New</option>
@@ -6332,7 +6352,7 @@ function fillStylistFilter() {
     + `<button type="button" data-member="" aria-pressed="${contactStylist === ''}">All</button>`
     + list.map((t) => `<button type="button" data-member="${esc(t.slug)}" style="--c:${stylistColor(t.slug)}"
       title="${esc(t.name)}${t.left ? ' (no longer here; their clients stay)' : ''}" aria-pressed="${t.slug === contactStylist}"
-      class="${t.left ? 'left' : ''}"><i class="dot"></i>${esc(t.name)}${t.left ? ' <small>left</small>' : ''}</button>`).join('');
+      class="${t.left ? 'left' : ''}"><img class="sav" src="${esc(personPhoto(t))}" alt="">${esc(t.name)}${t.left ? ' <small>left</small>' : ''}</button>`).join('');
 }
 
 // The lead-stage filters (All, New, Contacted, Booked, Client, Lost) were
@@ -6395,7 +6415,6 @@ function renderContacts(d, filtered) {
         ${next}
         <div class="acts">
           <button class="iconbtn" data-book="${esc(c.id)}" title="Book an appointment" aria-label="Book ${esc(c.name)}">${ic('calendar-plus')}</button>
-          <button class="iconbtn" data-more="${esc(c.id)}" aria-label="More for ${esc(c.name)}" aria-haspopup="menu" aria-expanded="false">${ic('more')}</button>
         </div>
       </div>`;
   }).join('')}</div>`;
@@ -6443,22 +6462,16 @@ $('contacts').addEventListener('keydown', (e) => {
 });
 
 $('contacts').onclick = (e) => {
+  // The row's ⋯ menu (Edit details, Delete client) was removed on request
+  // (2026-10-30): both are on the client's profile, which the row opens.
   const book = e.target.closest('button[data-book]');
-  const more = e.target.closest('button[data-more]');
-  const id = book?.dataset.book || more?.dataset.more;
-  // Anywhere else on the row opens the person's profile.
-  if (!id) {
+  if (!book) {
     const row = e.target.closest('[data-open]');
     if (row && !e.target.closest('a')) openPerson(row.dataset.open);
     return;
   }
-  const c = contactList.find((x) => String(x.id) === id);
-  if (!c) return;
-  if (book) { openBooking(c); return; }
-  const items = [{ label: 'Edit details', run: () => openContact(c) }];
-  // The server refuses anyone else; hiding the option saves them the error.
-  if (me?.user?.canAdmin) items.push({ label: 'Delete client', danger: true, run: () => deleteContact(c) });
-  showMenu(more, items);
+  const c = contactList.find((x) => String(x.id) === book.dataset.book);
+  if (c) openBooking(c);
 };
 
 async function deleteContact(c) {

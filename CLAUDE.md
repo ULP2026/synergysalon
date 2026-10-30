@@ -433,6 +433,17 @@ made that way are real: name them ZZ and remove them.
   from the list and the profile chips, and the source is still on the
   profile. The lead-stage filters were removed on request; each row still
   shows its stage. The stylist row stays on one line (scrolls sideways).
+  Each stylist button shows their face (2026-10-30), ringed in their colour
+  so it still matches their clients' tags: the photo uploaded to their login
+  (`staff_users.avatar`, a `data:` URI), else the website's portrait
+  (`stylistPhoto` before `stylists.photo`, whose 012 path for Tami is a
+  deleted file), else the avatar they chose, else a default (`personPhoto`).
+  A client row has no ⋯ menu any more (removed on request 2026-10-30): Book
+  is its one button, and Edit details and Delete client are on the profile
+  the row opens. So the Add client window (`#contactDlg`) only ever adds;
+  its "Where did they hear about us?" is a list (2026-10-30), the website
+  survey's answers plus Walk-in and Phone call, so sources are spelled one
+  way. Left on "Choose one", the server stores "Staff console" as before.
 - Tickets (2026-10-22): the appointment is the diary's reservation, the
   ticket the visit. `GET /api/staff/appointment?ref=` (`ticketFor`) is the
   one source for both the Appt. Book card and a client's history (their
