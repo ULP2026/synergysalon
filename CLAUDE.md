@@ -543,7 +543,7 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: a My settings tab first (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Where do you want people to reply to, then Salon Profile; key `salon`) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and Payroll for owners, admins and managers (a "Coming soon"
+  for everyone: a My settings tab first (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to, then Billing; key `salon`; Salon Profile first since 2026-10-30) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and Payroll for owners, admins and managers (a "Coming soon"
   card, added 2026-10-16). Billing, also "Coming soon" and for the same people, is a card on Salon
   under the reply-to address since 2026-10-26, no longer a tab of its own. It has no Calendars tab:
   calendars are made from Appt. Book's "Create a calendar" note (shown only
