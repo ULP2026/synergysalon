@@ -865,6 +865,11 @@ made that way are real: name them ZZ and remove them.
   45.50). Never a computed price.
   Reads use `to_jsonb` so the console loads before 011 and 012 run; saving
   those fields needs them.
+- An uploaded photo is cropped before it is kept (2026-10-31): Change
+  picture opens it in a round frame to drag (mouse, finger, arrow keys) and
+  zoom (slider, wheel, pinch, + and -), and Use photo saves exactly the
+  circle as a 256px JPEG square (`cropOpen`, `cropUse`); Back returns to
+  the two choices.
 - Faces are pictures, real ones first: an uploaded photo, then the stylist's
   portrait (`api/_lib/stylist-photos.js`, also copied to `stylists.photo` by
   012), then an avatar the person chose, then a default avatar. Avatars are

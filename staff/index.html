@@ -2369,6 +2369,17 @@
   .pic-foot { display: flex; align-items: center; gap: 10px; }
   .pic-foot .spacer { flex: 1; }
   .linkbtn.rm { border: 0; background: none; padding: 0; font: inherit; font-size: var(--fs-sm); color: var(--muted); cursor: pointer; }
+  .pic-crop { display: grid; justify-items: center; gap: 14px; }
+  .crop-stage { position: relative; width: min(280px, 72vw); aspect-ratio: 1; overflow: hidden; border-radius: 18px;
+                background: #14153a; touch-action: none; cursor: grab; user-select: none; }
+  .crop-stage:active { cursor: grabbing; }
+  .crop-stage:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .crop-stage img { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; user-select: none; }
+  /* The circle the photo will be shown in; outside it is dimmed. */
+  .crop-stage::after { content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+                       border: 2px solid rgba(255, 255, 255, .9); box-shadow: 0 0 0 999px rgba(20, 21, 58, .55); }
+  .crop-zoom { display: flex; align-items: center; gap: 10px; width: min(280px, 72vw); color: var(--muted); }
+  .crop-zoom input { flex: 1; accent-color: var(--periwinkle); }
   .linkbtn.rm:hover { color: var(--warn); }
   @media (max-width: 520px) { .picopts { grid-template-columns: 1fr; } }
 
@@ -2612,6 +2623,7 @@
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.4 1.4"/><path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.4-1.4"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
   <symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 18-6-6 6-6"/></symbol>
   <symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
   <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.1"/><circle cx="12" cy="12" r="1.1"/><circle cx="18.5" cy="12" r="1.1"/></symbol>
@@ -3212,7 +3224,24 @@
     </button>
   </div>
   <div class="avgrid hidden" id="memberAvatars"></div>
-  <div class="pic-foot">
+  <!-- Crop (asked for 2026-10-31): a chosen photo opens here first, in the
+       round frame every face is shown in, to drag and zoom until it fits. -->
+  <div class="pic-crop hidden" id="picCrop">
+    <div class="crop-stage" id="cropStage" tabindex="0" role="img"
+         aria-label="Your photo in the round frame. Drag, or use the arrow keys, to move it; plus and minus to zoom.">
+      <img id="cropImg" alt="" draggable="false">
+    </div>
+    <label class="crop-zoom">
+      <svg class="ic" aria-hidden="true"><use href="#i-minus"/></svg>
+      <input type="range" id="cropZoom" min="1" max="4" step="0.01" value="1" aria-label="Zoom">
+      <svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></label>
+    <div class="pic-foot" style="width:100%">
+      <button type="button" class="btn quiet sm" id="cropBack">Back</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn sm" id="cropUse">Use photo</button>
+    </div>
+  </div>
+  <div class="pic-foot" id="picFoot">
     <button type="button" class="linkbtn rm hidden" id="memberPicDrop">Remove picture</button>
     <span class="spacer"></span>
     <button type="button" class="btn quiet sm" id="picDone">Done</button>
@@ -9185,6 +9214,7 @@ async function openMember(who) {
 // with the rest of the form.
 function openPicDlg() {
   if ($('memberPic').disabled) return;
+  cropView(false);
   $('memberAvatars').classList.add('hidden');
   $('picAvatars').setAttribute('aria-expanded', 'false');
   memberPicPaint(memberPic !== undefined ? memberPic : memberOrig.avatar);
@@ -9231,16 +9261,130 @@ $('memberAvatars').onclick = (e) => {
   paintAvatarGrid();
   closeDialog($('picDlg'));
 };
-$('memberPicFile').onchange = async (e) => {
+$('memberPicFile').onchange = (e) => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
-  try {
-    memberPic = await shrink(file, 256);
-    memberPicPaint(memberPic);
-    paintAvatarGrid();
-    closeDialog($('picDlg'));
-  } catch (err) { note($('memberNote'), err.message); closeDialog($('picDlg')); }
+  if (!/^image\//.test(file.type)) { note($('memberNote'), 'That is not an image.'); closeDialog($('picDlg')); return; }
+  const img = $('cropImg');
+  const url = URL.createObjectURL(file);
+  img.onload = () => { URL.revokeObjectURL(url); cropOpen(img); };
+  img.onerror = () => { URL.revokeObjectURL(url); note($('memberNote'), 'That image could not be read.'); closeDialog($('picDlg')); };
+  img.src = url;
+};
+
+// ── crop ──────────────────────────────────────────────────────────────────
+//
+// A chosen photo is placed in the round frame before it is kept (asked for
+// 2026-10-31): it starts covering the frame, centred, and the person drags
+// it (mouse or finger) and zooms (slider, wheel, pinch, or + and -) until
+// the face sits in the circle. What is inside the frame is saved as a
+// 256px square, the size `shrink` kept, and every face in the app is round.
+const crop = { w: 0, h: 0, base: 1, zoom: 1, x: 0, y: 0, size: 0 };
+
+function cropView(on) {
+  $('picCrop').classList.toggle('hidden', !on);
+  $('picFoot').classList.toggle('hidden', on);
+  document.querySelector('#picDlg .picopts').classList.toggle('hidden', on);
+  if (on) $('memberAvatars').classList.add('hidden');
+  else $('memberAvatars').classList.toggle('hidden', $('picAvatars').getAttribute('aria-expanded') !== 'true');
+  $('picSub').textContent = on ? 'Drag the photo and zoom until it fits the circle.' : 'A photo is shown wherever this person appears.';
+}
+function cropOpen(img) {
+  crop.w = img.naturalWidth;
+  crop.h = img.naturalHeight;
+  crop.zoom = 1;
+  $('cropZoom').value = '1';
+  cropView(true);
+  crop.size = $('cropStage').getBoundingClientRect().width;
+  crop.base = crop.size / Math.min(crop.w, crop.h);
+  crop.x = (crop.size - crop.w * crop.base) / 2;
+  crop.y = (crop.size - crop.h * crop.base) / 2;
+  cropPaint();
+  $('cropStage').focus();
+}
+/** Keep the frame covered: the photo can't be moved past its own edges. */
+function cropClamp() {
+  const s = crop.base * crop.zoom;
+  crop.x = Math.min(0, Math.max(crop.size - crop.w * s, crop.x));
+  crop.y = Math.min(0, Math.max(crop.size - crop.h * s, crop.y));
+}
+function cropPaint() {
+  cropClamp();
+  const s = crop.base * crop.zoom;
+  const img = $('cropImg');
+  img.style.width = `${crop.w * s}px`;
+  img.style.height = `${crop.h * s}px`;
+  img.style.transform = `translate(${crop.x}px, ${crop.y}px)`;
+}
+/** Zoom about the frame's centre, so what is in the middle stays there. */
+function cropZoomTo(z) {
+  const next = Math.min(4, Math.max(1, z));
+  const s = crop.base * crop.zoom;
+  const cx = (crop.size / 2 - crop.x) / s;
+  const cy = (crop.size / 2 - crop.y) / s;
+  crop.zoom = next;
+  const n = crop.base * next;
+  crop.x = crop.size / 2 - cx * n;
+  crop.y = crop.size / 2 - cy * n;
+  $('cropZoom').value = String(next);
+  cropPaint();
+}
+$('cropZoom').oninput = (e) => cropZoomTo(Number(e.target.value));
+{
+  const stage = $('cropStage');
+  const pts = new Map();
+  let pinch = 0;
+  stage.addEventListener('pointerdown', (e) => {
+    stage.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+  });
+  stage.addEventListener('pointermove', (e) => {
+    const was = pts.get(e.pointerId);
+    if (!was) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) {
+      // Two fingers: pinch to zoom.
+      const [a, b] = [...pts.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch) cropZoomTo(crop.zoom * (d / pinch));
+      pinch = d;
+      return;
+    }
+    crop.x += e.clientX - was.x;
+    crop.y += e.clientY - was.y;
+    cropPaint();
+  });
+  const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch = 0; };
+  stage.addEventListener('pointerup', up);
+  stage.addEventListener('pointercancel', up);
+  stage.addEventListener('wheel', (e) => { e.preventDefault(); cropZoomTo(crop.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
+  stage.addEventListener('keydown', (e) => {
+    const step = e.shiftKey ? 30 : 10;
+    const move = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] }[e.key];
+    if (move) { e.preventDefault(); crop.x += move[0]; crop.y += move[1]; cropPaint(); return; }
+    if (e.key === '+' || e.key === '=') { e.preventDefault(); cropZoomTo(crop.zoom * 1.1); }
+    if (e.key === '-' || e.key === '_') { e.preventDefault(); cropZoomTo(crop.zoom / 1.1); }
+  });
+}
+$('cropBack').onclick = () => { cropView(false); $('cropImg').removeAttribute('src'); };
+$('cropUse').onclick = () => {
+  const s = crop.base * crop.zoom;
+  const side = crop.size / s;
+  const c = Object.assign(document.createElement('canvas'), { width: 256, height: 256 });
+  const g = c.getContext('2d');
+  // A transparent PNG goes onto white, as `shrink` does, not a JPEG's black.
+  g.fillStyle = '#fff';
+  g.fillRect(0, 0, 256, 256);
+  g.imageSmoothingQuality = 'high';
+  g.drawImage($('cropImg'), -crop.x / s, -crop.y / s, side, side, 0, 0, 256, 256);
+  memberPic = c.toDataURL('image/jpeg', 0.86);
+  memberPicPaint(memberPic);
+  paintAvatarGrid();
+  cropView(false);
+  $('cropImg').removeAttribute('src');
+  closeDialog($('picDlg'));
 };
 
 $('memberDanger').onclick = async () => {
