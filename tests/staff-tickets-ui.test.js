@@ -52,10 +52,14 @@ test('check-in, no-show and cancel stay on the ticket', () => {
   }
 });
 
-test('a client wears their stylist as a tag, not where the record came from', () => {
+test('a client wears their stylist, not where the record came from', () => {
   const list = body('renderContacts');
   assert.doesNotMatch(list, /data-source=/);
-  assert.match(list, /stylistTag\(c\.stylist\)/);
+  // In the list the stylist is the Book button's face (the name tag left the
+  // row on request, 2026-10-30); the profile keeps the tag.
+  assert.doesNotMatch(list, /stylistTag\(/);
+  assert.match(list, /bookButton\(c\)/);
+  assert.match(body('bookButton'), /c\.stylist/);
   assert.match(body('personChips'), /stylistTag\(c\.stylist\)/);
 });
 
