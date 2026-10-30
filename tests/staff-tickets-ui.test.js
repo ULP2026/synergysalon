@@ -56,11 +56,13 @@ test('a client wears their stylist, not where the record came from', () => {
   const list = body('renderContacts');
   assert.doesNotMatch(list, /data-source=/);
   // In the list the stylist is the Book button's face (the name tag left the
-  // row on request, 2026-10-30); the profile keeps the tag.
-  assert.doesNotMatch(list, /stylistTag\(/);
+  // row on request, 2026-10-30). On the profile it is a headshot on their
+  // circle and a Stylist row in Contact details, not a tag (2026-10-31).
   assert.match(list, /bookButton\(c\)/);
   assert.match(body('bookButton'), /c\.stylist/);
-  assert.match(body('personChips'), /stylistTag\(c\.stylist\)/);
+  assert.doesNotMatch(body('personChips'), /stylist/);
+  assert.match(body('renderPerson'), /paintPxStylist\(c\)/);
+  assert.match(body('renderPerson'), /<dt>Stylist<\/dt>/);
 });
 
 test('Choose your stylist is built from every stylist record the server lists', () => {

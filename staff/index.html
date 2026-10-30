@@ -829,6 +829,12 @@
              border-bottom: 1px solid rgba(85, 96, 166, .18);
              background: linear-gradient(120deg, #dfe2f5 0%, var(--peri-pale) 45%, #f1f0fa 100%); }
   .px-head .avatar { width: 54px; height: 54px; font-size: 1.1rem; box-shadow: 0 0 0 4px #fff; }
+  .px-avwrap { position: relative; flex: none; align-self: flex-start; }
+  .px-sty { position: absolute; right: -9px; bottom: -7px; width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
+            background: var(--peri-pale); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--c, var(--periwinkle)); }
+  .px-stylist { display: inline-flex; align-items: center; gap: 8px; }
+  .px-stylist img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex: none;
+                    background: var(--peri-pale); box-shadow: 0 0 0 2px var(--c, var(--periwinkle)); }
   .px-head .who { flex: 1; min-width: 0; }
   .px-head h2 { margin: 0; font-size: 1.4rem; letter-spacing: -.015em; overflow-wrap: anywhere; }
   .px-head .chips { margin-top: 6px; }
@@ -910,9 +916,9 @@
   :root[data-theme="dark"] .tl .k-noshow .dot { background: rgba(220, 120, 40, .24); color: #f6bd8f; }
   :root[data-theme="dark"] .tl .k-cancel .dot { background: rgba(200, 60, 75, .24); color: #f2a7b0; }
   :root[data-theme="dark"] .tl .k-form .dot { background: rgba(200, 80, 150, .24); color: #f1b0d6; }
-  .tl li[data-ticket] { cursor: pointer; border-radius: 12px; }
-  .tl li[data-ticket]:hover .what b { color: var(--periwinkle); text-decoration: underline; text-underline-offset: 3px; }
-  .tl li[data-ticket]:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+  .tl li[data-ticket], .tl li[data-sent] { cursor: pointer; border-radius: 12px; }
+  .tl li[data-ticket]:hover .what b, .tl li[data-sent]:hover .what b { color: var(--periwinkle); text-decoration: underline; text-underline-offset: 3px; }
+  .tl li[data-ticket]:focus-visible, .tl li[data-sent]:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
   .px-appts li[data-ticket] { cursor: pointer; transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
   .px-appts li[data-ticket]:hover { border-color: var(--periwinkle); box-shadow: var(--e1); }
   .px-appts li[data-ticket]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -939,9 +945,6 @@
   .px-pref small { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--muted); }
   .px-pref .switch:disabled { opacity: .45; cursor: not-allowed; }
 
-  /* A client's stylist, as a tag in their colour. */
-  .tag.stag { display: inline-flex; align-items: center; gap: 6px; }
-  .tag.stag .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
   .cstylists .clabel { flex: none; margin-right: 4px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em;
                        text-transform: uppercase; color: var(--muted); }
   .cstylists button.left { opacity: .75; }
@@ -2859,7 +2862,7 @@
         <button type="button" data-set="salon" aria-pressed="false">Salon</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="marketing" aria-pressed="false">Automations</button>
-        <button type="button" data-set="payment" aria-pressed="false" data-admin>Payment</button>
+        <button type="button" data-set="payment" aria-pressed="false" data-admin>Payments</button>
         <button type="button" data-set="karen" aria-pressed="false">Karen AI</button>
       </div>
 
@@ -3485,7 +3488,9 @@
 
 <dialog id="personDlg" class="xl" aria-labelledby="pxName">
   <header class="px-head">
-    <span class="avatar" id="pxAvatar" aria-hidden="true"></span>
+    <!-- Their stylist's headshot on the corner of their circle (asked for
+         2026-10-31), in place of the name tag beside their status. -->
+    <span class="px-avwrap"><span class="avatar" id="pxAvatar" aria-hidden="true"></span><img class="px-sty" id="pxSty" alt="" hidden></span>
     <div class="who">
       <h2 id="pxName"></h2>
       <p class="px-sub" id="pxSub"></p>
@@ -6368,9 +6373,24 @@ function stylistColor(slug) {
   const i = order.indexOf(slug);
   return STYLIST_COLORS[(i < 0 ? 0 : i) % STYLIST_COLORS.length];
 }
-/** A client's stylist, as the tag they wear in the list and on their profile. */
-function stylistTag(st) {
-  return st ? `<span class="tag stag" style="--c:${stylistColor(st.slug)}" title="Their stylist: ${esc(st.name)}"><i class="dot"></i>${esc(st.name)}</span>` : '';
+/**
+ * A client's stylist's face: the same picture as their filter button, from
+ * the Choose your stylist list, else the team the app already holds, else a
+ * drawn avatar for their name.
+ */
+function stylistPic(st) {
+  const t = contactStylists.find((x) => x.slug === st.slug) || (me?.stylists || []).find((x) => x.slug === st.slug);
+  return personPhoto(t || { name: st.name });
+}
+/** Their stylist's headshot on the corner of a client's circle, or nothing. */
+function paintPxStylist(c) {
+  const img = $('pxSty');
+  const st = c?.stylist;
+  img.hidden = !st;
+  if (!st) { img.removeAttribute('src'); return; }
+  img.src = stylistPic(st);
+  img.title = `Their stylist: ${st.name}`;
+  img.style.setProperty('--c', stylistColor(st.slug));
 }
 
 /**
@@ -6570,6 +6590,7 @@ async function openPerson(id) {
   $('pxSub').innerHTML = '';
   // Paint what the list already knows at once, then fill in the rest.
   $('pxAvatar').textContent = initialsOf(c?.name);
+  paintPxStylist(c);
   $('pxName').textContent = c?.name || '';
   $('pxChips').innerHTML = c ? personChips(c) : '';
   $('pxLeft').innerHTML = skeleton(6);
@@ -6590,7 +6611,6 @@ async function openPerson(id) {
 function personChips(c) {
   return [
     `<span class="chip">${esc(STATUS_LABEL[c.status] || c.status)}</span>`,
-    stylistTag(c.stylist),
     c.cardOnFile ? cardChip() : '',
   ].join(' ');
 }
@@ -6618,8 +6638,10 @@ let pxEditing = null;
 function renderPerson() {
   const { contact: c, appointments: appts } = person;
   $('pxAvatar').textContent = initialsOf(c.name);
+  paintPxStylist(c);
   $('pxName').textContent = c.name;
-  // Name, phone and stylist tag, together at the top (asked for 2026-10-22).
+  // Name and phone at the top (asked for 2026-10-22); the stylist is the
+  // headshot on their circle and a row in Contact details (2026-10-31).
   $('pxSub').innerHTML = c.phone ? `${ic('phone')}<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>` : '';
   $('pxChips').innerHTML = personChips(c);
 
@@ -6652,6 +6674,9 @@ function renderPerson() {
         <dt>Email</dt><dd>${c.email ? `<a class="email" href="mailto:${esc(c.email)}">${esc(c.email).replace('@', '<wbr>@')}</a>` : dash}</dd>
         <dt>Source</dt><dd>${esc(c.source || '') || dash}</dd>
         <dt>Added</dt><dd>${esc(short(c.createdAt))}</dd>
+        <dt>Stylist</dt><dd>${c.stylist
+          ? `<span class="px-stylist" style="--c:${stylistColor(c.stylist.slug)}" title="Whoever they last booked with"><img src="${esc(stylistPic(c.stylist))}" alt="">${esc(c.stylist.name)}</span>`
+          : '<span class="muted">When they book</span>'}</dd>
       </dl>`;
 
   const tags = pxEditing === 'status'
@@ -6687,10 +6712,9 @@ function renderPerson() {
     <section class="px-sec">
       <h3>Tags and status${pxEditing === 'status' ? '' : pen('status', 'Change status')}</h3>
       ${tags}
-      <p class="px-hint">${c.stylist ? 'Their stylist tag is whoever they last booked with.' : 'They get a stylist tag when they book.'}</p>
     </section>
     <section class="px-sec">
-      <h3>Payment</h3>
+      <h3>Payments</h3>
       <div class="px-pref">
         <span><b id="pxCardLbl">Card on file</b><small>The salon holds a card for them: a no-show can be charged the fee, and a visit is paid through their stylist.</small></span>
         <button type="button" class="switch" role="switch" data-card aria-labelledby="pxCardLbl"
@@ -6739,9 +6763,14 @@ function renderTimeline() {
     }[tlFilter];
     body = `<p class="px-none" style="padding:12px 0">${ic(TL_ICON[tlFilter] || 'info')}${esc(why || 'Nothing here yet.')}</p>`;
   } else {
-    // Coloured by what happened (tone), and a booking's events open its ticket.
+    // Coloured by what happened (tone). A sent email opens the email itself
+    // (2026-10-31), the same window as Email History; a booking's other
+    // events open its ticket.
+    const opens = (e) => (e.sentId
+      ? ` data-sent="${esc(e.sentId)}" tabindex="0" role="button" aria-label="${esc(e.title)}: open the email"`
+      : e.ref ? ` data-ticket="${esc(e.ref)}" tabindex="0" role="button" aria-label="${esc(e.title)}: open the ticket"` : '');
     body = `<ol class="tl">${shown.map((e) => `
-      <li class="t-${esc(e.type)} k-${esc(e.tone || e.type)}"${e.ref ? ` data-ticket="${esc(e.ref)}" tabindex="0" role="button" aria-label="${esc(e.title)}: open the ticket"` : ''}>
+      <li class="t-${esc(e.type)} k-${esc(e.tone || e.type)}"${opens(e)}>
         <span class="dot">${ic(TL_ICON[e.type] || 'info')}</span>
         <div class="what"><b>${esc(e.title)}</b>
           ${e.detail ? `<span>${esc(e.detail)}</span>` : ''}
@@ -6755,6 +6784,8 @@ function renderTimeline() {
 $('pxRight').onclick = (e) => {
   const f = e.target.closest('button[data-tl]');
   if (f) { tlFilter = f.dataset.tl; renderTimeline(); return; }
+  const m = e.target.closest('[data-sent]');
+  if (m && !e.target.closest('a')) { openSentEmail(m.dataset.sent); return; }
   const t = e.target.closest('[data-ticket]');
   if (t && !e.target.closest('a')) { openTicket(t.dataset.ticket); return; }
   if (e.target.closest('button[data-empty="person-book"]')) bookFromPerson();
@@ -6826,11 +6857,15 @@ $('pxLeft').onclick = (e) => {
   const c = currentPerson(); if (!c) return;
   closePerson(); setTimeout(() => deleteContact(c), 150);
 };
-// A ticket row is a button in all but name, so the keyboard opens it too.
+// A ticket or sent-email row is a button in all but name, so the keyboard
+// opens it too.
 for (const col of [$('pxLeft'), $('pxRight')]) {
   col.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const m = e.target.closest?.('[data-sent]');
+    if (m && e.target === m) { e.preventDefault(); openSentEmail(m.dataset.sent); return; }
     const t = e.target.closest?.('[data-ticket]');
-    if (t && e.target === t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openTicket(t.dataset.ticket); }
+    if (t && e.target === t) { e.preventDefault(); openTicket(t.dataset.ticket); }
   });
 }
 
@@ -7703,6 +7738,10 @@ $('karenForm').onsubmit = (e) => {
   const control = kControl(t, ask);
   if (control === 'moved') { moved(); return; }
   if (control) return;
+  // What is already booked: read from the calendar, whatever she was asking.
+  // Before the question's own answers, because the menu takes any "book"
+  // as a request to make a booking (2026-10-31).
+  if (kIsLookup(t)) { kLookup(t, ask); return; }
   // The question's own answers.
   const got = ask?.fn ? ask.fn(t, raw) : false;
   if (got === 'keep') return;
@@ -8461,6 +8500,66 @@ function kTeam() {
     if (/\b(yes|book|ok|sure)\b/.test(t) || kFindStylist(t) || kFindServices(t).length || kFindKind(t)) { kBookFrom(t); return true; }
     return false;
   }, 'Say "book" to start, or tap an option below.', 'menu');
+}
+
+// ── what is already booked ───────────────────────────────────────────────
+//
+// "Are there any appointments booked right now?" used to start a new
+// booking (asked for 2026-10-31): her menu read any "book" as a request to
+// make one. A question about the calendar (it opens with a question word and
+// is about appointments, bookings or the schedule) is answered from the
+// calendar itself, the same day Appt. Book shows. Asking for open times
+// ("is anything free tomorrow?") is still a booking.
+const KAREN_ASKS = /^(are|is|any|anything|what|whats|who|whos|how|do|does|did|show|list|check|tell|can you (check|tell|show|see|look))\b/;
+const KAREN_BOOKED = /\b(appointments?|appts?|booked|bookings?|schedule|calendar|diary|on the books|coming in|busy)\b/;
+function kIsLookup(t) {
+  const q = t.replace(/'/g, '').trim();
+  if (/availab|\bfree\b|\bopen(ings?)?\b|\bslots?\b|\b(can|could|may) (i|we|you) book\b|\bto book\b/.test(q)) return false;
+  return (KAREN_ASKS.test(q) && KAREN_BOOKED.test(q)) || /\bnext (appointment|appt|booking|client)\b/.test(q);
+}
+
+async function kLookup(t, ask) {
+  const today = salonToday();
+  const st = kFindStylist(t);
+  const whoOf = (a) => (st ? '' : ` with ${esc(a.stylist || 'no stylist yet')}`);
+  const fail = (err) => kSay(`<p>I couldn't open the calendar just now${err?.message ? ` (${esc(err.message)})` : ''}. Try again in a moment.</p>`);
+  // "When's the next appointment?": the next ones booked, from Home's list.
+  if (/\bnext\b/.test(t) && !kParseDate(t)) {
+    let h;
+    try { h = await api('/api/staff/home'); } catch (err) { fail(err); return; }
+    const next = (h.upcoming || []).filter((a) => !st || a.stylist === st.name);
+    kSay(next.length
+      ? `<p>The next ${next.length === 1 ? 'one' : 'ones'} booked${st ? ` with ${esc(st.name)}` : ''}:</p><p>${next.slice(0, 5)
+        .map((a) => `<b>${esc(a.when)}</b>: ${esc(a.guestName || 'A client')}, ${esc(a.service || 'appointment')}${whoOf(a)}`).join('<br>')}</p>`
+      : `<p>Nothing is booked${st ? ` with ${esc(st.name)}` : ''} from now on.</p>`);
+    if (ask?.hint && ask.key !== 'menu') kSay(`<p>${esc(ask.hint)}</p>`);
+    return;
+  }
+  const date = kParseDate(t) || today;
+  let d;
+  try { d = await api(`/api/staff/diary?date=${encodeURIComponent(date)}`); } catch (err) { fail(err); return; }
+  const list = (d.appointments || []).filter((a) => a.date === date && a.status !== 'cancelled' && (!st || a.stylistSlug === st.slug));
+  const when = date === today ? 'today' : date === addDays(today, 1) ? 'tomorrow' : `on ${esc(kDate(date))}`;
+  const with_ = st ? ` with ${esc(st.name)}` : '';
+  const row = (a) => `<b>${esc(a.time)}</b> ${esc(a.guestName || 'A client')}, ${esc(a.service || 'appointment')}${whoOf(a)}`;
+  const rows = (l) => `${l.slice(0, 8).map(row).join('<br>')}${l.length > 8 ? `<br>and ${l.length - 8} more on Appt. Book.` : ''}`;
+  if (date === today && /\b(right now|now|currently|at the moment|in the chair)\b/.test(t)) {
+    const now = Date.now();
+    const end = (a) => new Date(a.startsAt).getTime() + a.durationMin * 60000;
+    const inChair = list.filter((a) => new Date(a.startsAt).getTime() <= now && now < end(a));
+    const later = list.filter((a) => new Date(a.startsAt).getTime() > now);
+    if (!inChair.length && !later.length) {
+      kSay(`<p>Nobody is booked${with_} right now, and nothing else is booked for the rest of today.</p>`);
+    } else {
+      kSay((inChair.length ? `<p>Right now${with_}:</p><p>${rows(inChair)}</p>` : `<p>Nobody is booked${with_} right now.</p>`)
+        + (later.length ? `<p>Still to come today:</p><p>${rows(later)}</p>` : '<p>Nothing else is booked for the rest of today.</p>'));
+    }
+  } else {
+    kSay(list.length
+      ? `<p>${list.length} ${list.length === 1 ? 'appointment' : 'appointments'} booked${with_} ${when}:</p><p>${rows(list)}</p>`
+      : `<p>Nothing is booked${with_} ${when}.</p>`);
+  }
+  if (ask?.hint && ask.key !== 'menu') kSay(`<p>${esc(ask.hint)}</p>`);
 }
 
 $('karenBtnPic').src = KAREN_PIC;

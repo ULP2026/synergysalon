@@ -171,9 +171,30 @@ export async function contactDetail(tenantId, id, db = null) {
     [id, tenantId],
   );
 
+  // The reminder each booking was sent, from the email log, so its line in
+  // the timeline opens the email itself (asked for 2026-10-31) rather than
+  // the appointment. A reminder sent before the log existed has no row and
+  // still opens the appointment. Without the table (before 024) there are
+  // none.
+  const reminderOf = new Map();
+  if (appts.length) {
+    try {
+      const { rows: sent } = await q(
+        `SELECT DISTINCT ON (m.appointment_id) m.id, m.appointment_id
+           FROM message_sends m
+          WHERE m.tenant_id = $2::uuid AND m.kind = 'reminder' AND m.appointment_id = ANY($1::uuid[])
+          ORDER BY m.appointment_id, m.sent_at DESC`,
+        [appts.map((a) => a.id), tenantId],
+      );
+      for (const r of sent) reminderOf.set(String(r.appointment_id), r.id);
+    } catch (err) {
+      if (err.code !== '42P01') throw err;
+    }
+  }
+
   const activity = [];
-  const add = (type, at, title, detail = '', ref = null) => {
-    if (at) activity.push({ type, at, title, detail, ref, tone: TONE[title] || type });
+  const add = (type, at, title, detail = '', ref = null, extra = {}) => {
+    if (at) activity.push({ type, at, title, detail, ref, tone: TONE[title] || type, ...extra });
   };
 
   // A contact with a booking session came in through the website wizard.
@@ -191,7 +212,8 @@ export async function contactDetail(tenantId, id, db = null) {
     // somebody marked them.
     if (a.status === 'completed') add('appointment', a.updated_at, 'Marked as done', what, a.ref);
     if (a.status === 'no_show') add('appointment', a.updated_at, 'Didn’t show up', what, a.ref);
-    add('email', a.reminder_sent_at, 'Reminder email sent', what, a.ref);
+    add('email', a.reminder_sent_at, 'Reminder email sent', what, a.ref,
+        reminderOf.has(String(a.id)) ? { sentId: reminderOf.get(String(a.id)) } : {});
   }
   for (const s of synced) {
     add('sync', s.done_at, 'Synced to the CRM', s.kind.replace('.', ' ').replace(/_/g, ' '));

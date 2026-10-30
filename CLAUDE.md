@@ -428,14 +428,18 @@ made that way are real: name them ZZ and remove them.
   (`stylistChoices`), with or without a login, calendar or payroll, so long
   as they are active or have ever been booked; one who has left stays,
   marked "left", so their clients can still be found (`?stylist=<slug>`).
-  Each client's tag is their stylist, whoever they last booked with
-  (`STYLIST_OF`), not their source (on the profile only since 2026-10-30:
-  the list's name tag was removed on request, the Book button's face says it); the source tags ("Front desk") are gone
-  from the list and the profile chips, and the source is still on the
-  profile. The lead-stage filters were removed on request; each row still
+  Each client is shown with their stylist, whoever they last booked with
+  (`STYLIST_OF`), not their source, and as a face rather than a name tag
+  (on request, 2026-10-30 and 31): the list's Book button wears it, and on
+  the profile it is a headshot on the corner of the client's circle
+  (`paintPxStylist`, `#pxSty`) and a Stylist row in Contact details (face
+  and name, "When they book" until they have one). Neither the header nor
+  Tags and status carries a stylist tag any more. The source tags ("Front
+  desk") are gone from the list and the profile chips, and the source is
+  still on the profile. The lead-stage filters were removed on request; each row still
   shows its stage. The stylist row stays on one line (scrolls sideways).
   Each stylist button shows their face (2026-10-30), ringed in their colour
-  (the colour of their tag on a client's profile): the photo uploaded to their login
+  (the same ring as on a client's profile, `stylistPic`): the photo uploaded to their login
   (`staff_users.avatar`, a `data:` URI), else the website's portrait
   (`stylistPhoto` before `stylists.photo`, whose 012 path for Tami is a
   deleted file), else the avatar they chose, else a default (`personPhoto`).
@@ -450,7 +454,11 @@ made that way are real: name them ZZ and remove them.
 - Tickets (2026-10-22): the appointment is the diary's reservation, the
   ticket the visit. `GET /api/staff/appointment?ref=` (`ticketFor`) is the
   one source for both the Appt. Book card and a client's history (their
-  appointment rows and every timeline event with a ref open it): client,
+  appointment rows and every timeline event with a ref open it, except a
+  "Reminder email sent" with a row in `message_sends`: since 2026-10-31
+  that opens the email itself, `sentId` from `contactDetail`, in Email
+  History's window, `openSentEmail`; one sent before the log existed still
+  opens the ticket): client,
   stylist, when, each service with its time and price, the total, payment.
   Lines come from `appointments.services` (migration 031), written at
   booking from `combineServices().lines`; a visit booked before that shows
@@ -543,6 +551,15 @@ made that way are real: name them ZZ and remove them.
   same line twice running). The line under her name is "<number> · Booking Assistant ·
   Online" (`karenStatus`, painted by `paintKarenNumber`), and her menu no
   longer offers "What services do you offer?" (typing it still works).
+  She answers questions about what is already booked from the calendar
+  (2026-10-31; "are there any appointments booked right now?" used to
+  start a new booking, because her menu read any "book" as a request to
+  make one): `kIsLookup` catches a question word plus appointments,
+  bookings, schedule, calendar or busy, ahead of every other answer, and
+  `kLookup` reads that day from `/api/staff/diary` on the salon's clock
+  ("right now": who is in the chair and what is still to come; a day or
+  "tomorrow"; a stylist by name; "next": Home's upcoming list). Asking
+  for open times ("is anything free tomorrow?") is still a booking.
   A sent email's window no longer carries the rebuilt-from-the-booking
   note (`note` is null unless the booking was deleted): the Email History
   header's info button says it once.
@@ -585,7 +602,7 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: a My Settings tab first (capital S since 2026-10-30) (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to; key `salon`; Salon Profile first since 2026-10-30, and without its Salon email field since the same day: the stored address is kept, still the reply-to fallback, and the save leaves it out) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and a Payment tab for owners, admins and managers (key `payment`;
+  for everyone: a My Settings tab first (capital S since 2026-10-30) (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to; key `salon`; Salon Profile first since 2026-10-30, and without its Salon email field since the same day: the stored address is kept, still the reply-to fallback, and the save leaves it out) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and a Payments tab for owners, admins and managers (key `payment`; "Payments" since 2026-10-31, as is the client profile's Card on file section, while an appointment's own window keeps "Payment";
   it was the Payroll tab until 2026-10-30): a Billing card and a Payroll card, both "Coming soon".
   Billing was a tab of its own, then a card on Salon (2026-10-26), and moved to Payment on request
   on 2026-10-30; old `payroll` and `billing` tab names land on Payment. It has no Calendars tab:
