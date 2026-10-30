@@ -514,7 +514,12 @@ made that way are real: name them ZZ and remove them.
   (off for reduced motion), a compact ask area (smaller chips, summary
   card and message box, a send icon), and a varied hello (`kHello`: by
   the salon's time of day and weekday, with the first name, never the
-  same line twice running).
+  same line twice running). The line under her name is "<number> · Booking Assistant ·
+  Online" (`karenStatus`, painted by `paintKarenNumber`), and her menu no
+  longer offers "What services do you offer?" (typing it still works).
+  A sent email's window no longer carries the rebuilt-from-the-booking
+  note (`note` is null unless the booking was deleted): the Email History
+  header's info button says it once.
 - Clients, Activity: each kind of event has its own colour (asked for
   2026-10-22): booked green, emails (and texts, when there are any) yellow,
   checked in blue, done teal, no-show orange, cancelled red, the website

@@ -112,7 +112,7 @@ test('a sent email opens rebuilt from its booking, never with the guest’s own 
     assert.match(m.html, /ZZ Trim/);
     assert.match(m.html, /ZZ Dee/);
     assert.ok(!m.html.includes('the-real-secret-token'), 'the guest’s manage token is never shown');
-    assert.match(m.note, /record of each email, not a copy/);
+    assert.equal(m.note, null, 'the rebuilt-from-the-booking note is on the history header, not in each email');
 
     // A booking deleted since: the sample's details, the client's name, and a
     // reschedule that has no old time to show says so without a 1970 date.

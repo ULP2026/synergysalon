@@ -3044,7 +3044,7 @@
     <span class="kd-pic"><img id="karenPic" alt=""><i></i></span>
     <div class="kd-id">
       <h2 id="karenTitle">Karen</h2>
-      <span>Booking assistant · online</span>
+      <span id="karenStatus">Booking Assistant · Online</span>
     </div>
     <button type="button" class="kd-x" id="karenRestart" title="Start over" aria-label="Start over"><svg class="ic"><use href="#i-sync"/></svg></button>
     <button type="button" class="kd-x" id="karenClose" title="Close" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
@@ -7906,8 +7906,9 @@ function kStart() {
 
 function kMenu() {
   kAsk([
+    // "What services do you offer?" was taken off the menu on request
+    // (2026-10-30); typing the question still answers it.
     { label: 'Help me book an appointment', solid: true, run: kBook },
-    { label: 'What services do you offer?', run: kServices },
     { label: 'Who can I book with?', run: kTeam },
   ], (t) => {
     if (/^(hi|hey|hello|yo|good (morning|afternoon|evening))\b/.test(t) && t.split(/\s+/).length <= 3) {
@@ -8395,7 +8396,6 @@ function kTeam() {
   kSay(list.length ? `<p>You can book with:</p>${list.join('')}` : '<p>Nobody is set up to take bookings yet.</p>');
   kAsk([
     { label: 'Book an appointment', solid: true, run: kBook },
-    { label: 'What services do you offer?', run: kServices },
   ], (t) => {
     if (/servic|offer/.test(t)) { kServices(); return true; }
     if (/\b(yes|book|ok|sure)\b/.test(t) || kFindStylist(t) || kFindServices(t).length || kFindKind(t)) { kBookFrom(t); return true; }
@@ -9397,6 +9397,8 @@ function paintKarenNumber() {
   $('karenBtnNum').textContent = n;
   $('karenBtnNum').hidden = !n;
   $('karenBtn').title = n ? `Call Karen, the booking assistant · ${n}` : 'Call Karen, the booking assistant';
+  // The chat window's line under her name leads with the same number.
+  $('karenStatus').textContent = n ? `${n} · Booking Assistant · Online` : 'Booking Assistant · Online';
 }
 
 function paintKarenSettings(k) {

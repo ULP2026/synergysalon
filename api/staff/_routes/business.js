@@ -146,9 +146,12 @@ export async function sentMessage(id, tenant) {
     to: r.to_name ? `${r.to_name} <${r.to_email}>` : r.to_email,
     ref: r.ref || null,
     ...out,
+    // That a sent email is rebuilt from its booking is said once, by the
+    // info button on Email History's header (2026-10-30), not in every
+    // email's window. A deleted booking still says so: its details are a
+    // sample, which the header's note does not cover.
     note: r.ref
-      ? 'The app keeps a record of each email, not a copy, so this is rebuilt from the booking as it is now. '
-        + 'If the booking changed after it was sent, the details here are the new ones.'
+      ? null
       : 'The booking has since been deleted, so the details below are a sample. The rest is the message that was sent.',
   };
 }
