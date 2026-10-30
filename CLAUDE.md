@@ -506,7 +506,15 @@ made that way are real: name them ZZ and remove them.
   call is greeted by name and put through to the salon's phone.
   `tests/karen-sms.integration.test.js` runs the conversations. As of
   2026-10-22 no number is bought and `TWILIO_AUTH_TOKEN` is not set, so the
-  page says "No number connected yet".
+  page says "No number connected yet". Since 2026-10-30 (on request) the page only shows
+  the number: the form to change it and the Twilio setup steps were
+  removed, and `PATCH /api/staff/karen` still sets it.
+- Karen's chat window (2026-10-30) is about 20% larger (552px by up to
+  816px), with a slow colour-shifting glow and a drifting header gradient
+  (off for reduced motion), a compact ask area (smaller chips, summary
+  card and message box, a send icon), and a varied hello (`kHello`: by
+  the salon's time of day and weekday, with the first name, never the
+  same line twice running).
 - Clients, Activity: each kind of event has its own colour (asked for
   2026-10-22): booked green, emails (and texts, when there are any) yellow,
   checked in blue, done teal, no-show orange, cancelled red, the website
@@ -714,10 +722,12 @@ made that way are real: name them ZZ and remove them.
   its name (`a.when[1]`, the line that heads its flow; 2026-10-30), e.g.
   Appointment Booking: "A client books an appointment". Email History is its
   own module now, with a search by name or address and a filter by message
-  (`?history=1&q=&kind=`), each row a card that opens in place (2026-10-30: who and which email
-  closed; address, time and View email open, which opens it, `?sent=<id>`,
-  `sentMessage`), the list capped at 760px, with an info button beside each
-  card saying the email is rebuilt from the booking. The list's heading
+  (`?history=1&q=&kind=`), each row a compact one-line card opening that email (`?sent=<id>`,
+  `sentMessage`), the list capped at 760px. The whole section opens and
+  closes from its header (2026-10-30; closed by default, remembered per
+  browser as `ss-mail-open`, opened by the history address), with an info
+  button on the header's far right saying the email is rebuilt from the
+  booking. The list's heading
   reads Automation, like the tab. The log keeps who, which message and when, not a copy, so
   the email is rendered again from the booking as it is now and the window
   says so; the manage link carries a dummy token, never the guest's; a
