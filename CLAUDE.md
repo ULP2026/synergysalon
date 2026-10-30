@@ -600,7 +600,10 @@ made that way are real: name them ZZ and remove them.
   the Team list in that form. Karen and the server match phones by digits. The username is
   no longer shown there: its row is hidden but stays in the form, so saving
   keeps it, and the Clients filters still label people by it. Connect your
-  tools has a Stripe card under Google's reading "Coming Soon"
+  tools has a Stripe card under Google's reading "Coming Soon" (since 2026-10-30 the two cards read "Google" over "Calendar" and
+  "Stripe" over "Payroll", and Google's has a green Connected or red Not
+  connected badge on the right beside its button; the old explanation line
+  is the card's hover text)
   (`.gcard.soon`, nothing to press). Services & pricing has Price and
   Duration (minutes, 5 to 720) on each service, and inside each service's
   card, directly under its description, a "Notes / Special Instructions for

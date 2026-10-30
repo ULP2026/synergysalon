@@ -2319,6 +2319,7 @@
   .gcard b { display: block; font-size: .92rem; font-weight: 600; }
   .gcard .d { display: block; font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
   .gcard .ok { color: var(--ok); font-weight: 600; }
+  .gcard .gacts { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
   /* Coming Soon: same card, quieter, nothing to press. */
   .gcard.soon { background: var(--raise); }
   .gcard.soon .tool-ic svg { width: 26px; height: 26px; }
@@ -9586,38 +9587,46 @@ function paintTools() {
   const g = (m && m.google) || { connected: false, account: null };
   const canAct = Boolean(m && !m.noLogin && m.status !== 'pending' && (self || me?.user?.canManageTeam));
   const logo = GOOGLE_LOGO.replace('class="conn-logo"', '');
-  let sub;
+  // Each card is the service as its headline and what it is for under it,
+  // "Google" over "Calendar", "Stripe" over "Payroll", with Google's state
+  // as a badge on the right (asked for 2026-10-30). What used to be the line
+  // under the name (the account, or why there is no button) is the badge's
+  // hover text now.
+  let state = 'off';
+  let why = '';
   let act = '';
   if (m && self && m.google === undefined) {
     // Not known yet. Offering Connect here was how somebody already connected
     // got asked to connect again while their status was on its way.
-    sub = 'Checking…';
+    state = 'checking';
   } else if (g.connected) {
-    sub = `<span class="ok">Connected</span> · ${esc(g.account || 'Google Calendar')}`;
+    state = 'on';
+    why = g.account || 'Google Calendar';
     if (canAct) act = '<button type="button" class="btn quiet sm" data-tool="google-off">Disconnect</button>';
   } else if (m && m.noLogin) {
-    sub = 'A calendar is connected to a sign in. Give them one to connect theirs.';
+    why = 'A calendar is connected to a sign in. Give them one to connect theirs.';
   } else if (!m) {
-    sub = 'Available once they are added. Save, then open them again.';
+    why = 'Available once they are added. Save, then open them again.';
   } else if (m.status === 'pending') {
-    sub = 'They can connect it once their request is approved.';
-  } else if (!canAct) {
-    sub = 'Not connected yet.';
-  } else {
-    sub = self
+    why = 'They can connect it once their request is approved.';
+  } else if (canAct) {
+    why = self
       ? 'Your busy times show on Appt. Book beside the salon calendar.'
       : 'Their busy times show on Appt. Book beside the salon calendar.';
     act = `<button type="button" class="btn sm gbtn" data-tool="google-open">${logo}Connect Google Calendar</button>`;
   }
+  const badge = state === 'checking' ? '<span class="chip">Checking…</span>'
+    : state === 'on' ? '<span class="chip ok">Connected</span>'
+    : '<span class="chip warn">Not connected</span>';
   $('memberToolsList').innerHTML = `
-    <div class="gcard${g.connected ? ' on' : ''}" data-int="google">
+    <div class="gcard${g.connected ? ' on' : ''}" data-int="google"${why ? ` title="${esc(why)}"` : ''}>
       <span class="tool-ic">${logo}</span>
-      <div style="min-width:0"><b>Google Calendar</b><span class="d">${sub}</span></div>
-      ${act}
+      <div style="min-width:0"><b>Google</b><span class="d">Calendar</span></div>
+      <div class="gacts">${badge}${act}</div>
     </div>
     <div class="gcard soon" data-int="stripe" aria-disabled="true">
       <span class="tool-ic">${STRIPE_LOGO}</span>
-      <div style="min-width:0"><b>Stripe</b><span class="d">Take deposits and card payments for bookings.</span></div>
+      <div style="min-width:0"><b>Stripe</b><span class="d">Payroll</span></div>
       <span class="chip soon-chip">Coming Soon</span>
     </div>`;
 }
