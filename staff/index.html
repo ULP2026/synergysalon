@@ -1285,6 +1285,8 @@
   #karenBtn, #bookKarenBtn { background: linear-gradient(135deg, #f6dcec 0%, #e6e8f7 100%); color: #1e1f5c; }
   #karenBtn:hover:not(:disabled), #bookKarenBtn:hover:not(:disabled) { background: linear-gradient(135deg, #f1cfe3 0%, #dfe2f5 100%); }
   .karen-cta .kc-pic { width: 28px; height: 28px; }
+  .karen-cta .kc-txt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+  .karen-cta .kc-txt small { font-size: .72rem; font-weight: 500; opacity: .75; font-variant-numeric: tabular-nums; }
   .karen-cta .kc-pic img { width: 28px; height: 28px; }
   /* On a phone Karen floats in the bottom-right corner and stays there while
      the page scrolls (asked for 2026-10-22), instead of a full-width bar in
@@ -2709,7 +2711,11 @@
          place the person chip had). On a phone she still floats in the
          bottom-right corner. -->
     <button type="button" class="btn karen-cta" id="karenBtn" title="Call Karen, the booking assistant">
-      <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span><span>Call Karen</span>
+      <span class="kc-pic" aria-hidden="true"><img id="karenBtnPic" alt=""><i></i></span>
+      <!-- Her number under the name (asked for 2026-10-30), the one clients
+           call or text; paintKarenNumber() fills it, and it stays empty
+           until a number is connected in Settings, Karen AI. -->
+      <span class="kc-txt"><span>Call Karen</span><small id="karenBtnNum" hidden></small></span>
     </button>
   </header>
 
@@ -3665,6 +3671,7 @@ $('requestForm').onsubmit = async (e) => {
     (2026-10-30), without its picture, as asked. Under the name is the role
     alone: the salon's name was taken off on request the same day. */
 function paintMe() {
+  paintKarenNumber();
   $('myName').textContent = me.user.name;
   $('mySub').textContent = ROLE_LABEL[me.user.role] || me.user.role;
   paintLogo();
@@ -9341,7 +9348,17 @@ async function loadKarenSettings() {
   }
 }
 
+/** Karen's number under Call Karen, or nothing while none is connected. */
+function paintKarenNumber() {
+  const n = me?.salon?.karenPhone || '';
+  $('karenBtnNum').textContent = n;
+  $('karenBtnNum').hidden = !n;
+  $('karenBtn').title = n ? `Call Karen, the booking assistant · ${n}` : 'Call Karen, the booking assistant';
+}
+
 function paintKarenSettings(k) {
+  // Saving a new number here changes the one under Call Karen at once.
+  if (me?.salon) { me.salon.karenPhone = k.pretty || ''; paintKarenNumber(); }
   $('kaNumber').innerHTML = k.pretty ? `<a href="tel:${esc(k.phone)}">${esc(k.pretty)}</a>` : 'No number connected yet';
   $('kaNumberSub').textContent = !k.pretty
     ? (me?.user?.canManageTeam ? 'Connect one below and clients can call or text Karen.' : 'The admin connects it here.')

@@ -10,6 +10,7 @@ import { REMINDER_LEAD_HOURS } from '../../_lib/config.js';
 import { query } from '../../_lib/db.js';
 import { googleConfigured } from '../../_lib/google.js';
 import { handler, json } from '../../_lib/http.js';
+import { prettyPhone } from '../../_lib/karen-sms.js';
 import { ensureSchema } from '../../_lib/ensure-schema.js';
 import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
@@ -83,7 +84,10 @@ export default handler({
       pendingApprovals: pending.rows[0].n,
       // The logo is the nav's mark, so it arrives with everything else rather
       // than waiting for Settings to be opened.
-      salon: { name: tenant.name, timezone: tenant.timezone, logo: tenant.logo ?? null },
+      // Karen's number goes under Call Karen at the top (2026-10-30), so it
+      // arrives here too; empty until one is connected in Settings, Karen AI.
+      salon: { name: tenant.name, timezone: tenant.timezone, logo: tenant.logo ?? null,
+               karenPhone: prettyPhone(tenant.karen_phone) },
       services: services.rows.map((s) => ({
         slug: s.slug,
         name: s.name,

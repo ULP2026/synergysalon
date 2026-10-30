@@ -458,7 +458,10 @@ made that way are real: name them ZZ and remove them.
   corner and stays there while the page scrolls (2026-10-22): 52px tall,
   clear of the safe-area insets, with room left at the page's foot and the
   toast lifted above it. On wider screens it sits at the top, right of the
-  menu (2026-10-30; it was in the page head). The bar is centred by
+  menu (2026-10-30; it was in the page head), with Karen's number under
+  "Call Karen" (`me.salon.karenPhone` from `/api/staff/me`, painted by
+  paintKarenNumber(); hidden until a number is connected, and updated at
+  once when Settings, Karen AI saves a new one). The bar is centred by
   margins, not `translateX`: a transform would make it the frame for the
   phone's fixed button.
 - **New appointment is five steps again** (asked for 2026-10-23, after a

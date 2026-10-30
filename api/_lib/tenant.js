@@ -102,6 +102,9 @@ export async function tenantForUser(user) {
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
             to_jsonb(tenants) ->> 'review_url' AS review_url,
+            -- Karen's number, shown under Call Karen in the console; through
+            -- to_jsonb so it reads as null before the column exists.
+            to_jsonb(tenants) ->> 'karen_phone' AS karen_phone,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE id = $1 AND active`,
     [user.tenant_id],
