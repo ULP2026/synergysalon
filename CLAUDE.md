@@ -423,7 +423,7 @@ made that way are real: name them ZZ and remove them.
   `*.vercel.app` or local address, where those names belong to the public
   site), `HOME_PATH` is `/` or `/staff`, and the menu's links are rewritten
   to match. Invite links from `team.js` follow the same rule.
-- Nav: Home, Appointments (named Appt. Book until 2026-10-30; every label the staff, a stylist's welcome email and the Google connect page show was renamed, and older notes here and the code's comments still say Appt. Book), Clients, Settings (addresses above; Marketing, now named Automation, is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
+- Nav: Home, Appt. Book (renamed Appointments for an hour on 2026-10-30 and put back on request, everywhere: the menu, the page title, the client profile's heading and filter, Karen, the Google messages and the welcome email), Clients, Settings (addresses above; Marketing, now named Automation, is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
   (2026-10-22): All, then every stylist record from `contacts?stylists=1`
   (`stylistChoices`), with or without a login, calendar or payroll, so long
   as they are active or have ever been booked; one who has left stays,

@@ -360,7 +360,7 @@ export function welcomeContent({ name, email, link, appUrl, expiresDays }, shop)
             text: 'In the same window, under Connect your tools, choose Google Calendar. Paste your '
               + 'calendar\u2019s secret address (in Google Calendar: Settings, your calendar, '
               + 'Integrate calendar, "Secret address in iCal format"), or sign in with Google if '
-              + 'that option is shown. Your busy times then appear on Appointments, so nobody books '
+              + 'that option is shown. Your busy times then appear on Appt. Book, so nobody books '
               + 'you when you are away. Only the times are read, never what the events are.',
           },
         ],
