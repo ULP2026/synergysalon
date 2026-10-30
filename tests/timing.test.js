@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { combineServices } from '../api/_lib/availability.js';
-import { cleanBreaks, cleanDown, timedService, timingKey, workSpans } from '../api/_lib/timing.js';
+import { cleanBreaks, cleanDown, ownPrice, timedService, timingKey, workSpans } from '../api/_lib/timing.js';
 
 const svc = (slug, name, category, duration, buffer = 15) => ({
   slug, name, category, duration_min: duration, buffer_min: buffer, price_cents: null,
@@ -126,4 +126,28 @@ test('a service exactly as long as a processing break fits inside it', () => {
 test('breaks the database is given are whole minutes inside the visit', () => {
   assert.deepEqual(cleanBreaks([[60, 45], [0, 10], [150, 30], ['x', 5]], 160), [[60, 45]]);
   assert.deepEqual(cleanBreaks(null, 60), []);
+});
+
+test('a booking takes the price the stylist typed, never an invented one', () => {
+  const priced = {
+    cuts: { on: true, price: 45.5 },
+    color: { on: true, price: '120', highlights: { price: 180 } },
+    treatments: { on: true, price: '' },
+  };
+  // Each service by its kind, from dollars to cents.
+  assert.equal(ownPrice(priced, haircut), 4550);
+  assert.equal(ownPrice(priced, single), 12000);
+  assert.equal(ownPrice(priced, balayage), 18000);
+  // Color & Cut is both added, only when both are typed.
+  assert.equal(ownPrice(priced, colorCut), 16550);
+  assert.equal(ownPrice({ color: { price: 120 } }, colorCut), null);
+  // Nothing typed, or nonsense: no price, so the table's (empty) stands.
+  assert.equal(ownPrice(priced, svc('deep', 'Deep Conditioning', 'treatments', 30)), null);
+  assert.equal(ownPrice({ cuts: { price: 'abc' } }, haircut), null);
+  assert.equal(ownPrice(null, haircut), null);
+  // And it reaches the visit, priced only when every part is.
+  assert.equal(timedService(haircut, priced).price_cents, 4550);
+  assert.equal(timedService(haircut, {}).price_cents, null);
+  assert.equal(combineServices(timedService(haircut, priced), [timedService(single, priced)]).priceCents, 16550);
+  assert.equal(combineServices(timedService(haircut, priced), [timedService(single, {})]).priceCents, null);
 });

@@ -13,6 +13,7 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots } from './_lib/availability.js';
+import { CLIENT_PRICES } from './_lib/config.js';
 import { EXCLUSION_VIOLATION, transaction } from './_lib/db.js';
 import { sendCancellation, sendReschedule } from './_lib/email.js';
 import { mirrorToGoogle } from './_lib/google-mirror.js';
@@ -74,7 +75,9 @@ function present(appt) {
     stylistSlug: appt.stylist_slug,
     startsAt: appt.starts_at,
     durationMin: appt.duration_min,
-    price: appt.price_cents == null ? null : appt.price_cents / 100,
+    // The guest's own page: no price until the salon shows clients its
+    // prices (CLIENT_PRICES).
+    price: !CLIENT_PRICES || appt.price_cents == null ? null : appt.price_cents / 100,
     guestName: appt.guest_name,
     guestEmail: appt.guest_email,
     notes: appt.notes,

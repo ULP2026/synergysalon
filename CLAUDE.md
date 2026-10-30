@@ -1238,6 +1238,18 @@ must stay that way: anything committed here is served publicly.
   Always remove it.
 - Never invent a price. The PMC blocks all pricing until Dina supplies the
   menu; AI scalp analysis at $40 is the single cleared figure.
+- A booking's price is the one its stylist typed (since 2026-10-31,
+  `ownPrice` in `timing.js`, through `timedService`): by kind, Highlights by
+  their Highlights price, Color & Cut as Cuts plus Color only when both are
+  typed, else the services table's (empty). Before, every booking was "Not
+  priced" because it took only the table's. The team sees it on the
+  appointment window and its total. Clients do not:
+  `CLIENT_PRICES = false` in `config.js` keeps it out of every guest email
+  and the manage page (the salon's choice, by the PMC), pinned by
+  `tests/email-preview.test.js`. An appointment window still says "Booked
+  before visits were itemized" with a dash on the line until migration 031
+  (the `services` column) is approved and run on the live database; the
+  total shows either way.
 
 ## Still outstanding
 

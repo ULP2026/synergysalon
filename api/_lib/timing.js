@@ -105,13 +105,44 @@ function colorAndCut(details) {
   };
 }
 
-/** One service as this stylist does it: its length and its breaks. */
+/** A price a stylist typed, in dollars, as cents; null if there is none. */
+const cents = (v) => {
+  if (v === '' || v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 && n < 100000 ? Math.round(n * 100) : null;
+};
+
+/**
+ * A stylist's own price for one service, in cents, or null to use the
+ * table's (asked for 2026-10-31: bookings were saved "Not priced", because
+ * they took the services table's price, which is empty on purpose until
+ * Dina supplies the menu, while each stylist had typed theirs). Read from
+ * the same figures and by the same kinds as their timing: Highlights by
+ * their Highlights price, Color & Cut as their Cuts and Color prices added
+ * (only when both are typed: a total with a hole in it is a guess), and
+ * everything else by its kind. Never invented: a stylist who typed nothing
+ * leaves the price empty.
+ */
+export function ownPrice(details, service) {
+  const key = timingKey(service);
+  if (key === 'highlights') return cents(details?.color?.highlights?.price);
+  if (key === 'color' && WITH_CUT.test(service.name)) {
+    const cut = cents(details?.cuts?.price);
+    const color = cents(details?.color?.price);
+    return cut != null && color != null ? cut + color : null;
+  }
+  return cents(details?.[service.category]?.price);
+}
+
+/** One service as this stylist does it: its length, its breaks and its price. */
 export function timedService(service, details) {
   const own = ownTiming(details, service);
+  const price = ownPrice(details, service);
   return {
     ...service,
     duration_min: own ? own.durationMin : service.duration_min,
     breaks: own ? own.breaks : [],
+    price_cents: price ?? service.price_cents,
   };
 }
 

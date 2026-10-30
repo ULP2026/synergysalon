@@ -35,6 +35,18 @@ export const DEFAULT_TZ = 'America/New_York';
 export const ONLINE_BOOKING = false;
 
 /**
+ * Whether clients see a booking's price: in their confirmation and the other
+ * booking emails, and on their manage-appointment page.
+ *
+ * Off (the salon's choice, 2026-10-31). Bookings carry the price each
+ * stylist typed for the service (timing.js, ownPrice) so the team sees it on
+ * the appointment and its total; the brand record holds back public pricing
+ * until Dina supplies the menu, so guests are shown none yet. Turn on once
+ * the salon approves its prices being shown to clients.
+ */
+export const CLIENT_PRICES = false;
+
+/**
  * Stylists offered online without a Google Calendar connected, by salon.
  * Everybody else needs one before guests see them (google-busy.js), but the
  * salon asked that its four current stylists stay bookable meanwhile, from

@@ -9,7 +9,7 @@
 import { DateTime } from 'luxon';
 import { Resend } from 'resend';
 
-import { DEFAULT_TZ, shopFrom } from './config.js';
+import { CLIENT_PRICES, DEFAULT_TZ, shopFrom } from './config.js';
 // Safe to import without a database: db.js builds its pool lazily, so the
 // template functions and previewMessage still work with no DATABASE_URL.
 import { query } from './db.js';
@@ -291,7 +291,9 @@ function detailRows(appt, zone) {
     ['With', appt.stylist_name],
     ['When', prettyWhen(appt.starts_at, zone)],
   ];
-  if (appt.price_cents != null) {
+  // Only once the salon shows clients its prices (CLIENT_PRICES): bookings
+  // carry the stylist's price for the team, not yet for guests.
+  if (CLIENT_PRICES && appt.price_cents != null) {
     rows.splice(1, 0, ['Price', `$${(appt.price_cents / 100).toFixed(2)}`]);
   }
   // How long to set aside, under the time, because "2:30 PM" alone has sent

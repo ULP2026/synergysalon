@@ -65,3 +65,12 @@ test('every email is from noreply@synergysalon.com, guests\' as well as the team
     assert.equal(m.from, 'Synergy Salon <noreply@synergysalon.com>', kind);
   }
 });
+
+test('a priced booking still shows clients no price while the salon keeps prices off (CLIENT_PRICES)', () => {
+  const priced = { ...appt, price_cents: 4550 };
+  for (const kind of MESSAGE_KINDS) {
+    const m = previewMessage(kind, priced, tenant, new Date('2026-10-04T14:00:00Z'));
+    assert.ok(!/Price|\$45\.50/.test(m.text), `${kind} shows no price`);
+    assert.ok(!/\$45\.50/.test(m.html), `${kind} shows no price`);
+  }
+});
