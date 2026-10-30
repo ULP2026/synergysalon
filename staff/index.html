@@ -375,6 +375,11 @@
      measured in fitSettings()), so its edges line up with the menu above. */
   .main.narrow { max-width: calc(var(--nav-w, 760px) + 64px); }
   @media (max-width: 760px) { .main.narrow { max-width: 960px; } }
+  /* Appt. Book's day widens with the team (asked for 2026-10-30): 960px
+     holds two columns comfortably, so each column past that adds room, up
+     to the window's width. Past that the grid scrolls sideways as
+     before. --diary-w is set by renderDiary(); Month leaves it at 960px. */
+  .main.diary { max-width: max(960px, min(var(--diary-w, 960px), calc(100vw - 32px))); }
   /* RocketOS proportions: a 1.5rem title, a small grey line under it, and
      cards that sit 16px apart. Tighter than before, which read as oversized. */
   .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
@@ -4924,6 +4929,7 @@ function go(name, { push = true } = {}) {
     else a.removeAttribute('aria-current');
   });
   document.querySelector('.main').classList.toggle('narrow', name === 'settings' || p.group === 'settings');
+  document.querySelector('.main').classList.toggle('diary', name === 'appointments');
   moveRing();
   const view = p.view || name;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
@@ -5715,6 +5721,10 @@ function renderDiary(d) {
       <span class="ghost" aria-hidden="true"></span>${offs}${own}${nowLine}</div>`;
   }).join('');
   const colCount = team.length + extra.size + lanesEnd.length;
+  // The page's width for this many people: its padding, the card's, the
+  // time axis, and 320px a column, about what each of two columns gets in
+  // the standard 960px (see .main.diary).
+  document.querySelector('.main').style.setProperty('--diary-w', `${64 + 42 + 64 + Math.max(1, colCount) * 320}px`);
   const colHtml = teamHtml + extraHtml + looseHtml
     || `<div class="dg-col dg-c1 dg-gcol dg-teamwait dg-tfirst" style="height:${height}px">
       <p>Stylists appear here once they connect their Google Calendar in Settings, Team.</p>${nowLine}</div>`;
@@ -6155,6 +6165,7 @@ const PER_CELL = 3;        // then "+N more", so one busy day cannot push the gr
 
 function renderMonth(d) {
   monthData = d;
+  document.querySelector('.main').style.removeProperty('--diary-w');
   $('monthLabel').textContent = d.heading;
   $('dayHeading').textContent = `${d.booked} appointment${d.booked === 1 ? '' : 's'} this month`;
 

@@ -676,7 +676,10 @@ made that way are real: name them ZZ and remove them.
   address) and the calendar dialog. `GET /api/staff/profile` carries the
   status, so your own window opens right instead of offering Connect until a
   second request answered; it says "Checking…" if the status is missing.
-- Appt. Book's day is the team, one column per person: the shared
+- Appt. Book's day is the team, one column per person: (since 2026-10-30 the page
+  widens with the columns, 320px each past the standard 960px, up to the
+  window's width, then scrolls sideways; `--diary-w` from renderDiary(),
+  `.main.diary`; Month and the other pages keep 960px) the shared
   "<salon> Calendar" lanes that used to sit on the left were removed on
   request (2026-10-15). Nobody is put in it: whoever has connected their
   Google Calendar (signed in or by the pasted address) is in it, one column
