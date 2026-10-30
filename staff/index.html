@@ -1312,21 +1312,32 @@
   .kc-pic img { width: 28px; height: 28px; border-radius: 50%; }
   .kc-pic i, .kd-pic i { position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%;
                          background: #2fb36b; border: 2px solid #fff; }
-  dialog.kd { max-width: 460px; width: calc(100% - 24px); height: min(680px, calc(100dvh - 24px)); padding: 0; overflow: hidden; }
+  /* About a fifth larger than it was (2026-10-30), with a soft glow whose
+     colours drift slowly round the brand's periwinkle, pink and teal, so
+     she reads as present. Slow on purpose: alive, not flashing. */
+  dialog.kd { max-width: 552px; width: calc(100% - 24px); height: min(816px, calc(100dvh - 24px)); padding: 0; overflow: hidden;
+              animation: kd-glow 9s ease-in-out infinite; }
+  @keyframes kd-glow {
+    0%, 100% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 0 1px rgba(125, 136, 214, .35), 0 0 34px 2px rgba(125, 136, 214, .38); }
+    33% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 0 1px rgba(214, 125, 190, .32), 0 0 34px 2px rgba(214, 125, 190, .32); }
+    66% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 0 1px rgba(96, 186, 196, .32), 0 0 34px 2px rgba(96, 186, 196, .32); }
+  }
+  @keyframes kd-drift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
   dialog.kd[open] { display: flex; flex-direction: column; }
-  .kd-head { display: flex; align-items: center; gap: 12px; padding: 14px 12px 14px 18px; background: var(--peri-pale);
-             border-bottom: 1px solid rgba(85, 96, 166, .16); }
-  .kd-pic { width: 46px; height: 46px; box-shadow: var(--e1); }
-  .kd-pic img { width: 46px; height: 46px; border-radius: 50%; }
+  .kd-head { display: flex; align-items: center; gap: 12px; padding: 16px 14px 16px 20px; border-bottom: 1px solid rgba(85, 96, 166, .16);
+             background: linear-gradient(110deg, var(--peri-pale), rgba(214, 125, 190, .14), rgba(96, 186, 196, .14), var(--peri-pale));
+             background-size: 300% 100%; animation: kd-drift 14s ease-in-out infinite; }
+  .kd-pic { width: 54px; height: 54px; box-shadow: var(--e1); }
+  .kd-pic img { width: 54px; height: 54px; border-radius: 50%; }
   .kd-pic i { width: 12px; height: 12px; }
   .kd-id { flex: 1; min-width: 0; }
-  .kd-id h2 { margin: 0; font-size: 1.1rem; }
+  .kd-id h2 { margin: 0; font-size: 1.2rem; }
   .kd-id span { font-size: var(--fs-xs); color: var(--muted); }
   .kd-x { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none;
           color: var(--muted); cursor: pointer; }
   .kd-x:hover { background: rgba(85, 96, 166, .12); }
-  .kd-log { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--raise); }
-  .kd-msg { max-width: 84%; padding: 10px 14px; border-radius: 16px; font-size: .94rem; line-height: 1.45; overflow-wrap: anywhere;
+  .kd-log { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 20px; background: var(--raise); }
+  .kd-msg { max-width: 84%; padding: 11px 15px; border-radius: 16px; font-size: .98rem; line-height: 1.45; overflow-wrap: anywhere;
             animation: kd-in .22s var(--ease); }
   .kd-msg.karen { align-self: flex-start; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
   .kd-msg.me { align-self: flex-end; background: var(--periwinkle); color: #fff; border-bottom-right-radius: 6px; }
@@ -1336,31 +1347,34 @@
   .kd-typing i:nth-child(2) { animation-delay: .15s; } .kd-typing i:nth-child(3) { animation-delay: .3s; }
   @keyframes kd-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   @keyframes kd-dot { 0%, 80%, 100% { opacity: .35; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
-  .kd-card { margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--raise); }
-  .kd-card dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: var(--fs-sm); }
+  /* The ask area (chips, the summary card, the message box) is kept small
+     while the window grew: the conversation gets the room. */
+  .kd-card { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: var(--raise); }
+  .kd-card dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: var(--fs-xs); }
   .kd-card dt { color: var(--muted); } .kd-card dd { margin: 0; font-weight: 600; }
   .kd-ok { display: flex; align-items: center; gap: 8px; font-weight: 650; color: var(--ok); }
   .kd-ok svg { width: 18px; height: 18px; }
-  .kd-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 38%; overflow-y: auto; padding: 10px 16px;
+  .kd-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 32%; overflow-y: auto; padding: 8px 14px;
               border-top: 1px solid var(--line); background: var(--card); }
   .kd-chips:empty { display: none; }
-  .kd-chip { padding: 8px 14px; border: 1px solid var(--periwinkle); border-radius: 999px; background: var(--card); color: var(--periwinkle);
-             font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; animation: kd-in .22s var(--ease) both;
+  .kd-chip { padding: 5px 12px; border: 1px solid var(--periwinkle); border-radius: 999px; background: var(--card); color: var(--periwinkle);
+             font: inherit; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; animation: kd-in .22s var(--ease) both;
              transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
   .kd-chip:hover { background: var(--peri-pale); }
   .kd-chip.solid { background: var(--periwinkle); color: #fff; }
   .kd-chip.solid:hover { background: var(--indigo); }
   .kd-chip:focus-visible, .kd-send:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
-  .kd-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--card); }
-  .kd-input input { flex: 1; min-width: 0; padding: 10px 16px; border: 1px solid var(--line-2); border-radius: 999px;
-                    background: var(--field); color: var(--ink); font: inherit; }
-  .kd-send { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 50%;
+  .kd-input { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--card); }
+  .kd-input input { flex: 1; min-width: 0; height: 38px; padding: 0 14px; font-size: var(--fs-sm); border: 1px solid var(--line-2); border-radius: 999px;
+                    background: var(--field); color: var(--ink); font-family: inherit; }
+  .kd-send { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 50%;
              background: var(--periwinkle); color: #fff; cursor: pointer; }
   .kd-send:hover { background: var(--indigo); }
+  .kd-send .ic { width: 18px; height: 18px; }
   @media (max-width: 520px) {
     dialog.kd { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; border-radius: 0; }
   }
-  @media (prefers-reduced-motion: reduce) { .kd-msg, .kd-chip { animation: none; } .kd-typing i { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .kd-msg, .kd-chip, dialog.kd, .kd-head { animation: none; } .kd-typing i { animation: none; } }
 
   .ka-sec h3 { margin: 6px 0 12px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
   .ka-num { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px;
@@ -1370,13 +1384,6 @@
   .ka-num b { display: block; font-size: 1.45rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
   .ka-num b a { color: inherit; text-decoration: none; }
   .ka-num span { display: block; margin-top: 2px; }
-  .ka-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
-  .ka-form label { flex: 1 1 220px; margin: 0; }
-  .ka-setup { margin-top: 18px; }
-  .ka-setup h4 { margin: 0 0 6px; font-size: var(--fs-sm); }
-  .ka-setup ol { margin: 0; padding-left: 20px; line-height: 1.6; }
-  .ka-setup code { display: inline-block; max-width: 100%; overflow-wrap: anywhere; padding: 1px 6px; border-radius: 6px;
-                   background: var(--raise); font-size: .78rem; }
 
   /* New appointment's client search and the services on the visit (from the
      one-page form of 2026-10-22, kept by the survey). */
@@ -1640,52 +1647,58 @@
   .ml-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
   .ml-top h2 { margin: 0; font-size: 1.05rem; }
   .ml-top p { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
-  /* Email History rows are cards that open in place (2026-10-30): closed,
-     one line (who, which email, when); open, the address and the full time
-     with View email. The list is capped in width so a row reads as one
-     glance, and the note about how a sent email is shown sits in an info
-     button beside each card, not inside it. */
-  .ml-list { display: grid; gap: 8px; max-width: 760px; }
-  .ml-item { display: flex; align-items: flex-start; gap: 8px; }
-  .ml-card { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card);
-             transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease); }
-  .ml-card[open] { border-color: var(--line-2, var(--line)); background: var(--raise); }
-  .ml-card > summary { list-style: none; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto 16px; gap: 12px;
-                       align-items: center; padding: 9px 12px; cursor: pointer; font-size: var(--fs-sm); border-radius: 12px; }
-  .ml-card > summary::-webkit-details-marker { display: none; }
-  .ml-card > summary:hover { background: var(--raise); }
-  .ml-card > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .ml-card .au-ic { width: 26px; height: 26px; border-radius: 8px; }
-  .ml-card .au-ic .ic { width: 14px; height: 14px; }
-  .ml-card .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ml-card .who b { font-weight: 600; }
-  .ml-card .who span { color: var(--muted); }
-  .ml-card .when { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
-  .ml-card .chev { color: var(--faint); display: grid; place-items: center; transition: transform var(--t) var(--ease); }
-  .ml-card .chev .ic { width: 16px; height: 16px; transform: rotate(90deg); }
-  .ml-card[open] .chev { transform: rotate(180deg); }
-  .ml-body { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-             padding: 2px 12px 12px 50px; font-size: var(--fs-sm); }
-  .ml-body dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; margin: 0; min-width: 0; }
-  .ml-body dt { color: var(--muted); font-size: var(--fs-xs); align-self: center; }
-  .ml-body dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-  .ml-info { position: relative; flex: none; margin-top: 7px; }
+  /* Email History is one section that opens and closes as a whole
+     (2026-10-30): the header is the title, its line under it, an info
+     button on the far right (the note on how a sent email is shown) and the
+     chevron. Closed, nothing below shows. The rows are compact one-line
+     cards, each opening its email, in a list capped in width. */
+  .ml-top { display: flex; align-items: center; gap: 10px; margin: 0; }
+  .ml-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: none;
+               color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .ml-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 6px; }
+  .ml-toggle .ml-t { flex: 1; min-width: 0; }
+  .ml-toggle h2 { margin: 0; font-size: 1.05rem; }
+  .ml-toggle p { margin: 2px 0 0; font-size: var(--fs-sm); color: var(--muted); }
+  .ml-chev { flex: none; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%;
+             background: none; color: var(--muted); cursor: pointer;
+             transition: transform var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .ml-chev .ic { width: 16px; height: 16px; transform: rotate(90deg); }
+  .ml-chev:hover, .ml-chev:focus-visible { background: var(--raise); color: var(--ink); }
+  .ml-chev:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  #mailCard.open .ml-chev { transform: rotate(180deg); }
+  .ml-content { margin-top: 14px; }
+  #mailCard:not(.open) .ml-content { display: none; }
+  .ml-list { display: grid; gap: 6px; max-width: 760px; }
+  button.ml-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto 16px; gap: 12px; align-items: center; width: 100%;
+                  padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink);
+                  font-family: inherit; font-size: var(--fs-sm); text-align: left; cursor: pointer;
+                  transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease); }
+  button.ml-row:hover { background: var(--raise); border-color: var(--line-2); }
+  button.ml-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .ml-row .au-ic { width: 26px; height: 26px; border-radius: 8px; }
+  .ml-row .au-ic .ic { width: 14px; height: 14px; }
+  .ml-row .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ml-row .who b { font-weight: 600; }
+  .ml-row .who span { color: var(--muted); }
+  .ml-row .when { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
+  .ml-row .go { color: var(--faint); display: grid; place-items: center; }
+  .ml-row .go .ic { width: 16px; height: 16px; }
+  .ml-info { position: relative; flex: none; }
   .ml-info > button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%;
                       background: none; color: var(--faint); cursor: pointer; transition: color var(--t) var(--ease), background-color var(--t) var(--ease); }
-  .ml-info > button .ic { width: 16px; height: 16px; }
+  .ml-info > button .ic { width: 17px; height: 17px; }
   .ml-info > button:hover, .ml-info.open > button { color: var(--periwinkle); background: var(--raise); }
   .ml-info > button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .ml-tip { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 280px; padding: 10px 12px;
+  .ml-tip { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 290px; padding: 10px 12px;
             border-radius: 10px; background: var(--indigo-deep); color: #fff; font-size: var(--fs-xs); line-height: 1.5;
             box-shadow: 0 12px 28px -12px rgba(20, 20, 60, .45); opacity: 0; visibility: hidden; transform: translateY(-4px);
             transition: opacity var(--t) var(--ease), transform var(--t) var(--ease), visibility var(--t); pointer-events: none; }
   .ml-info:hover .ml-tip, .ml-info:focus-within .ml-tip, .ml-info.open .ml-tip { opacity: 1; visibility: visible; transform: none; }
   .ml-more { display: flex; justify-content: center; max-width: 760px; padding-top: 12px; }
   @media (max-width: 760px) {
-    .ml-card > summary { grid-template-columns: minmax(0, 1fr) auto 16px; }
-    .ml-card > summary .au-ic { display: none; }
-    .ml-body { padding-left: 12px; }
-    .ml-tip { width: min(260px, calc(100vw - 48px)); }
+    button.ml-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .ml-row .au-ic, .ml-row .go { display: none; }
+    .ml-tip { width: min(260px, calc(100vw - 56px)); }
   }
   .au-row .go { display: grid; color: var(--faint); transition: transform var(--t) var(--ease), color var(--t) var(--ease); }
   .au-row:hover .go { transform: translateX(3px); color: var(--indigo); }
@@ -2575,6 +2588,7 @@
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.6 5.6A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.6 3.4M6.6 6.6C3.9 8.3 2.5 12 2.5 12S6 18.5 12 18.5c1.9 0 3.5-.6 4.9-1.5M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 10.5 13.5"/><path d="M21 3 14.5 21l-4-7.5L3 9.5 21 3Z"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/></symbol>
   <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M3.5 10v4a1 1 0 0 0 1 1h2l5.5 4V5L6.5 9h-2a1 1 0 0 0-1 1Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
@@ -2905,23 +2919,6 @@
             clients when theirs is, and tells the team what's on their schedule ("What's on my schedule
             tomorrow?"). A call is greeted and put through to the salon.
           </p>
-          <form id="kaForm" class="ka-form hidden" novalidate>
-            <label><span>Karen's phone number</span>
-              <input id="kaPhone" type="tel" autocomplete="off" placeholder="(813) 555-0100"></label>
-            <button class="btn sm" id="kaSave">Save number</button>
-          </form>
-          <div class="ka-setup hidden" id="kaSetup">
-            <h4>Connecting the number</h4>
-            <ol class="small">
-              <li>Buy a local number from Twilio (Phone Numbers, Buy a number), with SMS and Voice.</li>
-              <li>On that number, set "A message comes in" to this address, HTTP POST:
-                <code id="kaSms"></code></li>
-              <li>And "A call comes in" to this one, HTTP POST: <code id="kaVoice"></code></li>
-              <li>Add the account's Auth Token to Vercel as <code>TWILIO_AUTH_TOKEN</code> and redeploy. It is what
-                proves a text really came from that number, so Karen answers nothing without it.</li>
-              <li>Type the number above and save.</li>
-            </ol>
-          </div>
         </section>
       </div>
 
@@ -3056,7 +3053,7 @@
   <div class="kd-chips" id="karenChips"></div>
   <form class="kd-input" id="karenForm" autocomplete="off">
     <input id="karenText" placeholder="Type a message…" aria-label="Message Karen" maxlength="200">
-    <button class="kd-send" aria-label="Send"><svg class="ic"><use href="#i-right"/></svg></button>
+    <button class="kd-send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button>
   </form>
 </dialog>
 
@@ -4305,6 +4302,8 @@ const PAGES = {
     path: `${BASE}/marketing/history`, title: 'Settings', group: 'settings', view: 'settings',
     sub: 'What happens on its own, before and after a client books.',
     load: () => {
+      // The history's own address opens the section it points at.
+      try { localStorage.setItem('ss-mail-open', '1'); } catch { /* still shown, just not remembered */ }
       showSetting('marketing'); renderAutomations(); renderMailHistory();
       requestAnimationFrame(() => $('mailCard').scrollIntoView({ block: 'start' }));
     },
@@ -4575,11 +4574,38 @@ function mailNames() {
   }
   return names;
 }
+/**
+ * Whether Email History is open, remembered per browser. Closed by
+ * default so Automation stays compact; the history address opens it.
+ */
+function mailOpen() {
+  try { return localStorage.getItem('ss-mail-open') === '1'; } catch { return false; }
+}
+function setMailOpen(open) {
+  try { localStorage.setItem('ss-mail-open', open ? '1' : '0'); } catch { /* private window: just this time */ }
+  $('mailCard').classList.toggle('open', open);
+  for (const b of $('mailCard').querySelectorAll('[data-ml-toggle]')) {
+    if (b.classList.contains('ml-toggle')) b.setAttribute('aria-expanded', String(open));
+    else b.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the email history`);
+  }
+}
 function renderMailHistory() {
   const names = mailNames();
+  const open = mailOpen();
+  $('mailCard').classList.toggle('open', open);
   $('mailCard').innerHTML = `
-    <div class="ml-top"><h2>Email History</h2>
-      <p>Every email the automations have sent, newest first.</p></div>
+    <div class="ml-top">
+      <button type="button" class="ml-toggle" data-ml-toggle aria-expanded="${open}" aria-controls="mlContent">
+        <span class="ml-t"><h2>Email History</h2>
+          <p>Every email the automations have sent, newest first.</p></span>
+      </button>
+      <span class="ml-info">
+        <button type="button" aria-label="How a sent email is shown" aria-expanded="false" data-ml-info>${ic('info')}</button>
+        <span class="ml-tip" role="tooltip">The app keeps a record of each email, not a copy, so this is rebuilt from the booking as it is now. If the booking changed after it was sent, the details here are the new ones.</span>
+      </span>
+      <button type="button" class="ml-chev" data-ml-toggle aria-label="${open ? 'Hide' : 'Show'} the email history">${ic('right')}</button>
+    </div>
+    <div class="ml-content" id="mlContent">
     <div class="ml-filters">
       <div class="search"><svg class="ic"><use href="#i-search"/></svg>
         <input id="mlSearch" type="search" placeholder="Search name or email" aria-label="Search name or email" value="${esc(mailLog.q)}"></div>
@@ -4588,7 +4614,8 @@ function renderMailHistory() {
         ${Object.entries(names).map(([k, v]) => `<option value="${esc(k)}"${mailLog.kind === k ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}
       </select>
     </div>
-    <div id="mlList"></div>`;
+    <div id="mlList"></div>
+    </div>`;
   let timer = null;
   $('mlSearch').oninput = (e) => {
     clearTimeout(timer);
@@ -4624,33 +4651,16 @@ function paintMailLog(note) {
   const list = $('mlList');
   if (!list) return;
   const names = mailNames();
-  const tip = 'The app keeps a record of each email, not a copy, so this is rebuilt from the booking as it is now. If the booking changed after it was sent, the details here are the new ones.';
   const row = (s) => {
     const a = names[s.kind];
     const what = a ? a.name : 'Email';
     return `
-      <div class="ml-item">
-        <details class="ml-card">
-          <summary aria-label="${esc(what)} to ${esc(s.name)}">
-            <span class="au-ic">${ic(a ? a.icon : 'mail')}</span>
-            <span class="who"><b>${esc(s.name)}</b> <span>· ${esc(what)}</span></span>
-            <span class="when">${esc(fmtWhen(s.sentAt, { month: 'short', day: 'numeric' }))}</span>
-            <span class="chev">${ic('right')}</span>
-          </summary>
-          <div class="ml-body">
-            <dl>
-              <dt>To</dt><dd>${esc(s.email)}</dd>
-              <dt>Sent</dt><dd>${esc(fmtWhen(s.sentAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</dd>
-              <dt>Email</dt><dd>${esc(what)}</dd>
-            </dl>
-            <button type="button" class="btn quiet sm" data-sent="${esc(s.id)}">View email</button>
-          </div>
-        </details>
-        <span class="ml-info">
-          <button type="button" aria-label="How a sent email is shown" aria-expanded="false" data-ml-info>${ic('info')}</button>
-          <span class="ml-tip" role="tooltip">${esc(tip)}</span>
-        </span>
-      </div>`;
+      <button type="button" class="ml-row" data-sent="${esc(s.id)}" aria-label="Open the ${esc(what)} sent to ${esc(s.name)}" title="${esc(s.email)}">
+        <span class="au-ic">${ic(a ? a.icon : 'mail')}</span>
+        <span class="who"><b>${esc(s.name)}</b> <span>· ${esc(what)}</span></span>
+        <span class="when">${esc(fmtWhen(s.sentAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span>
+        <span class="go">${ic('right')}</span>
+      </button>`;
   };
   const filtered = mailLog.q || mailLog.kind;
   list.innerHTML = note && !mailLog.rows.length
@@ -4733,7 +4743,8 @@ async function renderFinance() {
 }
 
 $('mailCard').addEventListener('click', (e) => {
-  // The info button beside a card: a click pins its note open (for touch,
+  if (e.target.closest('[data-ml-toggle]')) { setMailOpen(!$('mailCard').classList.contains('open')); return; }
+  // The info button in the header: a click pins its note open (for touch,
   // where there is no hover), a second click or a click elsewhere closes it.
   const info = e.target.closest('[data-ml-info]');
   for (const o of $('mailCard').querySelectorAll('.ml-info.open')) {
@@ -7345,8 +7356,8 @@ function openKarenFromTicket() {
     have.push(esc(`${kDate(karen.date)} at ${bookTimeLabel(karen.time)}`));
   }
   kSay(have.length
-    ? `<p>Hi! I'll help you finish this one. So far I have ${have.join(', ')}. I'll ask for the rest, one step at a time.</p>`
-    : "<p>Hi! I'll walk you through it one step at a time: the services first, then who and when, then the client's details. Then I'll book it.</p>");
+    ? `<p>${kPick(['Hi!', 'Hey there!', 'Hola!'])} I'll help you finish this one. So far I have ${have.join(', ')}. I'll ask for the rest, one step at a time.</p>`
+    : `<p>${esc(kHello())}</p><p>I'll walk you through it one step at a time: the services first, then who and when, then the client's details. Then I'll book it.</p>`);
   kNext();
   openDialog($('karenDlg'));
   setTimeout(() => $('karenText').focus({ preventScroll: true }), 60);
@@ -7852,6 +7863,36 @@ function openKaren() {
   setTimeout(() => $('karenText').focus({ preventScroll: true }), 60);
 }
 
+/**
+ * Karen's hello, different from one opening to the next (asked for
+ * 2026-10-30): by the salon's time of day and weekday, with the person's
+ * first name, never the same line twice running. Friendly and a little
+ * playful, never more than one line.
+ */
+let kLastHello = '';
+function kHello() {
+  const first = String(me?.user?.name || '').trim().split(/\s+/)[0];
+  const you = first ? `, ${first}` : '';
+  const { hour, weekday } = salonClock();
+  const part = partOfDay(hour);
+  const lines = [
+    `Hola${you}! What can I do for you?`,
+    `Hey there${you}! How can I help you today?`,
+    `Hi${you}! Ready when you are. What are we booking?`,
+    `Hey${you}! What's on your list today?`,
+    `Hello hello${you}! How can I help?`,
+  ];
+  if (part === 'morning') lines.push(`Good morning${you}! Coffee in hand? How can I help today?`, `Morning${you}! Let's get the day sorted. What do you need?`);
+  if (part === 'afternoon') lines.push(`Good afternoon${you}! What can I help with?`, `Hey${you}, hope the day's treating you well! What do you need?`);
+  if (part === 'evening') lines.push(`Hey, good evening${you}! How can I help you today?`, `Evening${you}! Still at it? Let me help.`);
+  if (weekday === 'Friday') lines.push(`Happy Friday${you}! What can I do for you?`);
+  if (weekday === 'Monday') lines.push(`Hi${you}! New week, fresh calendar. How can I help?`);
+  if (weekday === 'Saturday' || weekday === 'Sunday') lines.push(`Hey${you}! Weekend shift? I've got you. What do you need?`);
+  const pick = kPick(lines.filter((l) => l !== kLastHello));
+  kLastHello = pick;
+  return pick;
+}
+
 function kStart() {
   karenRun += 1;
   karenQueue = Promise.resolve();
@@ -7859,7 +7900,7 @@ function kStart() {
   kReset();
   $('karenLog').innerHTML = '';
   $('karenChips').innerHTML = '';
-  kSay('<p>Hey! How can I help you today?</p>');
+  kSay(`<p>${esc(kHello())}</p>`);
   kMenu();
 }
 
@@ -7870,7 +7911,7 @@ function kMenu() {
     { label: 'Who can I book with?', run: kTeam },
   ], (t) => {
     if (/^(hi|hey|hello|yo|good (morning|afternoon|evening))\b/.test(t) && t.split(/\s+/).length <= 3) {
-      kSay('<p>Hi there! I can book an appointment, or tell you about our services and team.</p>');
+      kSay(`<p>${kPick(['Hi there!', 'Hey you!', 'Hola!', 'Well hello!'])} I can book an appointment, or tell you about our services and team.</p>`);
       return 'keep';
     }
     if (/servic|offer|menu/.test(t) && !/book/.test(t)) { kServices(); return true; }
@@ -9334,12 +9375,14 @@ $('setSeg').onclick = (e) => {
   if (k !== setTab) showSetting(k);
 };
 
-/** Karen AI, Phone Number Settings: her number for everyone, the form and setup for the admin. */
+/**
+ * Karen AI, Phone Number Settings: her number, for everyone. The form to
+ * change it and the Twilio setup steps were taken off the page on request
+ * (2026-10-30, once the number was saved); PATCH /api/staff/karen still
+ * sets it.
+ */
 async function loadKarenSettings() {
   $('kaPic').src = KAREN_PIC;
-  const admin = Boolean(me?.user?.canManageTeam);
-  $('kaForm').classList.toggle('hidden', !admin);
-  $('kaSetup').classList.toggle('hidden', !admin);
   try {
     paintKarenSettings(await api('/api/staff/karen'));
   } catch (err) {
@@ -9361,23 +9404,10 @@ function paintKarenSettings(k) {
   if (me?.salon) { me.salon.karenPhone = k.pretty || ''; paintKarenNumber(); }
   $('kaNumber').innerHTML = k.pretty ? `<a href="tel:${esc(k.phone)}">${esc(k.pretty)}</a>` : 'No number connected yet';
   $('kaNumberSub').textContent = !k.pretty
-    ? (me?.user?.canManageTeam ? 'Connect one below and clients can call or text Karen.' : 'The admin connects it here.')
+    ? 'Once it is connected, clients can call or text Karen.'
     : k.texting ? 'Connected: Karen answers texts and calls to this number.'
     : 'Saved. Karen starts answering once TWILIO_AUTH_TOKEN is added in Vercel.';
-  $('kaPhone').value = k.pretty || '';
-  $('kaSms').textContent = k.webhooks.sms;
-  $('kaVoice').textContent = k.webhooks.voice;
 }
-
-$('kaForm').onsubmit = async (e) => {
-  e.preventDefault();
-  $('kaSave').disabled = true;
-  try {
-    paintKarenSettings(await api('/api/staff/karen', { method: 'PATCH', body: JSON.stringify({ phone: $('kaPhone').value }) }));
-    toast($('kaPhone').value.trim() ? "Karen's number is saved." : "Karen's number is cleared.");
-  } catch (err) { fail(err); }
-  $('kaSave').disabled = false;
-};
 
 // ── Appearance ───────────────────────────────────────────────────────────
 //
