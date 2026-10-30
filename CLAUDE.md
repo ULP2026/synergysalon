@@ -699,7 +699,9 @@ made that way are real: name them ZZ and remove them.
   under them (`#mailCard`), with no switch between them. Both old addresses
   (`/marketing/automation`, `/marketing/history`; `group: 'settings'`,
   `view: 'settings'`) open it, the second scrolled to the history; the gear
-  opens My settings. Email History is its
+  opens My settings. Each automation in the list shows its trigger under
+  its name (`a.when[1]`, the line that heads its flow; 2026-10-30), e.g.
+  Appointment Booking: "A client books an appointment". Email History is its
   own module now, with a search by name or address and a filter by message
   (`?history=1&q=&kind=`), each row opening that email (`?sent=<id>`,
   `sentMessage`). The log keeps who, which message and when, not a copy, so

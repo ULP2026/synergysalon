@@ -1552,6 +1552,10 @@
   .au-list .au-ic { width: 28px; height: 28px; border-radius: 9px; }
   .au-list .au-ic .ic { width: 15px; height: 15px; }
   .au-list .au-row .name { font-size: .88rem; }
+  /* The trigger under each name, what starts it (asked for 2026-10-30): the
+     same line that heads the automation's flow. */
+  .au-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .au-trig { font-size: var(--fs-xs); color: var(--muted); line-height: 1.3; }
   .au-list .au-sw { width: 34px; height: 20px; }
   .au-list .au-sw::after { width: 14px; height: 14px; }
   .au-list .au-sw[aria-checked="true"]::after { transform: translateX(14px); }
@@ -4295,7 +4299,7 @@ function automations() {
     {
       id: 'confirmation', name: 'Appointment Booking', icon: 'calendar-plus',
       sub: 'Confirms every new booking by email.',
-      when: ['calendar-plus', 'A client books', 'A client books an appointment online, at the front desk, or in this app.'],
+      when: ['calendar-plus', 'A client books an appointment', 'Online, at the front desk, or in this app.'],
       steps: [
         ['calendar', 'Block the calendar', 'It goes in the appointment book, so another client cannot book the same time.'],
         { msg: 'confirmation', title: 'Confirmation Message', sms: true, text: 'Date, time, stylist and the salon’s address, with a link to change or cancel.' },
@@ -4442,7 +4446,8 @@ function paintAutomationList() {
     return `
     <div class="au-row">
       <button type="button" class="au-open" data-auto="${a.id}">
-        <span class="au-ic">${ic(a.icon)}</span><span class="name">${esc(a.name)}</span>
+        <span class="au-ic">${ic(a.icon)}</span>
+        <span class="au-txt"><span class="name">${esc(a.name)}</span><span class="au-trig">${esc(a.when[1])}</span></span>
       </button>
       ${state}${sw}
       <span class="go">${ic('right')}</span>
