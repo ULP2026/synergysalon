@@ -1201,6 +1201,14 @@
   .dg-head .dg-hic .ic { width: 20px; height: 20px; }
   .dg-head img.avatar { border-radius: 50%; object-fit: cover; flex: none; }
   .dg-head .sub svg { width: 12px; height: 12px; vertical-align: -2px; margin-right: 3px; }
+  /* Outside a stylist's working hours (2026-10-31): quietly hatched, under
+     everything else in the column, and not bookable. */
+  .dg-offhrs { position: absolute; left: 0; right: 0; z-index: 0; cursor: not-allowed; display: flex; justify-content: center;
+               padding-top: 6px; overflow: hidden;
+               background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--line) 55%, transparent) 0 1px, transparent 1px 9px),
+                           color-mix(in srgb, var(--raise) 85%, transparent); }
+  .dg-offhrs span { font-size: var(--fs-xs); font-weight: 600; color: var(--faint); white-space: nowrap; }
+  .dg-col:has(.dg-offhrs:hover) .ghost { display: none; }
   .dg-busy { position: absolute; left: 6px; right: 6px; z-index: 1; border-radius: 10px; padding: 6px 10px;
              font-size: var(--fs-xs); font-weight: 600; color: #4b4f86; overflow: hidden; line-height: 1.3;
              border-left: 4px solid #9aa3e0;
@@ -5697,6 +5705,8 @@ function renderDiary(d) {
     ...blocks.map((b) => [salonMinutes(b.startsAt), salonMinutes(b.endsAt) || 24 * 60]),
     ...(d.team || []).flatMap((t) => t.busy.filter((x) => !x.allDay)
       .map((x) => [minutesOn(x.startsAt, d.date), minutesOn(x.endsAt, d.date)])),
+    // Somebody who starts at 7 or works until 9 has those hours on the grid.
+    ...Object.values(d.hours || {}).flat(),
   ];
   const from = Math.min(DG_FROM, ...spans.map(([x]) => Math.floor(x / 60) * 60));
   const to = Math.max(DG_TO, ...spans.map(([, y]) => Math.ceil(y / 60) * 60));
@@ -5748,6 +5758,29 @@ function renderDiary(d) {
       t = at + len;
     }
     return out + partCard(a, px(s0 + t) + 1, cardH(a.durationMin - t), 'Finish');
+  };
+  // Working hours (2026-10-31): the time outside a stylist's hours that day
+  // is greyed out and cannot be booked, and a day they do not work is
+  // greyed out whole. From the same hours the website and the desk's
+  // booking form offer times from (diary.js), so the three agree.
+  // Somebody with no chair has no hours listed and nothing is greyed.
+  const offHours = (slug, name) => {
+    const shifts = slug && d.hours ? d.hours[slug] : undefined;
+    if (!shifts) return '';
+    const band = (s, e, label, title) => (e - s < 15 ? '' : `<div class="dg-offhrs" style="top:${px(s)}px;height:${px(e) - px(s)}px"
+      data-offhrs="${esc(title)}" title="${esc(title)}"><span>${esc(label)}</span></div>`);
+    if (!shifts.length) return band(from, to, 'Not working today', `${name || 'This stylist'} does not work on this day.`);
+    const sorted = [...shifts].sort((a, b) => a[0] - b[0]);
+    const span = sorted.map(([a, b]) => `${clock(a)} to ${clock(b)}`).join(', ');
+    const title = `Outside ${name || 'this stylist'}'s working hours (${span}).`;
+    let out = '';
+    let at = from;
+    sorted.forEach(([a, b], i) => {
+      out += band(at, Math.min(a, to), i ? 'Break between shifts' : `Starts ${clock(a)}`, title);
+      at = Math.max(at, b);
+    });
+    out += band(at, to, `Done at ${clock(sorted[sorted.length - 1][1])}`, title);
+    return out;
   };
   // A block on the whole salon (no stylist) is drawn in every column.
   const salonBlocks = blocks.filter((b) => !b.stylistSlug);
@@ -5804,7 +5837,7 @@ function renderDiary(d) {
     // Somebody who takes no appointments has no stylist row, so their
     // column books with whoever is free.
     return `<div class="dg-col dg-c1${i ? '' : ' dg-tfirst'}" data-stylist="${esc(t.stylistSlug || '')}" style="height:${height}px">
-      <span class="ghost" aria-hidden="true"></span>
+      <span class="ghost" aria-hidden="true"></span>${offHours(t.stylistSlug, t.name)}
       ${t.error ? `<div class="dg-gerr">${esc(t.error)}</div>` : ''}${busy}${offs}${own.map(apptCard).join('')}${nowLine}</div>`;
   }).join('');
   const extraHtml = [...extra.values()].map((x) => {
@@ -5812,7 +5845,7 @@ function renderDiary(d) {
       .map((b) => blockHtml(b, ...blkSpan(b))).join('');
     const own = live.filter((a) => a.stylistSlug === x.slug).map(apptCard).join('');
     return `<div class="dg-col dg-c0" data-stylist="${esc(x.slug)}" style="height:${height}px">
-      <span class="ghost" aria-hidden="true"></span>${offs}${own}${nowLine}</div>`;
+      <span class="ghost" aria-hidden="true"></span>${offHours(x.slug, x.name)}${offs}${own}${nowLine}</div>`;
   }).join('');
   const looseHtml = lanesEnd.map((_, i) => {
     const offs = salonBlocks.map((b) => blockHtml(b, ...blkSpan(b))).join('');
@@ -5977,6 +6010,10 @@ $('diary').onclick = (e) => {
     return;
   }
 
+  // Outside somebody's working hours: nothing to book (the booking form
+  // would find no times there either), so say why instead of opening it.
+  const offhrs = e.target.closest('[data-offhrs]');
+  if (offhrs) { toast(`${offhrs.dataset.offhrs} Change them in Settings, Team.`); return; }
   const col = e.target.closest('.dg-col');
   if (!col || e.target !== col || col.classList.contains('dg-gcol')) return;
   if (noCals && !dgDemo) { toast('Create a calendar first.'); return; }
@@ -6182,6 +6219,8 @@ function demoDay(date) {
     date, today, heading: new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
     booked: appointments.length, arriving: appointments.filter((a) => !a.checkedInAt && a.status === 'booked').length,
     appointments, blocks,
+    // Sample working hours, so the greyed-out time shows too.
+    hours: Object.fromEntries(stylists.map((s, i) => [s.slug, [[540, i ? 1140 : 1020]]])),
     // The first two as if they had connected Google, so the sample shows
     // both kinds of column: connected, and not yet.
     team: stylists.slice(0, 2).map((s, i) => ({

@@ -246,6 +246,58 @@ export async function pushEvent(userId, appt, timezone) {
 }
 
 /**
+ * Copy a lunch or block into the stylist's salon calendar in Google (asked
+ * for 2026-10-31), so the time the app has stopped selling shows as taken
+ * on their phone too. Shown busy, titled by what it is, with nobody
+ * invited. Busy time is read from their main calendar only, never this
+ * one, so the copy is never read back as a second block.
+ */
+export async function pushBlock(userId, block, timezone, salonName) {
+  const token = await accessTokenFor(userId);
+  if (!token) return null;
+  const calendarId = await salonCalendarFor(userId, token, { name: salonName, timezone });
+  const created = await call(token, `/calendars/${encodeURIComponent(calendarId)}/events`, {
+    method: 'POST',
+    body: {
+      summary: block.reason === 'Lunch' ? 'Lunch' : `Blocked · ${block.reason}`,
+      description: 'Blocked in the salon app: no bookings at this time.',
+      start: { dateTime: new Date(block.startsAt).toISOString(), timeZone: timezone },
+      end: { dateTime: new Date(block.endsAt).toISOString(), timeZone: timezone },
+      transparency: 'opaque',
+    },
+  });
+  if (!created) throw new Error('Google Calendar would not take the block');
+  try {
+    await query(
+      `INSERT INTO google_blocks (time_off_id, staff_user_id, event_id, calendar_id)
+       VALUES ($1::int, $2::uuid, $3, $4)
+       ON CONFLICT (time_off_id, staff_user_id)
+       DO UPDATE SET event_id = EXCLUDED.event_id, calendar_id = EXCLUDED.calendar_id`,
+      [block.id, userId, created.id, calendarId],
+    );
+  } catch (err) {
+    // The block was removed while Google was making its copy: take the copy
+    // back out rather than leave it in their calendar with nothing behind it.
+    await call(token, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(created.id)}`,
+               { method: 'DELETE' }).catch(() => {});
+    throw err;
+  }
+  return created.id;
+}
+
+/** Take a block's copy out of Google again; one already gone there is fine. */
+export async function dropBlock(userId, eventId, calendarId) {
+  const token = await accessTokenFor(userId);
+  if (!token) return;
+  try {
+    await call(token, `/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
+  } catch (err) {
+    // 410: deleted in Google already, which is the outcome wanted.
+    if (!/ 410:/.test(err.message)) throw err;
+  }
+}
+
+/**
  * The calendar bookings are written to in this person's Google account: one
  * the app made, named after the salon, so salon work is its own calendar
  * they can colour or hide, and never mixed into their personal one.

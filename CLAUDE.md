@@ -780,6 +780,23 @@ made that way are real: name them ZZ and remove them.
   "+ New calendar" chip (removed on request). LUNCH and BLOCK are rows in
   `time_off`, the table availability already subtracts, so a block on the
   grid really stops the time being sold.
+  **Working hours on the grid** (asked for 2026-10-31): diary.js sends
+  `hours` with each day, every active stylist's shifts for that weekday as
+  minutes (`[[540, 960]]`; `[]` is a day off; somebody with no chair is not
+  listed), read from the same `stylist_hours` availability.js offers from.
+  The grid hatches the time outside them (`.dg-offhrs`, "Starts 9:00 AM",
+  "Done at 4:00 PM", "Not working today") and a click there says why
+  instead of opening New appointment. Every path that books or moves a
+  visit (online, desk, Karen, the guest's manage page) already goes through
+  `availableSlots`, so none of them can land outside the hours either;
+  `tests/hours.integration.test.js` pins the day off, the desk and the grid.
+  **Blocks reach Google too**: a lunch or block put on a stylist who signed
+  in with Google is copied into their salon calendar there (`pushBlock`,
+  "Blocked · <reason>", after the answer through `waitUntil`) and taken out
+  when the block is removed (`dropBlock`); `google_blocks` (migration 035,
+  also in ensure-schema) records each copy. Working hours themselves are
+  not written to Google: its API has no working-hours setting to write, and
+  a week of "not working" events would bury the stylist's own calendar.
   `?demo` on the address shows a sample day that saves nothing.
 - **Automation** is a **Settings tab** since 2026-10-24 (it was an item in
   the top menu called Marketing): `set-marketing`, after Team; the key is

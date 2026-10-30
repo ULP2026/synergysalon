@@ -159,6 +159,15 @@ const STATEMENTS = [
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_at timestamptz',
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_source text',
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_phone text',
+  // 035: the Google copy of each lunch and block, so a stylist's calendar
+  // shows the time the app has blocked. Additive and empty until used.
+  `CREATE TABLE IF NOT EXISTS google_blocks (
+     time_off_id   int  NOT NULL REFERENCES time_off(id) ON DELETE CASCADE,
+     staff_user_id uuid NOT NULL REFERENCES staff_users(id) ON DELETE CASCADE,
+     event_id      text NOT NULL,
+     calendar_id   text NOT NULL DEFAULT 'primary',
+     created_at    timestamptz NOT NULL DEFAULT now(),
+     PRIMARY KEY (time_off_id, staff_user_id))`,
   // And the people removed before the column existed. Each salon's stylists
   // who were never given a login are named in config.js; any other
   // switched-off row with no login is somebody who was removed. Harmless to

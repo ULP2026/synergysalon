@@ -16,10 +16,12 @@ import test from 'node:test';
 
 import { DateTime } from 'luxon';
 
+import { createSession } from '../api/_lib/auth.js';
 import { availableSlots } from '../api/_lib/availability.js';
 import { createBooking } from '../api/_lib/booking.js';
 import { pool } from '../api/_lib/db.js';
 import { setGoogleReaderForTests } from '../api/_lib/google-busy.js';
+import diary from '../api/staff/_routes/diary.js';
 
 const url = process.env.DATABASE_URL;
 const skip = url ? false : 'DATABASE_URL is not set';
@@ -126,6 +128,70 @@ test('a booking outside those hours is refused', { skip }, async () => {
   } finally {
     setGoogleReaderForTests(async () => []);
     client.release();
+    await cleanup();
+  }
+});
+
+test('a day they do not work offers nothing, and the desk is held to the hours too', { skip }, async () => {
+  await cleanup();
+  const { tenant } = await setup();
+  const sunday = DAY.plus({ days: 1 });   // they work Saturdays only
+  const client = await pool().connect();
+  try {
+    const { days } = await availableSlots(client, tenant, {
+      serviceSlug: 'zz-cut', stylistSlug: null, fromDate: sunday.toISODate(), toDate: sunday.toISODate(),
+    });
+    assert.equal(days.length, 0, 'a day with no hours is not a bookable day');
+
+    await client.query('BEGIN');
+    // The front desk books through the same check: not on their day off,
+    // and not before they start on a day they work.
+    await assert.rejects(createBooking(client, tenant, {
+      serviceSlug: 'zz-cut', stylistSlug: 'zz-tami', start: sunday.set({ hour: 10 }).toISO(),
+      guestName: 'ZZ Desk', channel: 'staff', minLeadMin: 0,
+    }), /not available/);
+    await assert.rejects(createBooking(client, tenant, {
+      serviceSlug: 'zz-cut', stylistSlug: 'zz-tami', start: at(8, 30).toISO(),
+      guestName: 'ZZ Desk', channel: 'staff', minLeadMin: 0,
+    }), /not available/);
+    await client.query('ROLLBACK');
+  } finally {
+    client.release();
+    await cleanup();
+  }
+});
+
+test("Appt. Book's day carries each stylist's hours, and none on a day off", { skip }, async () => {
+  await cleanup();
+  const { tenant } = await setup();
+  const db = pool();
+  try {
+    const desk = (await db.query(
+      `INSERT INTO staff_users (tenant_id, email, password_hash, name, role)
+       VALUES ($1, 'zz-hours-desk@example.com', 'x', 'ZZ Desk', 'front_desk') RETURNING *`, [tenant.id],
+    )).rows[0];
+    const res = { headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; } };
+    await createSession(res, desk);
+    const cookie = String(res.headers['set-cookie']).split(';')[0];
+    const get = (date) => new Promise((resolve) => {
+      const out = {
+        statusCode: 200, headers: {},
+        status(c) { this.statusCode = c; return this; },
+        setHeader(k, v) { this.headers[k.toLowerCase()] = v; return this; },
+        end(text) { resolve({ status: this.statusCode, body: text ? JSON.parse(text) : null }); },
+      };
+      diary({ method: 'GET', url: `/api/staff/diary?date=${date}`, headers: { cookie } }, out);
+    });
+
+    const sat = await get(DAY.toISODate());
+    assert.equal(sat.status, 200);
+    // 09:00 to 15:00 as minutes of the day, which the grid greys out around.
+    assert.deepEqual(sat.body.hours['zz-tami'], [[540, 900]]);
+    assert.deepEqual(sat.body.hours['zz-kim'], [[540, 900]]);
+
+    const sun = await get(DAY.plus({ days: 1 }).toISODate());
+    assert.deepEqual(sun.body.hours['zz-tami'], [], 'listed with no hours: off all day');
+  } finally {
     await cleanup();
   }
 });

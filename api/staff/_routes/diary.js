@@ -23,11 +23,14 @@
  * desk needs to see that the 2pm was cancelled rather than wonder where it
  * went.
  */
+import { waitUntil } from '@vercel/functions';
 import { DateTime } from 'luxon';
 
 import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
-import { busyBetween, googleConfigured } from '../../_lib/google.js';
+import {
+  busyBetween, dropBlock, googleConfigured, pushBlock,
+} from '../../_lib/google.js';
 import { icsBusyBetween, openLink } from '../../_lib/google-ics.js';
 import {
   HttpError, handler, json, readJson, requireDate, requireString,
@@ -136,6 +139,29 @@ export default handler({
       }));
     }
 
+    // Each stylist's working hours that day, for the day view only (asked
+    // for 2026-10-31): the grid greys out the time outside them and will
+    // not book there. The same stylist_hours rows availability.js offers
+    // from, so the grid, the desk's booking form and the website agree. A
+    // stylist with no hours that day is listed with none: off all day.
+    // Somebody with no chair is not listed, and their column is not greyed.
+    let hours = {};
+    if (!month) {
+      const { rows: shifts } = await query(
+        `SELECT s.slug, to_char(h.starts_at, 'HH24:MI') AS opens, to_char(h.ends_at, 'HH24:MI') AS closes
+           FROM stylists s
+           LEFT JOIN stylist_hours h ON h.stylist_id = s.id AND h.weekday = $2::int
+          WHERE s.tenant_id = $1::uuid AND s.active
+          ORDER BY s.slug, h.starts_at`,
+        [tenant.id, day.weekday % 7],
+      ).catch(() => ({ rows: [] }));
+      const mins = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+      for (const r of shifts) {
+        hours[r.slug] ||= [];
+        if (r.opens && r.closes) hours[r.slug].push([mins(r.opens), mins(r.closes)]);
+      }
+    }
+
     // Google, for the day view only, one call per connected person, side by
     // side. A person whose Google refuses still gets their column, saying so,
     // rather than an empty one that reads as a free day.
@@ -187,6 +213,7 @@ export default handler({
     return json(res, 200, {
       date,
       blocks,
+      hours,
       team,
       month: month ? month.toFormat('yyyy-MM') : null,
       timezone: tenant.timezone,
@@ -228,6 +255,23 @@ export default handler({
       [tenant.id, slug, start.toISO(), minutes, reason],
     );
     if (!rows[0]) throw new HttpError(404, 'No such stylist.');
+    // A copy in the stylist's Google Calendar when they signed in with
+    // Google, so their phone shows the time as taken too. The block is
+    // saved either way: Google being slow or refusing never undoes it, and
+    // the answer does not wait for Google (waitUntil finishes the copy).
+    if (googleConfigured()) waitUntil((async () => {
+      const { rows: who } = await query(
+        `SELECT u.id FROM stylists s JOIN staff_users u ON u.id = s.staff_user_id
+          WHERE s.tenant_id = $1::uuid AND s.slug = $2::text
+            AND (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL`,
+        [tenant.id, slug],
+      ).catch(() => ({ rows: [] }));
+      for (const u of who) {
+        await pushBlock(u.id, {
+          id: rows[0].id, reason, startsAt: start.toISO(), endsAt: start.plus({ minutes }).toISO(),
+        }, tenant.timezone, tenant.name).catch((err) => console.error('google block copy failed', rows[0].id, err.message));
+      }
+    })());
     return json(res, 201, { ok: true, id: rows[0].id, kind });
   },
 
@@ -238,11 +282,23 @@ export default handler({
     const body = await readJson(req);
     const id = Number(body.id);
     if (!Number.isInteger(id) || id < 1) throw new HttpError(400, 'Block is not valid.');
+    // Which Google copies it has, read first: the rows that name them go
+    // with the block. They are taken out of Google after the answer.
+    const { rows: copies } = await query(
+      `SELECT g.staff_user_id, g.event_id, g.calendar_id FROM google_blocks g
+         JOIN time_off t ON t.id = g.time_off_id
+        WHERE g.time_off_id = $1::int AND t.tenant_id = $2::uuid`,
+      [id, tenant.id],
+    ).catch(() => ({ rows: [] }));
     const { rowCount } = await query(
       'DELETE FROM time_off WHERE id = $1::int AND tenant_id = $2::uuid',
       [id, tenant.id],
     );
     if (!rowCount) throw new HttpError(404, 'That block is already gone.');
+    if (copies.length) {
+      waitUntil(Promise.all(copies.map((c) => dropBlock(c.staff_user_id, c.event_id, c.calendar_id)
+        .catch((err) => console.error('google block removal failed', id, err.message)))));
+    }
     return json(res, 200, { ok: true, id });
   },
 });
