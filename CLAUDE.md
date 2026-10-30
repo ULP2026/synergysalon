@@ -439,7 +439,9 @@ made that way are real: name them ZZ and remove them.
   (`stylistPhoto` before `stylists.photo`, whose 012 path for Tami is a
   deleted file), else the avatar they chose, else a default (`personPhoto`).
   A client row has no ⋯ menu any more (removed on request 2026-10-30): Book
-  is its one button, and Edit details and Delete client are on the profile
+  is its one button (wearing their stylist's face, ringed in their colour,
+  and booking with that stylist preset, `bookButton`; the calendar icon for
+  a client with no stylist yet), and Edit details and Delete client are on the profile
   the row opens. So the Add client window (`#contactDlg`) only ever adds;
   its "Where did they hear about us?" is a list (2026-10-30), the website
   survey's answers plus Walk-in and Phone call, so sources are spelled one

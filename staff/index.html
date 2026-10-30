@@ -702,6 +702,9 @@
   .cstylists .sav { width: 22px; height: 22px; margin-left: -7px; border-radius: 50%; object-fit: cover; flex: none;
     background: var(--peri-pale); box-shadow: 0 0 0 2px var(--c); }
   .cstylists button[aria-pressed="true"] .sav { box-shadow: 0 0 0 2px #fff; }
+  .iconbtn.bookface { padding: 0; }
+  .iconbtn.bookface img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+    background: var(--peri-pale); box-shadow: 0 0 0 2px var(--c); }
   .cstages .n { font-variant-numeric: tabular-nums; color: var(--faint); font-weight: 600; margin-left: 2px; }
   .cstages button[aria-pressed="true"] .n { color: inherit; opacity: .8; }
   .ctags-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: -4px 0 16px; }
@@ -6343,6 +6346,21 @@ function stylistTag(st) {
   return st ? `<span class="tag stag" style="--c:${stylistColor(st.slug)}" title="Their stylist: ${esc(st.name)}"><i class="dot"></i>${esc(st.name)}</span>` : '';
 }
 
+/**
+ * A client row's Book button. With a stylist it wears their face (asked for
+ * 2026-10-30), the same picture as their filter button, and books with them;
+ * Back in the booking window still offers anyone else. Without one it is the
+ * plain calendar.
+ */
+function bookButton(c) {
+  const st = c.stylist && contactStylists.find((t) => t.slug === c.stylist.slug);
+  if (!st) {
+    return `<button class="iconbtn" data-book="${esc(c.id)}" title="Book an appointment" aria-label="Book ${esc(c.name)}">${ic('calendar-plus')}</button>`;
+  }
+  return `<button class="iconbtn bookface" data-book="${esc(c.id)}" data-with="${esc(st.slug)}" style="--c:${stylistColor(st.slug)}"
+    title="Book with ${esc(st.name)}" aria-label="Book ${esc(c.name)} with ${esc(st.name)}"><img src="${esc(personPhoto(st))}" alt=""></button>`;
+}
+
 function fillStylistFilter() {
   const box = $('contactStylist');
   const list = contactStylists;
@@ -6414,7 +6432,7 @@ function renderContacts(d, filtered) {
         <div class="cvisits"><b>${c.visits}</b><span>${c.visits === 1 ? 'visit' : 'visits'}</span></div>
         ${next}
         <div class="acts">
-          <button class="iconbtn" data-book="${esc(c.id)}" title="Book an appointment" aria-label="Book ${esc(c.name)}">${ic('calendar-plus')}</button>
+          ${bookButton(c)}
         </div>
       </div>`;
   }).join('')}</div>`;
@@ -6471,7 +6489,7 @@ $('contacts').onclick = (e) => {
     return;
   }
   const c = contactList.find((x) => String(x.id) === book.dataset.book);
-  if (c) openBooking(c);
+  if (c) openBooking(c, book.dataset.with ? { stylist: book.dataset.with } : null);
 };
 
 async function deleteContact(c) {
