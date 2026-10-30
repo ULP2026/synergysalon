@@ -1384,6 +1384,14 @@
   .kd-chip:hover { background: var(--peri-pale); }
   .kd-chip.solid { background: var(--periwinkle); color: #fff; }
   .kd-chip.solid:hover { background: var(--indigo); }
+  /* On a phone, every button here is a thumb's size (2026-10-30): the
+     Activity filters, a profile's pencils and Karen's suggestions were
+     30px, under the 36 to 44 a finger needs. */
+  @media (max-width: 720px) {
+    .tl-filters button { height: 36px; padding: 0 13px; }
+    .px-pen { width: 38px; height: 38px; margin-right: -4px; }
+    .kd-chip { min-height: 38px; padding: 8px 14px; }
+  }
   .kd-chip:focus-visible, .kd-send:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
   .kd-input { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--card); }
   .kd-input input { flex: 1; min-width: 0; height: 38px; padding: 0 14px; font-size: var(--fs-sm); border: 1px solid var(--line-2); border-radius: 999px;

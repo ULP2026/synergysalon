@@ -506,6 +506,9 @@ made that way are real: name them ZZ and remove them.
   keyboard focus (`#karenBtnVid` over the picture; leaving puts her back on
   the first frame; touch never starts it), and so does the picture in her chat window's header while the mouse is over the card (`karenWave`; measured against the card's edges, since an open dialog's backdrop counts as the dialog). Settings, Karen AI shows her at
   88px (64 on a phone), waving on a loop. Neither moves for reduced motion.
+  On a phone, Karen's suggestion chips, a profile's Activity filters and its
+  pencils are 36 to 38px (they were 30), and her chat fills the screen with
+  the ring as its frame; checked at 390 and 360px wide, nothing overflows.
 - **Karen by text** (2026-10-22): Settings, Karen AI, Phone Number Settings
   shows the number clients call or text (`tenants.karen_phone`, migration
   033, also in ensure-schema; `GET/PATCH /api/staff/karen`, the admin
