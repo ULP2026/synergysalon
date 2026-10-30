@@ -114,7 +114,7 @@ test('Karen in the app reads clients, their history, the calendar and the email 
       question: 'When was ZZ Desk Client added, and have we emailed them?', history: [],
     }, claude, client);
 
-    assert.match(answer, /ZZ Desk Client was added/);
+    assert.match(answer.say, /ZZ Desk Client was added/);
     assert.equal(seen.find.total, 1);
     assert.equal(seen.find.clients[0].name, 'ZZ Desk Client');
     assert.equal(seen.find.clients[0].source, 'Facebook');

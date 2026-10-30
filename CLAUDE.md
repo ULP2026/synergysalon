@@ -581,6 +581,34 @@ made that way are real: name them ZZ and remove them.
   12 messages travel with each question for follow-ups. Without
   `ANTHROPIC_API_KEY` the endpoint answers 503 and the chat keeps to its
   rules for the session.
+  **Karen in the app is an assistant now, not a menu** (2026-10-31, after
+  "can you send an email reminder to Marian for her appointment today"
+  started a booking: the rules matched "scheduled"). Whenever no booking
+  step is waiting on an answer, a typed message goes to her AI first
+  (`kAskAi`), with the conversation for context. She knows the app from
+  `api/_lib/karen-knowledge.js` (`APP_GUIDE`: every page, setting, booking
+  rule, email and common problem, in the words on screen, with the live
+  `ONLINE_BOOKING` and `CLIENT_PRICES`; **change it when the app changes**,
+  or she explains the old app with confidence) and looks the rest up:
+  clients, history, appointments, emails, `team` (roles, services, hours,
+  lunch, Google), `salon_settings` (automations off, reply-to, her number),
+  services, and `free_times` (`availableSlots`). She acts through two
+  proposal tools, `propose_send_emails` (reminder or confirmation) and
+  `propose_appointment_action` (check in, done, no-show, cancel; never
+  delete), and hands bookings to the steps (`start_booking`, a `handoff`
+  the console feeds to `kBookFrom`). **She only proposes**, as by text:
+  `api/_lib/karen-actions.js` checks the appointments (this salon's, in a
+  state the action fits; what is left out is returned with why), keeps the
+  proposal for that person in `karen_threads` under `desk:<user id>`, and
+  the console shows a card with Confirm and Cancel (or a typed yes/no).
+  `POST /api/staff/karen {confirm: id}` carries it out only if it is that
+  person's latest, under 15 minutes old, re-checking each appointment,
+  through the app's own `sendReminder`/`sendConfirmation` (logged, a sent
+  reminder stamps `reminder_sent_at` so the daily run skips it) and
+  `applyAppointmentAction` (lifted out of the appointment route, the same
+  code as the buttons); the reply is written by code from the results.
+  Anything else said drops the proposal. karen-desk.js stays read-only
+  (its test greps it). Effort is medium. `tests/karen-actions.integration.test.js`.
   A sent email's window no longer carries the rebuilt-from-the-booking
   note (`note` is null unless the booking was deleted): the Email History
   header's info button says it once.

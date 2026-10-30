@@ -4,10 +4,14 @@
  *   GET    the number clients call or text to reach Karen, and whether
  *          texts can be answered yet (everyone on the team can read it)
  *   PATCH  {phone}  set or clear it (the admin)
- *   POST   {question, history}  Karen in the app answers a question from
- *          the salon's records (karen-desk.js; anyone on the team, who can
- *          already see all of it in the app). 503 NO_AI without a key, and
- *          the console falls back to its rules.
+ *   POST   {question, history}  Karen in the app answers, from the app
+ *          guide and the salon's records, and may get an action ready
+ *          (karen-desk.js; anyone on the team, who can already see all of it
+ *          in the app). Replies {say, proposal, handoff}. 503 NO_AI without
+ *          a key, and the console falls back to its rules.
+ *   POST   {confirm: id} / {decline: id}  carry out, or drop, the action
+ *          she got ready (karen-actions.js); only the person it was got
+ *          ready for, within fifteen minutes, and only the latest one.
  *
  * The number is bought from the phone provider and pointed at the webhooks
  * listed here; this records which number it is, so the team can see it and
@@ -17,6 +21,7 @@ import { assertSameOrigin, requireStaff, requireTeamAdmin } from '../../_lib/aut
 import { hasColumn, query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson } from '../../_lib/http.js';
 import { karenAi } from '../../_lib/karen-ai.js';
+import { confirm, dropProposal, propose } from '../../_lib/karen-actions.js';
 import { deskReply } from '../../_lib/karen-desk.js';
 import { phoneKey, prettyPhone } from '../../_lib/karen-sms.js';
 import { tenantForUser } from '../../_lib/tenant.js';
@@ -49,6 +54,15 @@ export default handler({
     assertSameOrigin(req);
     const user = await requireStaff(req);
     const body = await readJson(req);
+    // Confirm or Cancel on the card she showed.
+    if (typeof body.confirm === 'string' || typeof body.decline === 'string') {
+      const tenant = await tenantForUser(user);
+      if (typeof body.decline === 'string') {
+        await dropProposal({ tenant, user });
+        return json(res, 200, { say: 'No problem, I left it.', done: false });
+      }
+      return json(res, 200, await confirm({ tenant, user }, body.confirm.slice(0, 64)));
+    }
     const question = typeof body.question === 'string' ? body.question.trim().slice(0, 1000) : '';
     if (!question) throw new HttpError(400, 'Ask Karen a question.');
     const ai = karenAi();
@@ -58,8 +72,14 @@ export default handler({
       .slice(-12)
       .map((h) => ({ role: h.role, text: h.text.slice(0, 2000) }));
     const tenant = await tenantForUser(user);
+    // Anything said drops what was waiting: a proposal lives for one reply,
+    // so "no, wait" followed later by Confirm on an old card does nothing.
+    await dropProposal({ tenant, user });
     try {
-      return json(res, 200, { say: await deskReply({ tenant, user, question, history }, ai) });
+      const out = await deskReply({
+        tenant, user, question, history, propose: (input) => propose({ tenant, user }, input),
+      }, ai);
+      return json(res, 200, out);
     } catch (err) {
       console.error('karen-desk failed', err);
       throw new HttpError(502, "Karen couldn't look that up just now.", 'AI_FAILED');

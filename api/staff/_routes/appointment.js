@@ -109,6 +109,115 @@ export async function ticketFor(tenant, ref, db = null) {
   };
 }
 
+/**
+ * Check in, no-show, done, cancel, reopen or delete one appointment, with
+ * the emails, follow-ups and Google copy that go with it. The buttons on
+ * the appointment window call it through POST below, and Karen in the app
+ * calls it once the person has confirmed (karen-actions.js), so both do
+ * exactly the same thing.
+ */
+export async function applyAppointmentAction(tenant, user, ref, action) {
+  const result = await transaction(async (client) => {
+    const { rows } = await client.query(
+      `SELECT a.*, s.name AS stylist_name, ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines
+         FROM appointments a
+         JOIN stylists s ON s.id = a.stylist_id
+         JOIN services v ON v.id = a.service_id
+        WHERE a.ref = $1 AND a.tenant_id = $2
+        FOR NO KEY UPDATE OF a`,
+      [ref, tenant.id],
+    );
+    const appt = rows[0];
+    if (!appt) throw new HttpError(404, 'No appointment with that reference.');
+
+    // Carries the joined names through, so the cancellation email can say
+    // what was cancelled without a second query or a value from the client.
+    const set = async (sql, params = []) => {
+      const r = await client.query(
+        `UPDATE appointments SET ${sql}, updated_at = now() WHERE id = $1 RETURNING *`,
+        [appt.id, ...params],
+      );
+      return {
+        ...r.rows[0],
+        stylist_name: appt.stylist_name,
+        service_name: appt.service_name,
+        lines: appt.lines,
+      };
+    };
+
+    const mark = async (sql) => ({ appt: await set(sql) });
+
+    switch (action) {
+      case 'check_in':
+        return mark('checked_in_at = COALESCE(checked_in_at, now())');
+      case 'undo_check_in':
+        return mark('checked_in_at = NULL');
+      case 'complete':
+        return mark("status = 'completed'");
+      case 'no_show':
+        return mark("status = 'no_show'");
+
+      case 'cancel': {
+        if (appt.status === 'cancelled') {
+          throw new HttpError(409, 'That appointment is already cancelled.');
+        }
+        const updated = await set("status = 'cancelled', cancelled_at = now()");
+        return { appt: updated, cancelled: true };
+      }
+
+      case 'reopen': {
+        if (appt.status !== 'cancelled') {
+          throw new HttpError(409, 'That appointment is not cancelled.');
+        }
+        try {
+          // The slot was released when it was cancelled, so somebody else
+          // may have taken it in the meantime. The constraint says so.
+          const updated = await set("status = 'booked', cancelled_at = NULL");
+          return { appt: updated };
+        } catch (err) {
+          if (err.code === EXCLUSION_VIOLATION) {
+            throw new HttpError(409, 'That time has been taken by someone else since it was cancelled.');
+          }
+          throw err;
+        }
+      }
+
+      case 'delete': {
+        if (!CAN_DELETE.includes(user.role)) {
+          throw new HttpError(403, 'Only an owner or a manager can delete an appointment.');
+        }
+        // Its copy in the stylist's Google Calendar goes first: the record
+        // of which event it became is deleted along with it.
+        await removeGoogleCopies(appt, appt.service_name);
+        await client.query('DELETE FROM appointments WHERE id = $1', [appt.id]);
+        return { appt, deleted: true };
+      }
+
+      default:
+        throw new HttpError(400, `"${action}" is not something you can do to an appointment.`);
+    }
+  });
+
+  if (result.cancelled && result.appt.guest_email) {
+    try {
+      await sendCancellation(result.appt, tenant);
+    } catch (err) {
+      console.error('cancellation email failed for', ref, err);
+    }
+  }
+
+  // The follow-ups this action starts or stops (M5 to M8). After the
+  // transaction, never inside it: a queued email is not worth rolling a
+  // status change back for, and scheduled.js swallows its own failures.
+  await followUps(action, result.appt, tenant);
+
+  // Inline, for every action, so the stylist's Google copy matches by the
+  // time the diary reloads; the daily cron puts right anything that fails.
+  await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', ref, err));
+
+  return result;
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
@@ -128,104 +237,7 @@ export default handler({
 
     const ref = requireString(body.ref, 'Reference', { max: 16 }).toUpperCase();
     const action = requireString(body.action, 'Action', { max: 20 });
-
-    const result = await transaction(async (client) => {
-      const { rows } = await client.query(
-        `SELECT a.*, s.name AS stylist_name, ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines
-           FROM appointments a
-           JOIN stylists s ON s.id = a.stylist_id
-           JOIN services v ON v.id = a.service_id
-          WHERE a.ref = $1 AND a.tenant_id = $2
-          FOR NO KEY UPDATE OF a`,
-        [ref, tenant.id],
-      );
-      const appt = rows[0];
-      if (!appt) throw new HttpError(404, 'No appointment with that reference.');
-
-      // Carries the joined names through, so the cancellation email can say
-      // what was cancelled without a second query or a value from the client.
-      const set = async (sql, params = []) => {
-        const r = await client.query(
-          `UPDATE appointments SET ${sql}, updated_at = now() WHERE id = $1 RETURNING *`,
-          [appt.id, ...params],
-        );
-        return {
-          ...r.rows[0],
-          stylist_name: appt.stylist_name,
-          service_name: appt.service_name,
-          lines: appt.lines,
-        };
-      };
-
-      const mark = async (sql) => ({ appt: await set(sql) });
-
-      switch (action) {
-        case 'check_in':
-          return mark('checked_in_at = COALESCE(checked_in_at, now())');
-        case 'undo_check_in':
-          return mark('checked_in_at = NULL');
-        case 'complete':
-          return mark("status = 'completed'");
-        case 'no_show':
-          return mark("status = 'no_show'");
-
-        case 'cancel': {
-          if (appt.status === 'cancelled') {
-            throw new HttpError(409, 'That appointment is already cancelled.');
-          }
-          const updated = await set("status = 'cancelled', cancelled_at = now()");
-          return { appt: updated, cancelled: true };
-        }
-
-        case 'reopen': {
-          if (appt.status !== 'cancelled') {
-            throw new HttpError(409, 'That appointment is not cancelled.');
-          }
-          try {
-            // The slot was released when it was cancelled, so somebody else
-            // may have taken it in the meantime. The constraint says so.
-            const updated = await set("status = 'booked', cancelled_at = NULL");
-            return { appt: updated };
-          } catch (err) {
-            if (err.code === EXCLUSION_VIOLATION) {
-              throw new HttpError(409, 'That time has been taken by someone else since it was cancelled.');
-            }
-            throw err;
-          }
-        }
-
-        case 'delete': {
-          if (!CAN_DELETE.includes(user.role)) {
-            throw new HttpError(403, 'Only an owner or a manager can delete an appointment.');
-          }
-          // Its copy in the stylist's Google Calendar goes first: the record
-          // of which event it became is deleted along with it.
-          await removeGoogleCopies(appt, appt.service_name);
-          await client.query('DELETE FROM appointments WHERE id = $1', [appt.id]);
-          return { appt, deleted: true };
-        }
-
-        default:
-          throw new HttpError(400, `"${action}" is not something you can do to an appointment.`);
-      }
-    });
-
-    if (result.cancelled && result.appt.guest_email) {
-      try {
-        await sendCancellation(result.appt, tenant);
-      } catch (err) {
-        console.error('cancellation email failed for', ref, err);
-      }
-    }
-
-    // The follow-ups this action starts or stops (M5 to M8). After the
-    // transaction, never inside it: a queued email is not worth rolling a
-    // status change back for, and scheduled.js swallows its own failures.
-    await followUps(action, result.appt, tenant);
-
-    // Inline, for every action, so the stylist's Google copy matches by the
-    // time the diary reloads; the daily cron puts right anything that fails.
-    await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', ref, err));
+    const result = await applyAppointmentAction(tenant, user, ref, action);
 
     if (result.deleted) {
       return json(res, 200, { ref, action, deleted: true });

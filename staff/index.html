@@ -1389,6 +1389,11 @@
   /* The ask area (chips, the summary card, the message box) is kept small
      while the window grew: the conversation gets the room. */
   .kd-card { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: var(--raise); }
+  /* An action she got ready, waiting on Confirm (2026-10-31). */
+  .kd-prop { margin: 0; padding: 10px 12px; border: 1px solid var(--line-2); background: var(--card); }
+  .kd-prop b { display: block; margin-bottom: 4px; }
+  .kd-prop ul { margin: 0; padding-left: 18px; font-size: var(--fs-sm); line-height: 1.5; }
+  .kd-prop .kd-note { margin: 6px 0 0; font-size: var(--fs-xs); color: var(--muted); }
   .kd-card dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: var(--fs-xs); }
   .kd-card dt { color: var(--muted); } .kd-card dd { margin: 0; font-weight: 600; }
   .kd-ok { display: flex; align-items: center; gap: 8px; font-weight: 650; color: var(--ok); }
@@ -7901,16 +7906,26 @@ $('karenForm').onsubmit = (e) => {
   const ask = karenAsk;
   const moved = () => { $('karenChips').innerHTML = ''; karenAsk = null; };
   if (/^(start over|restart|reset|start again|new booking|from the top)\b/.test(t)) { kStart(); return; }
+  // An action she got ready is waiting: a plain yes carries it out, a plain
+  // no drops it; anything else is a new message (and the server drops it).
+  if (karenPending) {
+    const id = karenPending;
+    karenPending = null;
+    if (KAREN_YES.test(t)) { moved(); kDecide(id, true); return; }
+    if (KAREN_NO.test(t)) { moved(); kDecide(id, false); return; }
+    moved();
+  }
+  // With nothing waiting on an answer, she reads it first (2026-10-31): the
+  // AI knows the app, the records and what she can do, and hands booking to
+  // the steps below. Her rules matched words ("schedule" started a booking,
+  // "cancel" stopped one that did not exist), which is what made her feel
+  // like a basic chatbot.
+  const idle = !ask || ask.key === 'menu' || ask.key === 'confirm';
+  if (karenAiOn && idle) { kAskAi(raw, t, ask?.key === 'confirm' ? null : ask); return; }
   // Things said at any point that are not answers: back, cancel, wait, thanks.
   const control = kControl(t, ask);
   if (control === 'moved') { moved(); return; }
   if (control) return;
-  // A question for the records ("when was Luiz added?", "have any emails
-  // been sent?") goes to Karen's AI, which looks it up (2026-10-31). Not
-  // mid-booking, where the question being asked gets the first go, and never
-  // a request to book or for free times, which the steps below handle.
-  const idle = !ask || ask.key === 'menu';
-  if (karenAiOn && idle && kIsQuestion(t) && !kWantsBooking(t)) { kAskAi(raw, t, ask); return; }
   // Without the AI, what is already booked is still read from the calendar,
   // before the question's own answers, because the menu takes any "book" as
   // a request to make a booking (2026-10-31).
@@ -8176,6 +8191,7 @@ function kHello() {
 function kStart() {
   karenRun += 1;
   karenAiLog = [];
+  karenPending = null;
   karenQueue = Promise.resolve();
   karenAsk = null;
   kReset();
@@ -8727,6 +8743,9 @@ function kWantsBooking(t) {
 // steps. Without a key (503) she goes back to her rules for the session.
 let karenAiOn = true;
 let karenAiLog = [];   // this conversation's questions and answers, for follow-ups
+let karenPending = null;   // the id of an action she got ready, waiting on Confirm
+const KAREN_YES = /^(yes|yep|yeah|yup|sure|ok|okay|confirm|confirmed|do it|go ahead|go for it|send( them| it)?|please do|y)\b[\s.!]*(please)?[\s.!]*$/;
+const KAREN_NO = /^(no|nope|nah|don'?t|do not|cancel that|never ?mind|leave it|stop|n)\b[\s.!]*$/;
 
 /** Her plain-text answer as chat paragraphs: blank lines split, lines break. */
 const kPlain = (text) => String(text).trim().split(/\n\s*\n/)
@@ -8753,11 +8772,24 @@ async function kAskAi(raw, t, ask) {
   } catch { /* offline: handled below as a failure */ }
   if (run !== karenRun) { b.remove(); return; }
   if (res?.status === 401) { b.remove(); showLogin(); return; }
-  if (res?.ok && data.say) {
-    b.innerHTML = kPlain(data.say);
-    kScroll();
-    karenAiLog.push({ role: 'user', text: raw }, { role: 'assistant', text: data.say });
+  if (res?.ok && (data.say || data.handoff)) {
+    if (data.say) {
+      b.innerHTML = kPlain(data.say);
+      kScroll();
+    } else b.remove();
+    karenAiLog.push({ role: 'user', text: raw }, { role: 'assistant', text: data.say || 'Setting that booking up.' });
+    // A booking: the steps take over from what was asked, offering only
+    // real free times.
+    if (data.handoff?.type === 'book') {
+      const req = String(data.handoff.request || raw).toLowerCase().replace(/[’`]/g, "'");
+      kBookFrom(req);
+      return;
+    }
+    // An action she got ready: the card, with Confirm and Cancel. Nothing
+    // happens until one is pressed (or yes or no is typed).
+    if (data.proposal) { kShowProposal(data.proposal); return; }
     if (ask?.hint && ask.key !== 'menu') kSay(`<p>${esc(ask.hint)}</p>`);
+    else if (!ask || ask.key === 'menu') kMenu();
     return;
   }
   b.remove();
@@ -8769,6 +8801,46 @@ async function kAskAi(raw, t, ask) {
     return;
   }
   kSorry(ask);
+}
+
+/** What she got ready, as a card: the title, one line per appointment. */
+function kShowProposal(p) {
+  karenPending = p.id;
+  const lines = (p.lines || []).slice(0, 12);
+  const more = (p.lines || []).length - lines.length;
+  kSay(`<div class="kd-card kd-prop"><b>${esc(p.title)}</b><ul>${lines.map((l) => `<li>${esc(l)}</li>`).join('')}`
+    + `${more > 0 ? `<li>and ${more} more</li>` : ''}</ul>${p.note ? `<p class="kd-note">${esc(p.note)}</p>` : ''}</div>`);
+  kAsk([
+    { label: 'Confirm', solid: true, run: () => { karenPending = null; kDecide(p.id, true); } },
+    { label: 'Cancel', run: () => { karenPending = null; kDecide(p.id, false); } },
+  ], null, 'Tap Confirm to go ahead, or Cancel.', 'confirm');
+}
+
+/** Confirm or Cancel: the app does it and says what happened. */
+async function kDecide(id, yes) {
+  const run = karenRun;
+  await karenQueue;
+  if (run !== karenRun) return;
+  const b = document.createElement('div');
+  b.className = 'kd-msg karen';
+  b.innerHTML = '<span class="kd-typing" aria-label="Karen is working on it"><i></i><i></i><i></i></span>';
+  $('karenLog').append(b);
+  kScroll();
+  let say;
+  try {
+    const d = await api('/api/staff/karen', { method: 'POST', body: JSON.stringify(yes ? { confirm: id } : { decline: id }) });
+    say = d.say;
+  } catch (err) {
+    say = `That didn't go through${err?.message ? ` (${err.message})` : ''}. Nothing was changed.`;
+  }
+  if (run !== karenRun) { b.remove(); return; }
+  b.innerHTML = kPlain(say);
+  kScroll();
+  // So a follow-up ("and tomorrow's?") knows what was done.
+  karenAiLog.push({ role: 'user', text: yes ? 'Confirm' : 'Cancel' }, { role: 'assistant', text: say });
+  // Whatever changed shows on the open page.
+  if (yes && page === 'appointments') refreshDiary();
+  kMenu();
 }
 
 async function kLookup(t, ask) {
