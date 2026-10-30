@@ -2825,7 +2825,7 @@
         <button type="button" data-set="me" aria-pressed="true">My settings</button>
         <button type="button" data-set="salon" aria-pressed="false">Salon</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
-        <button type="button" data-set="marketing" aria-pressed="false">Automation</button>
+        <button type="button" data-set="marketing" aria-pressed="false">Automations</button>
         <button type="button" data-set="payment" aria-pressed="false" data-admin>Payment</button>
         <button type="button" data-set="karen" aria-pressed="false">Karen AI</button>
       </div>
@@ -4449,7 +4449,7 @@ function renderAutomations() {
   const all = automations();
   $('mktCard').innerHTML = `
     <div class="au-top">
-      <h2>Automation<span class="n">${all.length}</span></h2>
+      <h2>Automations<span class="n">${all.length}</span></h2>
     </div>
     <div class="au-list" id="autoList"></div>`;
   paintAutomationList();

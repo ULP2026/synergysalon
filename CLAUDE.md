@@ -732,8 +732,8 @@ made that way are real: name them ZZ and remove them.
   closes from its header (2026-10-30; closed by default, remembered per
   browser as `ss-mail-open`, opened by the history address), with an info
   button on the header's far right saying the email is rebuilt from the
-  booking. The list's heading
-  reads Automation, like the tab. The log keeps who, which message and when, not a copy, so
+  booking. The tab and the list's
+  heading read Automations (on request, later on 2026-10-30). The log keeps who, which message and when, not a copy, so
   the email is rendered again from the booking as it is now and the window
   says so; the manage link carries a dummy token, never the guest's; a
   booking deleted since shows sample details. **Finance** moved to Home on
