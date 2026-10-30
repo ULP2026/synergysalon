@@ -23,6 +23,7 @@ import {
 } from '../../_lib/http.js';
 import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import { visitLinesSql, visitNameSql } from '../../_lib/visit.js';
 
 const STATUSES = ['new', 'contacted', 'booked', 'won', 'lost'];
 
@@ -149,7 +150,8 @@ export async function contactDetail(tenantId, id, db = null) {
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.status, a.channel,
             to_jsonb(a) ->> 'booked_via' AS via, a.created_at, a.updated_at, a.cancelled_at, a.checked_in_at,
             a.reminder_sent_at,
-            s.name AS stylist, s.slug AS stylist_slug, v.name AS service
+            s.name AS stylist, s.slug AS stylist_slug, ${visitNameSql()} AS service,
+            ${visitLinesSql()} AS lines, a.price_cents
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id

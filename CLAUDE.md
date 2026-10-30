@@ -608,11 +608,29 @@ made that way are real: name them ZZ and remove them.
   (`contacts.card_on_file`, migration 032, also in ensure-schema since it is
   additive and defaults to no; `PATCH {op: 'card'}`, `setCard`). Nothing in
   the app takes or stores a card; when Stripe lands it can set the flag.
-- Migration 031 is NOT in ensure-schema, on purpose: previews share the
-  live database, and ensure-schema would run it there unasked. Until it is
-  run (alone, after approval) everything reads the columns through to_jsonb
-  and `hasColumn` (db.js) guards the writes: bookings are as before, tickets
-  are not itemized, and the preference switches show as not available yet.
+- Migration 031 was held out of ensure-schema until the salon approved it
+  on 2026-10-31; it is in ensure-schema since, so the live database gets
+  `appointments.services` and the client's email and text preferences on
+  the next `/api/staff/me`. Reads still go through to_jsonb and writes
+  through `hasColumn` (db.js), so nothing breaks on a database without it.
+- **A visit is shown whole everywhere** (asked for 2026-10-31: a booking of
+  several services showed only its first). `api/_lib/visit.js` is the one
+  rule: `visitNameSql()` names a visit by its itemized services joined
+  with " + " (031), else the website's "Services:" line in its notes, else
+  its first service; `visitLinesSql()` and `visitLines()` give the lines.
+  Every query that names a visit's service uses it: the ticket, the
+  client's activity and appointment list, Appt. Book, Home's Coming up, the
+  reminder and follow-up crons, Email History's window, the guest's manage
+  page, Karen (app and text), the Google copy and the calendar feed. The
+  booking returns its own lines, so the confirmation lists every service
+  even on a database without 031. Emails show "Services", one per line
+  with its price, then "Total" (`detailRows`); one service reads "Service"
+  and "Price" as before. The ticket has Service, Qty, Time and Price, and
+  "Total · n services"; a visit of several services booked before the
+  lines existed shows its services and only the total, never a split. A
+  website guest who changes services mid-survey moves their booking with
+  its new services (`service_id`, notes and lines), not only its length.
+  `tests/visit.test.js` and `tests/visit-services.integration.test.js`.
 - Team Settings has "Where do you want people to reply to": `tenants.reply_to`
   (017, also in ensure-schema), the reply-to on every guest email
   (`shopFrom().replyTo`), falling back to the salon profile email when empty.

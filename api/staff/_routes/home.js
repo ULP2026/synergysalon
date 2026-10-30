@@ -40,6 +40,7 @@ import {
   HttpError, handler, json, readJson,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import { visitNameSql } from '../../_lib/visit.js';
 
 const UPCOMING = 6;
 
@@ -180,7 +181,7 @@ export default handler({
       ),
       query(
         `SELECT a.ref, a.starts_at, a.duration_min, a.channel, a.checked_in_at,
-                a.guest_name, s.name AS stylist, v.name AS service,
+                a.guest_name, s.name AS stylist, ${visitNameSql()} AS service,
                 COALESCE(a.price_cents, v.price_cents) AS price_cents,
                 -- First visit: nothing earlier for this guest that was kept.
                 NOT EXISTS (SELECT 1 FROM appointments p

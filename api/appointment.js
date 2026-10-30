@@ -21,6 +21,7 @@ import {
   HttpError, handler, json, readJson, requireDate, requireId, requireString, tokenMatches,
 } from './_lib/http.js';
 import { tenantForRequest } from './_lib/tenant.js';
+import { visitLinesSql, visitNameSql } from './_lib/visit.js';
 
 /**
  * The stylist's Google copy follows at once rather than at the daily cron.
@@ -47,7 +48,7 @@ async function load(client, req, tenant, { forUpdate = false } = {}) {
 
   const { rows } = await client.query(
     `SELECT a.*, s.name AS stylist_name, s.slug AS stylist_slug,
-            v.name AS service_name, v.slug AS service_slug
+            ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines, v.slug AS service_slug
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
@@ -67,9 +68,8 @@ function present(appt) {
   return {
     ref: appt.ref,
     status: appt.status,
-    // A visit of several services is one appointment against its first; the
-    // full list was written into the notes when it was booked (enquiry.js).
-    service: (String(appt.notes || '').match(/^Services: (.+)$/m) || [])[1] || appt.service_name,
+    // Every service of the visit (visit.js), not only the first.
+    service: appt.service_name,
     serviceSlug: appt.service_slug,
     stylist: appt.stylist_name,
     stylistSlug: appt.stylist_slug,
@@ -193,6 +193,7 @@ export default handler({
             stylist_slug: stylist?.slug ?? current.stylist_slug,
             service_name: current.service_name,
             service_slug: current.service_slug,
+            lines: current.lines,
           },
           previousStart: current.starts_at,
         };
@@ -232,6 +233,7 @@ export default handler({
         stylist_slug: current.stylist_slug,
         service_name: current.service_name,
         service_slug: current.service_slug,
+        lines: current.lines,
       };
     });
 

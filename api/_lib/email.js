@@ -14,6 +14,7 @@ import { CLIENT_PRICES, DEFAULT_TZ, shopFrom } from './config.js';
 // template functions and previewMessage still work with no DATABASE_URL.
 import { query } from './db.js';
 import { textGuest } from './sms-notify.js';
+import { visitLines } from './visit.js';
 
 const senderAddress = (v) => { const m = String(v).match(/<([^>]+)>/); return (m ? m[1] : String(v)).trim(); };
 
@@ -286,15 +287,19 @@ function detailRows(appt, zone) {
   // No Reference row (asked for 2026-10-23 on the confirmation, 2026-10-24 on
   // every email): guests never need it, since the manage link carries the
   // booking itself. Staff see it only in a client's contact details.
-  const rows = [
-    ['Service', appt.service_name],
-    ['With', appt.stylist_name],
-    ['When', prettyWhen(appt.starts_at, zone)],
-  ];
-  // Only once the salon shows clients its prices (CLIENT_PRICES): bookings
-  // carry the stylist's price for the team, not yet for guests.
+  // Every service of the visit, one per line (asked for 2026-10-31: only
+  // the first used to show), from the itemized list, else the visit's name
+  // (visit.js). Prices only once the salon shows clients its prices
+  // (CLIENT_PRICES): then each line's, where it has one, and the total.
+  const lines = visitLines(appt.lines, appt.service_name);
+  const money = (c) => `$${(c / 100).toFixed(2)}`;
+  const priced = (l) => (CLIENT_PRICES && l.priceCents != null ? `${l.name} · ${money(l.priceCents)}` : l.name);
+  const rows = lines.length > 1
+    ? [['Services', lines.map(priced).join('\n')]]
+    : [['Service', appt.service_name]];
+  rows.push(['With', appt.stylist_name], ['When', prettyWhen(appt.starts_at, zone)]);
   if (CLIENT_PRICES && appt.price_cents != null) {
-    rows.splice(1, 0, ['Price', `$${(appt.price_cents / 100).toFixed(2)}`]);
+    rows.splice(1, 0, [lines.length > 1 ? 'Total' : 'Price', money(appt.price_cents)]);
   }
   // How long to set aside, under the time, because "2:30 PM" alone has sent
   // more than one guest back to work before their colour was finished. Left

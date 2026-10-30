@@ -6101,15 +6101,23 @@ async function openTicket(ref, seed = null) {
 /** Every service on the visit, its time and price, and the total. */
 function ticketLines(a) {
   if (a.loading) return skeleton(2);
-  const lines = a.lines || [{ name: a.service, durationMin: null, priceCents: null }];
+  // Every service of the visit (asked for 2026-10-31), each its own line
+  // with how many, how long and what it was priced at when booked. A visit
+  // of one service that predates itemizing is still that service at the
+  // total; one of several shows its services and only the total, never a
+  // guessed split.
+  const lines = a.lines?.length ? a.lines : String(a.service || '').split(' + ').filter(Boolean)
+    .map((name) => ({ name, durationMin: null, priceCents: null }));
   const dash = '<span class="muted">–</span>';
-  const price = (l) => (a.itemized && l.priceCents != null ? esc(money(l.priceCents / 100)) : dash);
+  const single = lines.length === 1;
+  const price = (l) => (l.priceCents != null && (a.itemized || single) ? esc(money(l.priceCents / 100))
+    : single && a.price != null ? esc(money(a.price)) : dash);
   return `<div class="tkt-scroll"><table class="tkt-lines">
-      <thead><tr><th scope="col">Service</th><th scope="col">Time</th><th scope="col" class="num">Price</th></tr></thead>
-      <tbody>${lines.map((l) => `<tr><td>${esc(l.name)}</td><td class="muted">${l.durationMin ? esc(`${l.durationMin} min`) : ''}</td><td class="num">${price(l)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><th scope="row" colspan="2">Total</th><td class="num">${a.price == null ? '<span class="muted">Not priced</span>' : esc(money(a.price))}</td></tr></tfoot>
+      <thead><tr><th scope="col">Service</th><th scope="col" class="num">Qty</th><th scope="col">Time</th><th scope="col" class="num">Price</th></tr></thead>
+      <tbody>${lines.map((l) => `<tr><td>${esc(l.name)}</td><td class="num muted">1</td><td class="muted">${l.durationMin ? esc(`${l.durationMin} min`) : ''}</td><td class="num">${price(l)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><th scope="row" colspan="3">Total${single ? '' : ` · ${lines.length} services`}</th><td class="num">${a.price == null ? '<span class="muted">Not priced</span>' : esc(money(a.price))}</td></tr></tfoot>
     </table></div>
-    ${a.lines && !a.itemized ? '<p class="tkt-hint">Booked before visits were itemized, so only the total is known.</p>' : ''}`;
+    ${!a.itemized && !single ? '<p class="tkt-hint">Booked before visits were itemized, so only the total is known.</p>' : ''}`;
 }
 
 /** What was paid. Nothing is recorded by the app yet, and it says so. */

@@ -18,6 +18,7 @@ import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import { visitLinesSql, visitNameSql } from '../../_lib/visit.js';
 
 /**
  * The same people who run Settings. Owner-only left the salon's own manager
@@ -116,7 +117,7 @@ export async function sentMessage(id, tenant) {
   const { rows } = await query(
     `SELECT m.kind, m.to_name, m.to_email, m.sent_at,
             a.ref, a.starts_at, a.duration_min, a.price_cents,
-            v.name AS service_name, s.name AS stylist_name
+            ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines, s.name AS stylist_name
        FROM message_sends m
        LEFT JOIN appointments a ON a.id = m.appointment_id
        LEFT JOIN services v ON v.id = a.service_id
@@ -130,6 +131,7 @@ export async function sentMessage(id, tenant) {
   const appt = r.ref
     ? {
       service_name: r.service_name || 'Your appointment',
+      lines: r.lines,
       stylist_name: r.stylist_name || 'your stylist',
       price_cents: r.price_cents ?? null,
       duration_min: r.duration_min ?? null,

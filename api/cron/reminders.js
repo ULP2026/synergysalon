@@ -11,6 +11,7 @@ import { REMINDER_LEAD_HOURS } from '../_lib/config.js';
 import { query } from '../_lib/db.js';
 import { sendReminder } from '../_lib/email.js';
 import { handler, json } from '../_lib/http.js';
+import { visitLinesSql, visitNameSql } from '../_lib/visit.js';
 
 export default handler({
   async GET(req, res) {
@@ -22,7 +23,7 @@ export default handler({
     const { rows } = await query(
       `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.price_cents,
               a.guest_name, a.guest_email, a.manage_token, a.contact_id,
-              s.name AS stylist_name, v.name AS service_name,
+              s.name AS stylist_name, ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines,
               -- The shop each guest is being reminded about, so one run can
               -- cover several and each email speaks for the right one.
               t.timezone, t.name AS shop_name, t.host, t.slug,

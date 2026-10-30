@@ -24,6 +24,7 @@ import { DateTime } from 'luxon';
 import { contactDetail } from '../staff/_routes/contacts.js';
 import { query } from './db.js';
 import { KAREN_MODEL } from './karen-ai.js';
+import { visitNameSql } from './visit.js';
 
 /** Look-ups before Karen must answer: a search, a history, a cross-check. */
 const ROUNDS = 8;
@@ -214,7 +215,7 @@ export async function deskReply(ctx, client, db = null) {
       if (input.stylist && !st) return { error: 'Use a stylist slug from the stylists list.' };
       const { rows } = await q(
         `SELECT a.ref, a.starts_at, a.duration_min, a.status, a.channel, a.guest_name, a.price_cents, a.created_at,
-                s.name AS stylist, v.name AS service
+                s.name AS stylist, ${visitNameSql()} AS service
            FROM appointments a
            JOIN stylists s ON s.id = a.stylist_id
            JOIN services v ON v.id = a.service_id

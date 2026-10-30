@@ -39,6 +39,7 @@ import { tenantForUser } from '../../_lib/tenant.js';
 import {
   LUNCH, cleanBreaks, cleanDown, flexLunchOn, lunchGap, workSpans,
 } from '../../_lib/timing.js';
+import { visitNameSql } from '../../_lib/visit.js';
 
 export default handler({
   async GET(req, res) {
@@ -74,7 +75,7 @@ export default handler({
                 WHERE n.contact_id = a.contact_id AND n.status = 'booked'
                   AND n.starts_at > a.starts_at) AS next_starts_at,
               s.slug AS stylist_slug, s.name AS stylist_name,
-              v.name AS service_name,
+              ${visitNameSql()} AS service_name,
               b.name AS booked_by_name,
               ct.id AS contact_id
          FROM appointments a

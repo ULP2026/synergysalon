@@ -79,7 +79,14 @@ async function insertFor(client, stylistId, ctx) {
            FROM stylists s, services v WHERE s.id = $1 AND v.id = $2`,
         [stylistId, service.id],
       );
-      return { ...rows[0], ...named[0], stylist_id: stylistId, service_id: service.id };
+      // Every service of the visit, from what was just booked (visit.js):
+      // the confirmation email and the reply list them all, whether or not
+      // the database keeps the itemized list (031).
+      const lines = visit.lines?.length ? visit.lines : null;
+      return {
+        ...rows[0], ...named[0], stylist_id: stylistId, service_id: service.id,
+        ...(lines ? { service_name: lines.map((l) => l.name).join(' + '), lines } : {}),
+      };
     } catch (err) {
       await client.query('ROLLBACK TO SAVEPOINT try_slot');
       // The slot is genuinely gone for this stylist.

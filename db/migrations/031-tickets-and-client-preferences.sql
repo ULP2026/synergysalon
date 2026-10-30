@@ -1,11 +1,11 @@
 -- Tickets, and how each client wants to be contacted.
 --
 -- Additive only: two kinds of new column, nothing existing altered or
--- dropped, and no rows written. NOT in api/_lib/ensure-schema.js, so it never
--- runs by itself on the live database; it runs only by a deliberate
--- npm run db:migrate once it is approved, alone, with the usual proof posted
--- on the card. The code reads these columns through to_jsonb and checks they
--- exist before writing them, so the app behaves exactly as before until then.
+-- dropped, and no rows written. Held back from api/_lib/ensure-schema.js
+-- until the salon approved it on 2026-10-31 (so that a visit of several
+-- services is shown whole on its ticket, in its emails and in the client's
+-- activity); since then ensure-schema adds it too. The code reads these
+-- columns through to_jsonb and checks they exist before writing them.
 --
 -- Numbered 031 on purpose: 028 is reserved for chair applications, and 029
 -- and 030 are left for the approved email_unsubscribes and paid flag

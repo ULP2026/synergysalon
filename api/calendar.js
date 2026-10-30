@@ -17,6 +17,7 @@ import { DateTime } from 'luxon';
 
 import { query } from './_lib/db.js';
 import { handler, json } from './_lib/http.js';
+import { visitNameSql } from './_lib/visit.js';
 
 /** How much of the diary a phone needs: enough history to look back, a season ahead. */
 const DAYS_BACK = 60;
@@ -121,7 +122,7 @@ export default handler({
     const { rows } = await query(
       `SELECT a.ref, a.starts_at, a.duration_min, a.status, a.updated_at,
               a.guest_name, a.guest_email, a.guest_phone, a.notes,
-              v.name AS service_name, st.name AS stylist_name
+              ${visitNameSql()} AS service_name, st.name AS stylist_name
          FROM appointments a
          JOIN services v ON v.id = a.service_id
          JOIN stylists st ON st.id = a.stylist_id

@@ -22,7 +22,7 @@ import { availableSlots } from './_lib/availability.js';
 import { createBooking } from './_lib/booking.js';
 import { ONLINE_BOOKING } from './_lib/config.js';
 import { previewAllowed } from './_lib/preview.js';
-import { transaction } from './_lib/db.js';
+import { hasColumn, transaction } from './_lib/db.js';
 import { saveContactMessage, sendOptInConfirmation } from './_lib/contact-form.js';
 import { sendConfirmation, sendContactNotice } from './_lib/email.js';
 import { mirrorToGoogle } from './_lib/google-mirror.js';
@@ -284,8 +284,9 @@ export default handler({
         await client.query('SAVEPOINT check_move');
         let days = [];
         let visits = new Map();
+        let service = null;
         try {
-          ({ days, visits } = await availableSlots(client, tenant, {
+          ({ days, visits, service } = await availableSlots(client, tenant, {
             serviceSlug,
             extraServiceSlugs,
             google: true,
@@ -316,11 +317,20 @@ export default handler({
                     price_cents = $6::int, breaks = $7::jsonb,
                     during = tstzrange($2::timestamptz,
                              $2::timestamptz + make_interval(mins => $4::int + $5::int), '[)'),
+                    -- And which services it is now, with the guest's own
+                    -- list in the notes, so the ticket and the emails name
+                    -- what they picked this time, not what they first did.
+                    service_id = $8::uuid, notes = $9::text,
                     updated_at = now()
               WHERE id = $1`,
             [live[0].id, start.toISO(), stylistId, visit.durationMin, visit.bufferMin, visit.priceCents,
-             JSON.stringify(visit.breaks || [])],
+             JSON.stringify(visit.breaks || []), service.id, notesFrom(body)],
           );
+          // The itemized lines (031), when the database has the column.
+          if (visit.lines?.length && await hasColumn('appointments', 'services', client)) {
+            await client.query('UPDATE appointments SET services = $2::jsonb WHERE id = $1::uuid',
+              [live[0].id, JSON.stringify(visit.lines)]);
+          }
           return { contactId, booked: null, already: live[0].ref, moved: true };
         } catch {
           return { contactId, booked: null, already: live[0].ref };

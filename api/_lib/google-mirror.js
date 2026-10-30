@@ -14,6 +14,7 @@
  */
 import { query } from './db.js';
 import { googleConfigured, pushEvent } from './google.js';
+import { visitNameSql } from './visit.js';
 
 /** Swapped out by the tests, which have no Google to talk to. */
 let push = pushEvent;
@@ -23,7 +24,7 @@ export async function mirrorToGoogle({ limit = 20, tenantId = null } = {}) {
   if (!googleConfigured() && push === pushEvent) return [];
   // Through to_jsonb so this is harmless before migration 010.
   const { rows } = await query(
-    `SELECT a.*, s.name AS stylist_name, v.name AS service_name, u.id AS staff_user_id,
+    `SELECT a.*, s.name AS stylist_name, ${visitNameSql()} AS service_name, u.id AS staff_user_id,
             t.timezone, t.name AS salon_name
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id

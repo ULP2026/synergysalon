@@ -23,6 +23,7 @@ import { sendCancellation } from '../../_lib/email.js';
 import { at, cancelFor, enqueue } from '../../_lib/scheduled.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import { visitLines, visitLinesSql, visitNameSql } from '../../_lib/visit.js';
 
 /** Same bar as deleting a contact: this removes history outright. */
 const CAN_DELETE = ['owner', 'admin', 'manager'];
@@ -49,7 +50,7 @@ export async function ticketFor(tenant, ref, db = null) {
             a.guest_name, a.guest_email, a.guest_phone,
             to_jsonb(a) -> 'services' AS lines, to_jsonb(a) -> 'breaks' AS breaks,
             s.name AS stylist_name, s.slug AS stylist_slug,
-            v.name AS service_name, v.slug AS service_slug,
+            ${visitNameSql()} AS service_name, v.slug AS service_slug,
             b.name AS booked_by_name,
             c.name AS contact_name, c.phone AS contact_phone, c.email AS contact_email,
             (SELECT min(n.starts_at) FROM appointments n
@@ -67,14 +68,10 @@ export async function ticketFor(tenant, ref, db = null) {
   if (!r) return null;
 
   const starts = DateTime.fromJSDate(new Date(r.starts_at)).setZone(tenant.timezone);
+  // Every service of the visit: itemized when it was booked with its lines
+  // (031), else each one named from the visit's record, unpriced (visit.js).
   const saved = Array.isArray(r.lines) && r.lines.length ? r.lines : null;
-  const lines = saved
-    ? saved.map((l) => ({
-      name: String(l.name || ''),
-      priceCents: Number.isFinite(l.priceCents) ? l.priceCents : null,
-      durationMin: Number.isFinite(l.durationMin) ? l.durationMin : null,
-    }))
-    : [{ name: r.service_name, priceCents: null, durationMin: null }];
+  const lines = visitLines(saved, r.service_name);
 
   return {
     ref: r.ref,
@@ -134,7 +131,7 @@ export default handler({
 
     const result = await transaction(async (client) => {
       const { rows } = await client.query(
-        `SELECT a.*, s.name AS stylist_name, v.name AS service_name
+        `SELECT a.*, s.name AS stylist_name, ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines
            FROM appointments a
            JOIN stylists s ON s.id = a.stylist_id
            JOIN services v ON v.id = a.service_id
@@ -156,6 +153,7 @@ export default handler({
           ...r.rows[0],
           stylist_name: appt.stylist_name,
           service_name: appt.service_name,
+          lines: appt.lines,
         };
       };
 

@@ -142,8 +142,15 @@ const STATEMENTS = [
      WHERE appointment_id IS NOT NULL AND cancelled_at IS NULL`,
   'ALTER TABLE services ADD COLUMN IF NOT EXISTS rebook_days integer',
   'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS review_url text',
+  // 031, approved by the salon on 2026-10-31 so that a visit of several
+  // services is shown whole everywhere: the itemized services of each
+  // booking, and each client's email and text preferences. Additive; the
+  // two preferences default to yes, which is what happens today.
+  'ALTER TABLE appointments ADD COLUMN IF NOT EXISTS services jsonb',
+  'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS email_ok boolean NOT NULL DEFAULT true',
+  'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_ok boolean NOT NULL DEFAULT true',
   // 032: whether the salon holds a card for a client, set on their profile.
-  // Additive, defaulting to no, unlike 031 safe to add unasked.
+  // Additive, defaulting to no.
   'ALTER TABLE contacts ADD COLUMN IF NOT EXISTS card_on_file boolean NOT NULL DEFAULT false',
   // 033: Karen by text: her number, and where each conversation has got to.
   // Additive: a column nobody reads until it is set, and a table of its own.

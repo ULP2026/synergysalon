@@ -42,6 +42,7 @@ import { canManageTeam } from './auth.js';
 import { aiReply, karenAi } from './karen-ai.js';
 import { appointmentText } from './sms-notify.js';
 import { sendText } from './twilio.js';
+import { visitNameSql } from './visit.js';
 
 export { sendText };
 
@@ -462,7 +463,7 @@ async function staffSchedule({ tenant, who, t, db }) {
   const span = daysAsked(t, zone);
   const mine = Boolean(who.stylist_id);
   const { rows } = await db.query(
-    `SELECT a.starts_at, a.guest_name, v.name AS service, s.name AS stylist, a.notes,
+    `SELECT a.starts_at, a.guest_name, ${visitNameSql()} AS service, s.name AS stylist, a.notes,
             to_jsonb(a) -> 'services' AS lines
        FROM appointments a
        JOIN services v ON v.id = a.service_id
@@ -499,7 +500,7 @@ async function upcoming({ tenant, who, db }) {
   const { rows } = await db.query(
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.buffer_min, a.breaks, a.notes,
             to_jsonb(a) -> 'services' AS lines,
-            s.name AS stylist, s.slug AS stylist_slug, v.name AS service, v.slug AS service_slug
+            s.name AS stylist, s.slug AS stylist_slug, ${visitNameSql()} AS service, v.slug AS service_slug
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
@@ -523,7 +524,7 @@ async function chairAhead({ tenant, who, db }) {
   const { rows } = await db.query(
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.buffer_min, a.breaks, a.notes, a.contact_id,
             to_jsonb(a) -> 'services' AS lines, a.guest_name AS client,
-            s.name AS stylist, s.slug AS stylist_slug, v.name AS service, v.slug AS service_slug
+            s.name AS stylist, s.slug AS stylist_slug, ${visitNameSql()} AS service, v.slug AS service_slug
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
@@ -649,7 +650,7 @@ async function cancelIt(ctx, a) {
         RETURNING *`,
       [a.id, tenant.id],
     );
-    return rows[0] ? { ...rows[0], stylist_name: a.stylist, stylist_slug: a.stylist_slug, service_name: a.service, service_slug: a.service_slug } : null;
+    return rows[0] ? { ...rows[0], stylist_name: a.stylist, stylist_slug: a.stylist_slug, service_name: a.service, service_slug: a.service_slug, lines: a.lines } : null;
   });
   if (!appt) return { say: 'That appointment has already been changed. Text "my appointments" to see where things stand.', state: {} };
   await afterChange(appt, () => sendCancellation(appt, tenant));
@@ -686,7 +687,7 @@ async function moveIt(ctx, a, start, { offerAgain = true } = {}) {
           RETURNING *`,
         [a.id, startsAt.toISO(), slot.stylistIds[0]],
       );
-      return rows[0] ? { ...rows[0], stylist_name: a.stylist, stylist_slug: a.stylist_slug, service_name: a.service, service_slug: a.service_slug } : null;
+      return rows[0] ? { ...rows[0], stylist_name: a.stylist, stylist_slug: a.stylist_slug, service_name: a.service, service_slug: a.service_slug, lines: a.lines } : null;
     });
   } catch (err) {
     if (err.code !== EXCLUSION_VIOLATION) throw err;

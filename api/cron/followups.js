@@ -20,6 +20,7 @@
 import { query } from '../_lib/db.js';
 import { sendKind } from '../_lib/email.js';
 import { handler, json } from '../_lib/http.js';
+import { visitLinesSql, visitNameSql } from '../_lib/visit.js';
 
 /** How far back to look. Older than this and the moment has simply passed. */
 const STALE_DAYS = 14;
@@ -119,7 +120,7 @@ export default handler({
       `SELECT m.id, m.kind, m.to_name, m.to_email, m.appointment_id,
               a.ref, a.starts_at, a.duration_min, a.price_cents, a.manage_token,
               a.status AS appt_status, a.guest_name, a.guest_email,
-              s.name AS stylist_name, v.name AS service_name,
+              s.name AS stylist_name, ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines,
               t.id AS tenant_id, t.name AS shop_name, t.timezone, t.host, t.slug,
               t.address, t.phone, t.email,
               to_jsonb(t) -> 'automations_off' AS automations_off,
@@ -197,6 +198,7 @@ export default handler({
         guest_email: row.to_email,
         stylist_name: row.stylist_name || 'the team',
         service_name: row.service_name || 'your appointment',
+        lines: row.lines,
       };
 
       try {
