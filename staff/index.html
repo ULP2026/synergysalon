@@ -941,8 +941,6 @@
 
   .cstylists .clabel { flex: none; margin-right: 4px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em;
                        text-transform: uppercase; color: var(--muted); }
-  .cstylists button.left { opacity: .75; }
-  .cstylists button small { font-size: var(--fs-xs); color: var(--muted); }
 
   /* The ticket. */
   /* The details scroll; the header and the actions stay in view. */
@@ -6432,10 +6430,11 @@ let contactStylist = '';    // a stylist's slug, or '' for everyone
 /**
  * Choose your stylist: every stylist record the salon has, from the server
  * (contacts?stylists), whether or not they have a login, a connected
- * calendar or payroll. Somebody who has left stays on the list, marked, so
- * their clients and history can still be found (asked for 2026-10-22; it
- * used to be the team members with the Stylist role, which missed anyone
- * added as a chair without a login).
+ * calendar or payroll (asked for 2026-10-22; it used to be the team members
+ * with the Stylist role, which missed anyone added as a chair without a
+ * login). Somebody who has left is kept in this list, for their face on
+ * their old clients' rows, but has no button any more (removed on request,
+ * 2026-10-31): their clients are still under All and found by search.
  */
 let contactStylists = [];
 /**
@@ -6474,14 +6473,13 @@ function bookButton(c) {
 
 function fillStylistFilter() {
   const box = $('contactStylist');
-  const list = contactStylists;
+  const list = contactStylists.filter((t) => !t.left);
   if (contactStylist && !list.some((t) => t.slug === contactStylist)) contactStylist = '';
   box.classList.toggle('hidden', !list.length);
   box.innerHTML = '<span class="clabel" id="contactStylistLbl">Choose your stylist</span>'
     + `<button type="button" data-member="" aria-pressed="${contactStylist === ''}">All</button>`
-    + list.map((t) => `<button type="button" data-member="${esc(t.slug)}"
-      title="${esc(t.name)}${t.left ? ' (no longer here; their clients stay)' : ''}" aria-pressed="${t.slug === contactStylist}"
-      class="${t.left ? 'left' : ''}"><img class="sav" src="${esc(personPhoto(t))}" alt="">${esc(t.name)}${t.left ? ' <small>left</small>' : ''}</button>`).join('');
+    + list.map((t) => `<button type="button" data-member="${esc(t.slug)}" title="${esc(t.name)}"
+      aria-pressed="${t.slug === contactStylist}"><img class="sav" src="${esc(personPhoto(t))}" alt="">${esc(t.name)}</button>`).join('');
 }
 
 // The lead-stage filters (All, New, Contacted, Booked, Client, Lost) were

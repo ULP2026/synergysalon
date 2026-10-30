@@ -426,8 +426,10 @@ made that way are real: name them ZZ and remove them.
 - Nav: Home, Appt. Book (renamed Appointments for an hour on 2026-10-30 and put back on request, everywhere: the menu, the page title, the client profile's heading, Karen, the Google messages and the welcome email; only the profile's Activity filter says Appointments, on request), Clients, Settings (addresses above; Marketing, now named Automation, is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
   (2026-10-22): All, then every stylist record from `contacts?stylists=1`
   (`stylistChoices`), with or without a login, calendar or payroll, so long
-  as they are active or have ever been booked; one who has left stays,
-  marked "left", so their clients can still be found (`?stylist=<slug>`).
+  as they are active or have ever been booked. One who has left has no
+  button since 2026-10-31 (removed on request; it used to stay, marked
+  "left"): their clients are under All and found by search, and the list
+  still carries them for their face on those clients' rows.
   Each client is shown with their stylist, whoever they last booked with
   (`STYLIST_OF`), not their source, and as a face rather than a name tag
   (on request, 2026-10-30 and 31): the list's Book button wears it, and on
