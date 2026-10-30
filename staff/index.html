@@ -1318,7 +1318,7 @@
   .kc-pic, .kd-pic { position: relative; flex: none; display: grid; place-items: center; border-radius: 50%; background: #fff; }
   .kc-pic { width: 28px; height: 28px; }
   .kc-pic img { width: 28px; height: 28px; border-radius: 50%; }
-  .kc-pic video { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .kc-pic video, .kd-pic video { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
   .kc-vid { opacity: 0; transition: opacity .15s var(--ease); }
   .kc-vid.on { opacity: 1; }
   .kc-pic i, .kd-pic i { position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%;
@@ -3068,7 +3068,7 @@
      through POST /api/staff/book, exactly as New appointment does. -->
 <dialog id="karenDlg" class="kd" aria-labelledby="karenTitle">
   <header class="kd-head">
-    <span class="kd-pic"><img id="karenPic" alt=""><i></i></span>
+    <span class="kd-pic"><img id="karenPic" alt=""><video id="karenVid" class="kc-vid" muted playsinline loop preload="none"></video><i></i></span>
     <div class="kd-id">
       <h2 id="karenTitle">Karen</h2>
       <span id="karenStatus">Booking Assistant · Online</span>
@@ -6530,7 +6530,7 @@ let person = null;          // { contact, appointments, activity } for the open 
 let tlFilter = 'all';
 
 const TL_TYPES = [
-  ['all', 'All'], ['appointment', 'Appt. Book'], ['email', 'Email'],
+  ['all', 'All'], ['appointment', 'Appointments'], ['email', 'Email'],
   ['sms', 'SMS'], ['automation', 'Automations'], ['form', 'Forms'],
 ];
 const TL_ICON = { appointment: 'calendar', email: 'mail', sms: 'message', automation: 'zap', form: 'form', sync: 'sync', lead: 'user' };
@@ -8456,22 +8456,42 @@ function kTeam() {
 }
 
 $('karenBtnPic').src = KAREN_PIC;
-// The header button waves only while a mouse is on it, or it has the
-// keyboard's focus; a tap opens her chat straight away, so touch never
-// starts it. Leaving puts her back on her first frame, the still picture.
-{
-  const v = $('karenBtnVid');
-  const on = () => {
-    if (kQuiet()) return;
-    if (!v.src) v.src = KAREN_WAVE;
-    v.play().then(() => v.classList.add('on')).catch(() => {});
+// Karen waves while a mouse is on her: the header button (or while it has
+// the keyboard's focus), and her chat window (asked for 2026-10-30), where
+// the picture in its header waves. A tap opens her chat straight away, so
+// touch never starts it. Leaving puts her back on her first frame, the
+// still picture.
+function karenWave(v) {
+  return {
+    on() {
+      if (kQuiet()) return;
+      if (!v.src) v.src = KAREN_WAVE;
+      v.play().then(() => v.classList.add('on')).catch(() => {});
+    },
+    off() { v.classList.remove('on'); v.pause(); if (v.readyState) v.currentTime = 0; },
   };
-  const off = () => { v.classList.remove('on'); v.pause(); if (v.readyState) v.currentTime = 0; };
-  $('karenBtn').addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') on(); });
-  $('karenBtn').addEventListener('pointerleave', off);
-  $('karenBtn').addEventListener('focus', () => { if ($('karenBtn').matches(':focus-visible')) on(); });
-  $('karenBtn').addEventListener('blur', off);
-  $('karenBtn').addEventListener('click', off);
+}
+{
+  const btn = karenWave($('karenBtnVid'));
+  $('karenBtn').addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') btn.on(); });
+  $('karenBtn').addEventListener('pointerleave', btn.off);
+  $('karenBtn').addEventListener('focus', () => { if ($('karenBtn').matches(':focus-visible')) btn.on(); });
+  $('karenBtn').addEventListener('blur', btn.off);
+  $('karenBtn').addEventListener('click', btn.off);
+  // An open dialog's backdrop is the dialog as far as the pointer is
+  // concerned, so the pointer never "leaves" it: whether it is over the card
+  // is measured against the card's own edges.
+  const dlg = $('karenDlg');
+  const chat = karenWave($('karenVid'));
+  let over = false;
+  const set = (now) => { if (now !== over) { over = now; if (now) chat.on(); else chat.off(); } };
+  dlg.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const r = dlg.getBoundingClientRect();
+    set(e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+  });
+  dlg.addEventListener('pointerleave', () => set(false));
+  dlg.addEventListener('close', () => set(false));
 }
 $('karenPic').src = KAREN_PIC;
 $('bookKarenPic').src = KAREN_PIC;

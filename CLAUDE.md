@@ -423,7 +423,7 @@ made that way are real: name them ZZ and remove them.
   `*.vercel.app` or local address, where those names belong to the public
   site), `HOME_PATH` is `/` or `/staff`, and the menu's links are rewritten
   to match. Invite links from `team.js` follow the same rule.
-- Nav: Home, Appt. Book (renamed Appointments for an hour on 2026-10-30 and put back on request, everywhere: the menu, the page title, the client profile's heading and filter, Karen, the Google messages and the welcome email), Clients, Settings (addresses above; Marketing, now named Automation, is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
+- Nav: Home, Appt. Book (renamed Appointments for an hour on 2026-10-30 and put back on request, everywhere: the menu, the page title, the client profile's heading, Karen, the Google messages and the welcome email; only the profile's Activity filter says Appointments, on request), Clients, Settings (addresses above; Marketing, now named Automation, is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
   (2026-10-22): All, then every stylist record from `contacts?stylists=1`
   (`stylistChoices`), with or without a login, calendar or payroll, so long
   as they are active or have ever been booked; one who has left stays,
@@ -504,7 +504,7 @@ made that way are real: name them ZZ and remove them.
   backward so the loop never jumps, 180 KB), not a stylist's avatar. The
   header button is still and waves only while a mouse is on it or it has
   keyboard focus (`#karenBtnVid` over the picture; leaving puts her back on
-  the first frame; touch never starts it). Settings, Karen AI shows her at
+  the first frame; touch never starts it), and so does the picture in her chat window's header while the mouse is over the card (`karenWave`; measured against the card's edges, since an open dialog's backdrop counts as the dialog). Settings, Karen AI shows her at
   88px (64 on a phone), waving on a loop. Neither moves for reduced motion.
 - **Karen by text** (2026-10-22): Settings, Karen AI, Phone Number Settings
   shows the number clients call or text (`tenants.karen_phone`, migration
