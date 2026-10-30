@@ -180,7 +180,7 @@ export default async function handler(req, res) {
     }
 
     return closePage(res, true, [
-      email ? `${email} now shows on Appt. Book.` : 'You can close this window.',
+      email ? `${email} now shows on Appointments.` : 'You can close this window.',
       salonCal ? `Bookings will appear in the "${salonCal}" calendar in Google Calendar.` : '',
     ].filter(Boolean).join(' '));
   } catch (err) {

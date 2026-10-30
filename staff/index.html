@@ -2718,8 +2718,8 @@
       <span class="grn-ring" id="grnRing" aria-hidden="true"><span class="grn-ring-fill"></span></span>
       <a class="grn-item" href="/staff" data-page="home" title="Home">
         <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Home</span></a>
-      <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Appt. Book">
-        <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appt. Book</span></a>
+      <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Appointments">
+        <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appointments</span></a>
       <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
         <svg class="grn-ic"><use href="#l-users"/></svg><span class="lbl">Clients</span></a>
       <!-- The count of people asking to join rides on the gear: it was on the
@@ -2830,7 +2830,7 @@
 
     <section class="view hidden" id="view-settings">
       <div class="seg wrapseg" id="setSeg" role="group" aria-label="Settings sections">
-        <button type="button" data-set="me" aria-pressed="true">My settings</button>
+        <button type="button" data-set="me" aria-pressed="true">My Settings</button>
         <button type="button" data-set="salon" aria-pressed="false">Salon</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="marketing" aria-pressed="false">Automations</button>
@@ -3376,7 +3376,7 @@
 </dialog>
 
 <!-- One visit as a ticket: the appointment in full, every service on it
-     with its price, the total and what was paid. Appt. Book and a client's
+     with its price, the total and what was paid. Appointments and a client's
      history both open this one window (openTicket). -->
 <dialog id="apptDlg" class="tkt" aria-labelledby="adName">
   <div class="ad-head">
@@ -4281,7 +4281,7 @@ const PAGES = {
     load: () => { loadHome(); renderFinance(); },
   },
   appointments: {
-    path: `${BASE}/appointments`, title: 'Appt. Book', action: 'New appointment',
+    path: `${BASE}/appointments`, title: 'Appointments', action: 'New appointment',
     sub: 'Check people in and keep the day on track.',
     run: () => openBooking(null),
     load: () => loadAppointments(),
@@ -4397,7 +4397,7 @@ function automations() {
     {
       id: 'no_show_1', name: 'No-show recovery', icon: 'bell',
       sub: 'Invites a client back after a missed appointment.',
-      when: ['bell', 'Staff mark an appointment as a no-show', 'From the appointment window in Appt. Book.'],
+      when: ['bell', 'Staff mark an appointment as a no-show', 'From the appointment window in Appointments.'],
       steps: [
         { msg: 'no_show_1', title: 'First note', text: 'Sent about an hour after. No blame, just an offer of another time.' },
         { msg: 'no_show_2', title: 'A few days later', text: 'One more invitation, then nothing. Stops if they book.' },
@@ -5877,7 +5877,7 @@ function openCalDialog(stylist) {
   $('calOpts').innerHTML = `
     <div class="calopt">
       <span class="ico">${ic('calendar')}</span>
-      <div><b>Salon Calendar</b><span class="d">Every stylist’s appointments in one place. This is what you see on Appt. Book.</span></div>
+      <div><b>Salon Calendar</b><span class="d">Every stylist’s appointments in one place. This is what you see on Appointments.</span></div>
       <span class="chip ok">In use</span>
     </div>
     <div class="calopt">
@@ -6389,7 +6389,7 @@ function renderContacts(d, filtered) {
   // and still shown on their profile.
   const shown = d.contacts;
   $('contactTags').innerHTML = d.contacts.length
-    ? `<span class="count">${shown.length} ${shown.length === 1 ? 'person' : 'people'}</span>` : '';
+    ? `<span class="count">${shown.length} ${shown.length === 1 ? 'Client' : 'Clients'}</span>` : '';
 
   if (!shown.length) {
     $('contacts').innerHTML = filtered || contactStatus
@@ -6511,7 +6511,7 @@ let person = null;          // { contact, appointments, activity } for the open 
 let tlFilter = 'all';
 
 const TL_TYPES = [
-  ['all', 'All'], ['appointment', 'Appt. Book'], ['email', 'Email'],
+  ['all', 'All'], ['appointment', 'Appointments'], ['email', 'Email'],
   ['sms', 'SMS'], ['automation', 'Automations'], ['form', 'Forms'],
 ];
 const TL_ICON = { appointment: 'calendar', email: 'mail', sms: 'message', automation: 'zap', form: 'form', sync: 'sync', lead: 'user' };
@@ -6647,7 +6647,7 @@ function renderPerson() {
       ${details}
     </section>
     <section class="px-sec">
-      <h3>Appt. Book</h3>
+      <h3>Appointments</h3>
       <div class="px-stats">
         <div><b>${visits}</b><span>Visits</span></div>
         <div><b>${upcoming[0] ? esc(fmtWhen(upcoming[0].startsAt, { month: 'short', day: 'numeric' })) : '–'}</b><span>Next</span></div>
@@ -8370,7 +8370,7 @@ async function kDoBook() {
     else if (page === 'home') loadHome();
     const date = karen.date;
     kAsk([
-      { label: 'See it on Appt. Book', solid: true, run: () => { closeDialog($('karenDlg')); day = date; go('appointments'); } },
+      { label: 'See it on Appointments', solid: true, run: () => { closeDialog($('karenDlg')); day = date; go('appointments'); } },
       { label: 'Book another', run: kStart },
       { label: "That's all", run: () => { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); kAsk([{ label: 'Close', run: () => closeDialog($('karenDlg')) }]); } },
     ], (t) => {
@@ -8378,7 +8378,7 @@ async function kDoBook() {
       if (/see|show|view|diary|calendar|appt/.test(t)) { closeDialog($('karenDlg')); day = date; go('appointments'); return true; }
       if (/\b(no|that'?s all|done|bye|close)\b/.test(t)) { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); return 'keep'; }
       return false;
-    }, 'Tap "Book another" to start a new one, or "See it on Appt. Book".', 'done');
+    }, 'Tap "Book another" to start a new one, or "See it on Appointments".', 'done');
   } catch (err) {
     if (run !== karenRun) return;
     if (/taken|available|free/i.test(err.message)) {
@@ -9014,7 +9014,7 @@ $('memberDanger').onclick = async () => {
 `
     + (m.noLogin ? '' : 'Their login, profile and calendar connection are deleted and they are signed out '
     + 'straight away. ')
-    + 'Their past and booked appointments stay on Appt. Book under their name, '
+    + 'Their past and booked appointments stay on Appointments under their name, '
     + 'and nobody can book them online any more. This cannot be undone: to have them back, '
     + 'add them again.')) return;
   if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
@@ -9630,10 +9630,10 @@ function calAppRows(d) {
   // only at the sign-in, so somebody connected by the address was offered
   // Google again here as if they were not.
   const googleRow = g.connected
-    ? row('google', `Connected${g.account ? ` as ${g.account}` : ''}. Your busy times show on Appt. Book.`, true,
+    ? row('google', `Connected${g.account ? ` as ${g.account}` : ''}. Your busy times show on Appointments.`, true,
       b('google-off', 'Disconnect'))
     : g.available
-      ? row('google', 'Show your Google busy times on Appt. Book', false, b('google-on', 'Connect'))
+      ? row('google', 'Show your Google busy times on Appointments', false, b('google-on', 'Connect'))
       : row('google', 'Add your salon appointments to Google Calendar. It updates on its own.', fed(['google']), b('google-sub', 'Add'));
   return [
     googleRow,
@@ -9746,8 +9746,8 @@ function paintTools() {
     why = 'They can connect it once their request is approved.';
   } else if (canAct) {
     why = self
-      ? 'Your busy times show on Appt. Book beside the salon calendar.'
-      : 'Their busy times show on Appt. Book beside the salon calendar.';
+      ? 'Your busy times show on Appointments beside the salon calendar.'
+      : 'Their busy times show on Appointments beside the salon calendar.';
     act = `<button type="button" class="btn sm gbtn" data-tool="google-open">${logo}Connect Google Calendar</button>`;
   }
   const badge = state === 'checking' ? '<span class="chip">Checking…</span>'
@@ -9921,7 +9921,7 @@ async function saveGoogleLink() {
     if (!forId && feedData) feedData.google = r.google;
     rememberAccount(m, r.google.account || gAccount);
     closeDialog($('gDlg'));
-    toast(`Google Calendar connected${r.google.account ? ` (${r.google.account})` : ''}. It now shows on Appt. Book.`);
+    toast(`Google Calendar connected${r.google.account ? ` (${r.google.account})` : ''}. It now shows on Appointments.`);
     afterGoogleChange();
   } catch (e2) {
     // Said where they are looking, under the field, and kept there until
@@ -9948,7 +9948,7 @@ $('memberDlg').addEventListener('click', async (e) => {
   if (b.dataset.tool !== 'google-off') return;
   const forId = memberEdit === 'me' ? null : toolsFor.id;
   const whose = forId ? `${toolsFor.name}’s` : 'your';
-  if (!confirm(`Disconnect ${whose} Google Calendar?\n\nIt stops showing on Appt. Book. Nothing in Google is changed.`)) return;
+  if (!confirm(`Disconnect ${whose} Google Calendar?\n\nIt stops showing on Appointments. Nothing in Google is changed.`)) return;
   b.disabled = true;
   try {
     await api('/api/staff/calendars', {

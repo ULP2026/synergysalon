@@ -423,7 +423,7 @@ made that way are real: name them ZZ and remove them.
   `*.vercel.app` or local address, where those names belong to the public
   site), `HOME_PATH` is `/` or `/staff`, and the menu's links are rewritten
   to match. Invite links from `team.js` follow the same rule.
-- Nav: Home, Appt. Book, Clients, Settings (addresses above; Marketing, now named Automation, is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
+- Nav: Home, Appointments (named Appt. Book until 2026-10-30; every label the staff, a stylist's welcome email and the Google connect page show was renamed, and older notes here and the code's comments still say Appt. Book), Clients, Settings (addresses above; Marketing, now named Automation, is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
   (2026-10-22): All, then every stylist record from `contacts?stylists=1`
   (`stylistChoices`), with or without a login, calendar or payroll, so long
   as they are active or have ever been booked; one who has left stays,
@@ -573,7 +573,7 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: a My settings tab first (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to; key `salon`; Salon Profile first since 2026-10-30, and without its Salon email field since the same day: the stored address is kept, still the reply-to fallback, and the save leaves it out) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and a Payment tab for owners, admins and managers (key `payment`;
+  for everyone: a My Settings tab first (capital S since 2026-10-30) (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to; key `salon`; Salon Profile first since 2026-10-30, and without its Salon email field since the same day: the stored address is kept, still the reply-to fallback, and the save leaves it out) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and a Payment tab for owners, admins and managers (key `payment`;
   it was the Payroll tab until 2026-10-30): a Billing card and a Payroll card, both "Coming soon".
   Billing was a tab of its own, then a card on Salon (2026-10-26), and moved to Payment on request
   on 2026-10-30; old `payroll` and `billing` tab names land on Payment. It has no Calendars tab:
