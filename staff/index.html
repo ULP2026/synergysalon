@@ -1370,8 +1370,6 @@
   .ka-setup ol { margin: 0; padding-left: 20px; line-height: 1.6; }
   .ka-setup code { display: inline-block; max-width: 100%; overflow-wrap: anywhere; padding: 1px 6px; border-radius: 6px;
                    background: var(--raise); font-size: .78rem; }
-  .pay-sched { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 14px 0 0; font-size: var(--fs-sm); }
-  .pay-sched dt { color: var(--muted); } .pay-sched dd { margin: 0; font-weight: 600; }
 
   /* New appointment's client search and the services on the visit (from the
      one-page form of 2026-10-22, kept by the survey). */
@@ -1589,8 +1587,8 @@
   .au-sw:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .au-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; border: 0; background: none;
              font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0; }
-  /* Marketing inside Settings: room between its own switch and its card. */
-  #set-marketing #mktSeg { margin-bottom: 14px; }
+  /* Automation in Settings: Email History is a second card under the list. */
+  #mailCard { margin-top: 16px; }
   /* Finance on Home, under the widgets. */
   .hm-fin { margin-top: 18px; }
   /* Email History, its own module in Marketing. */
@@ -2783,7 +2781,7 @@
         <button type="button" data-set="me" aria-pressed="true">My settings</button>
         <button type="button" data-set="salon" aria-pressed="false">Salon</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
-        <button type="button" data-set="marketing" aria-pressed="false">Marketing</button>
+        <button type="button" data-set="marketing" aria-pressed="false">Automation</button>
         <button type="button" data-set="payroll" aria-pressed="false" data-admin>Payroll</button>
         <button type="button" data-set="karen" aria-pressed="false">Karen AI</button>
       </div>
@@ -2855,16 +2853,15 @@
         </div>
       </div>
 
-      <!-- Marketing: Automations and Email History. It was its own item in
-           the top menu until it moved into Settings on request (2026-10-24);
-           its addresses (/marketing/automation, /marketing/history) still
-           work and open this tab. -->
+      <!-- Automation: the automations, then Email History under them on the
+           same page. It was "Marketing", with the two as switches, until it
+           was renamed and combined on request (2026-10-30); its key is still
+           `marketing`. It was its own item in the top menu until 2026-10-24.
+           /marketing/automation and /marketing/history both open it, the
+           second scrolled to the history. -->
       <div class="setpane hidden" id="set-marketing">
-        <div class="seg wrapseg" id="mktSeg" role="group" aria-label="Marketing sections">
-          <button type="button" data-page="automation" aria-pressed="true">Automations</button>
-          <button type="button" data-page="history" aria-pressed="false">Email History</button>
-        </div>
         <div class="card" id="mktCard"></div>
+        <div class="card" id="mailCard"></div>
       </div>
 
       <!-- Karen AI (asked for 2026-10-22): the number clients call or text to
@@ -2909,21 +2906,10 @@
            the same people, until it is built. -->
       <div class="card setpane hidden" id="set-payroll">
         <div class="card-head" style="margin-bottom:4px"><h2>Payroll</h2></div>
+        <!-- Only "Coming soon" (asked for 2026-10-30): the pay schedule and
+             its explanation were taken out until payroll is built. -->
         <div class="soon">
           <span class="chip">Coming soon</span>
-          <!-- The salon's pay schedule (asked for 2026-10-22): processed every
-               Friday, and the team paid by the end of that Friday. -->
-          <dl class="pay-sched">
-            <dt>Pay schedule</dt><dd>Weekly, every Friday</dd>
-            <dt>Paid by</dt><dd>End of day Friday</dd>
-            <dt>Next payday</dt><dd id="payNext">Friday</dd>
-          </dl>
-          <p class="small muted" style="margin:12px 0 0;max-width:46ch">
-            Payroll is processed every Friday, and staff and stylists are paid
-            by the end of the day that Friday. Pay for each team member, worked
-            out from their appointments, will live here. Nothing is being paid
-            from the app today.
-          </p>
         </div>
       </div>
     </section>
@@ -4279,22 +4265,20 @@ const PAGES = {
   automation: {
     path: `${BASE}/marketing/automation`, title: 'Settings', group: 'settings', view: 'settings',
     sub: 'What happens on its own, before and after a client books.',
-    load: () => { showSetting('marketing'); markMarketingTab('automation'); renderAutomations(); },
+    load: () => { showSetting('marketing'); renderAutomations(); renderMailHistory(); },
   },
-  // Email history as a module of its own (2026-10-23): it was a card under
-  // the automations; now it has the page, a search and a filter by message.
+  // Email History, with its search and filter by message, is the second card
+  // on Automation (2026-10-30); its old address opens the page scrolled to it.
   history: {
     path: `${BASE}/marketing/history`, title: 'Settings', group: 'settings', view: 'settings',
-    sub: 'Every email the app has sent to clients.',
-    load: () => { showSetting('marketing'); markMarketingTab('history'); renderMailHistory(); },
+    sub: 'What happens on its own, before and after a client books.',
+    load: () => {
+      showSetting('marketing'); renderAutomations(); renderMailHistory();
+      requestAnimationFrame(() => $('mailCard').scrollIntoView({ block: 'start' }));
+    },
   },
 };
 
-function markMarketingTab(key) {
-  for (const b of $('mktSeg').querySelectorAll('button')) {
-    b.setAttribute('aria-pressed', String(b.dataset.page === key));
-  }
-}
 // ── Marketing, Automation ──────────────────────────────────────────────────
 //
 // What the app already does on its own, one automation per row. The list is
@@ -4560,7 +4544,7 @@ function mailNames() {
 }
 function renderMailHistory() {
   const names = mailNames();
-  $('mktCard').innerHTML = `
+  $('mailCard').innerHTML = `
     <div class="ml-top"><h2>Email History</h2>
       <p>Every email the automations have sent, newest first.</p></div>
     <div class="ml-filters">
@@ -4698,7 +4682,7 @@ async function renderFinance() {
   }
 }
 
-$('mktCard').addEventListener('click', (e) => {
+$('mailCard').addEventListener('click', (e) => {
   const sent = e.target.closest('[data-sent]');
   if (sent) { openSentEmail(sent.dataset.sent); return; }
   const more = e.target.closest('[data-ml-more]');
@@ -4978,11 +4962,6 @@ document.fonts?.addEventListener?.('loadingdone', () => { if (me) moveRing(true)
 // The chip is the person: a click opens their profile dialog (the router
 // above), whose footer signs out. Sign out is also at the bottom of Settings.
 $('signOutBtn').onclick = () => signOutNow();
-
-$('mktSeg').onclick = (e) => {
-  const b = e.target.closest('button[data-page]');
-  if (b && b.dataset.page !== page) go(b.dataset.page);
-};
 
 // ─────────────────────── overflow menu ───────────────────────
 
@@ -8597,6 +8576,44 @@ function paintPhoneRequired() {
   input.placeholder = stylistNeedsPhone() ? 'Mobile number (required)' : 'Phone number';
 }
 
+/** A US number as people write it, (813) 555-0170, built up as it is typed
+    (asked for 2026-10-30). A leading 1 or +1 is dropped, since no US area
+    code starts with 1. Anything that is not a US number (another country's
+    +, or more than ten digits) is left exactly as typed. Karen and the
+    server match phones by their digits, so the dressing changes nothing
+    there. */
+function usPhone(raw) {
+  const s = String(raw ?? '').trim();
+  if (s.startsWith('+') && !s.startsWith('+1')) return s;
+  let d = s.replace(/\D/g, '');
+  if (d[0] === '1') d = d.slice(1);
+  if (d.length > 10) return s;
+  if (!d) return '';
+  if (d.length <= 3) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+/** Formats while typing, keeping the caret after the same digit. Deleting is
+    left alone until the field is left, or a bracket could never be removed. */
+function phoneAsTyped(e) {
+  const el = e.target;
+  if (e.inputType && e.inputType.startsWith('delete')) return;
+  const out = usPhone(el.value);
+  if (out === el.value) return;
+  let n = el.value.slice(0, el.selectionStart).replace(/\D/g, '').length;
+  if (el.value.replace(/\D/g, '')[0] === '1' && !out.replace(/\D/g, '').startsWith('1')) n = Math.max(0, n - 1);
+  let at = 0;
+  while (n > 0 && at < out.length) { if (/\d/.test(out[at])) n--; at++; }
+  if (at < out.length && /[)\s-]/.test(out[at]) && !/\d/.test(out.slice(at))) at = out.length;
+  el.value = out;
+  el.setSelectionRange(at, at);
+}
+{
+  const input = $('memberForm').elements.phone;
+  input.addEventListener('input', phoneAsTyped);
+  input.addEventListener('blur', () => { input.value = usPhone(input.value); });
+}
+
 /** The roles only an owner may hand out (the role picker in Add Team Member). */
 const ADMIN_ROLES = ['owner', 'admin'];
 
@@ -8712,6 +8729,7 @@ async function openMember(who) {
   // Name field itself, so it is never asked for twice.
   $('memberTitle').textContent = !m ? 'New team member' : self ? 'Your profile' : 'Team member';
   for (const k of ['name', 'username', 'email', 'phone', 'role']) f.elements[k].value = m ? (m[k] || '') : '';
+  f.elements.phone.value = usPhone(f.elements.phone.value);
   if (!m) f.elements.role.value = 'front_desk';
   memberOrig = {
     username: m?.username || '', phone: m?.phone || '', services: '',
@@ -8933,7 +8951,7 @@ $('memberForm').onsubmit = async (e) => {
     if (!fields.name) { note($('memberNote'), 'Type a name at the top.'); el.name.focus(); return; }
     const username = String(f.get('username') || '').trim().replace(/^@/, '');
     if (username !== memberOrig.username) fields.username = username || null;
-    const phone = String(f.get('phone') || '').trim();
+    const phone = usPhone(f.get('phone'));
     // Required for a stylist (2026-10-28): Karen knows their texts by it. The
     // server refuses too; this just says so before the round trip.
     if (stylistNeedsPhone() && phone.replace(/\D/g, '').length < 10) {
@@ -9037,7 +9055,7 @@ function memberRow(m, self) {
       aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
     <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""><span class="pen">${ic('edit')}</span></span>
     <span class="tm-who"><span class="tm-line"><b>${esc(m.name)}</b><span class="chip role">${esc(role)}</span>${self ? '<i class="tm-you">You</i>' : ''}</span>
-      <span class="tm-phone">${m.phone ? esc(m.phone) : m.role === 'stylist' && !m.noLogin
+      <span class="tm-phone">${m.phone ? esc(usPhone(m.phone)) : m.role === 'stylist' && !m.noLogin
         ? '<span class="warn-text">Mobile number needed</span>' : '<span class="muted">No phone number</span>'}</span></span>
     <span class="tm-badges">${cal}</span>
   </button>`;
@@ -9249,7 +9267,6 @@ function showSetting(name) {
   if (name === 'me') paintDarkSwitch();
   if (name === 'salon') { loadBusiness(); loadReplyTo(); }
   if (name === 'team') loadAccount();
-  if (name === 'payroll') paintPayday();
   if (name === 'karen') loadKarenSettings();
 }
 $('setSeg').onclick = (e) => {
@@ -9295,15 +9312,6 @@ $('kaForm').onsubmit = async (e) => {
   } catch (err) { fail(err); }
   $('kaSave').disabled = false;
 };
-
-/** Payroll runs every Friday, paid by the end of that day: today, if it is Friday, on the salon's clock. */
-function paintPayday() {
-  const today = salonToday();
-  const dow = new Date(`${today}T12:00:00Z`).getUTCDay();
-  const next = addDays(today, (5 - dow + 7) % 7);
-  $('payNext').textContent = next === today ? 'Today, by the end of the day'
-    : new Date(`${next}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
-}
 
 // ── Appearance ───────────────────────────────────────────────────────────
 //
@@ -9939,7 +9947,7 @@ async function start(landing) {
   paintMe();
   // Settings is everyone's now (Team Settings lives there); the Billing
   // card and the Payroll tab are only for owners, admins and managers.
-  for (const b of document.querySelectorAll('#setSeg [data-admin], #mktSeg [data-admin], #billingCard')) b.classList.toggle('hidden', !me.user.canAdmin);
+  for (const b of document.querySelectorAll('#setSeg [data-admin], #billingCard')) b.classList.toggle('hidden', !me.user.canAdmin);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
 

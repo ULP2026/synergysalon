@@ -423,7 +423,7 @@ made that way are real: name them ZZ and remove them.
   `*.vercel.app` or local address, where those names belong to the public
   site), `HOME_PATH` is `/` or `/staff`, and the menu's links are rewritten
   to match. Invite links from `team.js` follow the same rule.
-- Nav: Home, Appt. Book, Clients, Settings (addresses above; Marketing is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
+- Nav: Home, Appt. Book, Clients, Settings (addresses above; Marketing, now named Automation, is a Settings tab since 2026-10-24). Clients has "Choose your stylist"
   (2026-10-22): All, then every stylist record from `contacts?stylists=1`
   (`stylistChoices`), with or without a login, calendar or payroll, so long
   as they are active or have ever been booked; one who has left stays,
@@ -510,8 +510,9 @@ made that way are real: name them ZZ and remove them.
   form pink, added grey. Contact details no longer repeats the phone, which
   is at the top of the profile; it is still edited with the pencil there.
 - Payroll (2026-10-22): processed every Friday, staff and stylists paid by
-  the end of that day. The Payroll card says so, with the next payday on
-  the salon's clock (`paintPayday`); nothing is paid from the app yet.
+  the end of that day. Since 2026-10-30 the Payroll tab shows only "Coming
+  soon" (asked for); the schedule and next payday were taken off it. Nothing
+  is paid from the app yet.
 - Card on file (2026-10-22): a green "Card on file" chip under the client's
   name in Clients and on their profile, for the salon's preferred clients
   (a no-show can be charged the fee; a visit is paid through the stylist).
@@ -590,7 +591,11 @@ made that way are real: name them ZZ and remove them.
 - **The team member window's header** is the picture, the name (edited in
   place) and the phone under it (`#memberPhoneRow`, asked for 2026-10-16).
   The phone is edited there in place with its own pencil, like the name, and
-  Personal information no longer has a Phone field (Email and Role only). The username is
+  Personal information no longer has a Phone field (Email and Role only).
+  The phone is written as a US number while it is typed, (813) 555-0170
+  (`usPhone`, 2026-10-30): a leading 1 or +1 is dropped, another country's
+  + or more than ten digits is left as typed, and it is saved and shown on
+  the Team list in that form. Karen and the server match phones by digits. The username is
   no longer shown there: its row is hidden but stays in the form, so saving
   keeps it, and the Clients filters still label people by it. Connect your
   tools has a Stripe card under Google's reading "Coming Soon"
@@ -687,12 +692,14 @@ made that way are real: name them ZZ and remove them.
   `time_off`, the table availability already subtracts, so a block on the
   grid really stops the time being sold.
   `?demo` on the address shows a sample day that saves nothing.
-- Marketing is a **Settings tab** since 2026-10-24 (it was an item in the
-  top menu): `set-marketing`, after Team. Its own two tabs, **Automations**
-  and **Email History** (so spelled on request, 2026-10-24), keep their
-  addresses (`/marketing/automation`, `/marketing/history`; `group:
-  'settings'`, `view: 'settings'`), which open Settings on that tab; the
-  gear opens Salon, not Marketing. Email History is its
+- **Automation** is a **Settings tab** since 2026-10-24 (it was an item in
+  the top menu called Marketing): `set-marketing`, after Team; the key is
+  still `marketing`. Since 2026-10-30 (on request) it is named Automation
+  and is one page: the automations (`#mktCard`), then **Email History**
+  under them (`#mailCard`), with no switch between them. Both old addresses
+  (`/marketing/automation`, `/marketing/history`; `group: 'settings'`,
+  `view: 'settings'`) open it, the second scrolled to the history; the gear
+  opens My settings. Email History is its
   own module now, with a search by name or address and a filter by message
   (`?history=1&q=&kind=`), each row opening that email (`?sent=<id>`,
   `sentMessage`). The log keeps who, which message and when, not a copy, so
