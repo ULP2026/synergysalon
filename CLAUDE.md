@@ -1159,6 +1159,21 @@ made that way are real: name them ZZ and remove them.
   nobody can remove themselves.
 - Appearance is per browser (`localStorage` `ss-theme`), applied in the head
   before first paint.
+- **Language** (asked for 2026-10-31) sits under Appearance: English or
+  Español, per browser (`localStorage` `ss-lang`), and choosing one reloads.
+  Spanish is a layer, not a rewrite: the page is still written in English and
+  a MutationObserver at the top of the module swaps whole phrases from
+  `I18N_ES` (exact text) and `I18N_ES_RX` (counts, greetings, server dates)
+  as they reach the screen, text and placeholder/title/aria-label alike.
+  It never touches what somebody typed (inputs, textareas, `[data-no-i18n]`,
+  your own chat bubbles), names, notes or emails. A phrase not in the
+  dictionary simply stays English: add it there, by its exact English text,
+  rather than translating at the call site. Dates use `LOCALE`; the salon
+  clock's `Intl.DateTimeFormat('en-US')` stays English because code parses
+  it. Karen says hello in Spanish (`kHello`), and her AI answers in Spanish
+  because the page sends `lang: 'es'` to `/api/staff/karen`, which
+  `karen-desk.js` turns into one line of her prompt. Texts and emails to
+  clients are not translated.
 - Nav and buttons follow RocketOS's restraint on Synergy colours. The ring
   under the current page is a still gradient edge (`--ring-grad`) around a
   2px glass inset, sprung by motion's `animate()` at stiffness 300, damping

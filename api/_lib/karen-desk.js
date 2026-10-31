@@ -464,6 +464,8 @@ export async function deskReply(ctx, client, db = null) {
     `Salon: ${tenant.name}`,
     `Right now it is ${now.toFormat("cccc, LLLL d, yyyy 'at' h:mm a")} on the salon's clock (${zone}). Today is ${now.toISODate()}.`,
     `Asking: ${user.name || 'a team member'}${user.role ? ` (${user.role})` : ''}.`,
+    // Spanish when they chose it in My Settings (2026-10-31).
+    ...(ctx.lang === 'es' ? ['Language: they use the app in Spanish. Write every reply in natural, friendly Spanish (Latin American), keeping names, services as named in the records, and times as they are.'] : []),
     '',
     'Stylists (slug: name):',
     ...(stylists.length ? stylists.map((s) => `- ${s.slug}: ${s.name}${s.active ? '' : ' (no longer taking bookings)'}`) : ['- none']),

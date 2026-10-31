@@ -100,6 +100,8 @@ export default handler({
     try {
       const out = await deskReply({
         tenant, user, question, history, propose: (input) => propose({ tenant, user }, input),
+        // The language they chose in My Settings (2026-10-31).
+        lang: body.lang === 'es' ? 'es' : 'en',
       }, ai);
       return json(res, 200, out);
     } catch (err) {
