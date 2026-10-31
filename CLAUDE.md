@@ -520,6 +520,15 @@ made that way are real: name them ZZ and remove them.
   On a phone, Karen's suggestion chips, a profile's Activity filters and its
   pencils are 36 to 38px (they were 30), and her chat fills the screen with
   the ring as its frame; checked at 390 and 360px wide, nothing overflows.
+- **Karen's personality** (2026-10-31, the salon's own words):
+  `KAREN_PERSONALITY` in `karen-ai.js`, warm, quirky and funny "like Phoebe
+  Buffay", leading with the help, one fun line at most, no em dashes, jokes
+  dialled down for anyone stressed, never a made-up fact, price or promise.
+  One text shared by Karen by text and Karen in the app (karen-desk.js), each
+  prompt keeping its own practical rules after it;
+  `tests/karen-personality.test.js` pins that both use it. Her rule-based
+  replies (the hellos, the booking steps) are fixed lines in the console and
+  are not written by it.
 - **Karen's Message History** (2026-10-31): Settings, Karen AI, Message
   History is Karen's inbox for the owner: everyone on the team who has
   talked to her, newest first, and each one's whole conversation, by day,
@@ -1080,6 +1089,13 @@ made that way are real: name them ZZ and remove them.
   the fallback stops being used.
   Replies go to `shopFrom().replyTo` (`hair@synergysalon.com`), which is a
   different address on purpose and not a Resend domain.
+  Appt. Book shows only appointments of a client who still exists (since
+  2026-10-31, `ct.id IS NOT NULL` in `diary.js`): deleting a client
+  (`removeContact`, which cancels what was still to come) sets their
+  appointments' `contact_id` to NULL through the foreign key, and they
+  leave the calendar, Day and Month, and its counts. The rows are kept, not
+  deleted. A booking that never had a client is left off too; every
+  booking has had one since `contactFor`.
   Removing somebody deletes them (`action:"delete"` on `/api/staff/team`,
   "Remove from team" in their window), asked for in place of turning the
   account off. Their `stylists` row is switched off first, not deleted:

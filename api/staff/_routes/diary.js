@@ -84,6 +84,13 @@ export default handler({
          LEFT JOIN staff_users b ON b.id = a.booked_by
          LEFT JOIN contacts ct ON ct.id = a.contact_id
         WHERE a.tenant_id = $1 AND a.starts_at >= $2 AND a.starts_at <= $3
+          -- Only appointments of a client who still exists (asked for
+          -- 2026-10-31): deleting a client takes theirs off Appt. Book too.
+          -- Deleting sets contact_id to NULL (the foreign key's ON DELETE SET
+          -- NULL) and cancels what was still to come; the rows are kept, only
+          -- not shown. A booking with no client at all is left off with them:
+          -- every booking has been given one since contactFor (booking.js).
+          AND ct.id IS NOT NULL
         ORDER BY a.starts_at, s.sort_order`,
       [tenant.id, from.toISO(), to.toISO()],
     );

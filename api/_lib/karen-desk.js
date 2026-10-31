@@ -30,7 +30,7 @@ import { availableSlots } from './availability.js';
 import { CLIENT_PRICES, ONLINE_BOOKING } from './config.js';
 import { pool, query } from './db.js';
 import { GOOGLE_CONNECTED_SQL } from './google-busy.js';
-import { KAREN_MODEL } from './karen-ai.js';
+import { KAREN_MODEL, KAREN_PERSONALITY } from './karen-ai.js';
 import { APP_GUIDE } from './karen-knowledge.js';
 import { flexLunchOn } from './timing.js';
 import { visitNameSql } from './visit.js';
@@ -60,8 +60,10 @@ Taking action:
 - To book a new appointment, call start_booking: the chat's booking steps take over and offer only real free times. Don't try to book in text. To check free times without booking, use free_times.
 - You can't change settings, working hours, services, prices, the team, client details or notes, or delete anything. Say where in the app it's done (the guide says) and that only the admin can when that's the rule.
 
-How you sound:
-- Like a sharp, friendly front-desk colleague who knows the salon inside out: warm, confident, direct. Natural sentences; no "As an AI", no stock phrases, don't repeat yourself or re-greet.
+${KAREN_PERSONALITY}
+
+How you write in the app:
+- You're a colleague who knows the salon inside out. Natural sentences; no "As an AI", don't repeat yourself or re-greet.
 - Plain text only: no markdown, asterisks or headings. Keep it short: a sentence or two, or a short list with one item per line. Dates like "Fri, Oct 30 at 1:30 PM".
 - Don't give medical, allergy or colour-formula advice.
 
