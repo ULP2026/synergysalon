@@ -41,6 +41,7 @@ import { mirrorToGoogle } from './google-mirror.js';
 import { canManageTeam } from './auth.js';
 import { aiReply, karenAi } from './karen-ai.js';
 import { logKaren } from './karen-log.js';
+import { toGsm } from './sms-length.js';
 import { appointmentText } from './sms-notify.js';
 import { sendText } from './twilio.js';
 import { visitNameSql } from './visit.js';
@@ -246,7 +247,9 @@ export async function karenReply(tenant, from, text, db = { query }, { ai = kare
   // The first reply in a conversation names the salon and says how to stop
   // and get help, as the salon's texting registration (A2P 10DLC) promises
   // the carriers. That line is added here, never left to the model.
-  const reply = (out.greeted ? '' : hello) + out.say + (state ? '' : `\n\n${tenant.name}: Reply STOP to opt out, HELP for help.`);
+  // In the plain alphabet (sms-length.js), so a curly apostrophe from the
+  // model does not send the reply at 70 characters a segment.
+  const reply = toGsm((out.greeted ? '' : hello) + out.say + (state ? '' : `\n\n${tenant.name}: Reply STOP to opt out, HELP for help.`));
   // A team member's texts are kept for the owner's Message History
   // (2026-10-31); a client's are not part of it.
   if (who.kind === 'staff' && out.say) {

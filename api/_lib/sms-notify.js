@@ -18,6 +18,7 @@
 import { DateTime } from 'luxon';
 
 import { hasColumn, query } from './db.js';
+import { fitText } from './sms-length.js';
 import { sendText } from './twilio.js';
 
 /** The kinds that are texted. Follow-ups (reviews, rebooking) are not: those read as marketing. */
@@ -28,26 +29,63 @@ const first = (name) => String(name || '').trim().split(/\s+/)[0] || '';
 /**
  * The text for a kind: Karen introducing herself and the salon first ("Hey!
  * This is Karen from Synergy Salon.", the salon's words, 2026-10-31; it was
- * "Synergy Salon:"), so the sender is known at a glance, the message short,
- * and the way to stop at the end, as the carriers require.
+ * "Synergy Salon:"), so the sender is known at a glance, and the way to stop
+ * at the end, as the carriers require.
+ *
+ * One segment is the default (2026-10-31): each kind has its wordings from
+ * fullest to shortest, and fitText sends the fullest that fits 160 plain
+ * characters. Dropped first: the salon's phone, the client's name, the long
+ * date, the "reply" line, the stylist. Two segments only when even the
+ * shortest is longer (a long service name); a service name is never cut.
  */
 export function appointmentText(kind, appt, tenant = {}) {
   const zone = tenant.timezone || 'America/New_York';
   const at = DateTime.fromJSDate(new Date(appt.starts_at)).setZone(zone);
   const tomorrow = at.hasSame(DateTime.now().setZone(zone).plus({ days: 1 }), 'day');
-  const when = `${tomorrow ? 'tomorrow, ' : ''}${at.toFormat("ccc, LLL d 'at' h:mm a")}`;
+  const time = at.minute ? at.toFormat('h:mm a') : at.toFormat('h a');
+  // "tomorrow, Sat, Oct 31 at 2 PM", or "Sat, Oct 31 at 2 PM"; short:
+  // "tomorrow at 2 PM", or "Sat 10/31 at 2 PM".
+  const long = `${tomorrow ? 'tomorrow, ' : ''}${at.toFormat('ccc, LLL d')} at ${time}`;
+  const short = tomorrow ? `tomorrow at ${time}` : `${at.toFormat('ccc M/d')} at ${time}`;
   const shop = tenant.name || 'The salon';
   const name = first(appt.guest_name);
-  const visit = `${appt.service_name || 'appointment'}${appt.stylist_name ? ` with ${first(appt.stylist_name)}` : ''}`;
-  const stop = 'Reply STOP to opt out.';
+  const service = appt.service_name || 'appointment';
+  const withWho = appt.stylist_name ? ` with ${first(appt.stylist_name)}` : '';
   const hey = `Hey! This is Karen from ${shop}.`;
-  const texts = {
-    confirmation: `${hey} You're booked${name ? `, ${name}` : ''}! ${visit}, ${when}. Reply here to move or cancel. ${stop}`,
-    reschedule: `${hey} Your ${visit} has moved to ${when}. Reply here if that doesn't work. ${stop}`,
-    cancellation: `${hey} Your ${visit} for ${when} is cancelled. Reply here any time to book again. ${stop}`,
-    reminder: `${hey} Just a reminder${name ? `, ${name}` : ''}: your ${visit} is ${when}. Reply here to reschedule${tenant.phone ? ` or call ${tenant.phone}` : ''}. ${stop}`,
+  const stop = 'Reply STOP to opt out.';
+  const line = (...parts) => [hey, ...parts.filter(Boolean), stop].join(' ');
+  const hi = (word) => (name ? `${word}, ${name}` : word);
+
+  const versions = {
+    confirmation: [
+      line(`${hi("You're booked")}! ${service}${withWho}, ${long}.`, 'Reply to move or cancel.'),
+      line(`You're booked! ${service}${withWho}, ${long}.`, 'Reply to move or cancel.'),
+      line(`You're booked! ${service}${withWho}, ${short}.`, 'Reply to change it.'),
+      line(`You're booked! ${service}${withWho}, ${short}.`),
+      line(`You're booked! ${service}, ${short}.`),
+    ],
+    reschedule: [
+      line(`Your ${service}${withWho} is now ${long}.`, "Reply if that doesn't work."),
+      line(`Your ${service}${withWho} is now ${short}.`, "Reply if that doesn't work."),
+      line(`Your ${service}${withWho} is now ${short}.`),
+      line(`Your ${service} is now ${short}.`),
+    ],
+    cancellation: [
+      line(`Your ${service}${withWho} for ${long} is cancelled.`, 'Reply anytime to rebook.'),
+      line(`Your ${service}${withWho} for ${short} is cancelled.`, 'Reply to rebook.'),
+      line(`Your ${service}${withWho} for ${short} is cancelled.`),
+      line(`Your ${service} for ${short} is cancelled.`),
+    ],
+    reminder: [
+      line(`${hi('Reminder')}: your ${service}${withWho} is ${long}.`, `Reply to reschedule${tenant.phone ? ` or call ${tenant.phone}` : ''}.`),
+      line(`${hi('Reminder')}: your ${service}${withWho} is ${long}.`, 'Reply to reschedule.'),
+      line(`Reminder: your ${service}${withWho} is ${long}.`, 'Reply to reschedule.'),
+      line(`Reminder: your ${service}${withWho} is ${short}.`, 'Reply to reschedule.'),
+      line(`Reminder: your ${service}${withWho} is ${short}.`),
+      line(`Reminder: your ${service} is ${short}.`),
+    ],
   };
-  return texts[kind] || null;
+  return versions[kind] ? fitText(versions[kind]) : null;
 }
 
 /**

@@ -524,8 +524,15 @@ made that way are real: name them ZZ and remove them.
   number): the confirmation, reminder, reschedule and cancellation, beside
   the email of the same kind. Since 2026-10-31 each opens "Hey! This is
   Karen from Synergy Salon." (the salon's words; it was "Synergy Salon:") and
-  still ends "Reply STOP to opt out.", about 165 to 195 characters, so two
-  segments. Only to a client whose consent is on record (`sms_consent_at`,
+  still ends "Reply STOP to opt out.". One segment is the default (asked
+  for 2026-10-31): each kind has wordings from fullest to shortest and
+  `fitText` (sms-length.js) sends the fullest within 160 plain characters,
+  dropping the salon's phone, the client's name, the long date, the reply
+  line and the stylist in that order; two segments only when even the
+  shortest is longer (a long visit), and a service name is never cut. Every
+  text, Karen's replies included, is put into GSM-7 first (`toGsm`, in
+  `sendText` and `karenReply`): one curly apostrophe or accent outside it
+  sends the whole text at 70 characters a segment. Only to a client whose consent is on record (`sms_consent_at`,
   from synergysalon.com/sms-opt-in or START), as the A2P registration
   promises, and never to one whose Text messages switch is off on their
   profile (`sms_ok`, now honoured). The profile says whether they have

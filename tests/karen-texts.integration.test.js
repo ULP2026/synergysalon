@@ -17,6 +17,7 @@ import pg from 'pg';
 import { DEFAULT_TZ } from '../api/_lib/config.js';
 import { sendConfirmation } from '../api/_lib/email.js';
 import { karenReply } from '../api/_lib/karen-sms.js';
+import { segments } from '../api/_lib/sms-length.js';
 import { appointmentText, recordConsent, revokeConsent, textGuest } from '../api/_lib/sms-notify.js';
 import { tenantForUser } from '../api/_lib/tenant.js';
 import { makeBookable } from './bookable.js';
@@ -51,9 +52,9 @@ test('each appointment text is Karen introducing herself and the salon, and says
     assert.match(text, /^Hey! This is Karen from Synergy Salon\. /, kind);
     assert.match(text, /Reply STOP to opt out\.$/, kind);
     assert.match(text, /Haircut with Dina/, kind);
-    assert.ok(text.length <= 320, `${kind} fits in two texts`);
+    assert.equal(segments(text), 1, `${kind} fits one text`);
   }
-  assert.match(appointmentText('reminder', appt, tenant), /Just a reminder, ZZ: your Haircut with Dina is tomorrow, /);
+  assert.match(appointmentText('reminder', appt, tenant), /Reminder, ZZ: your Haircut with Dina is tomorrow, /);
   assert.equal(appointmentText('review', appt, tenant), null, 'follow-ups are not texted');
 });
 
