@@ -546,6 +546,19 @@ made that way are real: name them ZZ and remove them.
   closing her is not a conversation. A team member's texts are kept in
   `karenReply` (karen-sms.js); a client's are not. The chat says under its
   message box that chats are saved for the salon owner to review.
+- **The team by text with Karen** (2026-10-31): every team member, whatever
+  their role (stylist, front desk, owner, admin), may book new appointments
+  for clients and move or cancel any appointment in the salon by texting
+  Karen, as anyone can on Appt. Book. It used to be their own chair only (the
+  admin the whole salon), and no new bookings by text. `chairAhead` lists the
+  whole salon's next two weeks; a team member's booking is a desk booking
+  (`deskBook`: channel staff, booked by them, via Karen, the desk's rules:
+  any free time from now, not limited by Google, open while online booking
+  is paused), for a client found by `clientFor`: by the phone or email they
+  give (matched, or a new client from it), else one client on file by that
+  exact name; otherwise Karen asks for a phone or email, so nobody is booked
+  without a client (Appt. Book shows only appointments with one). Still
+  propose, then their YES. Changing a visit's services stays in the app.
 - **Karen by text** (2026-10-22): Settings, Karen AI, Phone Number Settings
   shows the number clients call or text (`tenants.karen_phone`, migration
   033, also in ensure-schema; `GET/PATCH /api/staff/karen`, the admin

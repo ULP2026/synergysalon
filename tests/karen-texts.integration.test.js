@@ -120,8 +120,14 @@ function fakeClaude(script) {
 }
 const say = (text) => ({ stop_reason: 'end_turn', content: [{ type: 'text', text }] });
 const use = (name, input) => ({ stop_reason: 'tool_use', content: [{ type: 'tool_use', id: `tu_${name}`, name, input }] });
+/** What the last tool answered, as the model would read it. */
+const lastResult = (params) => {
+  const last = params.messages[params.messages.length - 1];
+  const block = Array.isArray(last.content) ? last.content.find((b) => b.type === 'tool_result') : null;
+  return block ? { ...JSON.parse(block.content), is_error: Boolean(block.is_error) } : null;
+};
 
-test('a stylist cancels their own client\'s appointment by text, and sees nobody else\'s', { skip }, async () => {
+test('a stylist sees the whole salon by text and can cancel any appointment in it', { skip }, async () => {
   const client = await connect();
   client.inTransaction = true;
   try {
@@ -157,12 +163,15 @@ test('a stylist cancels their own client\'s appointment by text, and sees nobody
     const mine = await book('ZZCHR1', dina, 'ZZ Maria Mine', 3);
     await book('ZZCHR2', micah, 'ZZ Other Client', 3);
 
+    // Every team member, whatever their role, sees the whole salon and may
+    // change any of it (2026-10-31); it used to be their own chair only.
     const claude = fakeClaude((params, n) => {
       const facts = params.system[1].text;
-      assert.match(facts, /a stylist, who may change their own clients' appointments/);
-      assert.match(facts, /1\. ZZ Maria Mine: Haircuts? with Dina/);
-      assert.doesNotMatch(facts, /ZZ Other Client/, "another stylist's client is never shown");
-      return n === 1 ? use('propose_cancel', { appointment: 1 }) : say("Cancel ZZ's haircut on Friday? Reply YES to confirm.");
+      assert.match(facts, /a stylist, who may book new appointments for clients and move or cancel any appointment in the salon/);
+      assert.match(facts, /ZZ Other Client: Haircuts? with Micah/, "another stylist's client is listed too");
+      const mineAt = Number((facts.match(/(\d+)\. ZZ Maria Mine: Haircuts? with Dina/) || [])[1]);
+      assert.ok(mineAt, 'their own client is listed');
+      return n === 1 ? use('propose_cancel', { appointment: mineAt }) : say("Cancel ZZ's haircut on Friday? Reply YES to confirm.");
     });
     const ask = await karenReply(tenant, '813-555-0181', 'please cancel Maria on friday', client, { ai: claude });
     assert.match(ask, /Reply YES to confirm/);
@@ -185,12 +194,68 @@ test('a stylist cancels their own client\'s appointment by text, and sees nobody
       [tenant.id],
     );
     const adminView = fakeClaude((params) => {
-      assert.match(params.system[1].text, /the salon's admin, who may change any client's appointment/);
+      assert.match(params.system[1].text, /the salon's admin, who may book new appointments for clients and move or cancel any appointment/);
       assert.match(params.system[1].text, /ZZ Other Client: Haircuts? with Micah/);
       return say('You have one appointment ahead.');
     });
     await karenReply(tenant, '8135550182', "what's coming up?", client, { ai: adminView });
     assert.equal(adminView.calls.length, 1);
+  } finally {
+    await client.query('ROLLBACK');
+    await client.end();
+  }
+});
+
+test('a stylist books a new appointment for a client by text, as the front desk does', { skip }, async () => {
+  const client = await connect();
+  client.inTransaction = true;
+  try {
+    await client.query('BEGIN');
+    const { rows: [t] } = await client.query("SELECT id FROM tenants WHERE slug = 'synergy'");
+    const tenant = await tenantForUser({ tenant_id: t.id });
+    const dina = await makeBookable(client, tenant.id, 'dina');
+    const { rows: [u] } = await client.query(
+      `INSERT INTO staff_users (tenant_id, name, email, role, phone, password_hash)
+       VALUES ($1, 'ZZ Booking Stylist', 'zz-book-stylist@example.com', 'stylist', '+1 813 555 0183', 'x') RETURNING id`,
+      [tenant.id],
+    );
+    await client.query('UPDATE stylists SET staff_user_id = $1 WHERE id = $2', [u.id, dina]);
+
+    let offered = null;
+    const seen = {};
+    const claude = fakeClaude((params, n) => {
+      if (n === 1) return use('find_times', { service: 'haircuts', stylist: 'dina' });
+      if (n === 2) {
+        const r = lastResult(params);
+        assert.ok(r.times?.length, 'free times for the team');
+        offered = r.times[0].start;
+        // A client who is not on file: Karen is told to ask for a phone or email.
+        return use('propose_booking', { service: 'haircuts', stylist: 'dina', start: offered, name: 'ZZ Brand New' }, 'tu_b1');
+      }
+      if (n === 3) {
+        seen.first = lastResult(params);
+        return use('propose_booking', { service: 'haircuts', stylist: 'dina', start: offered, name: 'ZZ Brand New', client_phone: '813-555-0144' }, 'tu_b2');
+      }
+      seen.second = lastResult(params);
+      return say('Book ZZ for a haircut with Dina? Reply YES to confirm.');
+    });
+    const ask = await karenReply(tenant, '8135550183', 'book ZZ Brand New for a haircut with Dina', client, { ai: claude });
+    assert.match(ask, /Reply YES to confirm/);
+    assert.equal(seen.first.is_error, true);
+    assert.match(seen.first.error, /not on file yet/);
+    assert.equal(seen.second.is_error, false);
+
+    const done = await karenReply(tenant, '8135550183', 'yes', client, { ai: fakeClaude(() => { throw new Error('a yes is not for the model'); }) });
+    assert.match(done, /^All set: ZZ's Haircuts? with Dina is booked for /);
+    const { rows: [a] } = await client.query(
+      `SELECT a.channel, a.booked_by, a.status, c.name, c.phone FROM appointments a JOIN contacts c ON c.id = a.contact_id
+        WHERE a.guest_name = 'ZZ Brand New'`,
+    );
+    assert.equal(a.status, 'booked');
+    assert.equal(a.channel, 'staff', 'a desk booking');
+    assert.equal(a.booked_by, u.id, 'booked by the stylist who asked');
+    assert.equal(a.name, 'ZZ Brand New', 'the new client is on file, so the booking shows on Appt. Book');
+    assert.match(a.phone, /555.?0144/);
   } finally {
     await client.query('ROLLBACK');
     await client.end();

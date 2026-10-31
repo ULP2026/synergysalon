@@ -300,6 +300,7 @@ async function carryOut(ctx, p) {
       'SELECT slug, name, category FROM services WHERE tenant_id = $1::uuid AND slug = $2::text AND active',
       [ctx.tenant.id, p.service],
     );
+    if (service && ctx.who.kind === 'staff') return deskBook(ctx, service, p);
     if (!service || !ONLINE_BOOKING) return { say: 'Sorry, I can\'t book that by text right now. Please call the salon.' };
     const out = await bookIt(ctx, service, p.start, p.name, { stylistSlug: p.stylist, offerAgain: false });
     if (!out.taken) await noteOnClient(ctx, `Booked by text with Karen: ${service.name}, ${when(p.start, zone)}.`);
@@ -344,7 +345,10 @@ async function noteOnClient(ctx, text, contactId = ctx.who.kind === 'client' ? c
  * length), as availableSlots gives them to a guest. A service nobody offers
  * online is no times rather than an error.
  */
-async function freeDays(client, tenant, { appointment: a, serviceSlug, stylistSlug, from, to }) {
+async function freeDays(client, tenant, { appointment: a, serviceSlug, stylistSlug, from, to, desk = false }) {
+  // A team member texting books as the front desk does (2026-10-31): any
+  // free time, not limited by Google, from now; a client by the online rules.
+  const rules = desk ? { minLeadMin: 0 } : { google: true };
   try {
     const { days } = await availableSlots(client, tenant, a ? {
       serviceSlug: a.service_slug,
@@ -352,9 +356,9 @@ async function freeDays(client, tenant, { appointment: a, serviceSlug, stylistSl
       fromDate: from,
       toDate: to,
       excludeAppointmentId: a.id,
-      google: true,
+      ...rules,
       length: { durationMin: a.duration_min, bufferMin: a.buffer_min, breaks: a.breaks },
-    } : { serviceSlug, stylistSlug, fromDate: from, toDate: to, google: true });
+    } : { serviceSlug, stylistSlug, fromDate: from, toDate: to, ...rules });
     return days;
   } catch (err) {
     if (err.status === 404 || err.status === 400) return [];
@@ -365,7 +369,7 @@ async function freeDays(client, tenant, { appointment: a, serviceSlug, stylistSl
 /** Times as the model is shown them: a few a day across the range, and who has each. */
 async function openTimes(ctx, opts) {
   return inTx(ctx.db, async (client) => {
-    const days = await freeDays(client, ctx.tenant, opts);
+    const days = await freeDays(client, ctx.tenant, { ...opts, desk: ctx.who.kind === 'staff' });
     const picked = [];
     for (const d of days) {
       const slots = d.slots || [];
@@ -388,7 +392,9 @@ async function stillFree(ctx, { appointment: a, serviceSlug, stylistSlug, start 
   const at = DateTime.fromISO(String(start || ''), { setZone: true });
   if (!at.isValid) return false;
   const day = at.setZone(ctx.tenant.timezone).toISODate();
-  const days = await inTx(ctx.db, (client) => freeDays(client, ctx.tenant, { appointment: a, serviceSlug, stylistSlug, from: day, to: day }));
+  const days = await inTx(ctx.db, (client) => freeDays(client, ctx.tenant, {
+    appointment: a, serviceSlug, stylistSlug, from: day, to: day, desk: ctx.who.kind === 'staff',
+  }));
   return days.flatMap((d) => d.slots || []).some((s) => DateTime.fromISO(s.start).toMillis() === at.toMillis());
 }
 
@@ -405,7 +411,9 @@ async function facts(ctx) {
       ORDER BY name`,
     [tenant.id],
   );
-  return { services, stylists, upcoming: await upcoming(ctx), bookingOpen: ONLINE_BOOKING };
+  // The team books as the desk does, so online booking being paused does
+  // not stop them; clients follow ONLINE_BOOKING.
+  return { services, stylists, upcoming: await upcoming(ctx), bookingOpen: ONLINE_BOOKING || ctx.who.kind === 'staff' };
 }
 
 async function alert(ctx, { reason, summary, transcript }) {
@@ -419,7 +427,7 @@ async function alert(ctx, { reason, summary, transcript }) {
   }, ctx.tenant);
 }
 
-const AI_DEPS = { facts, openTimes, stillFree, alert };
+const AI_DEPS = { facts, openTimes, stillFree, alert, clientFor };
 
 async function route(ctx, state) {
   const { t, who } = ctx;
@@ -521,13 +529,13 @@ async function upcoming({ tenant, who, db }) {
 }
 
 /**
- * The two weeks ahead a team member may change by text: their own chair's,
- * or the whole salon's for the admin. A stylist with no chair (the front
- * desk) who is not the admin sees none: nothing to change, nobody else's
- * clients to read. Same columns as a client's list, plus the client.
+ * The two weeks ahead a team member may change by text: the whole salon's,
+ * whatever their role (asked for 2026-10-31: every stylist and the owner
+ * books, moves and cancels by text, as anyone on the team can on Appt.
+ * Book). It used to be their own chair's, or the whole salon's for the
+ * admin. Same columns as a client's list, plus the client.
  */
-async function chairAhead({ tenant, who, db }) {
-  if (!who.admin && !who.stylist_id) return [];
+async function chairAhead({ tenant, db }) {
   const { rows } = await db.query(
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.buffer_min, a.breaks, a.notes, a.contact_id,
             to_jsonb(a) -> 'services' AS lines, a.guest_name AS client,
@@ -537,10 +545,9 @@ async function chairAhead({ tenant, who, db }) {
        JOIN services v ON v.id = a.service_id
       WHERE a.tenant_id = $1::uuid AND a.status = 'booked'
         AND a.starts_at > now() AND a.starts_at < now() + interval '14 days'
-        AND ($2::uuid IS NULL OR a.stylist_id = $2::uuid)
       ORDER BY a.starts_at
-      LIMIT 30`,
-    [tenant.id, who.admin ? null : who.stylist_id],
+      LIMIT 40`,
+    [tenant.id],
   );
   return rows;
 }
@@ -679,7 +686,7 @@ async function moveIt(ctx, a, start, { offerAgain = true } = {}) {
         fromDate: startsAt.toISODate(),
         toDate: startsAt.toISODate(),
         excludeAppointmentId: a.id,
-        google: true,
+        ...(ctx.who.kind === 'staff' ? { minLeadMin: 0 } : { google: true }),
         length: { durationMin: a.duration_min, bufferMin: a.buffer_min, breaks: a.breaks },
       });
       const slot = days.flatMap((d) => d.slots).find((s) => DateTime.fromISO(s.start).toMillis() === startsAt.toMillis());
@@ -782,6 +789,64 @@ async function offerBook(ctx, service, day = null) {
     say: `Here are the next openings for ${service.name}:\n${offers.map((s, i) => `${i + 1}. ${when(s, zone)}`).join('\n')}\nReply with a number, or a day like "Saturday".`,
     state: { step: 'bookTimes', service, offers },
   };
+}
+
+/**
+ * A team member's booking by text, after their YES (2026-10-31): made as the
+ * front desk makes one (channel staff, booked by them, through Karen), for
+ * the client the proposal found or will add, who gets the usual
+ * confirmation.
+ */
+async function deskBook(ctx, service, p) {
+  const { tenant, who } = ctx;
+  let appt;
+  try {
+    appt = await inTx(ctx.db, (client) => createBooking(client, tenant, {
+      serviceSlug: service.slug,
+      stylistSlug: p.stylist || null,
+      start: p.start,
+      guestName: p.name,
+      guestEmail: p.email || '',
+      guestPhone: p.phone || '',
+      contactId: p.contactId || null,
+      notes: `Booked by text with Karen, asked by ${who.name}.`,
+      channel: 'staff',
+      bookedBy: who.id,
+      via: 'karen',
+      minLeadMin: 0,
+    }));
+  } catch (err) {
+    if (err.status !== 409) throw err;
+    return { say: 'Sorry, that time was just taken. Want me to find another one?', taken: true, state: {} };
+  }
+  try { await sendConfirmation(appt, tenant); } catch (err) { console.error('karen-sms confirmation failed for', appt.ref, err); }
+  await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', appt.ref, err));
+  return {
+    say: `All set: ${first(p.name)}'s ${service.name} with ${first(appt.stylist_name)} is booked for ${when(appt.starts_at, tenant.timezone)}. `
+      + 'They get the usual confirmation.',
+    state: {},
+  };
+}
+
+/**
+ * The client a team member is booking for, by what they gave: an email or
+ * phone (matched, or a new client from it, as the desk does), else one
+ * client on file by that exact name. Returns { contactId, phone, email } or
+ * { error } for the model to put to them.
+ */
+export async function clientFor(ctx, { name, phone, email }) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanPhone = phoneKey(phone || '') ? prettyPhone(phoneKey(phone)) : '';
+  if (cleanEmail || cleanPhone) return { contactId: null, phone: cleanPhone, email: cleanEmail };
+  const { rows } = await ctx.db.query(
+    `SELECT id, name, phone, email FROM contacts
+      WHERE tenant_id = $1::uuid AND lower(btrim(name)) = lower(btrim($2::text))
+      ORDER BY created_at LIMIT 3`,
+    [ctx.tenant.id, String(name || '')],
+  );
+  if (rows.length === 1) return { contactId: rows[0].id, phone: rows[0].phone || '', email: rows[0].email || '' };
+  if (rows.length > 1) return { error: `There are ${rows.length} clients called ${name}. Ask for their phone number so you book the right one.` };
+  return { error: `${name} is not on file yet. Ask for their phone number or email so the salon can add them, then propose again with it.` };
 }
 
 async function bookIt(ctx, service, start, name, { stylistSlug = null, offerAgain = true } = {}) {
