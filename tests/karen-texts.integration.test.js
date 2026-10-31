@@ -42,18 +42,18 @@ async function withTwilio(fn) {
   }
 }
 
-test('each appointment text names the salon first and says how to stop', () => {
+test('each appointment text is Karen introducing herself and the salon, and says how to stop', () => {
   const tomorrow = DateTime.now().setZone(DEFAULT_TZ).plus({ days: 1 }).set({ hour: 14, minute: 0 });
   const appt = { starts_at: tomorrow.toISO(), guest_name: 'ZZ Maria Lopez', service_name: 'Haircut', stylist_name: 'Dina Lara' };
   const tenant = { name: 'Synergy Salon', timezone: DEFAULT_TZ, phone: '813.654.2055' };
   for (const kind of ['confirmation', 'reschedule', 'cancellation', 'reminder']) {
     const text = appointmentText(kind, appt, tenant);
-    assert.match(text, /^Synergy Salon: /, kind);
+    assert.match(text, /^Hey! This is Karen from Synergy Salon\. /, kind);
     assert.match(text, /Reply STOP to opt out\.$/, kind);
     assert.match(text, /Haircut with Dina/, kind);
     assert.ok(text.length <= 320, `${kind} fits in two texts`);
   }
-  assert.match(appointmentText('reminder', appt, tenant), /Reminder, ZZ! Your Haircut with Dina is tomorrow, /);
+  assert.match(appointmentText('reminder', appt, tenant), /Just a reminder, ZZ: your Haircut with Dina is tomorrow, /);
   assert.equal(appointmentText('review', appt, tenant), null, 'follow-ups are not texted');
 });
 
@@ -84,7 +84,12 @@ test('a text goes only to a client whose consent is on record, and STOP ends it'
       assert.deepEqual(await textGuest('confirmation', appt, tenant, { send }), { texted: true });
       assert.equal(sent[0].to, '+18135550170');
       assert.equal(sent[0].from, '+18138514556', "from Karen's number");
-      assert.match(sent[0].body, /^ZZ Text Salon: You're booked, ZZ!/);
+      assert.match(sent[0].body, /^Hey! This is Karen from ZZ Text Salon\. You're booked, ZZ!/);
+
+      // Texts switched off on the client's profile: none, even with consent.
+      await client.query('UPDATE contacts SET sms_ok = false WHERE id = $1', [c.id]);
+      assert.deepEqual(await textGuest('reminder', appt, tenant, { send }), { skipped: 'switched off' });
+      await client.query('UPDATE contacts SET sms_ok = true WHERE id = $1', [c.id]);
 
       // Through the email path, as every booking reaches it: no email address,
       // and the client still gets the text. fetch is Twilio, stubbed.

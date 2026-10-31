@@ -175,6 +175,7 @@ export async function contactDetail(tenantId, id, db = null) {
             first_booked_at, last_visit_at, session_id,
             to_jsonb(contacts) -> 'email_ok' AS email_ok,
             to_jsonb(contacts) -> 'sms_ok' AS sms_ok,
+            to_jsonb(contacts) ->> 'sms_consent_at' AS sms_consent_at,
             to_jsonb(contacts) -> 'card_on_file' AS card_on_file
        FROM contacts WHERE id = $1::uuid AND tenant_id = $2::uuid`,
     [id, tenantId],
@@ -308,6 +309,9 @@ export async function contactDetail(tenantId, id, db = null) {
         : { email: c.email_ok !== false, sms: c.sms_ok !== false },
       // null until migration 032 has run, for the same reason.
       cardOnFile: c.card_on_file == null ? null : c.card_on_file === true,
+      // When they agreed to appointment texts (sms-opt-in or START), or null:
+      // texts go only to a client who has (sms-notify.js).
+      smsConsentAt: c.sms_consent_at || null,
     },
     appointments: appts.map((a) => ({
       ref: a.ref,

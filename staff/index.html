@@ -6916,7 +6916,9 @@ function renderPerson() {
     <section class="px-sec">
       <h3>Contact preferences</h3>
       ${sw('email', 'Email', 'Follow-ups: thank-yous, rebook and win-back emails. Confirmations and reminders still go.')}
-      ${sw('sms', 'Text messages', 'The app does not send texts yet; this is kept for when it does.')}
+      ${sw('sms', 'Text messages', c.smsConsentAt
+    ? `Appointment texts from Karen's number: confirmations, reminders, moves and cancellations. Agreed to texts on ${esc(fmtWhen(c.smsConsentAt, { month: 'short', day: 'numeric', year: 'numeric' }))}.`
+    : "Appointment texts from Karen's number, once they agree to texts: they tick the box at synergysalon.com/sms-opt-in or text START to Karen. Not agreed yet, so none are sent.")}
       ${prefs ? '' : '<p class="px-hint">These switch on once the database update for them has run.</p>'}
     </section>
     <section class="px-sec">
@@ -6956,7 +6958,7 @@ function renderTimeline() {
     });
   } else if (!shown.length) {
     const why = {
-      sms: 'Texting clients from this app is coming soon, so there are no messages to show yet.',
+      sms: "Appointment texts go from Karen's number to clients who have agreed to texts. They aren't listed here yet.",
       automation: 'Automations are coming soon. Nothing has run for this person.',
       email: 'No emails have been sent to this person yet. Every one the app sends them appears here.',
       form: 'This person did not come in through the website form.',

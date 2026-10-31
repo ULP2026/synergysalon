@@ -26,8 +26,10 @@ export const TEXTED_KINDS = ['confirmation', 'reschedule', 'cancellation', 'remi
 const first = (name) => String(name || '').trim().split(/\s+/)[0] || '';
 
 /**
- * The text for a kind, in the shape registered with the carriers: the salon's
- * name first, short, and the way to stop at the end.
+ * The text for a kind: Karen introducing herself and the salon first ("Hey!
+ * This is Karen from Synergy Salon.", the salon's words, 2026-10-31; it was
+ * "Synergy Salon:"), so the sender is known at a glance, the message short,
+ * and the way to stop at the end, as the carriers require.
  */
 export function appointmentText(kind, appt, tenant = {}) {
   const zone = tenant.timezone || 'America/New_York';
@@ -38,11 +40,12 @@ export function appointmentText(kind, appt, tenant = {}) {
   const name = first(appt.guest_name);
   const visit = `${appt.service_name || 'appointment'}${appt.stylist_name ? ` with ${first(appt.stylist_name)}` : ''}`;
   const stop = 'Reply STOP to opt out.';
+  const hey = `Hey! This is Karen from ${shop}.`;
   const texts = {
-    confirmation: `${shop}: You're booked${name ? `, ${name}` : ''}! ${visit}, ${when}. Reply here to move or cancel. ${stop}`,
-    reschedule: `${shop}: Your ${visit} has moved to ${when}. Reply here if that doesn't work. ${stop}`,
-    cancellation: `${shop}: Your ${visit} on ${when} is cancelled. Reply here any time to book again. ${stop}`,
-    reminder: `${shop}: Reminder${name ? `, ${name}` : ''}! Your ${visit} is ${when}. Reply here to reschedule${tenant.phone ? ` or call ${tenant.phone}` : ''}. ${stop}`,
+    confirmation: `${hey} You're booked${name ? `, ${name}` : ''}! ${visit}, ${when}. Reply here to move or cancel. ${stop}`,
+    reschedule: `${hey} Your ${visit} has moved to ${when}. Reply here if that doesn't work. ${stop}`,
+    cancellation: `${hey} Your ${visit} for ${when} is cancelled. Reply here any time to book again. ${stop}`,
+    reminder: `${hey} Just a reminder${name ? `, ${name}` : ''}: your ${visit} is ${when}. Reply here to reschedule${tenant.phone ? ` or call ${tenant.phone}` : ''}. ${stop}`,
   };
   return texts[kind] || null;
 }
@@ -58,6 +61,7 @@ export async function textGuest(kind, appt, tenant = {}, { send = sendText, db =
     const { rows } = await db.query(
       `SELECT to_jsonb(c) ->> 'sms_consent_at' AS consent_at,
               to_jsonb(c) ->> 'sms_consent_phone' AS phone,
+              to_jsonb(c) ->> 'sms_ok' AS sms_ok,
               to_jsonb(t) ->> 'karen_phone' AS karen_phone,
               t.name, t.phone AS salon_phone
          FROM contacts c JOIN tenants t ON t.id = c.tenant_id
@@ -66,6 +70,9 @@ export async function textGuest(kind, appt, tenant = {}, { send = sendText, db =
     );
     const r = rows[0];
     if (!r?.consent_at || !r.phone) return { skipped: 'no consent' };
+    // The salon turned texts off for this client on their profile: never
+    // texted, even with consent on record.
+    if (r.sms_ok === 'false') return { skipped: 'switched off' };
     if (!r.karen_phone) return { skipped: 'no number' };
     const body = appointmentText(kind, appt, { ...tenant, name: tenant.name || r.name, phone: tenant.phone || r.salon_phone });
     await send({ to: `+1${r.phone}`, from: r.karen_phone, body });

@@ -520,6 +520,16 @@ made that way are real: name them ZZ and remove them.
   On a phone, Karen's suggestion chips, a profile's Activity filters and its
   pencils are 36 to 38px (they were 30), and her chat fills the screen with
   the ring as its frame; checked at 390 and 360px wide, nothing overflows.
+- **Appointment texts** (sms-notify.js, live since 2026-10-28, from Karen's
+  number): the confirmation, reminder, reschedule and cancellation, beside
+  the email of the same kind. Since 2026-10-31 each opens "Hey! This is
+  Karen from Synergy Salon." (the salon's words; it was "Synergy Salon:") and
+  still ends "Reply STOP to opt out.", about 165 to 195 characters, so two
+  segments. Only to a client whose consent is on record (`sms_consent_at`,
+  from synergysalon.com/sms-opt-in or START), as the A2P registration
+  promises, and never to one whose Text messages switch is off on their
+  profile (`sms_ok`, now honoured). The profile says whether they have
+  agreed and how to.
 - **Karen's personality** (2026-10-31, the salon's own words):
   `KAREN_PERSONALITY` in `karen-ai.js`, warm, quirky and funny "like Phoebe
   Buffay", leading with the help, one fun line at most, no em dashes, jokes
