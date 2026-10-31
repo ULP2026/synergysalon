@@ -1416,6 +1416,42 @@
     .kd-chip { min-height: 38px; padding: 8px 14px; }
   }
   .kd-chip:focus-visible, .kd-send:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
+  .kd-kept { margin: 0; padding: 0 14px 10px; background: var(--card); font-size: .7rem; color: var(--faint); text-align: center; }
+  .ka-sec.kh { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
+  /* Message History: the people on the left, a conversation on the right;
+     on a phone, one then the other. */
+  .kh-box { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 420px; max-height: 640px;
+            border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--card); }
+  .kh-people { border-right: 1px solid var(--line); overflow-y: auto; background: var(--raise); }
+  .kh-person { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; align-items: center; width: 100%;
+               padding: 10px 12px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left;
+               font: inherit; color: var(--ink); cursor: pointer; }
+  .kh-person:hover { background: var(--peri-pale); }
+  .kh-person[aria-current="true"] { background: var(--card); box-shadow: inset 3px 0 0 var(--periwinkle); }
+  .kh-person img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+  .kh-person b { display: flex; justify-content: space-between; gap: 6px; font-size: .88rem; }
+  .kh-person b time { font-weight: 500; font-size: .7rem; color: var(--faint); white-space: nowrap; }
+  .kh-person small { display: block; font-size: .76rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kh-thread { display: flex; flex-direction: column; min-width: 0; overflow-y: auto; }
+  .kh-top { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            border-bottom: 1px solid var(--line); background: var(--card); }
+  .kh-top b { flex: 1; min-width: 0; }
+  .kh-top small { display: block; font-weight: 500; font-size: .74rem; color: var(--muted); }
+  .kh-back { display: none; }
+  .kh-msgs { display: flex; flex-direction: column; gap: 8px; padding: 14px; }
+  .kh-day { align-self: center; margin: 6px 0 2px; font-size: .7rem; font-weight: 650; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
+  .kh-msg { max-width: 82%; padding: 9px 13px; border-radius: 14px; font-size: .9rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .kh-msg.user { align-self: flex-end; background: var(--periwinkle); color: #fff; border-bottom-right-radius: 5px; }
+  .kh-msg.karen { align-self: flex-start; background: var(--raise); color: var(--ink); border: 1px solid var(--line); border-bottom-left-radius: 5px; }
+  .kh-msg small { display: block; margin-top: 4px; font-size: .68rem; opacity: .75; }
+  .kh-empty { margin: auto; padding: 24px; text-align: center; color: var(--muted); font-size: .9rem; }
+  @media (max-width: 720px) {
+    .kh-box { grid-template-columns: 1fr; max-height: none; }
+    .kh-box .kh-thread { display: none; }
+    .kh-box.open .kh-people { display: none; }
+    .kh-box.open .kh-thread { display: flex; max-height: 70vh; }
+    .kh-back { display: inline-grid; }
+  }
   .kd-input { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--card); }
   .kd-input input { flex: 1; min-width: 0; height: 38px; padding: 0 14px; font-size: var(--fs-sm); border: 1px solid var(--line-2); border-radius: 999px;
                     background: var(--field); color: var(--ink); font-family: inherit; }
@@ -2999,6 +3035,19 @@
             tomorrow?"). A call is greeted and put through to the salon.
           </p>
         </section>
+        <!-- Message History (asked for 2026-10-31): Karen's inbox, the
+             owner's only. Everyone on the team who has talked to her, in the
+             app or by text, and each one's whole conversation. -->
+        <section class="ka-sec kh hidden" id="kaHistory">
+          <h3>Message History</h3>
+          <p class="small muted" style="margin:0 0 12px;max-width:62ch">
+            Every conversation the team has had with Karen, in the app and by text, by team member.
+            Only you can see this.</p>
+          <div class="kh-box" id="khBox">
+            <div class="kh-people" id="khPeople" role="list" aria-label="Team members who have talked to Karen"></div>
+            <div class="kh-thread" id="khThread" aria-live="polite"></div>
+          </div>
+        </section>
       </div>
 
       <!-- Payment (2026-10-30): what was the Payroll tab, renamed, with
@@ -3134,6 +3183,8 @@
     <input id="karenText" placeholder="Type a message…" aria-label="Message Karen" maxlength="200">
     <button class="kd-send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button>
   </form>
+  <!-- Said where it happens, so nobody is surprised (2026-10-31). -->
+  <p class="kd-kept">Chats with Karen are saved for the salon owner to review.</p>
 </dialog>
 
 <!-- The team modal: add someone, edit someone, or edit yourself. Each fact
@@ -9967,7 +10018,113 @@ $('setSeg').onclick = (e) => {
  * (2026-10-30, once the number was saved); PATCH /api/staff/karen still
  * sets it.
  */
+// ── Karen's message history ───────────────────────────────────────────────
+//
+// Every message in the chat window is kept for the owner's Message History
+// (asked for 2026-10-31). Read off the window itself rather than from each
+// place Karen speaks, so whatever she says, by rules or AI, is kept as it
+// was shown: a message is kept once its typing dots have turned into words.
+// Sent in small batches, as the person signed in (POST /api/staff/karen).
+{
+  let queue = [];
+  let timer = null;
+  const flush = () => {
+    clearTimeout(timer);
+    timer = null;
+    if (!queue.length) return;
+    const log = queue.splice(0, 50);
+    fetch('/api/staff/karen', {
+      method: 'POST', credentials: 'same-origin', keepalive: true,
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ log }),
+    }).catch(() => { /* a lost line of history never troubles the chat */ });
+  };
+  const scan = () => {
+    // Nothing is kept until the person has said something: opening her and
+    // closing her again is not a conversation, only a hello.
+    if (!$('karenLog').querySelector('.kd-msg.me')) return;
+    let n = 0;
+    for (const m of $('karenLog').querySelectorAll('.kd-msg:not([data-kept])')) {
+      if (m.querySelector('.kd-typing')) break;   // keep the order: wait for her
+      const text = m.innerText.trim();
+      if (!text) continue;
+      m.dataset.kept = '1';
+      // A millisecond apart, so messages kept together stay in their order.
+      queue.push({ role: m.classList.contains('me') ? 'user' : 'karen', text, at: new Date(Date.now() + n).toISOString() });
+      n += 1;
+    }
+    if (queue.length && !timer) timer = setTimeout(flush, 1500);
+  };
+  new MutationObserver(scan).observe($('karenLog'), { childList: true, subtree: true, characterData: true });
+  $('karenDlg').addEventListener('close', () => { scan(); flush(); });
+  addEventListener('pagehide', () => { scan(); flush(); });
+}
+
+let khWho = null;   // whose conversation is open
+const khWhen = (iso) => fmtWhen(iso, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+async function loadKarenHistory() {
+  const sec = $('kaHistory');
+  sec.classList.toggle('hidden', !me?.user?.canManageTeam);
+  if (!me?.user?.canManageTeam) return;
+  $('khPeople').innerHTML = skeleton(3);
+  let people = [];
+  try { ({ people } = await api('/api/staff/karen?history=people')); } catch (err) {
+    $('khPeople').innerHTML = `<p class="kh-empty">${esc(err.message)}</p>`;
+    return;
+  }
+  if (!people.length) {
+    $('khBox').classList.remove('open');
+    $('khPeople').innerHTML = '<p class="kh-empty">No conversations yet. They appear here as the team talks to Karen.</p>';
+    $('khThread').innerHTML = '<p class="kh-empty">Nothing to show yet.</p>';
+    return;
+  }
+  const pic = (x) => personPhoto({ ...x, photo: (me?.stylists || []).find((s) => s.name === x.name)?.photo || null });
+  $('khPeople').innerHTML = people.map((x) => `
+    <button type="button" class="kh-person" role="listitem" data-kh="${esc(x.id)}" aria-current="${x.id === khWho}">
+      <img src="${esc(pic(x))}" alt="">
+      <span style="min-width:0"><b><span>${esc(x.name)}</span><time datetime="${esc(x.lastAt)}">${esc(ago(x.lastAt))}</time></b>
+        <small>${esc(x.lastBody)}</small></span></button>`).join('');
+  khPeople = people;
+  if (!khWho || !people.some((x) => x.id === khWho)) khWho = matchMedia('(max-width: 720px)').matches ? null : people[0].id;
+  if (khWho) openKarenThread(khWho); else $('khThread').innerHTML = '';
+}
+let khPeople = [];
+async function openKarenThread(id) {
+  khWho = id;
+  for (const b of $('khPeople').querySelectorAll('[data-kh]')) b.setAttribute('aria-current', String(b.dataset.kh === id));
+  $('khBox').classList.add('open');
+  const x = khPeople.find((p) => p.id === id) || { name: 'Team member', messages: 0, channels: [] };
+  const where = x.channels.map((c) => (c === 'app' ? 'in the app' : 'by text')).join(' and ');
+  const top = `<div class="kh-top"><button type="button" class="iconbtn kh-back" data-kh-back aria-label="Back to the team">${ic('left')}</button>
+    <b>${esc(x.name)}<small>${x.messages} message${x.messages === 1 ? '' : 's'}${where ? ` · ${esc(where)}` : ''}</small></b></div>`;
+  $('khThread').innerHTML = `${top}<div class="kh-msgs">${skeleton(3)}</div>`;
+  let messages = [];
+  try { ({ messages } = await api(`/api/staff/karen?history=${encodeURIComponent(id)}`)); } catch (err) {
+    $('khThread').innerHTML = `${top}<p class="kh-empty">${esc(err.message)}</p>`;
+    return;
+  }
+  if (khWho !== id) return;
+  let lastDay = '';
+  const rows = messages.map((m) => {
+    const day = fmtWhen(m.at, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+    const head = day !== lastDay ? `<span class="kh-day">${esc(day)}</span>` : '';
+    lastDay = day;
+    const t = fmtWhen(m.at, { hour: 'numeric', minute: '2-digit' });
+    return `${head}<div class="kh-msg ${m.role === 'user' ? 'user' : 'karen'}">${esc(m.text)}<small>${m.role === 'user' ? esc(x.name.split(' ')[0]) : 'Karen'} · ${esc(t)}${m.channel === 'text' ? ' · by text' : ''}</small></div>`;
+  }).join('');
+  $('khThread').innerHTML = `${top}<div class="kh-msgs">${rows || '<p class="kh-empty">No messages.</p>'}</div>`;
+  const box = $('khThread');
+  box.scrollTop = box.scrollHeight;
+}
+$('khPeople').onclick = (e) => { const b = e.target.closest('[data-kh]'); if (b) openKarenThread(b.dataset.kh); };
+$('khThread').onclick = (e) => {
+  if (!e.target.closest('[data-kh-back]')) return;
+  khWho = null;
+  $('khBox').classList.remove('open');
+  for (const b of $('khPeople').querySelectorAll('[data-kh]')) b.setAttribute('aria-current', 'false');
+};
+
 async function loadKarenSettings() {
+  loadKarenHistory();
   const v = $('kaVid');
   if (!v.poster) { v.poster = KAREN_PIC; }
   if (!kQuiet()) {

@@ -520,6 +520,23 @@ made that way are real: name them ZZ and remove them.
   On a phone, Karen's suggestion chips, a profile's Activity filters and its
   pencils are 36 to 38px (they were 30), and her chat fills the screen with
   the ring as its frame; checked at 390 and 360px wide, nothing overflows.
+- **Karen's Message History** (2026-10-31): Settings, Karen AI, Message
+  History is Karen's inbox for the owner: everyone on the team who has
+  talked to her, newest first, and each one's whole conversation, by day,
+  marked "by text" where it was texted. The admin only (`canManageTeam`,
+  the app's one rule: role Owner or Admin, or the support login): `GET
+  /api/staff/karen?history=people|<id>` is `requireTeamAdmin`, and the
+  section is hidden for anyone else. Kept in `karen_messages` (038, also in
+  ensure-schema; `karen-log.js`), one row a message, from when it went
+  live: nothing earlier existed to keep (`karen_threads` is only where a
+  texted conversation has got to, overwritten and dropped after half an
+  hour). The app's chat is read off the chat window itself (a
+  MutationObserver on `#karenLog`), so whatever she says, by rules or AI,
+  is kept as shown, posted as `{log}` and always as the person signed in;
+  nothing is kept until the person has typed something, so opening and
+  closing her is not a conversation. A team member's texts are kept in
+  `karenReply` (karen-sms.js); a client's are not. The chat says under its
+  message box that chats are saved for the salon owner to review.
 - **Karen by text** (2026-10-22): Settings, Karen AI, Phone Number Settings
   shows the number clients call or text (`tenants.karen_phone`, migration
   033, also in ensure-schema; `GET/PATCH /api/staff/karen`, the admin

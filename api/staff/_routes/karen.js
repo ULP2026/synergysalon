@@ -12,6 +12,11 @@
  *   POST   {confirm: id} / {decline: id}  carry out, or drop, the action
  *          she got ready (karen-actions.js); only the person it was got
  *          ready for, within fifteen minutes, and only the latest one.
+ *   POST   {log: [{role, text, at}]}  keep what was said in the app's chat,
+ *          as the person signed in (karen-log.js), for Message History.
+ *   GET    ?history=people  everyone who has talked to Karen; ?history=<id>
+ *          one person's whole history (the admin only: Settings, Karen
+ *          AI, Message History, asked for 2026-10-31).
  *
  * The number is bought from the phone provider and pointed at the webhooks
  * listed here; this records which number it is, so the team can see it and
@@ -23,6 +28,7 @@ import { HttpError, handler, json, readJson } from '../../_lib/http.js';
 import { karenAi } from '../../_lib/karen-ai.js';
 import { confirm, dropProposal, propose } from '../../_lib/karen-actions.js';
 import { deskReply } from '../../_lib/karen-desk.js';
+import { karenPeople, karenThread, logKaren } from '../../_lib/karen-log.js';
 import { phoneKey, prettyPhone } from '../../_lib/karen-sms.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
@@ -46,6 +52,17 @@ async function settings(req, tenantId) {
 
 export default handler({
   async GET(req, res) {
+    const url = new URL(req.url, 'http://x');
+    const who = url.searchParams.get('history');
+    if (who) {
+      // Message History is the owner's: the admin, the app's one rule
+      // (canManageTeam). A stylist cannot read a colleague's chats, or the
+      // list of who has been talking to her.
+      const admin = await requireTeamAdmin(req);
+      return json(res, 200, who === 'people'
+        ? { people: await karenPeople(admin.tenant_id) }
+        : { messages: await karenThread(admin.tenant_id, who) });
+    }
     const user = await requireStaff(req);
     return json(res, 200, await settings(req, user.tenant_id));
   },
@@ -54,6 +71,11 @@ export default handler({
     assertSameOrigin(req);
     const user = await requireStaff(req);
     const body = await readJson(req);
+    // What was said in the app's chat, kept for Message History. Always as
+    // the person signed in, so nobody can write into somebody else's.
+    if (Array.isArray(body.log)) {
+      return json(res, 200, { kept: await logKaren(user.tenant_id, user, 'app', body.log) });
+    }
     // Confirm or Cancel on the card she showed.
     if (typeof body.confirm === 'string' || typeof body.decline === 'string') {
       const tenant = await tenantForUser(user);

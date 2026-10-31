@@ -200,6 +200,19 @@ const STATEMENTS = [
      WHERE removed_at IS NULL AND staff_user_id IS NULL AND NOT active
        AND tenant_id IN (SELECT id FROM tenants WHERE slug = '${tenantSlug}')
        AND slug <> ALL (ARRAY[${slugs.map((x) => `'${x}'`).join(', ')}]::text[])`),
+  // 038: Karen's message history, every message with the team in the app
+  // or by text, for the owner's Message History. A table of its own.
+  `CREATE TABLE IF NOT EXISTS karen_messages (
+     id         bigserial PRIMARY KEY,
+     tenant_id  uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+     user_id    uuid REFERENCES staff_users(id) ON DELETE SET NULL,
+     who_name   text,
+     channel    text NOT NULL CHECK (channel IN ('app', 'text')),
+     role       text NOT NULL CHECK (role IN ('user', 'karen')),
+     body       text NOT NULL,
+     created_at timestamptz NOT NULL DEFAULT now())`,
+  `CREATE INDEX IF NOT EXISTS karen_messages_by_person
+     ON karen_messages (tenant_id, user_id, created_at DESC)`,
 ];
 
 let done = null;
