@@ -1420,9 +1420,13 @@
   .ka-sec.kh { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
   /* Message History: the people on the left, a conversation on the right;
      on a phone, one then the other. */
-  .kh-box { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 420px; max-height: 640px;
+  /* A set height with one row that may shrink (minmax(0, 1fr)), so each side
+     scrolls inside it; with only a max-height a long conversation grew past
+     the box and was cut off (2026-10-31). */
+  .kh-box { display: grid; grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);
+            height: min(640px, calc(100dvh - 220px)); min-height: 380px;
             border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--card); }
-  .kh-people { border-right: 1px solid var(--line); overflow-y: auto; background: var(--raise); }
+  .kh-people { border-right: 1px solid var(--line); overflow-y: auto; min-height: 0; background: var(--raise); }
   .kh-person { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; align-items: center; width: 100%;
                padding: 10px 12px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left;
                font: inherit; color: var(--ink); cursor: pointer; }
@@ -1432,7 +1436,7 @@
   .kh-person b { display: flex; justify-content: space-between; gap: 6px; font-size: .88rem; }
   .kh-person b time { font-weight: 500; font-size: .7rem; color: var(--faint); white-space: nowrap; }
   .kh-person small { display: block; font-size: .76rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .kh-thread { display: flex; flex-direction: column; min-width: 0; overflow-y: auto; }
+  .kh-thread { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
   .kh-top { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 10px 14px;
             border-bottom: 1px solid var(--line); background: var(--card); }
   .kh-top b { flex: 1; min-width: 0; }
@@ -1446,10 +1450,10 @@
   .kh-msg small { display: block; margin-top: 4px; font-size: .68rem; opacity: .75; }
   .kh-empty { margin: auto; padding: 24px; text-align: center; color: var(--muted); font-size: .9rem; }
   @media (max-width: 720px) {
-    .kh-box { grid-template-columns: 1fr; max-height: none; }
+    .kh-box { grid-template-columns: 1fr; height: calc(100dvh - 190px); min-height: 360px; }
     .kh-box .kh-thread { display: none; }
     .kh-box.open .kh-people { display: none; }
-    .kh-box.open .kh-thread { display: flex; max-height: 70vh; }
+    .kh-box.open .kh-thread { display: flex; }
     .kh-back { display: inline-grid; }
   }
   .kd-input { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--card); }
