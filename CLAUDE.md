@@ -389,7 +389,8 @@ made that way are real: name them ZZ and remove them.
   `#7d88d6` in dark mode, both run through the dataviz palette check), one
   hover/focus tooltip, the peak or last value labelled. Home greets the person (asked for 2026-10-15): the heading is "Good
   morning/afternoon/evening, <first name>" on the salon's clock
-  (`homeHello()`), and the subtitle a word for the day ("Happy Friday!",
+  (`homeHello()`), beside the person's own headshot (2026-10-31, `paintPageFace`,
+  ringed in periwinkle), and the subtitle a word for the day ("Happy Friday!",
   "Enjoy your Saturday!", "Have a great morning today!") then the date
   (`greeting()`). No primary button. Two tiles from `GET /api/staff/home`
   (`_routes/home.js`, counted in SQL), two equal columns as wide as Coming
@@ -520,6 +521,21 @@ made that way are real: name them ZZ and remove them.
   On a phone, Karen's suggestion chips, a profile's Activity filters and its
   pencils are 36 to 38px (they were 30), and her chat fills the screen with
   the ring as its frame; checked at 390 and 360px wide, nothing overflows.
+- **Writing to a client from their profile** (2026-10-31): a box at the foot
+  of Activity, Text or Email, as in the CRM's conversations
+  (`composeHtml`, `PATCH /api/staff/contacts {op:'message'}`,
+  `client-message.js`). A text goes from Karen's number signed "<first
+  name> at Synergy Salon:", in plain characters, only to a client who agreed
+  to texts and whose Text messages switch is on (the same rule as the
+  appointment texts; the box says why when they cannot be texted); their
+  reply comes to Karen's number and Karen answers it. An email goes from the
+  salon's sender, replies to its inbox, signed by the writer
+  (`sendStaffEmail`), kept with its words in `message_sends.body` so it
+  opens again (kind `direct`, `sentMessage`). Every text with a client,
+  either way, is in `client_texts` (039, also in ensure-schema): these, the
+  appointment texts and their conversation with Karen, all under SMS on
+  their Activity. `tests/client-message.integration.test.js` sends both
+  through stand-ins.
 - **Appointment texts** (sms-notify.js, live since 2026-10-28, from Karen's
   number): the confirmation, reminder, reschedule and cancellation, beside
   the email of the same kind. Since 2026-10-31 each opens "Hey! This is

@@ -213,6 +213,23 @@ const STATEMENTS = [
      created_at timestamptz NOT NULL DEFAULT now())`,
   `CREATE INDEX IF NOT EXISTS karen_messages_by_person
      ON karen_messages (tenant_id, user_id, created_at DESC)`,
+  // 039: messaging a client from their profile. A typed email's words, and
+  // every text with a client, either way. Additive.
+  'ALTER TABLE message_sends ADD COLUMN IF NOT EXISTS body text',
+  `CREATE TABLE IF NOT EXISTS client_texts (
+     id         bigserial PRIMARY KEY,
+     tenant_id  uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+     contact_id uuid NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+     direction  text NOT NULL CHECK (direction IN ('out', 'in')),
+     kind       text NOT NULL,
+     phone      text,
+     body       text NOT NULL,
+     sent_by    uuid REFERENCES staff_users(id) ON DELETE SET NULL,
+     status     text NOT NULL DEFAULT 'sent',
+     error      text,
+     created_at timestamptz NOT NULL DEFAULT now())`,
+  `CREATE INDEX IF NOT EXISTS client_texts_by_client
+     ON client_texts (tenant_id, contact_id, created_at DESC)`,
 ];
 
 let done = null;

@@ -22,6 +22,7 @@ import {
   HttpError, handler, json, optionalPhone, readJson, requireId, requireString,
 } from '../../_lib/http.js';
 import { stylistPhoto } from '../../_lib/stylist-photos.js';
+import { messageClient, textBlock } from '../../_lib/client-message.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { visitLinesSql, visitNameSql } from '../../_lib/visit.js';
 
@@ -176,6 +177,8 @@ export async function contactDetail(tenantId, id, db = null) {
             to_jsonb(contacts) -> 'email_ok' AS email_ok,
             to_jsonb(contacts) -> 'sms_ok' AS sms_ok,
             to_jsonb(contacts) ->> 'sms_consent_at' AS sms_consent_at,
+            to_jsonb(contacts) ->> 'sms_consent_phone' AS sms_consent_phone,
+            (SELECT to_jsonb(t) ->> 'karen_phone' FROM tenants t WHERE t.id = contacts.tenant_id) AS karen_phone,
             to_jsonb(contacts) -> 'card_on_file' AS card_on_file
        FROM contacts WHERE id = $1::uuid AND tenant_id = $2::uuid`,
     [id, tenantId],
@@ -283,6 +286,31 @@ export async function contactDetail(tenantId, id, db = null) {
   for (const s of synced) {
     add('sync', s.done_at, 'Synced to the CRM', s.kind.replace('.', ' ').replace(/_/g, ' '));
   }
+  // Every text with them, either way (039, 2026-10-31): what the team sent
+  // from here, the appointment texts, and their conversation with Karen.
+  try {
+    const { rows: texts } = await q(
+      `SELECT x.direction, x.kind, x.body, x.status, x.error, x.created_at, u.name AS sent_by
+         FROM client_texts x LEFT JOIN staff_users u ON u.id = x.sent_by
+        WHERE x.tenant_id = $2::uuid AND x.contact_id = $1::uuid
+        ORDER BY x.created_at DESC LIMIT 200`,
+      [id, tenantId],
+    );
+    const TEXT_KIND = { confirmation: 'Booking confirmation text', reminder: 'Reminder text', reschedule: 'Moved appointment text', cancellation: 'Cancellation text' };
+    for (const x of texts) {
+      const title = x.direction === 'in' ? 'Text from them'
+        : x.kind === 'direct' ? `Text from ${x.sent_by ? String(x.sent_by).split(/\s+/)[0] : 'the team'}`
+          : x.kind === 'karen' ? 'Karen replied by text' : TEXT_KIND[x.kind] || 'Text sent';
+      add('sms', x.created_at, title, x.body, null, {
+        direction: x.direction,
+        status: x.status === 'failed' ? 'failed' : 'sent',
+        error: x.status === 'failed' ? x.error || null : null,
+        tone: x.status === 'failed' ? 'cancel' : 'sms',
+      });
+    }
+  } catch (err) {
+    if (err.code !== '42P01') throw err;
+  }
   activity.sort((x, y) => new Date(y.at) - new Date(x.at));
 
   // Their stylist: the last one they were booked with, not cancelled.
@@ -312,6 +340,12 @@ export async function contactDetail(tenantId, id, db = null) {
       // When they agreed to appointment texts (sms-opt-in or START), or null:
       // texts go only to a client who has (sms-notify.js).
       smsConsentAt: c.sms_consent_at || null,
+      // Whether the team can text or email them from the profile, and if
+      // not, why: shown under the message box (client-message.js).
+      messaging: {
+        text: textBlock(c, { karen_phone: c.karen_phone }),
+        email: c.email ? null : 'There is no email address on file for them.',
+      },
     },
     appointments: appts.map((a) => ({
       ref: a.ref,
@@ -546,6 +580,12 @@ export default handler({
     if (body.op === 'note') return json(res, 200, await addNote(tenant.id, user, body));
     if (body.op === 'prefs') return json(res, 200, await setPrefs(tenant.id, body));
     if (body.op === 'card') return json(res, 200, await setCard(tenant.id, body));
+    // A text or an email written on their profile (2026-10-31).
+    if (body.op === 'message') {
+      return json(res, 200, await messageClient({
+        tenant, user, contactId: body.id, channel: body.channel, subject: body.subject, text: body.text,
+      }));
+    }
 
     const id = requireString(body.id, 'Contact', { max: 64 });
     const name = requireString(body.name, 'Name', { max: 120 });

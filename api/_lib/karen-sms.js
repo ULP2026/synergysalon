@@ -42,6 +42,7 @@ import { canManageTeam } from './auth.js';
 import { aiReply, karenAi } from './karen-ai.js';
 import { logKaren } from './karen-log.js';
 import { toGsm } from './sms-length.js';
+import { logClientText } from './client-texts.js';
 import { appointmentText } from './sms-notify.js';
 import { sendText } from './twilio.js';
 import { visitNameSql } from './visit.js';
@@ -254,6 +255,12 @@ export async function karenReply(tenant, from, text, db = { query }, { ai = kare
   // (2026-10-31); a client's are not part of it.
   if (who.kind === 'staff' && out.say) {
     await logKaren(tenant.id, who, 'text', [{ role: 'user', text: ctx.raw }, { role: 'karen', text: reply }], db);
+  }
+  // A client's conversation with Karen is on their Activity, under SMS
+  // (2026-10-31), beside whatever the team texted them.
+  if (who.kind === 'client' && out.say) {
+    await logClientText(db, { tenantId: tenant.id, contactId: who.id, direction: 'in', kind: 'karen', phone: key, body: ctx.raw });
+    await logClientText(db, { tenantId: tenant.id, contactId: who.id, direction: 'out', kind: 'karen', phone: key, body: reply });
   }
   return reply;
 }

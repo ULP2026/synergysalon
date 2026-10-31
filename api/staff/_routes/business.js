@@ -12,7 +12,7 @@ import { DateTime } from 'luxon';
 
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
-import { MESSAGE_KINDS, automationOn, previewMessage } from '../../_lib/email.js';
+import { MESSAGE_KINDS, automationOn, previewMessage, previewStaffEmail } from '../../_lib/email.js';
 import { prettyPhone, smsText } from '../../_lib/karen-sms.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
@@ -118,6 +118,7 @@ export async function sentMessage(id, tenant) {
     `SELECT m.kind, m.to_name, m.to_email, m.sent_at,
             to_jsonb(m) ->> 'subject' AS subject,
             COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status, to_jsonb(m) ->> 'error' AS error,
+            to_jsonb(m) ->> 'body' AS body,
             a.ref, a.starts_at, a.duration_min, a.price_cents,
             ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines, s.name AS stylist_name
        FROM message_sends m
@@ -128,6 +129,18 @@ export async function sentMessage(id, tenant) {
     [tenant.id, id],
   );
   const r = rows[0];
+  // An email the team wrote from a client's profile (2026-10-31): shown from
+  // the words it was sent with, which the log keeps (039).
+  if (r?.kind === 'direct') {
+    let kept = {};
+    try { kept = JSON.parse(r.body || '{}'); } catch { /* an unreadable row shows empty */ }
+    const out = previewStaffEmail({ subject: r.subject || '', text: kept.text || '', toName: r.to_name, fromName: kept.fromName }, tenant);
+    return {
+      kind: 'direct', sentAt: r.sent_at, toName: r.to_name || r.to_email,
+      to: r.to_name ? `${r.to_name} <${r.to_email}>` : r.to_email, ref: null, ...out,
+      status: r.status === 'failed' ? 'failed' : 'sent', error: r.status === 'failed' ? r.error || null : null,
+    };
+  }
   if (!r || !MESSAGE_KINDS.includes(r.kind)) throw new HttpError(404, 'No such email.');
   const name = r.to_name || r.to_email;
   const appt = r.ref

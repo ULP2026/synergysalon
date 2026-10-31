@@ -213,7 +213,7 @@ function layout({ heading, intro, rows, action, secondary, where, change, steps,
     <div style="background:#ffffff;border:1px solid ${TINT};border-radius:16px;padding:32px 28px;">
       ${mark}
       <h1 style="margin:0 0 8px;font-size:22px;line-height:1.3;color:${INK};">${escapeHtml(heading)}</h1>
-      <p style="margin:0 0 24px;color:#4A4A57;font-size:15px;line-height:1.55;">${escapeHtml(intro)}</p>
+      <p style="margin:0 0 24px;color:#4A4A57;font-size:15px;line-height:1.55;white-space:pre-line;">${escapeHtml(intro)}</p>
       <table style="border-collapse:collapse;">${cells}</table>
       ${button}
       ${extra}
@@ -780,6 +780,47 @@ export function sendKind(kind, appt, tenant = {}, extra) {
   return sendMessage(kind, appt, tenant, extra);
 }
 
+/**
+ * An email the team wrote to a client from their profile (asked for
+ * 2026-10-31): the subject and words they typed, in the salon's layout, from
+ * the same sender with replies to the salon's inbox, signed by them. Kept in
+ * message_sends with its words (039), so the client's Activity lists it and
+ * opens it again. Throws if the provider refuses; the failure is logged too.
+ */
+export function staffEmailContent({ subject, text, toName, fromName }) {
+  const hello = toName ? `Hi ${first(toName)},\n\n` : '';
+  return {
+    subject,
+    content: { heading: subject, intro: `${hello}${text}${fromName ? `\n\n${fromName}` : ''}`, rows: [] },
+  };
+}
+
+export async function sendStaffEmail({ to, toName, subject, text, fromName, contactId }, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const { content } = staffEmailContent({ subject, text, toName, fromName });
+  const log = async (status, error = null) => {
+    try {
+      await query(
+        `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email, subject, status, error, contact_id, body)
+         VALUES ($1::uuid, 'direct', NULL, $2::text, $3::text, $4::text, $5::text, $6::text, $7::uuid, $8::text)`,
+        [tenant.id, toName || null, to, subject, status, error ? String(error).slice(0, 500) : null, contactId || null,
+          JSON.stringify({ text, fromName: fromName || null })],
+      );
+    } catch (err) {
+      console.warn('message_sends insert failed', 'direct', err.message);
+    }
+  };
+  let out;
+  try {
+    out = await send(shop, to, subject, content);
+  } catch (err) {
+    await log('failed', err.message);
+    throw err;
+  }
+  if (out.sent) await log('sent');
+  return out;
+}
+
 export function sendConfirmation(appt, tenant = {}) { return sendMessage('confirmation', appt, tenant); }
 export function sendReschedule(appt, previousStart, tenant = {}) { return sendMessage('reschedule', appt, tenant, previousStart); }
 export function sendCancellation(appt, tenant = {}) { return sendMessage('cancellation', appt, tenant); }
@@ -790,6 +831,18 @@ export function sendReminder(appt, tenant = {}) { return sendMessage('reminder',
  * same HTML, same sender. The appointment is whatever the caller supplies,
  * usually a sample, since a preview must not need a real guest.
  */
+export function previewStaffEmail({ subject, text, toName, fromName }, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const { content } = staffEmailContent({ subject, text, toName, fromName });
+  return {
+    from: fromFor(shop),
+    replyTo: shop.replyTo || null,
+    subject,
+    html: layout(content, shop),
+    text: plain(content, shop),
+  };
+}
+
 export function previewMessage(kind, appt, tenant = {}, extra) {
   if (!MESSAGES[kind]) return null;
   const shop = shopFrom(tenant);

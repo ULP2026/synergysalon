@@ -18,6 +18,7 @@
 import { DateTime } from 'luxon';
 
 import { hasColumn, query } from './db.js';
+import { logClientText } from './client-texts.js';
 import { fitText } from './sms-length.js';
 import { sendText } from './twilio.js';
 
@@ -113,7 +114,14 @@ export async function textGuest(kind, appt, tenant = {}, { send = sendText, db =
     if (r.sms_ok === 'false') return { skipped: 'switched off' };
     if (!r.karen_phone) return { skipped: 'no number' };
     const body = appointmentText(kind, appt, { ...tenant, name: tenant.name || r.name, phone: tenant.phone || r.salon_phone });
-    await send({ to: `+1${r.phone}`, from: r.karen_phone, body });
+    try {
+      await send({ to: `+1${r.phone}`, from: r.karen_phone, body });
+    } catch (err) {
+      await logClientText(db, { tenantId: tenant.id, contactId: appt.contact_id, direction: 'out', kind, phone: r.phone, body, status: 'failed', error: err.message });
+      throw err;
+    }
+    // On the client's Activity, under SMS (2026-10-31).
+    await logClientText(db, { tenantId: tenant.id, contactId: appt.contact_id, direction: 'out', kind, phone: r.phone, body });
     return { texted: true };
   } catch (err) {
     // Until the carriers approve the number every send is refused, and a

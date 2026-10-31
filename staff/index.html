@@ -384,6 +384,9 @@
      cards that sit 16px apart. Tighter than before, which read as oversized. */
   .pagehead { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
   .pagehead .titles { flex: 1; min-width: 0; }
+  .page-face { flex: none; width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--peri-pale);
+               box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--periwinkle); }
+  @media (max-width: 520px) { .page-face { width: 46px; height: 46px; } }
   .pagehead h1 { font-size: 1.5rem; letter-spacing: -.02em; }
   .pagehead .sub { margin: 4px 0 0; color: var(--muted); font-size: var(--fs-sm); }
   .view { flex: 1; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
@@ -838,7 +841,21 @@
      window's edge once the column scrolls. */
   .px-left { overflow-y: auto; padding: 18px 18px 26px; background: #eeeef8; border-right: 1px solid rgba(85, 96, 166, .14);
              display: flex; flex-direction: column; gap: 12px; }
-  .px-right { overflow-y: auto; padding: 22px 28px 28px; display: flex; flex-direction: column; min-height: 0; background: var(--card); }
+  .px-right { overflow-y: auto; padding: 22px 28px 0; display: flex; flex-direction: column; min-height: 0; background: var(--card); }
+  /* Writing to the client, kept at the foot of Activity as it scrolls. */
+  .px-compose { position: sticky; bottom: 0; margin: auto -28px 0; padding: 12px 28px 16px; z-index: 2;
+                background: var(--card); border-top: 1px solid var(--line); display: grid; gap: 8px; }
+  .pc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pc-ch button { display: inline-flex; align-items: center; gap: 6px; }
+  .pc-ch .ic { width: 15px; height: 15px; }
+  .pc-count { font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pc-count.warn { color: var(--warn); }
+  .pc-subj { height: 40px; }
+  .pc-row { display: flex; gap: 8px; align-items: flex-end; }
+  .pc-row textarea { flex: 1; min-height: 44px; max-height: 160px; resize: vertical; }
+  .pc-send { flex: none; }
+  .pc-why { margin: 0; font-size: var(--fs-xs); color: var(--muted); }
+  .pc-why.bad { color: var(--warn); }
   .px-sec { background: var(--card); border-radius: 14px; padding: 16px 18px; box-shadow: var(--e1); }
   .px-sec h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: var(--fs-xs); font-weight: 650;
                letter-spacing: .08em; text-transform: uppercase; color: var(--indigo); }
@@ -966,6 +983,8 @@
     dialog.xl { width: 100%; max-width: none; height: 100dvh; max-height: none; border-radius: 0; margin: 0; }
     .px-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; overflow-x: hidden; }
     .px-left, .px-right { overflow: visible; }
+    .px-right { padding: 18px 18px 0; }
+    .px-compose { margin: 16px -18px 0; padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 0px)); }
     .px-left { border-right: 0; border-bottom: 1px solid var(--hair); }
     .px-head { flex-wrap: wrap; padding: 18px; }
     .px-head .acts { width: 100%; }
@@ -2852,6 +2871,8 @@
 
   <main class="main">
     <header class="pagehead">
+      <!-- Your own headshot beside Home's greeting (asked for 2026-10-31). -->
+      <img class="page-face" id="pageFace" alt="" hidden>
       <div class="titles">
         <h1 id="pageTitle">Home</h1>
         <p class="sub" id="pageSub"></p>
@@ -3848,6 +3869,8 @@ function paintMe() {
   $('myName').textContent = me.user.name;
   $('mySub').textContent = ROLE_LABEL[me.user.role] || me.user.role;
   paintLogo();
+  // A new picture shows beside Home's greeting at once.
+  if (!$('pageFace').hidden) paintPageFace(true);
 }
 $('myEdit').onclick = () => openMember('me');
 
@@ -5133,6 +5156,7 @@ function go(name, { push = true } = {}) {
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
 
   $('pageTitle').textContent = name === 'home' ? homeHello() : p.title;
+  paintPageFace(name === 'home');
   $('pageSub').textContent = name === 'home' ? greeting() : p.sub;
   // One primary action per view, and none where there is nothing to do yet.
   $('primaryBtn').classList.toggle('hidden', !p.action);
@@ -5263,6 +5287,13 @@ function salonClock() {
 const partOfDay = (h) => (h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening');
 
 /** Home's heading: a hello by the time of day, with the person's first name. */
+/** The signed-in person's headshot beside Home's greeting: the same picture as everywhere (personPhoto). */
+function paintPageFace(show) {
+  const img = $('pageFace');
+  img.hidden = !show || !me?.user;
+  if (!img.hidden) img.src = personPhoto(me.user);
+}
+
 function homeHello() {
   const first = String(me?.user?.name || '').trim().split(/\s+/)[0];
   const hi = `Good ${partOfDay(salonClock().hour)}`;
@@ -5312,6 +5343,7 @@ async function loadHome() {
   const seq = ++homeSeq;
   $('pageTitle').textContent = homeHello();
   $('pageSub').textContent = greeting();
+  paintPageFace(true);
   if (!homeData) {
     $('hmGrid').innerHTML = [0, 1].map(() =>
       '<div class="tile"><span class="sk" style="height:32px;width:56px"></span><span class="sk" style="margin-top:10px;width:60%"></span></div>').join('')
@@ -6779,6 +6811,8 @@ async function openPerson(id) {
   person = null;
   tlFilter = 'all';
   pxEditing = null;
+  // A new client's profile starts with nothing written, on Text if they can be texted.
+  pxDraft = { ch: null, subject: '', text: '' };
   $('pxSub').innerHTML = '';
   // Paint what the list already knows at once, then fill in the rest.
   $('pxAvatar').textContent = initialsOf(c?.name);
@@ -6958,7 +6992,7 @@ function renderTimeline() {
     });
   } else if (!shown.length) {
     const why = {
-      sms: "Appointment texts go from Karen's number to clients who have agreed to texts. They aren't listed here yet.",
+      sms: "No texts with them yet. Appointment texts, Karen's replies and anything sent from here appear here.",
       automation: 'Automations are coming soon. Nothing has run for this person.',
       email: 'No emails have been sent to this person yet. Every one the app sends them appears here.',
       form: 'This person did not come in through the website form.',
@@ -6981,10 +7015,102 @@ function renderTimeline() {
         <time datetime="${esc(e.at)}"><b>${esc(ago(e.at))}</b>${esc(fmtWhen(e.at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))}</time>
       </li>`).join('')}</ol>`;
   }
-  $('pxRight').innerHTML = `<div class="tl-head"><h3>Activity</h3><div class="tl-filters" role="group" aria-label="Filter activity">${filters}</div></div>${body}`;
+  $('pxRight').innerHTML = `<div class="tl-head"><h3>Activity</h3><div class="tl-filters" role="group" aria-label="Filter activity">${filters}</div></div>${body}${composeHtml()}`;
+  paintCompose();
 }
 
+// ── writing to a client ──────────────────────────────────────────────────
+//
+// A text or an email from their profile (asked for 2026-10-31), as in the
+// CRM's conversations: Text or Email, then the message and Send. A text goes
+// from Karen's number signed with the writer's first name, and only to a
+// client who agreed to texts; the reason shows here when they cannot be
+// texted (client-message.js). What is written stays while the Activity
+// filters are clicked, and is cleared once it is sent.
+let pxDraft = { ch: null, subject: '', text: '' };
+const SMS_SIGN = () => `${(me?.user?.name || 'The team').split(/\s+/)[0]} at ${me?.salon?.name || 'the salon'}: `;
+function composeHtml() {
+  return `<form class="px-compose" id="pxCompose" novalidate>
+    <div class="pc-top">
+      <div class="seg pc-ch" role="group" aria-label="Send as">
+        <button type="button" data-ch="sms">${ic('message')}Text</button>
+        <button type="button" data-ch="email">${ic('mail')}Email</button>
+      </div>
+      <small class="pc-count" id="pcCount" aria-live="polite"></small>
+    </div>
+    <input name="subject" class="pc-subj" placeholder="Subject" maxlength="150" autocomplete="off">
+    <div class="pc-row">
+      <textarea name="text" rows="2" maxlength="2000" placeholder="Write a message…" aria-label="Message"></textarea>
+      <button class="btn pc-send" id="pcSend">${ic('send')}Send</button>
+    </div>
+    <p class="pc-why" id="pcWhy"></p>
+  </form>`;
+}
+function paintCompose() {
+  const f = $('pxCompose');
+  if (!f || !person) return;
+  const m = person.contact.messaging || { text: 'Texting is not available yet.', email: null };
+  if (!pxDraft.ch) pxDraft.ch = m.text && !m.email ? 'email' : 'sms';
+  const ch = pxDraft.ch;
+  for (const b of f.querySelectorAll('[data-ch]')) b.setAttribute('aria-pressed', String(b.dataset.ch === ch));
+  f.elements.subject.hidden = ch !== 'email';
+  f.elements.subject.value = pxDraft.subject;
+  f.elements.text.value = pxDraft.text;
+  f.elements.text.placeholder = ch === 'sms' ? `Text ${person.contact.name.split(/\s+/)[0]}…` : `Email ${person.contact.name.split(/\s+/)[0]}…`;
+  const why = ch === 'sms' ? m.text : m.email;
+  $('pcWhy').textContent = why || (ch === 'sms'
+    ? `From Karen's number, signed "${SMS_SIGN().trim()}". Their reply goes to Karen, and shows here.`
+    : `From the salon, with replies to its inbox. ${person.contact.email}`);
+  $('pcWhy').classList.toggle('bad', Boolean(why));
+  f.elements.text.disabled = Boolean(why);
+  f.elements.subject.disabled = Boolean(why);
+  $('pcSend').disabled = Boolean(why) || !pxDraft.text.trim() || (ch === 'email' && !pxDraft.subject.trim());
+  countCompose();
+}
+/** A text's length as it will go: one text is 160 characters. */
+function countCompose() {
+  const out = $('pcCount');
+  if (!out) return;
+  if (pxDraft.ch !== 'sms' || !pxDraft.text) { out.textContent = ''; return; }
+  const n = [...(SMS_SIGN() + pxDraft.text.trim())].length;
+  const texts = n <= 160 ? 1 : Math.ceil(n / 153);
+  out.textContent = `${n} characters · ${texts} text${texts === 1 ? '' : 's'}`;
+  out.classList.toggle('warn', texts > 1);
+}
+$('pxRight').addEventListener('input', (e) => {
+  const f = e.target.closest('#pxCompose');
+  if (!f) return;
+  pxDraft.text = f.elements.text.value;
+  pxDraft.subject = f.elements.subject.value;
+  const m = person?.contact?.messaging || {};
+  const why = pxDraft.ch === 'sms' ? m.text : m.email;
+  $('pcSend').disabled = Boolean(why) || !pxDraft.text.trim() || (pxDraft.ch === 'email' && !pxDraft.subject.trim());
+  countCompose();
+});
+$('pxRight').addEventListener('submit', async (e) => {
+  if (!e.target.closest('#pxCompose')) return;
+  e.preventDefault();
+  const c = person?.contact;
+  if (!c || $('pcSend').disabled) return;
+  $('pcSend').disabled = true;
+  try {
+    await api('/api/staff/contacts', {
+      method: 'PATCH',
+      body: JSON.stringify({ op: 'message', id: c.id, channel: pxDraft.ch, subject: pxDraft.subject, text: pxDraft.text }),
+    });
+    toast(pxDraft.ch === 'sms' ? `Text sent to ${c.name}.` : `Email sent to ${c.name}.`, 'ok');
+    pxDraft = { ch: pxDraft.ch, subject: '', text: '' };
+    person = await api(`/api/staff/contacts?id=${encodeURIComponent(c.id)}`);
+    renderTimeline();
+  } catch (err) {
+    if (err.message !== 'signed out') { $('pcWhy').textContent = err.message; $('pcWhy').classList.add('bad'); }
+    $('pcSend').disabled = false;
+  }
+});
+
 $('pxRight').onclick = (e) => {
+  const chb = e.target.closest('#pxCompose [data-ch]');
+  if (chb) { pxDraft.ch = chb.dataset.ch; paintCompose(); return; }
   const f = e.target.closest('button[data-tl]');
   if (f) { tlFilter = f.dataset.tl; renderTimeline(); return; }
   const m = e.target.closest('[data-sent]');
