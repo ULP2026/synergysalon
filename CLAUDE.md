@@ -470,8 +470,14 @@ made that way are real: name them ZZ and remove them.
   split. Payment is "Not recorded" and there are no transactions: nothing
   records payments until Stripe. Check in, no-show, cancel, done, reopen
   and delete stay on it. Staff move a visit by dragging it (below).
-- **Drag and drop on Appt. Book** (asked for 2026-11-02): a booked card that
-  has not started (`canMove`) can be dragged to another time, or into
+- **Moving an appointment** (asked for 2026-11-02, and again the same day
+  when a drag did not work for the salon): two ways, both for any booking
+  still `booked` (`canMove`), one from earlier today included, to any time
+  from now. **Move** on the appointment window opens `#moveDlg`: day,
+  stylist, then the free times for the whole visit from `GET
+  /api/staff/appointment?ref=&times=&stylist=` (`moveTimes`, the same
+  `moveSlots` question the move asks). And **drag and drop** on the day: a
+  booked card can be dragged to another time, or into
   another stylist's column; a ghost the length of the visit snaps to
   quarter hours and turns red where the grid can already tell it will not
   fit (passed, outside the salon's or the stylist's hours). A touch drag
@@ -481,7 +487,8 @@ made that way are real: name them ZZ and remove them.
   Google) through `availableSlots`, the visit's own length and breaks, the
   no-overlap constraint as the last word, then the reschedule email and
   text and the Google copy, as the guest's own reschedule does. The quiet
-  two-minute reload waits while a card is held.
+  two-minute reload waits while a card is held. A mouse drag holds pointer
+  capture so the drop is never lost.
 - The client profile edits in place: a pencil on Contact details (name,
   phone, email) and on Tags and status (the stage), Add note (a dated line
   on top, `PATCH {op: 'note'}`, one statement so two people's notes both

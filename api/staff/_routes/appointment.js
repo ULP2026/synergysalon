@@ -23,7 +23,9 @@ import { EXCLUSION_VIOLATION, query, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle, removeGoogleCopies } from '../../_lib/google-mirror.js';
 import { sendCancellation, sendReschedule } from '../../_lib/email.js';
 import { at, cancelFor, enqueue } from '../../_lib/scheduled.js';
-import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
+import {
+  HttpError, handler, json, readJson, requireDate, requireString,
+} from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { visitLines, visitLinesSql, visitNameSql } from '../../_lib/visit.js';
 
@@ -236,6 +238,57 @@ export async function applyAppointmentAction(tenant, user, ref, action) {
  * gets the usual "your appointment has moved" email (and text, when they
  * agreed to texts), and the stylist's Google copy follows at once.
  */
+const MOVABLE_SQL = `SELECT a.*, s.name AS stylist_name, s.slug AS stylist_slug,
+              ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines, v.slug AS service_slug
+         FROM appointments a
+         JOIN stylists s ON s.id = a.stylist_id
+         JOIN services v ON v.id = a.service_id
+        WHERE a.ref = $1::text AND a.tenant_id = $2::uuid`;
+
+/** Only a booking still on the books moves; one that happened or was called off stays. */
+function assertMovable(current) {
+  if (!current) throw new HttpError(404, 'No appointment with that reference.');
+  if (current.status !== 'booked') {
+    throw new HttpError(409, current.status === 'cancelled'
+      ? 'That appointment is cancelled. Reopen it before moving it.'
+      : 'That visit has already happened, so it stays where it was.');
+  }
+}
+
+/**
+ * The times this visit could move to on one day, with one stylist (its own
+ * unless another is named): its own length and breaks, the desk's rules.
+ * The same question moveAppointment asks, so the Move window offers
+ * nothing the move would refuse.
+ */
+async function moveSlots(client, tenant, current, date, slug) {
+  try {
+    return await availableSlots(client, tenant, {
+      serviceSlug: current.service_slug,
+      stylistSlug: slug || current.stylist_slug,
+      fromDate: date,
+      toDate: date,
+      excludeAppointmentId: current.id,
+      minLeadMin: 0,
+      length: { durationMin: current.duration_min, bufferMin: current.buffer_min, breaks: current.breaks },
+    });
+  } catch (err) {
+    // The stylist asked for does not do this service, for instance.
+    if (err.status === 404) throw new HttpError(409, err.message);
+    throw err;
+  }
+}
+
+/** GET ?ref=&times=YYYY-MM-DD[&stylist=]: where the Move window can put it. */
+export async function moveTimes(tenant, ref, date, slug) {
+  return transaction(async (client) => {
+    const current = (await client.query(MOVABLE_SQL, [ref, tenant.id])).rows[0];
+    assertMovable(current);
+    const { days } = await moveSlots(client, tenant, current, date, slug);
+    return days.flatMap((d) => d.slots).map((x) => x.start);
+  });
+}
+
 export async function moveAppointment(tenant, user, ref, { start, stylist }) {
   const requested = DateTime.fromISO(requireString(start, 'New time', { max: 40 }), { setZone: true });
   if (!requested.isValid) throw new HttpError(400, 'That time is not valid.');
@@ -243,47 +296,17 @@ export async function moveAppointment(tenant, user, ref, { start, stylist }) {
   const toSlug = stylist ? requireString(stylist, 'Stylist', { max: 80 }) : null;
 
   const { appt, previousStart, moved } = await transaction(async (client) => {
-    const { rows } = await client.query(
-      `SELECT a.*, s.name AS stylist_name, s.slug AS stylist_slug,
-              ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines, v.slug AS service_slug
-         FROM appointments a
-         JOIN stylists s ON s.id = a.stylist_id
-         JOIN services v ON v.id = a.service_id
-        WHERE a.ref = $1::text AND a.tenant_id = $2::uuid
-        FOR NO KEY UPDATE OF a`,
-      [ref, tenant.id],
-    );
-    const current = rows[0];
-    if (!current) throw new HttpError(404, 'No appointment with that reference.');
-    if (current.status !== 'booked') {
-      throw new HttpError(409, current.status === 'cancelled'
-        ? 'That appointment is cancelled. Reopen it before moving it.'
-        : 'That visit has already happened, so it stays where it was.');
-    }
-    if (new Date(current.starts_at) <= new Date()) {
-      throw new HttpError(409, 'That appointment has already started, so it stays where it was.');
-    }
+    const current = (await client.query(`${MOVABLE_SQL} FOR NO KEY UPDATE OF a`, [ref, tenant.id])).rows[0];
+    // A booking whose time has passed can still be moved on, to now or
+    // later (the salon asked, 2026-11-02, that staff can always move a
+    // booked visit): availableSlots offers nothing earlier than now.
+    assertMovable(current);
     const targetSlug = toSlug || current.stylist_slug;
     const same = targetSlug === current.stylist_slug
       && startsAt.toMillis() === DateTime.fromJSDate(new Date(current.starts_at)).toMillis();
     if (same) return { appt: current, previousStart: current.starts_at, moved: false };
 
-    let found;
-    try {
-      found = await availableSlots(client, tenant, {
-        serviceSlug: current.service_slug,
-        stylistSlug: targetSlug,
-        fromDate: startsAt.toISODate(),
-        toDate: startsAt.toISODate(),
-        excludeAppointmentId: current.id,
-        minLeadMin: 0,
-        length: { durationMin: current.duration_min, bufferMin: current.buffer_min, breaks: current.breaks },
-      });
-    } catch (err) {
-      // The stylist it was dropped on does not do this service, for instance.
-      if (err.status === 404) throw new HttpError(409, err.message);
-      throw err;
-    }
+    const found = await moveSlots(client, tenant, current, startsAt.toISODate(), targetSlug);
     const slot = found.days.flatMap((d) => d.slots)
       .find((x) => DateTime.fromISO(x.start).toMillis() === startsAt.toMillis());
     if (!slot) {
@@ -339,6 +362,11 @@ export default handler({
     const tenant = await tenantForUser(user);
     const url = new URL(req.url, 'http://localhost');
     const ref = requireString(url.searchParams.get('ref'), 'Reference', { max: 16 }).toUpperCase();
+    if (url.searchParams.has('times')) {
+      const date = requireDate(url.searchParams.get('times'), 'Date');
+      const slug = url.searchParams.get('stylist') || null;
+      return json(res, 200, { ref, date, times: await moveTimes(tenant, ref, date, slug) });
+    }
     const ticket = await ticketFor(tenant, ref);
     if (!ticket) throw new HttpError(404, 'No appointment with that reference.');
     return json(res, 200, ticket);

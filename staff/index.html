@@ -3590,6 +3590,26 @@
   <div class="ad-acts" id="adActs"></div>
 </dialog>
 
+<!-- Move an appointment to another day, time or stylist (2026-11-02): the
+     way to move one that works everywhere, beside dragging it on the day. -->
+<dialog id="moveDlg" aria-labelledby="moveTitle">
+  <form method="dialog" id="moveForm">
+    <h2 id="moveTitle">Move appointment</h2>
+    <p class="small muted" id="moveNow" style="margin:-8px 0 16px"></p>
+    <div class="two">
+      <label><span>Day</span><input type="date" id="moveDate" required></label>
+      <label><span>Stylist</span><select id="moveStylist"></select></label>
+    </div>
+    <p class="small muted" style="margin:4px 0 8px">Free times for the whole visit</p>
+    <div class="bw-times" id="moveTimes" role="listbox" aria-label="Free times"></div>
+    <p class="small muted" id="moveSend" style="margin:14px 0 0">The client is sent the new time.</p>
+    <div class="dlg-actions">
+      <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
+      <button type="button" class="btn" id="moveSave" disabled>Move appointment</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Lunch or a block on one stylist's column. -->
 <dialog id="blockDlg">
   <form method="dialog" id="blockForm">
@@ -6080,12 +6100,14 @@ function partCard(a, top, height, label) {
 }
 
 /**
- * Whether a card can be dragged to another time: still booked and not yet
- * started. A visit that has happened, or is happening, stays where it was
- * (the server says the same in moveAppointment).
+ * Whether a card can be dragged to another time: anything still booked
+ * (asked for 2026-11-02: staff must always be able to move a booked visit,
+ * one from earlier today included). Done, no-show and cancelled visits stay
+ * where they were; the server says the same in moveAppointment. Where it
+ * can go is from now on, which the ghost and the server both check.
  */
 function canMove(a) {
-  return a.status === 'booked' && new Date(a.startsAt) > new Date();
+  return a.status === 'booked';
 }
 
 function renderDiary(d) {
@@ -6313,7 +6335,7 @@ function renderDiary(d) {
       <span>${ic('check')}Confirmed</span><span>${ic('user-check')}Checked in</span>
       <span>${ic('thumbs')}Done</span><span>${ic('doc')}Notes</span>
       ${team.some((t) => t.google) ? '<span><i style="background:repeating-linear-gradient(135deg,#eceefb 0 4px,#e3e6f8 4px 8px)"></i>Busy in Google</span>' : ''}
-      <span style="margin-left:auto">Click an empty time to book it.</span>
+      <span style="margin-left:auto">Drag an appointment to move it, or open it and press Move. Click an empty time to book it.</span>
     </div>
     ${cancelled.length ? `<div class="dg-off">Cancelled today:
       ${cancelled.map((a) => `<button type="button" class="chip warn" data-ref="${esc(a.ref)}" style="cursor:pointer">${esc(a.time)} ${esc(a.guestName)}</button>`).join('')}</div>` : ''}`;
@@ -6341,6 +6363,97 @@ $('diary').addEventListener('mousemove', (e) => {
   g.style.top = `${((m - dgRange.from) / 60) * DG_HOUR}px`;
   g.textContent = clock(m);
 });
+
+// ── the Move window ───────────────────────────────────────────────────────
+//
+// Day, stylist, then one of the free times for the whole visit, from
+// GET /api/staff/appointment?ref=&times=&stylist= (moveTimes), which asks
+// what the move itself asks, so nothing offered is then refused. Saved by
+// the same POST {action: 'move'} as a drag.
+let moveFor = null;
+let movePick = null;
+let moveSeq = 0;
+
+function openMove(a) {
+  if (dgDemo) { toast('This is the sample day, so nothing moves.'); return; }
+  moveFor = a;
+  movePick = null;
+  const from = a.date || (a.startsAt ? minutesDate(a.startsAt) : salonToday());
+  $('moveTitle').textContent = `Move ${a.guestName || 'appointment'}`;
+  $('moveNow').textContent = `${a.service || ''}${a.stylist ? ` with ${a.stylist}` : ''}, now ${dayLabel(from)} at ${a.time || clock(salonMinutes(a.startsAt))}.`;
+  const today = salonToday();
+  $('moveDate').min = today;
+  $('moveDate').value = from < today ? today : from;
+  const list = [...(me?.stylists || [])];
+  if (a.stylistSlug && !list.some((x) => x.slug === a.stylistSlug)) list.push({ slug: a.stylistSlug, name: a.stylist || a.stylistSlug });
+  $('moveStylist').innerHTML = list.map((x) => `<option value="${esc(x.slug)}"${x.slug === a.stylistSlug ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+  $('moveSend').textContent = a.guestEmail || a.guestPhone ? 'The client is sent the new time.' : 'This client has no email on file, so nobody is notified.';
+  $('moveSave').disabled = true;
+  openDialog($('moveDlg'));
+  loadMoveTimes();
+}
+
+/** The salon's date (YYYY-MM-DD) of an instant. */
+function minutesDate(iso) {
+  return new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    ...(me?.salon?.timezone ? { timeZone: me.salon.timezone } : {}),
+  }).format(new Date(iso));
+}
+
+async function loadMoveTimes() {
+  const a = moveFor;
+  if (!a) return;
+  const seq = ++moveSeq;
+  movePick = null;
+  $('moveSave').disabled = true;
+  const date = $('moveDate').value;
+  const slug = $('moveStylist').value;
+  $('moveTimes').innerHTML = '<p class="bw-empty small muted">Finding free times…</p>';
+  if (!date) { $('moveTimes').innerHTML = '<p class="bw-empty small muted">Pick a day.</p>'; return; }
+  try {
+    const r = await api(`/api/staff/appointment?ref=${encodeURIComponent(a.ref)}&times=${encodeURIComponent(date)}&stylist=${encodeURIComponent(slug)}`);
+    if (seq !== moveSeq) return;
+    const here = a.startsAt ? new Date(a.startsAt).getTime() : null;
+    const times = r.times.filter((t) => !(slug === a.stylistSlug && new Date(t).getTime() === here));
+    $('moveTimes').innerHTML = times.length
+      ? times.map((t) => `<button type="button" class="bw-time" role="option" aria-selected="false" data-start="${esc(t)}">${esc(clock(salonMinutes(t)))}</button>`).join('')
+      : `<p class="bw-empty small muted">No free time for the whole visit that day. ${new Date(`${date}T12:00:00Z`).getUTCDay() === 0 ? 'The salon is closed on Sundays.' : 'Try another day or stylist.'}</p>`;
+  } catch (err) {
+    if (seq !== moveSeq) return;
+    $('moveTimes').innerHTML = `<p class="bw-empty small muted">${esc(err.message)}</p>`;
+  }
+}
+$('moveDate').addEventListener('change', loadMoveTimes);
+$('moveStylist').addEventListener('change', loadMoveTimes);
+$('moveTimes').onclick = (e) => {
+  const b = e.target.closest('button[data-start]');
+  if (!b) return;
+  $('moveTimes').querySelectorAll('.bw-time.on').forEach((x) => { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
+  b.classList.add('on');
+  b.setAttribute('aria-selected', 'true');
+  movePick = b.dataset.start;
+  $('moveSave').disabled = false;
+};
+$('moveSave').onclick = async () => {
+  const a = moveFor;
+  if (!a || !movePick) return;
+  const slug = $('moveStylist').value;
+  $('moveSave').disabled = true;
+  try {
+    const r = await api('/api/staff/appointment', {
+      method: 'POST',
+      body: JSON.stringify({ ref: a.ref, action: 'move', start: movePick, ...(slug && slug !== a.stylistSlug ? { stylist: slug } : {}) }),
+    });
+    closeDialog($('moveDlg'));
+    toast(`Moved to ${dayLabel(minutesDate(movePick))} at ${clock(salonMinutes(movePick))}${r.stylist && slug !== a.stylistSlug ? ` with ${r.stylist}` : ''}.`);
+    if (page === 'appointments') await refreshDiary();
+    if ($('personDlg').open && person) reloadPerson();
+  } catch (err) {
+    fail(err);
+    loadMoveTimes();
+  }
+};
 
 // ── drag and drop: move a booking to another time or chair ───────────────
 //
@@ -6424,6 +6537,7 @@ function dgBegin() {
   dgPaint(d.x, d.y);
 }
 
+$('diary').addEventListener('dragstart', (e) => { if (e.target.closest?.('.dg-ev')) e.preventDefault(); });
 $('diary').addEventListener('pointerdown', (e) => {
   if (e.button !== 0 || dgDrag) return;
   const card = e.target.closest('.dg-ev.dg-mv');
@@ -6440,6 +6554,9 @@ $('diary').addEventListener('pointerdown', (e) => {
     from: { slug: appt.stylistSlug || '', start: salonMinutes(appt.startsAt) },
     active: false, timer: 0, ghost: null, target: null,
   };
+  // Keep the pointer's events while it is held, wherever it goes: without
+  // this, letting go over something that swallows them lost the drop.
+  if (!dgDrag.touch) { try { card.setPointerCapture(e.pointerId); } catch { /* fine without */ } }
   if (dgDrag.touch) dgDrag.timer = setTimeout(() => { if (dgDrag && !dgDrag.active) { dgBegin(); navigator.vibrate?.(10); } }, DG_HOLD_MS);
 });
 
@@ -6774,6 +6891,7 @@ function paintTicket(a) {
     // sale. Styling it like deletion, beside deletion, is how the two get
     // confused -- and they leave very different things behind.
     acts.push(b('cancel', 'Cancel appointment'));
+    acts.push(b('move', 'Move'));
     acts.push(a.checkedInAt ? b('undo_check_in', 'Undo check-in') : '');
     acts.push(a.checkedInAt ? b('complete', 'Done', '') : b('check_in', 'Check in', ''));
   }
@@ -6790,6 +6908,7 @@ $('adActs').onclick = (e) => {
   // Opened from this client's own profile: closing the ticket is the way back.
   const fromPerson = $('personDlg').open && person && String(person.contact.id) === String(a.contactId);
   if (btn.dataset.ad === 'client') { if (!fromPerson) setTimeout(() => openPerson(a.contactId), 170); return; }
+  if (btn.dataset.ad === 'move') { setTimeout(() => openMove(a), 170); return; }
   setTimeout(async () => {
     await apptAction(a.ref, btn.dataset.ad);
     if ($('personDlg').open && person) reloadPerson();

@@ -149,6 +149,16 @@ test('a dragged booking moves to a free time and to another stylist', { skip }, 
     assert.equal(row.stylist_id, ids['zz-ana']);
     assert.equal(row.len, 75, 'keeps its own length and clean-down');
 
+    // The Move window's times: the whole visit, inside the salon's 9 to 3,
+    // never the 12:00 hour Ana now has filled, and on Sunday nothing.
+    const times = await call(appointment, cookie, { url: `/api/staff/appointment?ref=ZZMV01&times=${DAY.toISODate()}&stylist=zz-ana` });
+    assert.equal(times.status, 200, JSON.stringify(times.body));
+    const list = times.body.times.map(hhmm);
+    assert.equal(list[0], '09:00');
+    assert.equal(list.at(-1), '14:00');
+    const sun = await call(appointment, cookie, { url: `/api/staff/appointment?ref=ZZMV01&times=${DAY.plus({ days: 1 }).toISODate()}` });
+    assert.deepEqual(sun.body.times, []);
+
     // Into Bea's column.
     r = await move(cookie, { ref: 'ZZMV01', start: at(12).toISO(), stylist: 'zz-bea' });
     assert.equal(r.status, 200, JSON.stringify(r.body));
