@@ -291,6 +291,70 @@ export async function history(tenant, cursor, { kind = null, q = null } = {}) {
 }
 
 /**
+ * GET ?sends=<kind,kind>[&before=<cursor>]: who one automation reached, by
+ * email and by text, newest first (asked for 2026-11-02, under the
+ * automation's flow). An automation is one or more message kinds (no-show
+ * has two), and the appointment texts are logged under the same kind as
+ * their email (client_texts, 039), so both lists are read by kind and
+ * merged.
+ *
+ * Paged by time: the cursor is the last row's time as Postgres's own text,
+ * microseconds included, so nothing is skipped at a page's edge. Before
+ * client_texts exists there are simply no texts.
+ */
+const SENDS_PAGE = 40;
+export async function automationSends(tenant, kindsParam, cursor) {
+  const kinds = String(kindsParam || '').split(',').map((k) => k.trim()).filter((k) => MESSAGE_KINDS.includes(k));
+  if (!kinds.length) throw new HttpError(404, 'No such automation.');
+  const before = cursor && !Number.isNaN(Date.parse(cursor)) ? cursor : null;
+  const [emails, texts] = await Promise.all([
+    query(
+      `SELECT m.id::text AS id, m.kind, m.to_name AS name, m.to_email AS addr, m.sent_at AS at, m.sent_at::text AS at_text,
+              COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status, to_jsonb(m) ->> 'error' AS error,
+              to_jsonb(m) ->> 'contact_id' AS contact_id
+         FROM message_sends m
+        WHERE m.tenant_id = $1::uuid AND m.kind = ANY($2::text[])
+          AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
+        ORDER BY m.sent_at DESC
+        LIMIT $4::int`,
+      [tenant.id, kinds, before, SENDS_PAGE + 1],
+    ).catch(() => ({ rows: [] })),
+    query(
+      `SELECT t.id::text AS id, t.kind, c.name, t.phone AS addr, t.created_at AS at, t.created_at::text AS at_text,
+              t.status, t.error, t.contact_id::text AS contact_id
+         FROM client_texts t
+         LEFT JOIN contacts c ON c.id = t.contact_id
+        WHERE t.tenant_id = $1::uuid AND t.kind = ANY($2::text[]) AND t.direction = 'out'
+          AND ($3::timestamptz IS NULL OR t.created_at < $3::timestamptz)
+        ORDER BY t.created_at DESC
+        LIMIT $4::int`,
+      [tenant.id, kinds, before, SENDS_PAGE + 1],
+    ).catch(() => ({ rows: [] })),
+  ]);
+  const all = [
+    ...emails.rows.map((r) => ({ ...r, channel: 'email' })),
+    ...texts.rows.map((r) => ({ ...r, channel: 'sms' })),
+  ].sort((a, b) => new Date(b.at) - new Date(a.at) || b.at_text.localeCompare(a.at_text));
+  const page = all.slice(0, SENDS_PAGE);
+  const last = page[page.length - 1];
+  return {
+    sends: page.map((r) => ({
+      id: r.id,
+      channel: r.channel,
+      kind: r.kind,
+      name: r.name || null,
+      // The address it went to: an email address, or a phone number.
+      to: r.channel === 'sms' ? (prettyPhone(r.addr) || r.addr) : r.addr,
+      at: r.at,
+      status: r.status === 'failed' ? 'failed' : 'sent',
+      error: r.status === 'failed' ? (r.error || null) : null,
+      contactId: r.contact_id || null,
+    })),
+    next: all.length > SENDS_PAGE && last ? last.at_text : null,
+  };
+}
+
+/**
  * GET ?finance=1[&from=YYYY-MM-DD&to=YYYY-MM-DD]: what the salon's visits
  * were worth over a period, in total and by stylist, for Marketing, Finance.
  *
@@ -364,6 +428,7 @@ export default handler({
     if (kind) return json(res, 200, await preview(kind, tenant));
     if (q.has('sent')) return json(res, 200, await sentMessage(q.get('sent'), tenant));
     if (q.has('automations')) return json(res, 200, await automations(tenant));
+    if (q.has('sends')) return json(res, 200, await automationSends(tenant, q.get('sends'), q.get('before')));
     if (q.has('history')) {
       return json(res, 200, await history(tenant, q.get('before'), { kind: q.get('kind'), q: q.get('q') }));
     }

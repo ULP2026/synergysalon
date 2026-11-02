@@ -623,9 +623,13 @@ made that way are real: name them ZZ and remove them.
 - **Karen's Chat History and Call History** (2026-11-02): two sections
   on Settings, Karen AI that open and close from their headers like Email
   History (`.kx`, `setKx`, remembered as `ss-kh-open`/`ss-kc-open`, closed
-  by default). Chat History is what was Message History (below); each
-  bubble is headed with its speaker and their picture, Karen on the left in
-  gray (`--bub-karen`), the team member on the right in blue (`--bub-user`).
+  by default), each headed with its own icon (a speech bubble, a phone;
+  `.kx-ic`). Chat History is what was Message History (below), drawn as a
+  messaging app draws a conversation: Karen on the left in gray
+  (`--bub-karen`), the team member on the right in blue (`--bub-user`),
+  each with their picture on the last bubble of a run and no name inside
+  the bubble (taken out on request, 2026-11-02; it is the bubble's
+  aria-label).
   Call History is every call to Karen's number (`karen_calls`, migration
   040, also in ensure-schema; `api/_lib/karen-calls.js`): kept when the
   voice webhook greets the caller (who, by their number), and the salon
@@ -1138,6 +1142,18 @@ made that way are real: name them ZZ and remove them.
   client's name and phone, with the text itself (`smsText` in
   karen-sms.js, kept to one text) and its length. No SMS is sent anywhere
   yet.
+- **Sent History under each automation** (asked for 2026-11-02): below
+  "View only. This is what the app does on its own." in the automation's
+  window, a card that opens and closes like Email History (`#autoHist`,
+  remembered as `ss-auhist-open`, closed by default) lists who that
+  automation reached, newest first, 40 at a time with Show more: the
+  client, Email or SMS, the address or number, which message when it has
+  more than one, when, and Sent or Failed (the provider's reason on hover).
+  From `GET /api/staff/business?sends=<its kinds>` (`automationSends`):
+  `message_sends` and the outgoing `client_texts` of the same kinds, merged.
+  An email row opens the email (`openSentEmail`), a text row the client's
+  profile. The flow, that line and the card scroll together (`.au-scroll`).
+  `tests/automation-sends.integration.test.js`.
 - Marketing, Automation lists the automations in two columns (one on a
   phone), each with its switch and no "N sent" count, and under them **Email
   history**: every email the automations have sent, newest first, 50 at a
