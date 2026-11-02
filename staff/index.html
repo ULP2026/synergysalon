@@ -1546,18 +1546,22 @@
   .kh-row.karen { align-self: flex-start; }
   .kh-row.user { align-self: flex-end; flex-direction: row-reverse; }
   .kh-row > img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; }
-  .kh-msg { min-width: 0; padding: 8px 13px 9px; border-radius: 14px; font-size: .9rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .kh-msg .kh-who { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .02em; margin-bottom: 2px; white-space: normal; }
+  .kh-msg { min-width: 0; padding: 8px 13px 7px; border-radius: 18px; font-size: .9rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
   .kh-msg.user { background: var(--bub-user); color: #fff; border-bottom-right-radius: 5px; }
-  .kh-msg.user .kh-who { color: rgba(255, 255, 255, .85); }
   .kh-msg.karen { background: var(--bub-karen); color: var(--ink); border-bottom-left-radius: 5px; }
-  .kh-msg.karen .kh-who { color: var(--muted); }
-  .kh-msg small { display: block; margin-top: 4px; font-size: .68rem; opacity: .75; white-space: normal; }
+  .kh-msg small { display: block; margin-top: 3px; font-size: .66rem; opacity: .7; white-space: normal; }
+  .kh-msg.user small { text-align: right; }
+  /* Consecutive messages from one side sit closer, as in a messaging app. */
+  .kh-row.karen + .kh-row.karen, .kh-row.user + .kh-row.user { margin-top: -4px; }
   :root { --bub-user: #2f64d8; --bub-karen: #eceef1; }
   /* Both histories open and close like Email History. */
   .kx { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--card); }
   .kx + .kx { margin-top: 12px; }
   .kx.open .ml-chev { transform: rotate(180deg); }
+  /* Each history has its own mark (2026-11-02): a speech bubble, a phone. */
+  .kx-ic, .ah-ic { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
+                   background: var(--peri-pale); color: var(--periwinkle); }
+  .kx-ic .ic, .ah-ic .ic { width: 19px; height: 19px; }
   .kx-content { margin-top: 14px; }
   .kx:not(.open) .kx-content { display: none; }
   /* Call History: one row a call. */
@@ -1956,6 +1960,33 @@
   .au-head p { margin: 0; font-size: var(--fs-sm); color: rgba(255, 255, 255, .78); }
   .au-head .grow { flex: 1; min-width: 0; }
   .au-body { padding: 20px 24px 8px; max-height: calc(100dvh - 220px); overflow-y: auto; }
+  /* The flow, the view-only line and the Sent History scroll together. */
+  .au-scroll { max-height: calc(100dvh - 150px); overflow-y: auto; overscroll-behavior: contain; }
+  .au-scroll .au-body { max-height: none; overflow: visible; }
+  .au-hist { margin: 0 24px 22px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .au-hist.open .ml-chev { transform: rotate(180deg); }
+  .au-hist:not(.open) .ml-content { display: none; }
+  .ah-list { display: grid; gap: 6px; }
+  .ah-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%;
+            padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+            font: inherit; color: inherit; text-align: left; }
+  button.ah-row { cursor: pointer; }
+  button.ah-row:hover { border-color: var(--periwinkle); }
+  .ah-ch { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; }
+  .ah-ch .ic { width: 16px; height: 16px; }
+  .ah-ch.email { background: var(--peri-pale); color: var(--periwinkle); }
+  .ah-ch.sms { background: color-mix(in srgb, var(--ok) 14%, var(--card)); color: var(--ok); }
+  .ah-row b { display: block; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ah-row small { display: block; font-size: .76rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ah-r { display: grid; justify-items: end; gap: 3px; }
+  .ah-r time { font-size: .72rem; color: var(--faint); white-space: nowrap; }
+  .ah-more { justify-self: center; margin-top: 4px; }
+  .ah-empty { margin: 4px 0; font-size: .88rem; color: var(--muted); }
+  @media (max-width: 520px) {
+    .au-hist { margin: 0 16px 18px; }
+    .ah-row { grid-template-columns: 30px minmax(0, 1fr); }
+    .ah-r { grid-column: 2; justify-items: start; grid-auto-flow: column; align-items: center; gap: 8px; }
+  }
   .au-foot { display: flex; align-items: center; gap: 8px; padding: 14px 24px 18px; margin: 0; font-size: var(--fs-xs); color: var(--faint); }
   .au-foot .ic { width: 14px; height: 14px; }
 
@@ -3239,6 +3270,7 @@
           <div class="kx" id="khCard">
             <div class="ml-top">
               <button type="button" class="ml-toggle" data-kx="khCard" aria-expanded="false" aria-controls="khContent">
+                <span class="kx-ic" aria-hidden="true"><svg class="ic"><use href="#i-message"/></svg></span>
                 <span class="ml-t"><h2>Chat History</h2>
                   <p>Every conversation the team has had with Karen, in the app and by text. Only you can see this.</p></span>
               </button>
@@ -3254,6 +3286,7 @@
           <div class="kx" id="kcCard">
             <div class="ml-top">
               <button type="button" class="ml-toggle" data-kx="kcCard" aria-expanded="false" aria-controls="kcContent">
+                <span class="kx-ic" aria-hidden="true"><svg class="ic"><use href="#i-phone"/></svg></span>
                 <span class="ml-t"><h2>Call History</h2>
                   <p>Every call to Karen's number: who called, when, and whether the salon picked up.</p></span>
               </button>
@@ -3856,8 +3889,23 @@
     <div class="grow"><h2 id="autoTitle"></h2><p id="autoSub"></p></div>
     <button type="button" class="iconbtn lg" id="autoClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </header>
-  <div class="au-body" id="autoBody"></div>
-  <p class="au-foot"><svg class="ic"><use href="#i-eye"/></svg>View only. This is what the app does on its own.</p>
+  <div class="au-scroll">
+    <div class="au-body" id="autoBody"></div>
+    <p class="au-foot"><svg class="ic"><use href="#i-eye"/></svg>View only. This is what the app does on its own.</p>
+    <!-- Who this automation reached (asked for 2026-11-02): its emails and
+         texts, newest first, opening and closing like Email History. -->
+    <section class="au-hist" id="autoHist" aria-labelledby="ahTitle">
+      <div class="ml-top">
+        <button type="button" class="ml-toggle" data-ah aria-expanded="false" aria-controls="ahContent">
+          <span class="ah-ic" aria-hidden="true"><svg class="ic"><use href="#i-send"/></svg></span>
+          <span class="ml-t"><h2 id="ahTitle">Sent History</h2>
+            <p id="ahSub">Who this automation emailed and texted, newest first.</p></span>
+        </button>
+        <button type="button" class="ml-chev" data-ah aria-label="Show the sent history"><svg class="ic"><use href="#i-right"/></svg></button>
+      </div>
+      <div class="ml-content" id="ahContent"><div class="ah-list" id="ahList" role="list"></div></div>
+    </section>
+  </div>
 </dialog>
 
 <!-- Marketing: turning an automation off asks first, and asks for its name,
@@ -4059,7 +4107,8 @@ const I18N_ES = {
   'Salon Profile': 'Perfil del salón', 'Team Members': 'Miembros del equipo', 'Add team member': 'Agregar miembro del equipo',
   'Money': 'Dinero', 'Subscription': 'Suscripción', 'Activate subscription': 'Activar suscripción',
   'Pricing coming soon': 'Precio próximamente', 'Synergy Salon App': 'App de Synergy Salon',
-  'Chat History': 'Historial de chats', 'Call History': 'Historial de llamadas',
+  'Chat History': 'Historial de chats', 'Call History': 'Historial de llamadas', 'Sent History': 'Historial de envíos',
+  'Who this automation emailed and texted, newest first.': 'A quién envió esta automatización correos y textos, del más reciente al más antiguo.',
   'Billing': 'Facturación', 'Payroll': 'Nómina', 'Coming soon': 'Próximamente', 'Coming Soon': 'Próximamente',
   'Phone Number Settings': 'Configuración del número', "Karen's number": 'Número de Karen', 'Message History': 'Historial de mensajes',
   'Personal information': 'Información personal', 'Role': 'Rol', 'Connect your tools': 'Conecta tus herramientas',
@@ -5492,7 +5541,79 @@ function openAutomation(id) {
   // is mostly dashed line.
   $('autoDlg').style.maxWidth = `${Math.max(520, 220 * (a.steps.length + 1) + 48)}px`;
   openDialog($('autoDlg'));
+  $('autoDlg').querySelector('.au-scroll').scrollTop = 0;
+  ahFor = a;
+  ahNext = null;
+  setAh(ahOpenSaved());
+  loadAutoSends();
 }
+
+// ── Sent History, under one automation's flow (2026-11-02) ─────────────────
+//
+// Every email and text this automation sent, newest first, from
+// GET /api/staff/business?sends=<its message kinds> (automationSends): who,
+// whether by email or SMS, which message when it has more than one, when,
+// and Sent or Failed. An email opens as it was sent (openSentEmail); a text
+// opens the client's profile, where the whole SMS conversation is.
+let ahFor = null;
+let ahNext = null;
+let ahSeq = 0;
+function ahOpenSaved() { try { return localStorage.getItem('ss-auhist-open') === '1'; } catch { return false; } }
+function setAh(open) {
+  try { localStorage.setItem('ss-auhist-open', open ? '1' : '0'); } catch { /* private window: just this time */ }
+  $('autoHist').classList.toggle('open', open);
+  for (const b of $('autoHist').querySelectorAll('[data-ah]')) {
+    if (b.classList.contains('ml-toggle')) b.setAttribute('aria-expanded', String(open));
+    else b.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the sent history`);
+  }
+}
+async function loadAutoSends(more = false) {
+  const a = ahFor;
+  if (!a) return;
+  const kinds = a.steps.filter((st) => st.msg).map((st) => st.msg);
+  const titles = Object.fromEntries(a.steps.filter((st) => st.msg).map((st) => [st.msg, st.title]));
+  const seq = ++ahSeq;
+  if (!more) $('ahList').innerHTML = skeleton(2);
+  let r;
+  try {
+    r = await api(`/api/staff/business?sends=${encodeURIComponent(kinds.join(','))}${more && ahNext ? `&before=${encodeURIComponent(ahNext)}` : ''}`);
+  } catch (err) {
+    if (seq === ahSeq && err.message !== 'signed out') $('ahList').innerHTML = `<p class="ah-empty">${esc(err.message)}</p>`;
+    return;
+  }
+  if (seq !== ahSeq || ahFor !== a) return;
+  ahNext = r.next;
+  const rows = r.sends.map((x) => {
+    const sms = x.channel === 'sms';
+    const what = [sms ? 'SMS' : 'Email', kinds.length > 1 ? titles[x.kind] : '', x.to].filter(Boolean).join(' · ');
+    const chip = x.status === 'failed'
+      ? `<span class="chip warn" title="${esc(x.error || 'Not delivered')}">Failed</span>`
+      : `<span class="chip ok">Sent</span>`;
+    const inner = `<span class="ah-ch ${sms ? 'sms' : 'email'}" aria-hidden="true">${ic(sms ? 'message' : 'mail')}</span>
+      <span style="min-width:0"><b>${esc(x.name || x.to || 'Client')}</b><small>${esc(what)}</small></span>
+      <span class="ah-r">${chip}<time datetime="${esc(x.at)}">${esc(fmtWhen(x.at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))}</time></span>`;
+    const label = `${sms ? 'Text' : 'Email'} to ${x.name || x.to || 'client'}`;
+    if (!sms) return `<button type="button" class="ah-row" role="listitem" data-ah-email="${esc(x.id)}" title="Open the email">${inner}</button>`;
+    if (x.contactId) return `<button type="button" class="ah-row" role="listitem" data-ah-person="${esc(x.contactId)}" title="Open ${esc(label)}'s client profile">${inner}</button>`;
+    return `<div class="ah-row" role="listitem">${inner}</div>`;
+  }).join('');
+  const moreBtn = ahNext ? '<button type="button" class="btn quiet sm ah-more" data-ah-more>Show more</button>' : '';
+  if (more) {
+    $('ahList').querySelector('[data-ah-more]')?.remove();
+    $('ahList').insertAdjacentHTML('beforeend', rows + moreBtn);
+  } else {
+    $('ahList').innerHTML = rows + moreBtn || `<p class="ah-empty">Nothing sent by this automation yet. ${a.steps.some((st) => st.sms)
+      ? 'Emails and texts appear here as they go out.' : 'Emails appear here as they go out.'}</p>`;
+  }
+}
+$('autoHist').addEventListener('click', (e) => {
+  if (e.target.closest('[data-ah]')) { setAh(!$('autoHist').classList.contains('open')); return; }
+  if (e.target.closest('[data-ah-more]')) { loadAutoSends(true); return; }
+  const em = e.target.closest('[data-ah-email]');
+  if (em) { openSentEmail(em.dataset.ahEmail); return; }
+  const pr = e.target.closest('[data-ah-person]');
+  if (pr) { closeDialog($('autoDlg')); setTimeout(() => openPerson(pr.dataset.ahPerson), 170); }
+});
 $('autoClose').onclick = () => closeDialog($('autoDlg'));
 $('autoBody').addEventListener('click', (e) => {
   const b = e.target.closest('[data-msg]');
@@ -11465,17 +11586,24 @@ async function openKarenThread(id) {
   }
   if (khWho !== id) return;
   let lastDay = '';
-  const rows = messages.map((m) => {
+  const rows = messages.map((m, i) => {
     const day = fmtWhen(m.at, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
     const head = day !== lastDay ? `<span class="kh-day">${esc(day)}</span>` : '';
     lastDay = day;
     const t = fmtWhen(m.at, { hour: 'numeric', minute: '2-digit' });
     // Karen on the left, gray, with her picture; the team member on the
-    // right, blue, with theirs; each bubble headed with who said it.
+    // right, blue, with theirs. No name inside the bubble (asked for
+    // 2026-11-02): the picture says who it is, as in a messaging app; the
+    // name is kept for screen readers.
     const mine = m.role === 'user';
     const who = mine ? x.name.split(' ')[0] : 'Karen';
-    return `${head}<div class="kh-row ${mine ? 'user' : 'karen'}"><img src="${esc(mine ? khPic(x) : KAREN_PIC)}" alt="">
-      <div class="kh-msg ${mine ? 'user' : 'karen'}"><span class="kh-who">${esc(who)}</span>${esc(m.text)}<small>${esc(t)}${m.channel === 'text' ? ' · by text' : ''}</small></div></div>`;
+    // The picture on the last of a run from one side only, as a messaging
+    // app does; the rest keep its place so the bubbles line up.
+    const nx = messages[i + 1];
+    const lastOfRun = !nx || nx.role !== m.role
+      || fmtWhen(nx.at, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }) !== day;
+    return `${head}<div class="kh-row ${mine ? 'user' : 'karen'}"><img src="${esc(mine ? khPic(x) : KAREN_PIC)}" alt=""${lastOfRun ? '' : ' style="visibility:hidden"'}>
+      <div class="kh-msg ${mine ? 'user' : 'karen'}" aria-label="${esc(who)}">${esc(m.text)}<small>${esc(t)}${m.channel === 'text' ? ' · by text' : ''}</small></div></div>`;
   }).join('');
   $('khThread').innerHTML = `${top}<div class="kh-msgs">${rows || '<p class="kh-empty">No messages.</p>'}</div>`;
   const box = $('khThread');
