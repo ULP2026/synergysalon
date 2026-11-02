@@ -1196,6 +1196,22 @@
   .dg-ev.short b { display: inline; font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dg-ev.here { box-shadow: 0 0 0 2px var(--ok) inset, 0 1px 2px rgba(30, 31, 92, .08); }
   .dg-ev.done, .dg-ev.noshow { opacity: .62; }
+  /* Drag and drop (2026-11-02): a card that can move says so, and while one
+     is dragged a ghost the length of the visit shows where it would land. */
+  .dg-ev.dg-mv { cursor: grab; touch-action: pan-x pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  body.dg-dragging, body.dg-dragging * { cursor: grabbing !important; -webkit-user-select: none; user-select: none; }
+  body.dg-dragging .dg-col .ghost { display: none !important; }
+  .dg-ev.dg-lift { opacity: .35; transform: none; box-shadow: none; }
+  .dg-ev.dg-saving { opacity: .55; pointer-events: none; }
+  .dg-ghost { position: absolute; left: 6px; right: 6px; z-index: 5; pointer-events: none; border-radius: 10px;
+              border: 2px dashed var(--dg-edge, var(--periwinkle)); background: color-mix(in srgb, var(--dg-bg, #e3e6fa) 80%, transparent);
+              box-shadow: 0 12px 28px -14px rgba(30, 31, 92, .6); padding: 5px 10px; overflow: hidden;
+              font-size: var(--fs-xs); line-height: 1.3; color: var(--dg-ink, var(--indigo)); }
+  .dg-ghost b { display: block; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dg-ghost span { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dg-ghost.bad { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, var(--card)); }
+  .dg-ghost.bad span { color: var(--warn); font-weight: 650; }
+  @media (prefers-reduced-motion: reduce) { .dg-ghost { box-shadow: none; } }
   /* A color's processing break: open, because the stylist is free for
      somebody else. pointer-events: none lets a click reach the column
      underneath, which offers a new appointment at that time. */
@@ -5950,8 +5966,13 @@ let diaryData = null;
 // ── the day: stylists across the top, the clock down the side ──────────────
 //
 // A salon plans in chairs, not in a list: who is free at two is a glance
-// across one row. Opening hours run 9 to 6 most days; the grid widens itself
-// when something is booked outside them rather than hiding it.
+// across one row. The grid is the salon's opening hours that day and nothing
+// else (asked for 2026-11-02; salon-hours.js, from the PMC: 9 to 3 Monday,
+// Tuesday and Saturday, 9 to 7 Wednesday and Thursday, 9 to 6 Friday, closed
+// Sunday). It widens only when an appointment or block actually sits outside
+// them, because hiding a booked client is worse than a longer day. A
+// stylist's shift or a Google event outside the salon's hours does not
+// widen it: nothing can be booked there.
 
 const DG_HOUR = 112;                 // pixels per hour; matches --dg-hour
 const DG_FROM = 9 * 60, DG_TO = 18 * 60;
@@ -6042,9 +6063,9 @@ function dayCard(a, top, height) {
     a.notes ? `<span class="ln m">${ic('doc').replace('class="ic"', 'class="ic" style="width:11px;height:11px;vertical-align:-1px"')} ${esc(a.notes)}</span>` : '',
   ].join('');
   const cls = [height < DG_SHORT ? 'short' : '', a.checkedInAt && a.status === 'booked' ? 'here' : '',
-    a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : ''].join(' ');
+    a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : '', canMove(a) ? 'dg-mv' : ''].join(' ');
   return `<button type="button" class="dg-ev ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
-      title="${esc(`${a.time} to ${a.endTime} · ${a.guestName} · ${a.service}`)}">
+      title="${esc(`${a.time} to ${a.endTime} · ${a.guestName} · ${a.service}${canMove(a) ? ' · Drag to move' : ''}`)}">
     <div class="st">${cardMarks(a)}<span class="tm">${esc(a.time)}</span></div>
     <b>${esc(a.guestName)}</b>${lines}
   </button>`;
@@ -6053,9 +6074,18 @@ function dayCard(a, top, height) {
 /** The Finish of a color after its processing break: the same appointment. */
 function partCard(a, top, height, label) {
   const cls = [a.checkedInAt && a.status === 'booked' ? 'here' : '',
-    a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : ''].join(' ');
+    a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : '', canMove(a) ? 'dg-mv' : ''].join(' ');
   return `<button type="button" class="dg-ev short dg-part ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
       title="${esc(`${label} · ${a.guestName} · ${a.service}`)}"><b>${esc(label)} · ${esc(a.guestName)}</b></button>`;
+}
+
+/**
+ * Whether a card can be dragged to another time: still booked and not yet
+ * started. A visit that has happened, or is happening, stays where it was
+ * (the server says the same in moveAppointment).
+ */
+function canMove(a) {
+  return a.status === 'booked' && new Date(a.startsAt) > new Date();
 }
 
 function renderDiary(d) {
@@ -6067,17 +6097,34 @@ function renderDiary(d) {
   const cancelled = d.appointments.filter((a) => a.status === 'cancelled');
   const blocks = d.blocks || [];
 
-  // Widen the grid to whatever is booked, a whole hour at a time.
+  // The salon's hours that day (diary.js), widened to whatever is booked
+  // outside them, a whole hour at a time. A salon with no hours on record
+  // keeps the old rule: 9 to 6, widened to shifts and Google too.
+  const salon = Array.isArray(d.salonHours) ? d.salonHours : null;
   const spans = [
     ...live.map((a) => [salonMinutes(a.startsAt), salonMinutes(a.startsAt) + a.durationMin]),
     ...blocks.map((b) => [salonMinutes(b.startsAt), salonMinutes(b.endsAt) || 24 * 60]),
-    ...(d.team || []).flatMap((t) => t.busy.filter((x) => !x.allDay)
-      .map((x) => [minutesOn(x.startsAt, d.date), minutesOn(x.endsAt, d.date)])),
-    // Somebody who starts at 7 or works until 9 has those hours on the grid.
-    ...Object.values(d.hours || {}).flat(),
+    ...(salon || d.salonClosed ? [] : [
+      ...(d.team || []).flatMap((t) => t.busy.filter((x) => !x.allDay)
+        .map((x) => [minutesOn(x.startsAt, d.date), minutesOn(x.endsAt, d.date)])),
+      ...Object.values(d.hours || {}).flat(),
+    ]),
   ];
-  const from = Math.min(DG_FROM, ...spans.map(([x]) => Math.floor(x / 60) * 60));
-  const to = Math.max(DG_TO, ...spans.map(([, y]) => Math.ceil(y / 60) * 60));
+  // Closed all day with nothing on it: say so, instead of an empty grid
+  // that reads as a free day to book into.
+  if (d.salonClosed && !spans.length) {
+    dgRange = { from: DG_FROM, to: DG_TO };
+    document.querySelector('.main').style.removeProperty('--diary-w');
+    $('diary').innerHTML = emptyState({
+      icon: 'calendar',
+      title: `${me?.salon?.name || 'The salon'} is closed this day`,
+      text: 'Nothing is booked and nothing can be. Pick another day.',
+    });
+    return;
+  }
+  const base = salon || (d.salonClosed ? [Math.min(...spans.map(([x]) => x)), Math.max(...spans.map(([, y]) => y))] : [DG_FROM, DG_TO]);
+  const from = Math.max(0, Math.min(Math.floor(base[0] / 60) * 60, ...spans.map(([x]) => Math.floor(x / 60) * 60)));
+  const to = Math.min(24 * 60, Math.max(Math.ceil(base[1] / 60) * 60, ...spans.map(([, y]) => Math.ceil(y / 60) * 60)));
   const px = (mins) => ((mins - from) / 60) * DG_HOUR;
   const height = px(to);
 
@@ -6273,7 +6320,8 @@ function renderDiary(d) {
 
   // Land on the working day, not on midnight, when the grid starts early.
   const wrap = $('dgWrap');
-  if (wrap && from < DG_FROM) wrap.scrollTop = px(DG_FROM) - 8;
+  const opens = salon ? salon[0] : DG_FROM;
+  if (wrap && from < opens) wrap.scrollTop = px(opens) - 8;
   dgRange = { from, to };
 }
 let dgRange = { from: DG_FROM, to: DG_TO };
@@ -6293,6 +6341,220 @@ $('diary').addEventListener('mousemove', (e) => {
   g.style.top = `${((m - dgRange.from) / 60) * DG_HOUR}px`;
   g.textContent = clock(m);
 });
+
+// ── drag and drop: move a booking to another time or chair ───────────────
+//
+// Asked for 2026-11-02. Press a card and drag it: a ghost the length of the
+// whole visit follows the pointer in quarter hours, across columns too, and
+// says where it would land. Let go and the move is confirmed, then sent to
+// POST /api/staff/appointment {action: 'move'} (moveAppointment), which
+// checks the time the way every booking is checked (the stylist's hours
+// inside the salon's, their other bookings, their lunch) and emails the
+// client the new time. A plain click still opens the appointment.
+//
+// On a touch screen a quick swipe still scrolls the grid; a press held for
+// a moment picks the card up, so scrolling past a card never moves it.
+// Escape, or letting go where it started, puts it back.
+
+let dgDrag = null;
+const DG_DRAG_PX = 5;          // a mouse moves this far before it is a drag
+const DG_HOLD_MS = 350;        // a finger holds this long before it is a drag
+
+function dgEndDrag() {
+  if (!dgDrag) return;
+  clearTimeout(dgDrag.timer);
+  dgDrag.ghost?.remove();
+  document.querySelectorAll('.dg-ev.dg-lift').forEach((x) => x.classList.remove('dg-lift'));
+  document.body.classList.remove('dg-dragging');
+  dgDrag = null;
+}
+
+/** Where the ghost would land: the column under the pointer and its start. */
+function dgTarget(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const col = el?.closest?.('.dg-col');
+  if (!col || col.classList.contains('dg-gcol')) return null;
+  const top = col.getBoundingClientRect().top;
+  const a = dgDrag.appt;
+  let start = dgRange.from + Math.round((((y - top) / DG_HOUR) * 60 - dgDrag.grab) / 15) * 15;
+  start = Math.max(dgRange.from, Math.min(dgRange.to - Math.min(a.durationMin, dgRange.to - dgRange.from), start));
+  return { col, start };
+}
+
+/** Why a drop there cannot work, as far as the grid can tell; the server decides the rest. */
+function dgWhyNot(slug, start) {
+  const d = diaryData;
+  const a = dgDrag.appt;
+  const end = start + a.durationMin;
+  if (d.date < d.today || (d.date === d.today && start <= salonMinutes(new Date().toISOString()))) return 'That time has passed';
+  if (Array.isArray(d.salonHours) && (start < d.salonHours[0] || end > d.salonHours[1])) {
+    return `The salon is open ${clock(d.salonHours[0])} to ${clock(d.salonHours[1])}`;
+  }
+  const shifts = slug && d.hours ? d.hours[slug] : undefined;
+  if (shifts && !shifts.some(([s0, e0]) => start >= s0 && end <= e0)) {
+    return shifts.length ? 'Outside their working hours' : 'Not working this day';
+  }
+  return '';
+}
+
+function dgPaint(x, y) {
+  const t = dgTarget(x, y);
+  const g = dgDrag.ghost;
+  if (!t) { g.hidden = true; dgDrag.target = null; return; }
+  if (g.parentElement !== t.col) t.col.appendChild(g);
+  g.hidden = false;
+  const a = dgDrag.appt;
+  const slug = t.col.dataset.stylist || a.stylistSlug || '';
+  const why = dgWhyNot(slug, t.start);
+  g.style.top = `${((t.start - dgRange.from) / 60) * DG_HOUR + 1}px`;
+  g.style.height = `${Math.max(22, (a.durationMin / 60) * DG_HOUR - 3)}px`;
+  g.classList.toggle('bad', Boolean(why));
+  g.innerHTML = `<b>${esc(clock(t.start))} to ${esc(clock(t.start + a.durationMin))}</b><span>${esc(why || a.guestName)}</span>`;
+  dgDrag.target = { slug, start: t.start, why };
+}
+
+function dgBegin() {
+  const d = dgDrag;
+  d.active = true;
+  document.querySelectorAll(`.dg-ev[data-ref="${CSS.escape(d.appt.ref)}"]`).forEach((x) => x.classList.add('dg-lift'));
+  document.body.classList.add('dg-dragging');
+  d.ghost = document.createElement('div');
+  d.ghost.className = 'dg-ghost';
+  d.ghost.setAttribute('aria-hidden', 'true');
+  dgPaint(d.x, d.y);
+}
+
+$('diary').addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || dgDrag) return;
+  const card = e.target.closest('.dg-ev.dg-mv');
+  if (!card || !diaryData) return;
+  const appt = diaryData.appointments.find((x) => x.ref === card.dataset.ref);
+  if (!appt || !canMove(appt)) return;
+  const col = card.closest('.dg-col');
+  const pointer = dgRange.from + ((e.clientY - col.getBoundingClientRect().top) / DG_HOUR) * 60;
+  dgDrag = {
+    appt, pointerId: e.pointerId, touch: e.pointerType !== 'mouse',
+    sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY,
+    // Where on the visit it was picked up, so it does not jump to the pointer.
+    grab: pointer - salonMinutes(appt.startsAt),
+    from: { slug: appt.stylistSlug || '', start: salonMinutes(appt.startsAt) },
+    active: false, timer: 0, ghost: null, target: null,
+  };
+  if (dgDrag.touch) dgDrag.timer = setTimeout(() => { if (dgDrag && !dgDrag.active) { dgBegin(); navigator.vibrate?.(10); } }, DG_HOLD_MS);
+});
+
+document.addEventListener('pointermove', (e) => {
+  if (!dgDrag || e.pointerId !== dgDrag.pointerId) return;
+  dgMove(e.clientX, e.clientY);
+});
+function dgMove(x, y) {
+  const e = { clientX: x, clientY: y };
+  dgDrag.x = e.clientX; dgDrag.y = e.clientY;
+  const far = Math.hypot(e.clientX - dgDrag.sx, e.clientY - dgDrag.sy) > DG_DRAG_PX;
+  if (!dgDrag.active) {
+    // A finger that moves before the hold is a scroll, not a drag.
+    if (dgDrag.touch) { if (far) dgEndDrag(); return; }
+    if (!far) return;
+    dgBegin();
+  }
+  dgPaint(e.clientX, e.clientY);
+  // Near an edge, scroll the grid (sideways) and the page (up and down).
+  const wrap = $('dgWrap');
+  if (wrap) {
+    const r = wrap.getBoundingClientRect();
+    if (e.clientX > r.right - 40) wrap.scrollLeft += 14;
+    else if (e.clientX < r.left + 40) wrap.scrollLeft -= 14;
+    if (wrap.scrollHeight > wrap.clientHeight) {
+      if (e.clientY > r.bottom - 40) wrap.scrollTop += 14;
+      else if (e.clientY < r.top + 40) wrap.scrollTop -= 14;
+    }
+  }
+  if (e.clientY > innerHeight - 50) scrollBy(0, 14);
+  else if (e.clientY < 70) scrollBy(0, -14);
+}
+
+// While a finger is dragging a card the page must not scroll under it. Some
+// browsers cancel the pointer once a held finger moves; the touch events
+// carry the drag on from there, so it can neither stick nor be lost.
+document.addEventListener('touchmove', (e) => {
+  if (!dgDrag?.active) return;
+  e.preventDefault();
+  if (dgDrag.lost && e.touches[0]) dgMove(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+document.addEventListener('touchend', () => { if (dgDrag?.active && dgDrag.lost) dgFinish(); });
+document.addEventListener('touchcancel', () => { if (dgDrag?.lost) dgEndDrag(); });
+document.addEventListener('pointercancel', (e) => {
+  if (!dgDrag || e.pointerId !== dgDrag.pointerId) return;
+  if (dgDrag.active && dgDrag.touch) dgDrag.lost = true;
+  else dgEndDrag();
+});
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && dgDrag?.active) { dgDrag.cancelled = true; dgEndDrag(); } });
+
+document.addEventListener('pointerup', (e) => {
+  if (!dgDrag || e.pointerId !== dgDrag.pointerId) return;
+  dgFinish();
+});
+function dgFinish() {
+  const d = dgDrag;
+  if (!d.active) { dgEndDrag(); return; }   // a click: the card opens as before
+  // The click that follows a drag must not open the appointment.
+  dgSwallowUntil = Date.now() + 400;
+  const t = d.target;
+  dgEndDrag();
+  if (!t || (t.slug === d.from.slug && t.start === d.from.start)) return;
+  if (t.why) { toast(`${t.why}. ${d.appt.guestName}’s appointment stays where it was.`); return; }
+  dgDrop(d.appt, t);
+}
+let dgSwallowUntil = 0;
+$('diary').addEventListener('click', (e) => {
+  if (Date.now() < dgSwallowUntil) { e.stopPropagation(); e.preventDefault(); dgSwallowUntil = 0; }
+}, true);
+
+async function dgDrop(a, t) {
+  const to = t.slug && t.slug !== a.stylistSlug
+    ? (me?.stylists || []).find((x) => x.slug === t.slug) || (diaryData.team || []).find((x) => x.stylistSlug === t.slug)
+    : null;
+  const toName = to ? to.name : '';
+  const when = `${fmtWhen(`${diaryData.date}T12:00:00`, { weekday: 'short', month: 'short', day: 'numeric' })}, ${clock(t.start)}`;
+  if (dgDemo) { toast('This is the sample day, so nothing moves.'); return; }
+  const ok = confirm(`Move ${a.guestName}’s ${a.service} to ${when}${toName ? ` with ${toName}` : ''}?\n\n`
+    + 'They will be sent the new time, the same way as when a client moves it themselves.');
+  if (!ok) return;
+  // Shown where it was dropped straight away; the day reloads from the server either way.
+  const cards = [...document.querySelectorAll(`.dg-ev[data-ref="${CSS.escape(a.ref)}"]`)];
+  cards.forEach((c) => c.classList.add('dg-saving'));
+  // The new start as an instant on the salon's clock: the offset of that
+  // wall time in the salon's zone, found from the day itself.
+  const start = salonInstant(diaryData.date, t.start);
+  try {
+    const r = await api('/api/staff/appointment', {
+      method: 'POST',
+      body: JSON.stringify({ ref: a.ref, action: 'move', start, ...(to ? { stylist: t.slug } : {}) }),
+    });
+    toast(r.moved ? `Moved to ${clock(t.start)}${r.stylist && to ? ` with ${r.stylist}` : ''}. ${a.guestName.split(/\s+/)[0]} has been sent the new time.` : 'It is already there.');
+  } catch (err) {
+    fail(err);
+  }
+  await refreshDiary();
+}
+
+/** A wall-clock time on a salon day (YYYY-MM-DD, minutes) as an ISO instant with its offset. */
+function salonInstant(date, mins) {
+  const tz = me?.salon?.timezone;
+  const wall = Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10), Math.floor(mins / 60), mins % 60);
+  // Read the guess back on the salon's clock and correct by the difference,
+  // twice, which settles even on the day the clocks change.
+  let t = wall;
+  for (let i = 0; i < 2; i++) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+      ...(tz ? { timeZone: tz } : {}),
+    }).formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+    const seen = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute);
+    t += wall - seen;
+  }
+  return new Date(t).toISOString();
+}
 
 async function apptAction(ref, act, btn) {
   if (dgDemo) { toast('This is the sample day, so nothing changes.'); return; }
@@ -6641,6 +6903,9 @@ let daySeq = 0;
 // An appointment to open once its day has loaded (Home's Coming up).
 let diaryOpenRef = null;
 async function loadDay(date, { quiet = false } = {}) {
+  // The quiet reload waits while a card is being dragged: redrawing the grid
+  // would drop it mid-move.
+  if (quiet && dgDrag) return;
   const seq = ++daySeq;
   day = date;
   $('dayPicker').value = date;

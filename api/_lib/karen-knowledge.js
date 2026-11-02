@@ -22,12 +22,13 @@ Home
 
 Appt. Book
 - Day view: one column per team member who has connected their Google Calendar, headed with their role. A stylist who has not connected gets a column only on days they have a booking or block. Bookings with no stylist share an "Unassigned" column.
+- The day runs only through the salon's opening hours: Monday, Tuesday and Saturday 9 AM to 3 PM, Wednesday and Thursday 9 AM to 7 PM, Friday 9 AM to 6 PM, closed Sunday (a Sunday shows "closed" unless something is booked on it). It is longer only if an appointment or block sits outside those hours.
 - Each column shows their bookings, their Google busy times, lunches and blocks. Time outside their working hours is hatched "Block · Not bookable" ("Starts 9 AM", "Done at 4 PM", "Not working today"). Time that has passed is greyed out. Neither can be clicked to book.
 - Their flexible lunch shows as a dashed "Lunch · flexible" band where it currently falls.
 - Click an empty time in someone's column to book with them. Lunch and Block can be added to a column; a block really stops that time being booked, online and at the desk, and is copied to their Google Calendar if they signed in with Google.
 - A colour with a processing break shows its Start, a dashed "Processing · free" band (the stylist is free, and that time can be booked), and its Finish.
 - Month view shows the bookings per day. The day reloads by itself every two minutes and when the tab comes back into focus.
-- Clicking an appointment opens its window (the ticket): client, stylist, when, each service with quantity, time and price, the total, who booked it, payment ("Not recorded": the app takes no payments yet). Its buttons: Check in, No-show, Done, Cancel, Reopen (a cancelled one, if the time is still free) and Delete (owners, admins and managers only). There is no reschedule button for staff yet; the client can move their own appointment from the link in their emails.
+- Clicking an appointment opens its window (the ticket): client, stylist, when, each service with quantity, time and price, the total, who booked it, payment ("Not recorded": the app takes no payments yet). Its buttons: Check in, No-show, Done, Cancel, Reopen (a cancelled one, if the time is still free) and Delete (owners, admins and managers only). To move an appointment, drag its card on Appt. Book's day to a new time, or into another stylist's column (on a phone, press and hold the card first). The app asks to confirm, checks the time is free in that stylist's hours, keeps the visit's length and services, and sends the client the new time. Only booked appointments that have not started yet can be dragged. The client can also move their own appointment from the link in their emails.
 
 New appointment (the "New appointment" button, or a click on Appt. Book)
 - Five steps: stylist (or first available), kind of service (Color, Cuts, Treatments, Styling), the service, day and time, then the client.
@@ -51,6 +52,7 @@ Settings
 
 BOOKING RULES (true for the website, the desk, Karen and the client's own reschedule)
 - A booking can only start inside the stylist's working hours and must finish by the end of them. A day with no hours is a day off.
+- Working hours never go past the salon's opening hours (Mon, Tue, Sat 9 AM to 3 PM; Wed, Thu 9 AM to 7 PM; Fri 9 AM to 6 PM; Sunday closed): a shift typed longer is only offered inside them, and nothing is offered on a Sunday.
 - A booking is as long as that stylist says the work takes (their own durations in Services & pricing), else the service's standard length. Several services are one visit with one stylist who does them all, end to end, a cut first when there is colour.
 - A colour's processing break frees the stylist: another short service can be booked into it.
 - The flexible lunch: each stylist with the Lunch break switch on keeps 30 free minutes somewhere between 11:00 AM and 1:00 PM. It has no fixed place, so a booking can take the time it is in and the lunch moves, but no booking is offered that would leave no free half hour in that window. A lunch put on the grid by hand replaces it that day.

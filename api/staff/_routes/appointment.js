@@ -3,6 +3,7 @@
  * GET  ?ref=: the booking as a ticket -- the whole visit in one place.
  *
  *   check_in | undo_check_in | complete | no_show | cancel | reopen | delete
+ *   move ({ start, stylist? }): dragged to a new time or chair on Appt. Book
  *
  * Cancelling is the only action that gives the slot back. A completed or
  * no-show appointment still occupied the stylist's time, and letting the
@@ -16,10 +17,11 @@
  */
 import { DateTime } from 'luxon';
 
+import { availableSlots } from '../../_lib/availability.js';
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { EXCLUSION_VIOLATION, query, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle, removeGoogleCopies } from '../../_lib/google-mirror.js';
-import { sendCancellation } from '../../_lib/email.js';
+import { sendCancellation, sendReschedule } from '../../_lib/email.js';
 import { at, cancelFor, enqueue } from '../../_lib/scheduled.js';
 import { HttpError, handler, json, readJson, requireString } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
@@ -218,6 +220,119 @@ export async function applyAppointmentAction(tenant, user, ref, action) {
   return result;
 }
 
+/**
+ * Move a booking to a new time, and to another stylist if it was dropped in
+ * their column (Appt. Book's drag and drop, 2026-11-02).
+ *
+ * The desk's rules, as for a desk booking or a team member moving one by
+ * text with Karen (karen-sms.js moveIt): any time from now that is free in
+ * the stylist's working hours, inside the salon's opening hours, not limited
+ * by Google. The time is checked through availableSlots like every other
+ * path that books or moves a visit, so a drag cannot land a client outside
+ * the hours, over another booking or in somebody's lunch; the no-overlap
+ * constraint has the last word if two people move at once.
+ *
+ * The visit keeps its own length, breaks, services and price. The client
+ * gets the usual "your appointment has moved" email (and text, when they
+ * agreed to texts), and the stylist's Google copy follows at once.
+ */
+export async function moveAppointment(tenant, user, ref, { start, stylist }) {
+  const requested = DateTime.fromISO(requireString(start, 'New time', { max: 40 }), { setZone: true });
+  if (!requested.isValid) throw new HttpError(400, 'That time is not valid.');
+  const startsAt = requested.setZone(tenant.timezone);
+  const toSlug = stylist ? requireString(stylist, 'Stylist', { max: 80 }) : null;
+
+  const { appt, previousStart, moved } = await transaction(async (client) => {
+    const { rows } = await client.query(
+      `SELECT a.*, s.name AS stylist_name, s.slug AS stylist_slug,
+              ${visitNameSql()} AS service_name, ${visitLinesSql()} AS lines, v.slug AS service_slug
+         FROM appointments a
+         JOIN stylists s ON s.id = a.stylist_id
+         JOIN services v ON v.id = a.service_id
+        WHERE a.ref = $1::text AND a.tenant_id = $2::uuid
+        FOR NO KEY UPDATE OF a`,
+      [ref, tenant.id],
+    );
+    const current = rows[0];
+    if (!current) throw new HttpError(404, 'No appointment with that reference.');
+    if (current.status !== 'booked') {
+      throw new HttpError(409, current.status === 'cancelled'
+        ? 'That appointment is cancelled. Reopen it before moving it.'
+        : 'That visit has already happened, so it stays where it was.');
+    }
+    if (new Date(current.starts_at) <= new Date()) {
+      throw new HttpError(409, 'That appointment has already started, so it stays where it was.');
+    }
+    const targetSlug = toSlug || current.stylist_slug;
+    const same = targetSlug === current.stylist_slug
+      && startsAt.toMillis() === DateTime.fromJSDate(new Date(current.starts_at)).toMillis();
+    if (same) return { appt: current, previousStart: current.starts_at, moved: false };
+
+    let found;
+    try {
+      found = await availableSlots(client, tenant, {
+        serviceSlug: current.service_slug,
+        stylistSlug: targetSlug,
+        fromDate: startsAt.toISODate(),
+        toDate: startsAt.toISODate(),
+        excludeAppointmentId: current.id,
+        minLeadMin: 0,
+        length: { durationMin: current.duration_min, bufferMin: current.buffer_min, breaks: current.breaks },
+      });
+    } catch (err) {
+      // The stylist it was dropped on does not do this service, for instance.
+      if (err.status === 404) throw new HttpError(409, err.message);
+      throw err;
+    }
+    const slot = found.days.flatMap((d) => d.slots)
+      .find((x) => DateTime.fromISO(x.start).toMillis() === startsAt.toMillis());
+    if (!slot) {
+      throw new HttpError(409, `${startsAt.toFormat('h:mm a')} is not free for this visit. It may run past their hours or into another booking.`);
+    }
+    const stylistId = slot.stylistIds[0];
+    const to = found.stylists.find((x) => x.id === stylistId);
+    try {
+      const { rows: up } = await client.query(
+        `UPDATE appointments
+            SET starts_at = $2::timestamptz, stylist_id = $3::uuid,
+                during = tstzrange($2::timestamptz,
+                                   $2::timestamptz + make_interval(mins => duration_min + buffer_min), '[)'),
+                updated_at = now()
+          WHERE id = $1::uuid AND status = 'booked'
+          RETURNING *`,
+        [current.id, startsAt.toISO(), stylistId],
+      );
+      return {
+        appt: {
+          ...up[0],
+          stylist_name: to?.name ?? current.stylist_name,
+          stylist_slug: to?.slug ?? current.stylist_slug,
+          service_name: current.service_name,
+          service_slug: current.service_slug,
+          lines: current.lines,
+        },
+        previousStart: current.starts_at,
+        moved: true,
+      };
+    } catch (err) {
+      if (err.code === EXCLUSION_VIOLATION) {
+        throw new HttpError(409, 'That time has just been taken. Pick another.');
+      }
+      throw err;
+    }
+  });
+
+  if (moved) {
+    try {
+      await sendReschedule(appt, previousStart, tenant);
+    } catch (err) {
+      console.error('reschedule email failed for', ref, err);
+    }
+    await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', ref, err));
+  }
+  return { appt, moved };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
@@ -237,6 +352,12 @@ export default handler({
 
     const ref = requireString(body.ref, 'Reference', { max: 16 }).toUpperCase();
     const action = requireString(body.action, 'Action', { max: 20 });
+    if (action === 'move') {
+      const { appt, moved } = await moveAppointment(tenant, user, ref, { start: body.start, stylist: body.stylist });
+      return json(res, 200, {
+        ref, action, moved, startsAt: appt.starts_at, stylistSlug: appt.stylist_slug, stylist: appt.stylist_name,
+      });
+    }
     const result = await applyAppointmentAction(tenant, user, ref, action);
 
     if (result.deleted) {
