@@ -521,7 +521,8 @@ made that way are real: name them ZZ and remove them.
   2026-11-02), whether dragged on the day or saved from the Move window
   (where a month drag lands): "Are you sure you want to move this
   appointment?", the client and service, Original and New date, time and
-  stylist, then **Send Rescheduled Appointment Notification** (the default;
+  stylist, then **Send a Client Rescheduled Appointment Notification** (renamed
+  on request, with a bell icon; Just Move has the calendar icon; the default;
   the reschedule email, and a text only with consent on record) or **Just
   Move Appointment**, and Cancel or Confirm. The choice goes as `notify` on
   the move (`notify: false` skips `sendReschedule`; the stylist's Google
