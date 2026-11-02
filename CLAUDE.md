@@ -1175,10 +1175,12 @@ made that way are real: name them ZZ and remove them.
   message to `MESSAGES` and it can be previewed; there is no SMS yet, so none
   is shown. Marketing takes the nav's width, like Settings.
 - Settings, Salon Profile is the tenant's details, compact since
-  2026-11-02 (asked for): a small logo with its button and note beside it,
-  36px fields four to a row where there is room (name and street take two,
-  the review link and About the whole row; `.biz-grid`), two on a tablet,
-  one on a phone, About two lines. Its logo is the nav's mark,
+  2026-11-02 (asked for twice): the logo on the left with Change logo and
+  Remove under it, Salon name, Phone and Website beside it (`.biz-top`),
+  then the review link, the address four to a row and About (`.biz-grid`).
+  Labels small and in capitals like Booking page and Time zone at the
+  card's foot, fields 34px; two to a row on a tablet, one on a phone, where
+  the logo sits above with its buttons beside it. Its logo is the nav's mark,
   painted from `me.salon.logo`, so saving updates the menu at once.
 - Team lists only the signed-in person for now (stylists are added later),
   plus anyone asking to join. Each person has a username (011) and their own
