@@ -35,6 +35,7 @@ import { icsBusyBetween, openLink } from '../../_lib/google-ics.js';
 import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
+import { clampSpans, salonHoursOn } from '../../_lib/salon-hours.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import {
   LUNCH, cleanBreaks, cleanDown, flexLunchOn, lunchGap, workSpans,
@@ -178,6 +179,8 @@ export default handler({
         if (r.opens && r.closes) hours[r.slug].push([mins(r.opens), mins(r.closes)]);
         if (!flexLunchOn(r.details)) lunchOff.add(r.slug);
       }
+      // Inside the salon's own hours, as availability.js offers them.
+      for (const slug of Object.keys(hours)) hours[slug] = clampSpans(hours[slug], salonHoursOn(tenant, day.weekday % 7));
 
       // Where each stylist's flexible lunch falls today (timing.js): the
       // earliest half hour left free between 11 and 1, around their
@@ -268,6 +271,11 @@ export default handler({
       date,
       blocks,
       hours,
+      // The salon's opening hours that day (salon-hours.js), as [opens,
+      // closes] in minutes, null when it is closed: the day view shows
+      // only these, widened only for something actually booked outside.
+      salonHours: month ? undefined : (salonHoursOn(tenant, day.weekday % 7) ?? undefined),
+      salonClosed: !month && salonHoursOn(tenant, day.weekday % 7) === null,
       lunch,
       team,
       month: month ? month.toFormat('yyyy-MM') : null,

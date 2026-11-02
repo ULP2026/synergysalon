@@ -469,7 +469,19 @@ made that way are real: name them ZZ and remove them.
   its first service and the total, marked not itemized, never a guessed
   split. Payment is "Not recorded" and there are no transactions: nothing
   records payments until Stripe. Check in, no-show, cancel, done, reopen
-  and delete stay on it. There is no staff reschedule action anywhere yet.
+  and delete stay on it. Staff move a visit by dragging it (below).
+- **Drag and drop on Appt. Book** (asked for 2026-11-02): a booked card that
+  has not started (`canMove`) can be dragged to another time, or into
+  another stylist's column; a ghost the length of the visit snaps to
+  quarter hours and turns red where the grid can already tell it will not
+  fit (passed, outside the salon's or the stylist's hours). A touch drag
+  starts after a 350ms hold so a swipe still scrolls. On drop it confirms,
+  then `POST /api/staff/appointment {action: 'move', start, stylist?}`
+  (`moveAppointment`): the desk's rules (`minLeadMin: 0`, not limited by
+  Google) through `availableSlots`, the visit's own length and breaks, the
+  no-overlap constraint as the last word, then the reschedule email and
+  text and the Google copy, as the guest's own reschedule does. The quiet
+  two-minute reload waits while a card is held.
 - The client profile edits in place: a pencil on Contact details (name,
   phone, email) and on Tags and status (the stage), Add note (a dated line
   on top, `PATCH {op: 'note'}`, one statement so two people's notes both
@@ -922,6 +934,18 @@ made that way are real: name them ZZ and remove them.
   address) and the calendar dialog. `GET /api/staff/profile` carries the
   status, so your own window opens right instead of offering Connect until a
   second request answered; it says "Checking…" if the status is missing.
+- **Appt. Book's day is the salon's opening hours only** (asked for
+  2026-11-02, from the PMC): `SALON_HOURS` in `api/_lib/salon-hours.js`
+  (Mon, Tue, Sat 9 to 3; Wed, Thu 9 to 7; Fri 9 to 6; Sunday closed), sent
+  by diary.js as `salonHours`/`salonClosed`. The grid widens only for an
+  appointment or block actually outside them, never for a shift or a
+  Google event; a closed day with nothing on it says so instead of a grid.
+  `availableSlots` cuts every stylist's shifts to the same hours
+  (`clampShifts`), so the website, the desk, Karen and drag and drop
+  cannot sell a time the salon is shut, and diary.js's `hours` are cut the
+  same way. Keyed by tenant slug: a salon not listed keeps the old rules.
+  Change the hours there, in the PMC, the pages' schema.org and Karen's
+  `APP_GUIDE` together.
 - Appt. Book's day is the team, one column per person: (since 2026-10-30 the page
   widens with the columns, 320px each past the standard 960px, up to the
   window's width, then scrolls sideways; `--diary-w` from renderDiary(),
