@@ -35,7 +35,7 @@ import { icsBusyBetween, openLink } from '../../_lib/google-ics.js';
 import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
-import { clampSpans, salonHoursOn } from '../../_lib/salon-hours.js';
+import { SALON_HOURS, clampSpans, salonHoursOn } from '../../_lib/salon-hours.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import {
   LUNCH, cleanBreaks, cleanDown, flexLunchOn, lunchGap, workSpans,
@@ -276,6 +276,9 @@ export default handler({
       // only these, widened only for something actually booked outside.
       salonHours: month ? undefined : (salonHoursOn(tenant, day.weekday % 7) ?? undefined),
       salonClosed: !month && salonHoursOn(tenant, day.weekday % 7) === null,
+      // The salon's whole week (Sunday first), for the month grid: a day it
+      // is closed is shaded and takes no dropped appointment.
+      salonWeek: SALON_HOURS[tenant.slug] ? [0, 1, 2, 3, 4, 5, 6].map((w) => salonHoursOn(tenant, w)) : null,
       lunch,
       team,
       month: month ? month.toFormat('yyyy-MM') : null,

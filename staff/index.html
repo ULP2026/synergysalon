@@ -576,6 +576,15 @@
   .cal-ev:hover { background:var(--indigo-deep); }
   .cal-ev b { font-weight:650; }
   .cal-ev.off { background:var(--raise); color:var(--muted); text-decoration:line-through; }
+  /* Month drag (2026-11-02): the chip follows the pointer; the day under it
+     says whether it takes the drop. Closed days are shaded. */
+  .cal-ev.cal-mv { cursor: grab; touch-action: pan-x pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .cal-ev.cal-lift { opacity: .35; }
+  .cal-float { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; margin: 0;
+               box-shadow: 0 12px 28px -12px rgba(30, 31, 92, .6); }
+  .cal-cell.shut { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--line) 50%, transparent) 0 1px, transparent 1px 9px); }
+  .cal-cell.cal-drop { background: color-mix(in srgb, var(--periwinkle) 14%, var(--card)); box-shadow: inset 0 0 0 2px var(--periwinkle); }
+  .cal-cell.cal-nodrop { background: color-mix(in srgb, var(--warn) 10%, var(--card)); box-shadow: inset 0 0 0 2px var(--warn); }
   .cal-more { border:0; background:none; font:inherit; font-size:var(--fs-xs);
               color:var(--muted); cursor:pointer; text-align:left; padding:1px 6px; }
   .cal-more:hover { color:var(--ink); text-decoration:underline; }
@@ -6374,13 +6383,21 @@ let moveFor = null;
 let movePick = null;
 let moveSeq = 0;
 
-function openMove(a) {
+/**
+ * `opts.date` opens it on another day (a chip dropped there in the month),
+ * and `opts.prefer` (minutes past midnight) picks that time when it is free,
+ * so a drop to another date keeps the time unless it cannot.
+ */
+let movePrefer = null;
+function openMove(a, opts = {}) {
   if (dgDemo) { toast('This is the sample day, so nothing moves.'); return; }
   moveFor = a;
   movePick = null;
-  const from = a.date || (a.startsAt ? minutesDate(a.startsAt) : salonToday());
+  movePrefer = opts.prefer ?? null;
+  const from = opts.date || a.date || (a.startsAt ? minutesDate(a.startsAt) : salonToday());
   $('moveTitle').textContent = `Move ${a.guestName || 'appointment'}`;
-  $('moveNow').textContent = `${a.service || ''}${a.stylist ? ` with ${a.stylist}` : ''}, now ${dayLabel(from)} at ${a.time || clock(salonMinutes(a.startsAt))}.`;
+  const was = a.date || (a.startsAt ? minutesDate(a.startsAt) : from);
+  $('moveNow').textContent = `${a.service || ''}${a.stylist ? ` with ${a.stylist}` : ''}, now ${dayLabel(was)} at ${a.time || clock(salonMinutes(a.startsAt))}.`;
   const today = salonToday();
   $('moveDate').min = today;
   $('moveDate').value = from < today ? today : from;
@@ -6419,6 +6436,15 @@ async function loadMoveTimes() {
     $('moveTimes').innerHTML = times.length
       ? times.map((t) => `<button type="button" class="bw-time" role="option" aria-selected="false" data-start="${esc(t)}">${esc(clock(salonMinutes(t)))}</button>`).join('')
       : `<p class="bw-empty small muted">No free time for the whole visit that day. ${new Date(`${date}T12:00:00Z`).getUTCDay() === 0 ? 'The salon is closed on Sundays.' : 'Try another day or stylist.'}</p>`;
+    // Dropped on another date in the month: the same time, picked for
+    // them when it is free there, and said when it is not.
+    if (movePrefer != null) {
+      const want = movePrefer;
+      movePrefer = null;
+      const same = [...$('moveTimes').querySelectorAll('button[data-start]')].find((b) => salonMinutes(b.dataset.start) === want);
+      if (same) same.click();
+      else if (times.length) toast(`${clock(want)} is not free that day. Pick another time.`);
+    }
   } catch (err) {
     if (seq !== moveSeq) return;
     $('moveTimes').innerHTML = `<p class="bw-empty small muted">${esc(err.message)}</p>`;
@@ -7120,8 +7146,9 @@ function renderMonth(d) {
     const cls = a.status === 'cancelled' ? 'off' : '';
     const title = `${a.time} · ${a.guestName} · ${a.service} with ${a.stylist}`
       + (a.status === 'cancelled' ? ' (cancelled)' : '');
-    return `<button class="cal-ev ${cls}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
-              title="${esc(title)}"><b>${esc(a.time.replace(':00', ''))}</b> ${esc(a.guestName)}</button>`;
+    const mv = canMove(a) ? ' cal-mv' : '';
+    return `<button class="cal-ev ${cls}${mv}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
+              title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><b>${esc(a.time.replace(':00', ''))}</b> ${esc(a.guestName)}</button>`;
   };
 
   $('calendar').innerHTML = `<div class="cal">
@@ -7130,7 +7157,8 @@ function renderMonth(d) {
       const list = (byDate.get(c.iso) || []);
       const shown = list.slice(0, PER_CELL);
       const rest = list.length - shown.length;
-      return `<div class="cal-cell ${c.out ? 'out' : ''} ${c.iso === d.today ? 'today' : ''}" data-add="${c.iso}"
+      const shut = Array.isArray(d.salonWeek) && d.salonWeek[new Date(`${c.iso}T12:00:00Z`).getUTCDay()] === null;
+      return `<div class="cal-cell ${c.out ? 'out' : ''} ${c.iso === d.today ? 'today' : ''} ${c.iso < d.today ? 'past' : ''} ${shut ? 'shut' : ''}" data-add="${c.iso}"
           title="Click to add an appointment on ${esc(dayLabel(c.iso))}">
         <div class="cal-top">
           <button type="button" class="cal-add" data-add="${c.iso}" aria-label="New appointment on ${esc(dayLabel(c.iso))}">${ic('plus')}</button>
@@ -7141,8 +7169,122 @@ function renderMonth(d) {
       </div>`;
     }).join('')}</div>
   </div>
-  <p class="cal-hint">Click any day to add an appointment. Click the date to see that day by stylist.</p>`;
+  <p class="cal-hint">Click any day to add an appointment. Click the date to see that day by stylist. Drag an appointment to another day to move it.</p>`;
 }
+
+// ── drag and drop in the month (2026-11-02) ───────────────────────────────
+//
+// A booked appointment's chip can be dragged onto another date. The month
+// has no times on it, so the drop opens the Move window on that date with
+// the same stylist and the same time picked when it is free there: one
+// press of Move appointment keeps the time, or another time can be chosen.
+// The window's times come from the server (moveTimes), so nothing offered
+// is then refused. Days that have passed or the salon is closed take no
+// drop. Touch picks a chip up after a short hold, as on the day.
+let calDrag = null;
+let calSwallowUntil = 0;
+
+function calEnd() {
+  if (!calDrag) return;
+  clearTimeout(calDrag.timer);
+  calDrag.float?.remove();
+  document.querySelectorAll('.cal-cell.cal-drop, .cal-cell.cal-nodrop').forEach((x) => x.classList.remove('cal-drop', 'cal-nodrop'));
+  calDrag.chip.classList.remove('cal-lift');
+  document.body.classList.remove('dg-dragging');
+  calDrag = null;
+}
+
+function calCellAt(x, y) {
+  const cell = document.elementFromPoint(x, y)?.closest?.('.cal-cell');
+  if (!cell) return null;
+  const iso = cell.dataset.add;
+  const why = iso < monthData.today ? 'That day has passed'
+    : cell.classList.contains('shut') ? `${me?.salon?.name || 'The salon'} is closed that day` : '';
+  return { cell, iso, why };
+}
+
+function calBegin() {
+  const d = calDrag;
+  d.active = true;
+  d.chip.classList.add('cal-lift');
+  document.body.classList.add('dg-dragging');
+  const f = d.chip.cloneNode(true);
+  f.className = 'cal-ev cal-float';
+  f.setAttribute('aria-hidden', 'true');
+  f.style.width = `${d.chip.offsetWidth}px`;
+  document.body.appendChild(f);
+  d.float = f;
+  calPaint(d.x, d.y);
+}
+
+function calPaint(x, y) {
+  const d = calDrag;
+  d.x = x; d.y = y;
+  d.float.style.transform = `translate(${x - d.dx}px, ${y - d.dy}px)`;
+  const t = calCellAt(x, y);
+  document.querySelectorAll('.cal-cell.cal-drop, .cal-cell.cal-nodrop').forEach((c) => { if (c !== t?.cell) c.classList.remove('cal-drop', 'cal-nodrop'); });
+  if (t) t.cell.classList.add(t.why ? 'cal-nodrop' : 'cal-drop');
+  d.target = t;
+  if (y > innerHeight - 50) scrollBy(0, 14);
+  else if (y < 70) scrollBy(0, -14);
+}
+
+function calFinish() {
+  const d = calDrag;
+  if (!d.active) { calEnd(); return; }
+  calSwallowUntil = Date.now() + 400;
+  const t = d.target;
+  const a = d.appt;
+  calEnd();
+  if (!t || t.iso === a.date) return;
+  if (t.why) { toast(`${t.why}. ${a.guestName}’s appointment stays where it was.`); return; }
+  openMove(a, { date: t.iso, prefer: salonMinutes(a.startsAt) });
+}
+
+$('calendar').addEventListener('dragstart', (e) => { if (e.target.closest?.('.cal-ev')) e.preventDefault(); });
+$('calendar').addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || calDrag) return;
+  const chip = e.target.closest('.cal-ev.cal-mv');
+  if (!chip || !monthData) return;
+  const appt = monthData.appointments.find((x) => x.ref === chip.dataset.ref);
+  if (!appt || !canMove(appt)) return;
+  const r = chip.getBoundingClientRect();
+  calDrag = {
+    appt, chip, pointerId: e.pointerId, touch: e.pointerType !== 'mouse',
+    sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top,
+    active: false, timer: 0, float: null, target: null,
+  };
+  if (!calDrag.touch) { try { chip.setPointerCapture(e.pointerId); } catch { /* fine without */ } }
+  else calDrag.timer = setTimeout(() => { if (calDrag && !calDrag.active) { calBegin(); navigator.vibrate?.(10); } }, DG_HOLD_MS);
+});
+document.addEventListener('pointermove', (e) => {
+  if (!calDrag || e.pointerId !== calDrag.pointerId) return;
+  if (!calDrag.active) {
+    const far = Math.hypot(e.clientX - calDrag.sx, e.clientY - calDrag.sy) > DG_DRAG_PX;
+    if (calDrag.touch) { if (far) calEnd(); return; }
+    if (!far) return;
+    calDrag.x = e.clientX; calDrag.y = e.clientY;
+    calBegin();
+    return;
+  }
+  calPaint(e.clientX, e.clientY);
+});
+document.addEventListener('pointerup', (e) => { if (calDrag && e.pointerId === calDrag.pointerId) calFinish(); });
+document.addEventListener('pointercancel', (e) => {
+  if (!calDrag || e.pointerId !== calDrag.pointerId) return;
+  if (calDrag.active && calDrag.touch) calDrag.lost = true; else calEnd();
+});
+document.addEventListener('touchmove', (e) => {
+  if (!calDrag?.active) return;
+  e.preventDefault();
+  if (calDrag.lost && e.touches[0]) calPaint(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+document.addEventListener('touchend', () => { if (calDrag?.active && calDrag.lost) calFinish(); });
+document.addEventListener('touchcancel', () => { if (calDrag?.lost) calEnd(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && calDrag?.active) calEnd(); });
+$('calendar').addEventListener('click', (e) => {
+  if (Date.now() < calSwallowUntil) { e.stopPropagation(); e.preventDefault(); calSwallowUntil = 0; }
+}, true);
 
 let monthSeq = 0;
 async function loadMonth(ym) {
