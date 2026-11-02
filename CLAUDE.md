@@ -488,7 +488,13 @@ made that way are real: name them ZZ and remove them.
   no-overlap constraint as the last word, then the reschedule email and
   text and the Google copy, as the guest's own reschedule does. The quiet
   two-minute reload waits while a card is held. A mouse drag holds pointer
-  capture so the drop is never lost.
+  capture so the drop is never lost. **The Month view drags too**
+  (2026-11-02): a booked chip (`.cal-mv`) dropped on another date opens the
+  Move window on that date with the same stylist and the same time picked
+  when it is free there (`openMove(a, {date, prefer})`), since the month has
+  no times to drop on; one press keeps the time, or another is chosen.
+  Passed days and days the salon is closed (`salonWeek` from diary.js,
+  shaded `.cal-cell.shut`) refuse the drop.
 - The client profile edits in place: a pencil on Contact details (name,
   phone, email) and on Tags and status (the stage), Add note (a dated line
   on top, `PATCH {op: 'note'}`, one statement so two people's notes both
