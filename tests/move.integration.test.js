@@ -144,6 +144,7 @@ test('a dragged booking moves to a free time and to another stylist', { skip }, 
     let r = await move(cookie, { ref: 'ZZMV01', start: at(11, 15).toISO() });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.equal(r.body.moved, true);
+    assert.equal(r.body.notified, true, 'telling the client is the default');
     let row = (await db.query('SELECT starts_at, stylist_id, extract(epoch FROM upper(during) - lower(during))::int / 60 AS len FROM appointments WHERE id = $1', [id])).rows[0];
     assert.equal(hhmm(row.starts_at), '11:15');
     assert.equal(row.stylist_id, ids['zz-ana']);
@@ -159,9 +160,10 @@ test('a dragged booking moves to a free time and to another stylist', { skip }, 
     const sun = await call(appointment, cookie, { url: `/api/staff/appointment?ref=ZZMV01&times=${DAY.plus({ days: 1 }).toISODate()}` });
     assert.deepEqual(sun.body.times, []);
 
-    // Into Bea's column.
-    r = await move(cookie, { ref: 'ZZMV01', start: at(12).toISO(), stylist: 'zz-bea' });
+    // Into Bea's column, quietly: "Just Move Appointment".
+    r = await move(cookie, { ref: 'ZZMV01', start: at(12).toISO(), stylist: 'zz-bea', notify: false });
     assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.notified, false, 'the client is not told when the desk says not to');
     assert.equal(r.body.stylistSlug, 'zz-bea');
     row = (await db.query('SELECT starts_at, stylist_id FROM appointments WHERE id = $1', [id])).rows[0];
     assert.equal(hhmm(row.starts_at), '12:00');

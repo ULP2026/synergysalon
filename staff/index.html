@@ -580,6 +580,46 @@
      says whether it takes the drop. Closed days are shaded. */
   .cal-ev.cal-mv { cursor: grab; touch-action: pan-x pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .cal-ev.cal-lift { opacity: .35; }
+  /* The move confirmation (2026-11-02). */
+  .mvc { max-width: 520px; }
+  .mvc h2 { margin-bottom: 6px; }
+  .mvc-q { margin: 0 0 16px; color: var(--muted); }
+  .mvc-card { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--raise); margin-bottom: 16px; }
+  .mvc-who { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .mvc-who .avatar { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; flex: none;
+                     background: var(--peri-pale); color: var(--indigo); font-weight: 650; font-size: .85rem; }
+  .mvc-who b { display: block; color: var(--ink); }
+  .mvc-who span:not(.avatar) { display: block; font-size: var(--fs-sm); color: var(--muted); }
+  .mvc-times { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+  .mvc-t { border-radius: 10px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); min-width: 0; }
+  .mvc-t.new { border-color: var(--periwinkle); box-shadow: inset 0 0 0 1px var(--periwinkle); }
+  .mvc-t .mvc-k { display: block; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+  .mvc-t.new .mvc-k { color: var(--periwinkle); }
+  .mvc-t b { display: block; font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .mvc-t span:last-child { display: block; font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mvc-t.old b { color: var(--muted); }
+  .mvc-arrow { color: var(--faint); display: grid; place-items: center; }
+  .mvc-arrow .ic { width: 18px; height: 18px; }
+  .mvc-opts { border: 0; padding: 0; margin: 0 0 8px; }
+  .mvc-opts legend { padding: 0; margin-bottom: 8px; font-size: var(--fs-sm); color: var(--muted); font-weight: 500; }
+  .mvc-opt { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 8px; padding: 12px 14px; cursor: pointer;
+             border: 1px solid var(--line-2); border-radius: 12px; background: var(--card);
+             transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .mvc-opt:hover { border-color: var(--periwinkle); }
+  .mvc-opt:has(input:checked) { border-color: var(--periwinkle); background: color-mix(in srgb, var(--periwinkle) 8%, var(--card)); }
+  .mvc-opt input { width: 18px; height: 18px; margin: 2px 0 0; padding: 0; flex: none; accent-color: var(--periwinkle); }
+  .mvc-opt b { display: block; font-weight: 600; color: var(--ink); }
+  .mvc-opt small { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--muted); line-height: 1.4; }
+  @media (max-width: 480px) {
+    .mvc { padding: 20px; }
+    .mvc-q { margin-bottom: 12px; }
+    .mvc-card { padding: 12px; margin-bottom: 12px; }
+    .mvc-who { margin-bottom: 10px; }
+    .mvc-times { grid-template-columns: 1fr; gap: 6px; }
+    .mvc-t { padding: 8px 10px; }
+    .mvc-arrow { transform: rotate(90deg); height: 12px; }
+    .mvc-opt { padding: 10px 12px; margin-bottom: 6px; }
+  }
   .cal-float { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; margin: 0;
                box-shadow: 0 12px 28px -12px rgba(30, 31, 92, .6); }
   .cal-cell.shut { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--line) 50%, transparent) 0 1px, transparent 1px 9px); }
@@ -3619,6 +3659,37 @@
   </form>
 </dialog>
 
+<!-- Confirming a move (2026-11-02): the same window for a drag on the day
+     and for the Move window (which a drag in the month opens), with the
+     client, the time it was and the time it will be, and whether the
+     client is told. confirmMove() fills and answers it. -->
+<dialog id="mvcDlg" class="mvc" aria-labelledby="mvcTitle" aria-describedby="mvcQ">
+  <form method="dialog" id="mvcForm">
+    <h2 id="mvcTitle">Move appointment</h2>
+    <p class="mvc-q" id="mvcQ">Are you sure you want to move this appointment?</p>
+    <div class="mvc-card">
+      <div class="mvc-who"><span class="avatar" id="mvcAv" aria-hidden="true"></span>
+        <div><b id="mvcName"></b><span id="mvcSvc"></span></div></div>
+      <div class="mvc-times">
+        <div class="mvc-t"><span class="mvc-k">Original</span><b id="mvcFrom"></b><span id="mvcFromWho"></span></div>
+        <span class="mvc-arrow" aria-hidden="true"><svg class="ic"><use href="#i-right"/></svg></span>
+        <div class="mvc-t new"><span class="mvc-k">New</span><b id="mvcTo"></b><span id="mvcToWho"></span></div>
+      </div>
+    </div>
+    <fieldset class="mvc-opts">
+      <legend>Client notification</legend>
+      <label class="mvc-opt"><input type="radio" name="mvcNotify" value="send" checked>
+        <span><b>Send Rescheduled Appointment Notification</b><small id="mvcSendSub">Send the client an update with their new date and time.</small></span></label>
+      <label class="mvc-opt"><input type="radio" name="mvcNotify" value="quiet">
+        <span><b>Just Move Appointment</b><small>Update the schedule without notifying the client.</small></span></label>
+    </fieldset>
+    <div class="dlg-actions">
+      <button class="btn quiet" value="cancel" formnovalidate id="mvcCancel">Cancel</button>
+      <button type="button" class="btn" id="mvcOk">Confirm</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Lunch or a block on one stylist's column. -->
 <dialog id="blockDlg">
   <form method="dialog" id="blockForm">
@@ -3803,6 +3874,11 @@ const I18N_ES = {
   'Processing · free': 'Procesando · libre', 'Continues': 'Continúa', 'Finish': 'Final',
   'Check in': 'Registrar llegada', "Didn't show up": 'No se presentó', 'Didn’t show up': 'No se presentó',
   'Cancel appointment': 'Cancelar cita', 'Delete for good': 'Eliminar para siempre', 'Open client': 'Abrir cliente',
+  'Move': 'Mover', 'Move appointment': 'Mover cita', 'Are you sure you want to move this appointment?': '¿Seguro que quieres mover esta cita?',
+  'Original': 'Original', 'Client notification': 'Aviso al cliente',
+  'Send Rescheduled Appointment Notification': 'Enviar aviso de cita reprogramada', 'Just Move Appointment': 'Solo mover la cita',
+  'Update the schedule without notifying the client.': 'Actualiza la agenda sin avisar al cliente.',
+  'Free times for the whole visit': 'Horas libres para toda la visita',
   'When': 'Cuándo', 'Stylist': 'Estilista', 'Processing': 'Procesando', 'Phone': 'Teléfono', 'Email': 'Correo',
   'Created on': 'Creada el', 'Next appt': 'Próxima cita', 'Booked': 'Reservada', 'Services': 'Servicios',
   'Service': 'Servicio', 'Time': 'Hora', 'Price': 'Precio', 'Total': 'Total', 'Not priced': 'Sin precio',
@@ -6373,6 +6449,64 @@ $('diary').addEventListener('mousemove', (e) => {
   g.textContent = clock(m);
 });
 
+// ── confirming a move ─────────────────────────────────────────────────────
+//
+// Every move ends here, whether dragged on the day or picked in the Move
+// window (where a drag in the month lands): the client, the time it was and
+// the time it will be, and a choice of telling the client or not (asked
+// for 2026-11-02). Resolves to { notify } on Confirm, null on Cancel.
+let mvcResolve = null;
+function confirmMove(a, { start, stylistName }) {
+  const when = (iso) => {
+    const near = dayLabel(minutesDate(iso));
+    return `${/^(Today|Tomorrow)$/.test(near) ? `${near}, ` : ''}${fmtWhen(iso, { weekday: 'short', month: 'short', day: 'numeric' })} · ${clock(salonMinutes(iso))}`;
+  };
+  $('mvcAv').textContent = initialsOf(a.guestName);
+  $('mvcName').textContent = a.guestName || 'Client';
+  $('mvcSvc').textContent = a.service || '';
+  $('mvcFrom').textContent = when(a.startsAt);
+  $('mvcFromWho').textContent = a.stylist ? `with ${a.stylist}` : '';
+  $('mvcTo').textContent = when(start);
+  $('mvcToWho').textContent = stylistName ? `with ${stylistName}` : '';
+  const reach = [a.guestEmail ? 'by email' : '', a.guestPhone ? 'by text if they agreed to texts' : ''].filter(Boolean).join(' and ');
+  const canTell = Boolean(a.guestEmail || a.guestPhone);
+  $('mvcSendSub').textContent = canTell
+    ? `Send ${String(a.guestName || 'the client').split(/\s+/)[0]} an update with their new date and time, ${reach}.`
+    : 'This client has no email or phone on file, so there is nobody to send it to.';
+  const send = $('mvcForm').querySelector('input[value="send"]');
+  const quiet = $('mvcForm').querySelector('input[value="quiet"]');
+  send.disabled = !canTell;
+  (canTell ? send : quiet).checked = true;
+  if (mvcResolve) mvcResolve(null);
+  return new Promise((resolve) => {
+    mvcResolve = resolve;
+    openDialog($('mvcDlg'));
+    // Without preventScroll a short phone screen scrolled the window to
+    // its foot and hid the question and the times.
+    setTimeout(() => $('mvcOk').focus({ preventScroll: true }), 30);
+  });
+}
+function mvcDone(value) {
+  const r = mvcResolve;
+  mvcResolve = null;
+  if (r) r(value);
+}
+$('mvcOk').onclick = () => {
+  const notify = $('mvcForm').querySelector('input[name="mvcNotify"]:checked')?.value === 'send';
+  closeDialog($('mvcDlg'));
+  mvcDone({ notify });
+};
+// Cancel, Esc and a click outside all close the dialog; any close that was
+// not Confirm is a no.
+$('mvcDlg').addEventListener('close', () => mvcDone(null));
+
+/** What the toast says once it has moved: where to, and whether the client was told. */
+function movedToast(a, start, r, newStylist) {
+  const first = String(a.guestName || 'The client').split(/\s+/)[0];
+  return `Moved to ${dayLabel(minutesDate(start))} at ${clock(salonMinutes(start))}${r.stylist && newStylist ? ` with ${r.stylist}` : ''}. `
+    + (r.notified ? `${first} has been sent the new time.` : `${first} was not notified.`);
+}
+
 // ── the Move window ───────────────────────────────────────────────────────
 //
 // Day, stylist, then one of the free times for the whole visit, from
@@ -6465,14 +6599,17 @@ $('moveSave').onclick = async () => {
   const a = moveFor;
   if (!a || !movePick) return;
   const slug = $('moveStylist').value;
+  const start = movePick;
+  const choice = await confirmMove(a, { start, stylistName: $('moveStylist').selectedOptions[0]?.textContent || a.stylist });
+  if (!choice) return;
   $('moveSave').disabled = true;
   try {
     const r = await api('/api/staff/appointment', {
       method: 'POST',
-      body: JSON.stringify({ ref: a.ref, action: 'move', start: movePick, ...(slug && slug !== a.stylistSlug ? { stylist: slug } : {}) }),
+      body: JSON.stringify({ ref: a.ref, action: 'move', start, notify: choice.notify, ...(slug && slug !== a.stylistSlug ? { stylist: slug } : {}) }),
     });
     closeDialog($('moveDlg'));
-    toast(`Moved to ${dayLabel(minutesDate(movePick))} at ${clock(salonMinutes(movePick))}${r.stylist && slug !== a.stylistSlug ? ` with ${r.stylist}` : ''}.`);
+    toast(movedToast(a, start, r, slug !== a.stylistSlug));
     if (page === 'appointments') await refreshDiary();
     if ($('personDlg').open && person) reloadPerson();
   } catch (err) {
@@ -6658,23 +6795,21 @@ async function dgDrop(a, t) {
     ? (me?.stylists || []).find((x) => x.slug === t.slug) || (diaryData.team || []).find((x) => x.stylistSlug === t.slug)
     : null;
   const toName = to ? to.name : '';
-  const when = `${fmtWhen(`${diaryData.date}T12:00:00`, { weekday: 'short', month: 'short', day: 'numeric' })}, ${clock(t.start)}`;
   if (dgDemo) { toast('This is the sample day, so nothing moves.'); return; }
-  const ok = confirm(`Move ${a.guestName}’s ${a.service} to ${when}${toName ? ` with ${toName}` : ''}?\n\n`
-    + 'They will be sent the new time, the same way as when a client moves it themselves.');
-  if (!ok) return;
-  // Shown where it was dropped straight away; the day reloads from the server either way.
-  const cards = [...document.querySelectorAll(`.dg-ev[data-ref="${CSS.escape(a.ref)}"]`)];
-  cards.forEach((c) => c.classList.add('dg-saving'));
   // The new start as an instant on the salon's clock: the offset of that
   // wall time in the salon's zone, found from the day itself.
   const start = salonInstant(diaryData.date, t.start);
+  const choice = await confirmMove(a, { start, stylistName: toName || a.stylist });
+  if (!choice) return;
+  // Shown where it was dropped straight away; the day reloads from the server either way.
+  const cards = [...document.querySelectorAll(`.dg-ev[data-ref="${CSS.escape(a.ref)}"]`)];
+  cards.forEach((c) => c.classList.add('dg-saving'));
   try {
     const r = await api('/api/staff/appointment', {
       method: 'POST',
-      body: JSON.stringify({ ref: a.ref, action: 'move', start, ...(to ? { stylist: t.slug } : {}) }),
+      body: JSON.stringify({ ref: a.ref, action: 'move', start, notify: choice.notify, ...(to ? { stylist: t.slug } : {}) }),
     });
-    toast(r.moved ? `Moved to ${clock(t.start)}${r.stylist && to ? ` with ${r.stylist}` : ''}. ${a.guestName.split(/\s+/)[0]} has been sent the new time.` : 'It is already there.');
+    toast(r.moved ? movedToast(a, start, r, Boolean(to)) : 'It is already there.');
   } catch (err) {
     fail(err);
   }

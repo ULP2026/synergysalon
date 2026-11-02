@@ -289,7 +289,7 @@ export async function moveTimes(tenant, ref, date, slug) {
   });
 }
 
-export async function moveAppointment(tenant, user, ref, { start, stylist }) {
+export async function moveAppointment(tenant, user, ref, { start, stylist, notify = true }) {
   const requested = DateTime.fromISO(requireString(start, 'New time', { max: 40 }), { setZone: true });
   if (!requested.isValid) throw new HttpError(400, 'That time is not valid.');
   const startsAt = requested.setZone(tenant.timezone);
@@ -346,10 +346,16 @@ export async function moveAppointment(tenant, user, ref, { start, stylist }) {
   });
 
   if (moved) {
-    try {
-      await sendReschedule(appt, previousStart, tenant);
-    } catch (err) {
-      console.error('reschedule email failed for', ref, err);
+    // The client hears about it only when the person moving it chose
+    // "Send Rescheduled Appointment Notification" (asked for 2026-11-02);
+    // "Just Move Appointment" changes the schedule quietly. The stylist's
+    // Google copy follows either way: that is their diary, not a message.
+    if (notify) {
+      try {
+        await sendReschedule(appt, previousStart, tenant);
+      } catch (err) {
+        console.error('reschedule email failed for', ref, err);
+      }
     }
     await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', ref, err));
   }
@@ -381,9 +387,11 @@ export default handler({
     const ref = requireString(body.ref, 'Reference', { max: 16 }).toUpperCase();
     const action = requireString(body.action, 'Action', { max: 20 });
     if (action === 'move') {
-      const { appt, moved } = await moveAppointment(tenant, user, ref, { start: body.start, stylist: body.stylist });
+      // Notifying is the default; only an explicit false keeps it quiet.
+      const notify = body.notify !== false;
+      const { appt, moved } = await moveAppointment(tenant, user, ref, { start: body.start, stylist: body.stylist, notify });
       return json(res, 200, {
-        ref, action, moved, startsAt: appt.starts_at, stylistSlug: appt.stylist_slug, stylist: appt.stylist_name,
+        ref, action, moved, notified: moved && notify, startsAt: appt.starts_at, stylistSlug: appt.stylist_slug, stylist: appt.stylist_name,
       });
     }
     const result = await applyAppointmentAction(tenant, user, ref, action);
