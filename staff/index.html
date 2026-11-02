@@ -6082,13 +6082,14 @@ let diaryData = null;
 // ── the day: stylists across the top, the clock down the side ──────────────
 //
 // A salon plans in chairs, not in a list: who is free at two is a glance
-// across one row. The grid is the salon's opening hours that day and nothing
-// else (asked for 2026-11-02; salon-hours.js, from the PMC: 9 to 3 Monday,
-// Tuesday and Saturday, 9 to 7 Wednesday and Thursday, 9 to 6 Friday, closed
-// Sunday). It widens only when an appointment or block actually sits outside
-// them, because hiding a booked client is worse than a longer day. A
-// stylist's shift or a Google event outside the salon's hours does not
-// widen it: nothing can be booked there.
+// across one row. The grid is the salon's working day and nothing else
+// (asked for 2026-11-02): from the earliest anyone on the team starts that
+// day to the latest anyone finishes, by the hours set in Settings, Team
+// (salon-hours.js), so Monday 9 to 6 and Tuesday 9 to 3 each show just
+// that. It widens only when an appointment or block actually sits outside
+// them, because hiding a booked client is worse than a longer day; a
+// Google event outside them does not widen it. With no hours set at all
+// (a salon setting up) it falls back to 9 to 6.
 
 const DG_HOUR = 112;                 // pixels per hour; matches --dg-hour
 const DG_FROM = 9 * 60, DG_TO = 18 * 60;
@@ -6236,7 +6237,7 @@ function renderDiary(d) {
     $('diary').innerHTML = emptyState({
       icon: 'calendar',
       title: `${me?.salon?.name || 'The salon'} is closed this day`,
-      text: 'Nothing is booked and nothing can be. Pick another day.',
+      text: 'Nobody on the team works this day, so nothing can be booked. Working hours are set in Settings, Team.',
     });
     return;
   }
@@ -6580,7 +6581,7 @@ async function loadMoveTimes() {
     const times = r.times.filter((t) => !(slug === a.stylistSlug && new Date(t).getTime() === here));
     $('moveTimes').innerHTML = times.length
       ? times.map((t) => `<button type="button" class="bw-time" role="option" aria-selected="false" data-start="${esc(t)}">${esc(clock(salonMinutes(t)))}</button>`).join('')
-      : `<p class="bw-empty small muted">No free time for the whole visit that day. ${new Date(`${date}T12:00:00Z`).getUTCDay() === 0 ? 'The salon is closed on Sundays.' : 'Try another day or stylist.'}</p>`;
+      : '<p class="bw-empty small muted">No free time for the whole visit that day. Try another day or stylist.</p>';
     // Dropped on another date in the month: the same time, picked for
     // them when it is free there, and said when it is not.
     if (movePrefer != null) {
@@ -6675,7 +6676,7 @@ function dgWhyNot(slug, start) {
   const end = start + a.durationMin;
   if (d.date < d.today || (d.date === d.today && start <= salonMinutes(new Date().toISOString()))) return 'That time has passed';
   if (Array.isArray(d.salonHours) && (start < d.salonHours[0] || end > d.salonHours[1])) {
-    return `The salon is open ${clock(d.salonHours[0])} to ${clock(d.salonHours[1])}`;
+    return `Outside the salon's hours today (${clock(d.salonHours[0])} to ${clock(d.salonHours[1])})`;
   }
   const shifts = slug && d.hours ? d.hours[slug] : undefined;
   if (shifts && !shifts.some(([s0, e0]) => start >= s0 && end <= e0)) {

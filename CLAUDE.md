@@ -515,7 +515,7 @@ made that way are real: name them ZZ and remove them.
   Move window on that date with the same stylist and the same time picked
   when it is free there (`openMove(a, {date, prefer})`), since the month has
   no times to drop on; one press keeps the time, or another is chosen.
-  Passed days and days the salon is closed (`salonWeek` from diary.js,
+  Passed days and days nobody on the team works (`salonWeek` from diary.js,
   shaded `.cal-cell.shut`) refuse the drop.
   **Every move is confirmed in one window** (`#mvcDlg`, `confirmMove`,
   2026-11-02), whether dragged on the day or saved from the Move window
@@ -980,18 +980,20 @@ made that way are real: name them ZZ and remove them.
   address) and the calendar dialog. `GET /api/staff/profile` carries the
   status, so your own window opens right instead of offering Connect until a
   second request answered; it says "Checking…" if the status is missing.
-- **Appt. Book's day is the salon's opening hours only** (asked for
-  2026-11-02, from the PMC): `SALON_HOURS` in `api/_lib/salon-hours.js`
-  (Mon, Tue, Sat 9 to 3; Wed, Thu 9 to 7; Fri 9 to 6; Sunday closed), sent
-  by diary.js as `salonHours`/`salonClosed`. The grid widens only for an
-  appointment or block actually outside them, never for a shift or a
-  Google event; a closed day with nothing on it says so instead of a grid.
-  `availableSlots` cuts every stylist's shifts to the same hours
-  (`clampShifts`), so the website, the desk, Karen and drag and drop
-  cannot sell a time the salon is shut, and diary.js's `hours` are cut the
-  same way. Keyed by tenant slug: a salon not listed keeps the old rules.
-  Change the hours there, in the PMC, the pages' schema.org and Karen's
-  `APP_GUIDE` together.
+- **Appt. Book's day is the salon's working day, from its team's hours**
+  (asked for 2026-11-02, twice). It was first cut to the PMC's hours, held
+  as a per-salon constant; the salon then asked for it to follow the hours
+  the team actually sets, so that is gone. `salonWeek` in
+  `api/_lib/salon-hours.js` reads `stylist_hours` of the active team: each
+  day runs from the earliest anyone starts to the latest anyone finishes
+  (Monday 9 to 6 shows 9 to 6; Tuesday 9 to 3 shows 9 to 3), and a day
+  nobody works is closed. diary.js sends it as `salonHours`/`salonClosed`
+  for the day and `salonWeek` for the month (closed days shaded, refusing
+  a dropped appointment); with no hours set at all it is left out and the
+  grid falls back to 9 to 6. The grid widens only for an appointment or
+  block actually outside the day, never for a Google event; a closed day
+  with nothing on it says so instead of a grid. Nothing cuts bookings to
+  it: each stylist's own hours already do that in `availableSlots`.
 - Appt. Book's day is the team, one column per person: (since 2026-10-30 the page
   widens with the columns, 320px each past the standard 960px, up to the
   window's width, then scrolls sideways; `--diary-w` from renderDiary(),

@@ -13,7 +13,6 @@ import { DateTime } from 'luxon';
 import { createSession } from '../api/_lib/auth.js';
 import { availableSlots } from '../api/_lib/availability.js';
 import { pool } from '../api/_lib/db.js';
-import { SALON_HOURS } from '../api/_lib/salon-hours.js';
 import appointment from '../api/staff/_routes/appointment.js';
 import diary from '../api/staff/_routes/diary.js';
 
@@ -32,9 +31,8 @@ const cleanup = () => pool().query('DELETE FROM tenants WHERE slug = $1', [SLUG]
 
 async function setup() {
   const db = pool();
-  // This salon opens 9 to 3 on Saturdays and is shut on Sundays; its
-  // stylists' shifts were typed 8 to 5, longer than the salon's day.
-  SALON_HOURS[SLUG] = { 0: null, 6: ['09:00', '15:00'] };
+  // Ana works 9 to 3 on Saturdays and Bea 10 to 2; nobody works Sundays.
+  // The salon's day is theirs: 9 to 3 on Saturday, closed on Sunday.
   const t = (await db.query(
     `INSERT INTO tenants (slug, name, timezone) VALUES ($1, 'ZZ Move', $2) RETURNING *`, [SLUG, TZ],
   )).rows[0];
@@ -43,7 +41,7 @@ async function setup() {
      VALUES ($1, 'zz-cut', 'ZZ Cut', 'cuts', 60, 15) RETURNING id`, [t.id],
   )).rows[0].id;
   const ids = {};
-  for (const [slug, name] of [['zz-ana', 'ZZ Ana'], ['zz-bea', 'ZZ Bea']]) {
+  for (const [slug, name, hrs] of [['zz-ana', 'ZZ Ana', ['09:00', '15:00']], ['zz-bea', 'ZZ Bea', ['10:00', '14:00']]]) {
     const s = (await db.query(
       `INSERT INTO stylists (tenant_id, slug, name, service_details)
        VALUES ($1, $2, $3, '{"lunch": false}'::jsonb) RETURNING id`, [t.id, slug, name],
@@ -52,7 +50,7 @@ async function setup() {
     await db.query('INSERT INTO stylist_services (stylist_id, service_id) VALUES ($1, $2)', [s, v]);
     await db.query(
       `INSERT INTO stylist_hours (stylist_id, weekday, starts_at, ends_at)
-       VALUES ($1, 6, '08:00', '17:00'), ($1, 0, '09:00', '15:00')`, [s],
+       VALUES ($1, 6, $2::time, $3::time)`, [s, ...hrs],
     );
   }
   const appt = async (stylist, start, ref) => (await db.query(
@@ -96,7 +94,7 @@ const move = (cookie, body) => call(appointment, cookie, {
   method: 'POST', url: '/api/staff/appointment', body: { action: 'move', ...body },
 });
 
-test('shifts longer than the salon’s day are offered only inside it, and never on a closed day', { skip }, async () => {
+test('times come from each stylist’s own hours, and nothing on a day nobody works', { skip }, async () => {
   await cleanup();
   const { tenant } = await setup();
   const client = await pool().connect();
@@ -106,18 +104,17 @@ test('shifts longer than the salon’s day are offered only inside it, and never
     });
     const sat = days.find((d) => d.date === DAY.toISODate());
     const starts = sat.slots.map((s) => hhmm(s.start));
-    assert.equal(starts[0], '09:00', 'not 8:00, when the salon is still shut');
-    assert.equal(starts.at(-1), '14:00', 'finishing by 3, not 5');
+    assert.equal(starts[0], '09:00', 'Ana starts at 9');
+    assert.equal(starts.at(-1), '14:00', 'finishing by 3, her end');
     assert.deepEqual(open[DAY.toISODate()], [540, 900]);
     assert.ok(!days.some((d) => d.date === DAY.plus({ days: 1 }).toISODate()), 'nothing on Sunday');
   } finally {
     client.release();
     await cleanup();
-    delete SALON_HOURS[SLUG];
   }
 });
 
-test("Appt. Book's day is the salon's hours, and a closed day says so", { skip }, async () => {
+test("Appt. Book's day is the team's hours, and a day nobody works is closed", { skip }, async () => {
   await cleanup();
   const { cookie } = await setup();
   try {
@@ -125,13 +122,15 @@ test("Appt. Book's day is the salon's hours, and a closed day says so", { skip }
     assert.equal(sat.status, 200);
     assert.deepEqual(sat.body.salonHours, [540, 900]);
     assert.equal(sat.body.salonClosed, false);
-    assert.deepEqual(sat.body.hours['zz-ana'], [[540, 900]], 'the 8 to 5 shift drawn as 9 to 3');
+    assert.deepEqual(sat.body.hours['zz-ana'], [[540, 900]]);
+    assert.deepEqual(sat.body.hours['zz-bea'], [[600, 840]]);
+    assert.equal(sat.body.salonWeek[6][0], 540);
+    assert.equal(sat.body.salonWeek[0], null, 'nobody works Sundays');
     const sun = await call(diary, cookie, { url: `/api/staff/diary?date=${DAY.plus({ days: 1 }).toISODate()}` });
     assert.equal(sun.body.salonClosed, true);
     assert.deepEqual(sun.body.hours['zz-ana'], []);
   } finally {
     await cleanup();
-    delete SALON_HOURS[SLUG];
   }
 });
 
@@ -170,7 +169,6 @@ test('a dragged booking moves to a free time and to another stylist', { skip }, 
     assert.equal(row.stylist_id, ids['zz-bea']);
   } finally {
     await cleanup();
-    delete SALON_HOURS[SLUG];
   }
 });
 
@@ -182,7 +180,7 @@ test('a drop that does not fit is refused and the booking stays put', { skip }, 
     const id = await appt('zz-ana', at(10), 'ZZMV02');
     await appt('zz-ana', at(12), 'ZZMV03');
     const tries = [
-      at(8, 30),             // before the salon opens, though her shift says 8
+      at(8, 30),             // before she starts
       at(14, 30),            // would run past 3
       at(11, 30),            // into the 12:00 booking
       DAY.plus({ days: 1 }).set({ hour: 10 }),   // Sunday: closed
@@ -200,6 +198,5 @@ test('a drop that does not fit is refused and the booking stays put', { skip }, 
     assert.equal(r.status, 409);
   } finally {
     await cleanup();
-    delete SALON_HOURS[SLUG];
   }
 });

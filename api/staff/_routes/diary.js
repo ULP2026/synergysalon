@@ -35,7 +35,7 @@ import { icsBusyBetween, openLink } from '../../_lib/google-ics.js';
 import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
-import { SALON_HOURS, clampSpans, salonHoursOn } from '../../_lib/salon-hours.js';
+import { salonWeek } from '../../_lib/salon-hours.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import {
   LUNCH, cleanBreaks, cleanDown, flexLunchOn, lunchGap, workSpans,
@@ -179,8 +179,6 @@ export default handler({
         if (r.opens && r.closes) hours[r.slug].push([mins(r.opens), mins(r.closes)]);
         if (!flexLunchOn(r.details)) lunchOff.add(r.slug);
       }
-      // Inside the salon's own hours, as availability.js offers them.
-      for (const slug of Object.keys(hours)) hours[slug] = clampSpans(hours[slug], salonHoursOn(tenant, day.weekday % 7));
 
       // Where each stylist's flexible lunch falls today (timing.js): the
       // earliest half hour left free between 11 and 1, around their
@@ -267,18 +265,22 @@ export default handler({
       }));
     }
 
+    const week = await salonWeek({ query }, tenant.id).catch(() => null);
+
     return json(res, 200, {
       date,
       blocks,
       hours,
-      // The salon's opening hours that day (salon-hours.js), as [opens,
-      // closes] in minutes, null when it is closed: the day view shows
-      // only these, widened only for something actually booked outside.
-      salonHours: month ? undefined : (salonHoursOn(tenant, day.weekday % 7) ?? undefined),
-      salonClosed: !month && salonHoursOn(tenant, day.weekday % 7) === null,
-      // The salon's whole week (Sunday first), for the month grid: a day it
-      // is closed is shaded and takes no dropped appointment.
-      salonWeek: SALON_HOURS[tenant.slug] ? [0, 1, 2, 3, 4, 5, 6].map((w) => salonHoursOn(tenant, w)) : null,
+      // The salon's working day (salon-hours.js): from the earliest anyone
+      // on the team starts to the latest anyone finishes, by the hours set
+      // in Settings, Team. The day view shows only that, widened only for
+      // something actually booked outside it. Closed when nobody works.
+      // Left out while nobody has hours at all (a salon setting up).
+      salonHours: month || !week ? undefined : (week[day.weekday % 7] ?? undefined),
+      salonClosed: !month && Boolean(week) && week[day.weekday % 7] === null,
+      // The same for the whole week (Sunday first), for the month grid: a
+      // day nobody works is shaded and takes no dropped appointment.
+      salonWeek: week,
       lunch,
       team,
       month: month ? month.toFormat('yyyy-MM') : null,

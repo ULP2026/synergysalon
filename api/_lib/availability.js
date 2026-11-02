@@ -17,7 +17,6 @@ import { centroWindows, fitsIn } from './centro-hours.js';
 import { MAX_ADVANCE_DAYS, MIN_LEAD_MIN, SLOT_STEP_MIN } from './config.js';
 import { googleBusyFor, googleOptional } from './google-busy.js';
 import { HttpError } from './http.js';
-import { clampShifts, salonHoursOn } from './salon-hours.js';
 import {
   LUNCH, cleanBreaks, cleanDown, flexLunchOn, lunchGap, timedService, workSpans,
 } from './timing.js';
@@ -326,12 +325,11 @@ export async function availableSlots(client, tenant, {
       // stored here do.
       const free = windows ? windows.get(stylist.id) : undefined;
       if (windows && !free) continue;
-      // Their shifts, inside the salon's opening hours (salon-hours.js):
-      // nothing is offered before it opens, after it closes, or on a day
-      // it is shut, whatever a shift in Team says.
+      // Their own shifts decide (set by the admin in Settings, Team). The
+      // salon's day is their sum (salon-hours.js), so nothing else cuts it.
       const dayShifts = windows
         ? [{ starts_at: '00:00', ends_at: '23:59' }]
-        : clampShifts((shifts.get(stylist.id) ?? []).filter((sh) => sh.weekday === weekday), salonHoursOn(tenant, weekday));
+        : (shifts.get(stylist.id) ?? []).filter((sh) => sh.weekday === weekday);
 
       if (!windows) {
         for (const sh of dayShifts) {
