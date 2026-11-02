@@ -91,15 +91,20 @@ async function freeSlug(client, tenantId, wanted, stylistId) {
   throw new HttpError(409, 'Could not find a free booking name for them.');
 }
 
-/** The services they offer, as ids, from the categories they switched on. */
-async function serviceIdsFor(client, tenantId, kinds) {
+/**
+ * The services they offer, as ids: every service in the kinds they switched
+ * on, less any they unticked inside a kind (services.items, 2026-11-02). A
+ * service with no entry is offered, so a kind switched on before the list
+ * existed still offers everything in it.
+ */
+async function serviceIdsFor(client, tenantId, kinds, items = {}) {
   if (!kinds.length) return [];
   const { rows } = await client.query(
-    `SELECT id FROM services
+    `SELECT id, slug FROM services
       WHERE tenant_id = $1 AND active AND category = ANY($2::text[])`,
     [tenantId, kinds],
   );
-  return rows.map((r) => r.id);
+  return rows.filter((r) => items?.[r.slug]?.on !== false).map((r) => r.id);
 }
 
 /**
@@ -150,7 +155,7 @@ export async function syncStylist(client, tenantId, user, { services, hours, tit
 
   // Services: replace wholesale. Working out the difference would save two
   // statements and cost the certainty that the table says what the switches say.
-  const ids = await serviceIdsFor(client, tenantId, kinds);
+  const ids = await serviceIdsFor(client, tenantId, kinds, services?.items);
   await client.query('DELETE FROM stylist_services WHERE stylist_id = $1', [stylist.id]);
   if (ids.length) {
     await client.query(
@@ -240,6 +245,8 @@ export async function listStandalone(client, tenantId) {
       }])),
       // The one set of notes for clients, shared by every service.
       notes: typeof r.details?.notes === 'string' ? r.details.notes : undefined,
+      // Each service's own offer and length (2026-11-02).
+      items: r.details?.items && typeof r.details.items === 'object' ? r.details.items : {},
     },
     stylistSlug: r.slug,
   }));
@@ -272,7 +279,7 @@ export async function syncStandalone(client, tenantId, stylistId, { services, ho
     }
   }
 
-  const ids = await serviceIdsFor(client, tenantId, kinds);
+  const ids = await serviceIdsFor(client, tenantId, kinds, services?.items);
   await client.query('DELETE FROM stylist_services WHERE stylist_id = $1', [stylistId]);
   if (ids.length) {
     await client.query(

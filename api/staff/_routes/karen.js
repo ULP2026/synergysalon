@@ -14,6 +14,8 @@
  *          ready for, within fifteen minutes, and only the latest one.
  *   POST   {log: [{role, text, at}]}  keep what was said in the app's chat,
  *          as the person signed in (karen-log.js), for Message History.
+ *   GET    ?calls=1  Call History: every call to Karen's number, newest
+ *          first (the admin only, 2026-11-02; karen-calls.js).
  *   GET    ?history=people  everyone who has talked to Karen; ?history=<id>
  *          one person's whole history (the admin only: Settings, Karen
  *          AI, Message History, asked for 2026-10-31).
@@ -27,6 +29,7 @@ import { hasColumn, query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson } from '../../_lib/http.js';
 import { karenAi } from '../../_lib/karen-ai.js';
 import { confirm, dropProposal, propose } from '../../_lib/karen-actions.js';
+import { karenCalls } from '../../_lib/karen-calls.js';
 import { deskReply } from '../../_lib/karen-desk.js';
 import { karenPeople, karenThread, logKaren } from '../../_lib/karen-log.js';
 import { phoneKey, prettyPhone } from '../../_lib/karen-sms.js';
@@ -53,6 +56,11 @@ async function settings(req, tenantId) {
 export default handler({
   async GET(req, res) {
     const url = new URL(req.url, 'http://x');
+    // Call History (2026-11-02): the admin only, as the Chat History is.
+    if (url.searchParams.has('calls')) {
+      const admin = await requireTeamAdmin(req);
+      return json(res, 200, { calls: await karenCalls(admin.tenant_id) });
+    }
     const who = url.searchParams.get('history');
     if (who) {
       // Message History is the owner's: the admin, the app's one rule

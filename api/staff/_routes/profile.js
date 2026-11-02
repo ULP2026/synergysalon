@@ -192,6 +192,18 @@ export function servicesFrom(value) {
       .filter(Boolean).join('\n');
   }
   out.notes = notes.trim().slice(0, 2000);
+  // Each service inside a kind (asked for 2026-11-02): whether this person
+  // offers it, and how long it takes them. Keyed by the service's slug. A
+  // service with no entry is offered whenever its kind is on, as before, so
+  // nothing saved earlier changes; a duration here beats the kind's own
+  // (timing.js, ownTiming).
+  const items = {};
+  const srcItems = src.items && typeof src.items === 'object' && !Array.isArray(src.items) ? src.items : {};
+  for (const [slug, v] of Object.entries(srcItems).slice(0, 300)) {
+    if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug) || !v || typeof v !== 'object') continue;
+    items[slug] = { on: v.on !== false, duration: minutesFrom(v.duration, 5, 720, 'A service duration') };
+  }
+  out.items = items;
   // The flexible lunch (timing.js): on unless switched off.
   out.lunch = src.lunch !== false;
   return out;

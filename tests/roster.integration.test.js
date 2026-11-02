@@ -180,3 +180,22 @@ test('two people cannot take the same booking name', { skip }, async () => {
 });
 
 test.after(() => pool().end());
+
+test('a service unticked inside a kind is not booked with them; the rest of the kind is', { skip }, async () => {
+  await inRollback(async (client) => {
+    const { tenant, user } = await scaffold(client);
+    await client.query(
+      `INSERT INTO services (tenant_id, slug, name, category, duration_min, buffer_min)
+       VALUES ($1, 'zz-trim', 'zz-trim', 'cuts', 15, 0)`,
+      [tenant.id],
+    );
+    // Cuts on, with the trim unticked (2026-11-02): only the cut is offered.
+    const st = await syncStylist(client, tenant.id, user, {
+      services: { ...ON('cuts'), items: { 'zz-trim': { on: false, duration: null } } },
+    });
+    assert.deepEqual(await serviceSlugs(client, st.id), ['zz-cut']);
+    // No entry for a service means offered, as before the list existed.
+    await syncStylist(client, tenant.id, user, { services: ON('cuts') });
+    assert.deepEqual(await serviceSlugs(client, st.id), ['zz-cut', 'zz-trim']);
+  });
+});

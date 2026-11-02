@@ -1538,10 +1538,42 @@
   .kh-back { display: none; }
   .kh-msgs { display: flex; flex-direction: column; gap: 8px; padding: 14px; }
   .kh-day { align-self: center; margin: 6px 0 2px; font-size: .7rem; font-weight: 650; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
-  .kh-msg { max-width: 82%; padding: 9px 13px; border-radius: 14px; font-size: .9rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .kh-msg.user { align-self: flex-end; background: var(--periwinkle); color: #fff; border-bottom-right-radius: 5px; }
-  .kh-msg.karen { align-self: flex-start; background: var(--raise); color: var(--ink); border: 1px solid var(--line); border-bottom-left-radius: 5px; }
-  .kh-msg small { display: block; margin-top: 4px; font-size: .68rem; opacity: .75; }
+  /* Who is speaking (2026-11-02): Karen on the left in plain gray with her
+     picture, the team member on the right in blue with theirs, each bubble
+     headed with the speaker's name. The two colours are set here rather than
+     borrowed from tokens that read as blue-grey either way. */
+  .kh-row { display: flex; align-items: flex-end; gap: 8px; max-width: 86%; }
+  .kh-row.karen { align-self: flex-start; }
+  .kh-row.user { align-self: flex-end; flex-direction: row-reverse; }
+  .kh-row > img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; }
+  .kh-msg { min-width: 0; padding: 8px 13px 9px; border-radius: 14px; font-size: .9rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .kh-msg .kh-who { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .02em; margin-bottom: 2px; white-space: normal; }
+  .kh-msg.user { background: var(--bub-user); color: #fff; border-bottom-right-radius: 5px; }
+  .kh-msg.user .kh-who { color: rgba(255, 255, 255, .85); }
+  .kh-msg.karen { background: var(--bub-karen); color: var(--ink); border-bottom-left-radius: 5px; }
+  .kh-msg.karen .kh-who { color: var(--muted); }
+  .kh-msg small { display: block; margin-top: 4px; font-size: .68rem; opacity: .75; white-space: normal; }
+  :root { --bub-user: #2f64d8; --bub-karen: #eceef1; }
+  /* Both histories open and close like Email History. */
+  .kx { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--card); }
+  .kx + .kx { margin-top: 12px; }
+  .kx.open .ml-chev { transform: rotate(180deg); }
+  .kx-content { margin-top: 14px; }
+  .kx:not(.open) .kx-content { display: none; }
+  /* Call History: one row a call. */
+  .kc-list { display: grid; gap: 6px; max-width: 760px; }
+  .kc-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 12px;
+            border: 1px solid var(--line); border-radius: 12px; background: var(--card); text-align: left; font: inherit; color: inherit; width: 100%; }
+  button.kc-row { cursor: pointer; }
+  button.kc-row:hover { border-color: var(--periwinkle); }
+  .kc-row > img, .kc-row > .kc-ic { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+  .kc-row > .kc-ic { display: grid; place-items: center; background: var(--peri-pale); color: var(--periwinkle); }
+  .kc-row > .kc-ic .ic { width: 17px; height: 17px; }
+  .kc-row b { display: block; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kc-row small { display: block; font-size: .76rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kc-r { display: grid; justify-items: end; gap: 3px; }
+  .kc-r time { font-size: .72rem; color: var(--faint); white-space: nowrap; }
+  @media (max-width: 520px) { .kc-row { grid-template-columns: 32px minmax(0, 1fr); } .kc-r { grid-column: 2; justify-items: start; } }
   .kh-empty { margin: auto; padding: 24px; text-align: center; color: var(--muted); font-size: .9rem; }
   @media (max-width: 720px) {
     .kh-box { grid-template-columns: 1fr; height: calc(100dvh - 190px); min-height: 360px; }
@@ -1739,6 +1771,12 @@
   .md-body .at input { padding-left: 28px; }
   .md-foot { display: flex; align-items: center; gap: 10px; padding: 14px 24px 20px; border-top: 1px solid var(--line); }
   .md-foot .spacer { flex: 1; }
+  /* A phone has no room for all three on one row: Save ran off the edge.
+     The red action takes its own row under Cancel and Save. */
+  @media (max-width: 440px) {
+    .md-foot { flex-wrap: wrap; row-gap: 10px; padding: 12px 16px 16px; }
+    .md-foot #memberDanger { order: 3; flex-basis: 100%; }
+  }
   .btn.danger { background: transparent; color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); box-shadow: none; }
   .btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--warn) 10%, transparent); color: var(--warn); box-shadow: none; }
   .md-sec { margin: 6px 0 14px; padding-top: 14px; border-top: 1px solid var(--line); font-size: var(--fs-sm); font-weight: 650; color: var(--indigo-deep); }
@@ -2026,7 +2064,7 @@
      the two. */
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #0e0f12; --card: #16171b; --raise: #1f2025; --field: #121316;
+    --bg: #0e0f12; --card: #16171b; --raise: #1f2025; --bub-user: #3b6fe0; --bub-karen: #2a2c33; --field: #121316;
     --line: #27282e; --line-2: #35363e; --hair: rgba(255, 255, 255, .07);
     --ink: #ededf0; --muted: #a4a5b0; --faint: #70717b; --link: #b9c0e8;
     --accent-ink: #c4caf0; --peri-pale: #24263a; --peri-soft: #5560a6; --sk-hi: #25262c;
@@ -2178,7 +2216,7 @@
   /* Color's timing, on a second row under its description: Start, Break and
      Finish, once for color and once for highlights, each with its total. The
      Break is processing time, when the stylist is free for somebody else. */
-  .svc .svc-time { grid-column: 2 / -1; display: grid; gap: 6px; margin: 0; }
+  .svc .svc-time { display: grid; gap: 6px; margin: 0; }
   .svc .svc-time .tr { display: grid; grid-template-columns: 76px repeat(3, minmax(0, 1fr)) 64px; gap: 8px; align-items: end; }
   .svc .svc-time .tr > b { font-size: .78rem; font-weight: 600; padding-bottom: 9px; }
   .svc .svc-time .tot { font-size: .78rem; color: var(--muted); padding-bottom: 9px; text-align: right; white-space: nowrap; }
@@ -2196,6 +2234,53 @@
     /* Three to a row is too narrow for "min" and the spinner beside a number. */
     .svc .svc-time .svc-f::after { content: none; }
     .svc .svc-time .svc-f input { padding-right: 6px; }
+  }
+  /* Money, Subscription (2026-11-02). */
+  .sub-plan { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+              margin: 14px 0 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raise); }
+  .sub-plan small { display: block; font-size: .7rem; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
+  .sub-plan b { font-size: 1.02rem; }
+  .sub-price { text-align: right; }
+  .sub-price .amt { font-size: 1.6rem; font-weight: 750; color: var(--indigo-deep); font-variant-numeric: tabular-nums; }
+  .sub-price .per { font-size: .85rem; color: var(--muted); margin-left: 2px; }
+  .sub-price .tbd { font-size: .95rem; font-weight: 650; color: var(--muted); }
+  .sub-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  /* Each kind opens to its services (2026-11-02): the name is the button,
+     with a chevron; open, the kind's own timing (Color) and every service in
+     it, ticked if offered, with its own minutes. */
+  .svc .svc-exp { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 6px; margin: -4px -6px;
+                  border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .svc .svc-exp:hover { background: var(--raise); }
+  .svc .svc-exp:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .svc .svc-nm { flex: 1; min-width: 0; }
+  .svc .svc-count { color: var(--periwinkle); font-weight: 600; }
+  .svc.off .svc-count { color: var(--faint); }
+  .svc .svc-chev { flex: none; display: grid; place-items: center; width: 22px; height: 22px; color: var(--muted);
+                   transition: transform var(--t) var(--ease); }
+  .svc .svc-chev .ic { width: 15px; height: 15px; }
+  .svc.open .svc-chev { transform: rotate(90deg); }
+  .svc .svc-bd { grid-column: 1 / -1; display: none; gap: 10px; padding: 10px 2px 2px; border-top: 1px dashed var(--line); }
+  .svc.open .svc-bd { display: grid; }
+  .svc .svc-bd .svc-time { grid-column: auto; }
+  .svc .svc-bd .hint { font-size: .72rem; color: var(--muted); margin: 0; }
+  .svc .svc-list { display: grid; gap: 4px; }
+  .svc .svc-it-h, .svc .svc-it { display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 12px; align-items: center; }
+  .svc .svc-it-h { font-size: .68rem; font-weight: 600; color: var(--muted); padding: 0 2px; }
+  .svc .svc-it-h span:last-child { padding-left: 2px; }
+  .svc .svc-it { padding: 4px 6px; border-radius: 8px; }
+  .svc .svc-it:hover { background: var(--raise); }
+  .svc .svc-tick { display: flex; align-items: center; gap: 10px; margin: 0; min-width: 0; cursor: pointer; font-size: .86rem; }
+  .svc .svc-tick input { width: 18px; height: 18px; padding: 0; flex: none; accent-color: var(--periwinkle); cursor: pointer; }
+  .svc .svc-tick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .svc .svc-it.unticked .svc-tick span { color: var(--faint); text-decoration: line-through; }
+  .svc .svc-it-dur input { height: 34px; }
+  .svc.off .svc-list { opacity: .55; }
+  @media (max-width: 520px) {
+    .svc .svc-exp { grid-column: 2 / -1; }
+    .svc .svc-it-h, .svc .svc-it { grid-template-columns: minmax(0, 1fr) 96px; gap: 8px; }
+    /* The kind's Duration moves to the third column on a phone; a service's
+       own minutes share its class and must stay beside the service. */
+    .svc .svc-it .svc-it-dur { grid-column: 2; }
   }
   /* One set of notes for clients, under every service that is on, rather than
      a box in each (asked for 2026-10-17). Always shown, under the last card:
@@ -3039,7 +3124,7 @@
         <button type="button" data-set="salon" aria-pressed="false">Salon</button>
         <button type="button" data-set="team" aria-pressed="false">Team</button>
         <button type="button" data-set="marketing" aria-pressed="false">Automations</button>
-        <button type="button" data-set="payment" aria-pressed="false" data-admin>Payments</button>
+        <button type="button" data-set="payment" aria-pressed="false" data-admin>Money</button>
         <button type="button" data-set="karen" aria-pressed="false">Karen AI</button>
       </div>
 
@@ -3147,14 +3232,34 @@
         <!-- Message History (asked for 2026-10-31): Karen's inbox, the
              owner's only. Everyone on the team who has talked to her, in the
              app or by text, and each one's whole conversation. -->
+        <!-- Two histories, each opening and closing like Email History
+             (asked for 2026-11-02): Chat History (what was "Message History")
+             and Call History, every call to Karen's number. The owner's only. -->
         <section class="ka-sec kh hidden" id="kaHistory">
-          <h3>Message History</h3>
-          <p class="small muted" style="margin:0 0 12px;max-width:62ch">
-            Every conversation the team has had with Karen, in the app and by text, by team member.
-            Only you can see this.</p>
-          <div class="kh-box" id="khBox">
-            <div class="kh-people" id="khPeople" role="list" aria-label="Team members who have talked to Karen"></div>
-            <div class="kh-thread" id="khThread" aria-live="polite"></div>
+          <div class="kx" id="khCard">
+            <div class="ml-top">
+              <button type="button" class="ml-toggle" data-kx="khCard" aria-expanded="false" aria-controls="khContent">
+                <span class="ml-t"><h2>Chat History</h2>
+                  <p>Every conversation the team has had with Karen, in the app and by text. Only you can see this.</p></span>
+              </button>
+              <button type="button" class="ml-chev" data-kx="khCard" aria-label="Show the chat history"><svg class="ic"><use href="#i-right"/></svg></button>
+            </div>
+            <div class="kx-content" id="khContent">
+              <div class="kh-box" id="khBox">
+                <div class="kh-people" id="khPeople" role="list" aria-label="Team members who have talked to Karen"></div>
+                <div class="kh-thread" id="khThread" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+          <div class="kx" id="kcCard">
+            <div class="ml-top">
+              <button type="button" class="ml-toggle" data-kx="kcCard" aria-expanded="false" aria-controls="kcContent">
+                <span class="ml-t"><h2>Call History</h2>
+                  <p>Every call to Karen's number: who called, when, and whether the salon picked up.</p></span>
+              </button>
+              <button type="button" class="ml-chev" data-kx="kcCard" aria-label="Show the call history"><svg class="ic"><use href="#i-right"/></svg></button>
+            </div>
+            <div class="kx-content" id="kcContent"><div class="kc-list" id="kcList" role="list" aria-label="Calls to Karen"></div></div>
           </div>
         </section>
       </div>
@@ -3165,6 +3270,25 @@
            Salon; Payroll shows only "Coming soon" since 2026-10-30. -->
       <div class="setpane hidden" id="set-payment">
       <div class="acct">
+          <!-- Subscription (asked for 2026-11-02, when the tab became Money):
+               what the Synergy app costs, shown before anyone activates. The
+               price is not set yet, so it says so rather than showing a
+               figure, and Activate cannot be pressed until payments are
+               connected (Stripe). Put the price in SUBSCRIPTION below. -->
+          <section class="acard sub-card" id="subCard" data-admin aria-labelledby="subTitle">
+            <h2 class="ahead" id="subTitle"><svg class="ic"><use href="#i-zap"/></svg>Subscription</h2>
+            <p class="asub">Your plan for the Synergy app: Appt. Book, Clients, Karen AI, Automations and the team, for the whole salon.</p>
+            <div class="sub-plan">
+              <div class="sub-name"><small>Plan</small><b>Synergy Salon App</b></div>
+              <div class="sub-price" id="subPrice"></div>
+            </div>
+            <div class="sub-acts">
+              <button type="button" class="btn" id="subActivate" disabled aria-describedby="subSoon">Activate subscription</button>
+              <span class="chip" id="subSoon">Coming soon</span>
+            </div>
+            <p class="small muted" style="margin:10px 0 0">Nothing is charged today. Activating opens once card payments are connected.</p>
+          </section>
+
           <section class="acard" id="billingCard" data-admin>
             <h2 class="ahead"><svg class="ic"><use href="#i-card"/></svg>Billing</h2>
             <p class="asub">Plans, invoices and payment details will live here. Nothing is being charged today.</p>
@@ -3358,7 +3482,7 @@
       <div id="memberWork">
         <!-- Services and prices: four switches, a price beside each one that is on. -->
         <div class="md-sec">Services &amp; pricing</div>
-        <p class="small muted" style="margin:-6px 0 10px">Turn on what is offered, then type the starting price and how long it takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
+        <p class="small muted" style="margin:-6px 0 10px">Turn on each kind of work offered and type its starting price and usual length. Open a kind to choose exactly which of its services are offered and how many minutes each one takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
         <div class="svcs" id="memberSvcs"></div>
         <label class="svc-notes" id="memberNotesWrap"><span>Notes / Special Instructions for Clients</span>
           <textarea id="memberNotes" rows="3" maxlength="2000"
@@ -3933,6 +4057,9 @@ const I18N_ES = {
   'Language': 'Idioma', 'The app’s menus, buttons and labels, and Karen’s answers.': 'Los menús, botones y etiquetas de la app, y las respuestas de Karen.',
   'Owner': 'Dueño', 'Admin': 'Administrador', 'Manager': 'Gerente',
   'Salon Profile': 'Perfil del salón', 'Team Members': 'Miembros del equipo', 'Add team member': 'Agregar miembro del equipo',
+  'Money': 'Dinero', 'Subscription': 'Suscripción', 'Activate subscription': 'Activar suscripción',
+  'Pricing coming soon': 'Precio próximamente', 'Synergy Salon App': 'App de Synergy Salon',
+  'Chat History': 'Historial de chats', 'Call History': 'Historial de llamadas',
   'Billing': 'Facturación', 'Payroll': 'Nómina', 'Coming soon': 'Próximamente', 'Coming Soon': 'Próximamente',
   'Phone Number Settings': 'Configuración del número', "Karen's number": 'Número de Karen', 'Message History': 'Historial de mensajes',
   'Personal information': 'Información personal', 'Role': 'Rol', 'Connect your tools': 'Conecta tus herramientas',
@@ -10131,27 +10258,87 @@ const timeTotal = (p) => {
   return a && c ? a + (b || 0) + c : null;
 };
 
+/**
+ * The salon's services of one kind, from /api/staff/me, in the menu's order.
+ * Each is listed inside its kind (asked for 2026-11-02): ticked if this person
+ * offers it, with how long it takes them. A service with no entry yet is
+ * ticked whenever its kind is on, which is what the booking side has always
+ * done (roster.js), so nothing saved before changes.
+ */
+const svcOfKind = (key) => (me?.services || []).filter((x) => x.category === key);
+const HIGHLIGHTISH = /highlight|balayage|foil/i;
+
+/** What a service is booked for when its own minutes are empty: the kind's figure, else the menu's. */
+function svcDefaultMins(row, svc) {
+  const num = (q) => { const v = Number(row.querySelector(q)?.value); return Number.isFinite(v) && v > 0 ? v : null; };
+  const parts = (g) => {
+    const tr = row.querySelector(`.tr[data-group="${g}"]`);
+    if (!tr) return null;
+    return timeTotal(Object.fromEntries([...tr.querySelectorAll('input')].map((i) => [i.dataset.t.split('.')[1], i.value])));
+  };
+  if (row.dataset.svc === 'color') {
+    return (HIGHLIGHTISH.test(svc.name) ? parts('highlights') : parts('color')) || svc.durationMin || null;
+  }
+  return num('[data-f=duration]') || svc.durationMin || null;
+}
+
+/** The items' placeholders and the "n of m" count follow what is typed and ticked. */
+function svcRefresh(row) {
+  const list = svcOfKind(row.dataset.svc);
+  for (const it of row.querySelectorAll('.svc-it')) {
+    const svc = list.find((x) => x.slug === it.dataset.item);
+    const d = svc && svcDefaultMins(row, svc);
+    it.querySelector('input[type=number]').placeholder = d ? String(d) : '–';
+  }
+  const ticked = row.querySelectorAll('.svc-it input[type=checkbox]:checked').length;
+  const on = row.querySelector('.switch').getAttribute('aria-checked') === 'true';
+  const count = row.querySelector('.svc-count');
+  if (count) count.textContent = list.length ? (on ? `${ticked} of ${list.length} services` : `${list.length} services`) : '';
+}
+
 function paintServices(services = {}) {
+  const items = services.items && typeof services.items === 'object' ? services.items : {};
   $('memberSvcs').innerHTML = SERVICE_KINDS.map(([key, label, hint]) => {
     const v = services[key] || {};
+    const list = svcOfKind(key);
     const length = key === 'color'
       ? `<span class="svc-f dur tot-f" aria-hidden="true"><span>Total</span><input type="text" data-f="total" tabindex="-1" readonly
-          data-legacy="${v.duration ?? ''}" value="${esc(minsLabel(timeTotal(v) || v.duration || 0).replace('–', ''))}" placeholder="–" disabled></span>
-        <div class="svc-time">
-          ${timeRow('color', 'Color', v, v.on)}
-          ${timeRow('highlights', 'Highlights', v.highlights || {}, v.on)}
-          <p class="hint">In minutes. Highlights also times balayage and foils. Color &amp; Cut adds your Cuts time after Finish.</p>
-        </div>`
+          data-legacy="${v.duration ?? ''}" value="${esc(minsLabel(timeTotal(v) || v.duration || 0).replace('–', ''))}" placeholder="–" disabled></span>`
       : `<label class="svc-f dur"><span>Duration</span><input type="number" min="5" max="720" step="5" inputmode="numeric" placeholder="60"
         data-f="duration" aria-label="${esc(label)} duration in minutes" value="${v.duration ?? ''}" ${v.on ? '' : 'disabled'}></label>`;
+    const timing = key === 'color' ? `<div class="svc-time">
+          ${timeRow('color', 'Color', v, v.on)}
+          ${timeRow('highlights', 'Highlights', v.highlights || {}, v.on)}
+          <p class="hint">In minutes, for any color service below with no minutes of its own. Highlights also times balayage and foils. Color &amp; Cut adds your Cuts time after Finish.</p>
+        </div>` : '';
+    const rows = list.map((x) => {
+      const it = items[x.slug] || {};
+      const ticked = it.on !== false;
+      return `<div class="svc-it${ticked ? '' : ' unticked'}" data-item="${esc(x.slug)}">
+          <label class="svc-tick"><input type="checkbox" ${ticked ? 'checked' : ''} ${v.on ? '' : 'disabled'}
+            aria-label="${esc(x.name)} offered"><span>${esc(x.name)}</span></label>
+          <label class="svc-f dur svc-it-dur"><input type="number" min="5" max="720" step="5" inputmode="numeric"
+            aria-label="${esc(x.name)} duration in minutes" value="${it.duration ?? ''}" ${v.on && ticked ? '' : 'disabled'}></label>
+        </div>`;
+    }).join('');
+    const body = `<div class="svc-bd" id="svcb-${key}">${timing}
+        ${list.length ? `<div class="svc-list">
+          <div class="svc-it-h"><span>Service</span><span>Minutes</span></div>${rows}
+          <p class="hint">Untick a service this person does not do. Leave Minutes empty to use ${key === 'color' ? 'the color timing above' : 'the Duration above'}, or the salon's usual time.</p>
+        </div>` : '<p class="hint">No services of this kind on the menu yet.</p>'}
+      </div>`;
     return `<div class="svc ${v.on ? '' : 'off'}" data-svc="${key}">
       <button type="button" class="switch" role="switch" aria-checked="${Boolean(v.on)}" aria-label="${esc(label)} offered"><span></span></button>
-      <div><b>${esc(label)}</b><small>${esc(v.on ? hint : 'Not offered')}</small></div>
+      <button type="button" class="svc-exp" aria-expanded="false" aria-controls="svcb-${key}">
+        <span class="svc-nm"><b>${esc(label)}</b><small>${esc(v.on ? hint : 'Not offered')}</small><small class="svc-count"></small></span>
+        <span class="svc-chev" aria-hidden="true">${ic('right')}</span></button>
       <label class="svc-f price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
         data-f="price" aria-label="${esc(label)} starting price" value="${v.price != null ? Number(v.price).toFixed(2) : ''}" ${v.on ? '' : 'disabled'}></label>
       ${length}
+      ${body}
     </div>`;
   }).join('');
+  for (const row of $('memberSvcs').querySelectorAll('.svc')) svcRefresh(row);
   // One box of notes for all of them. Notes saved the old way, one per
   // service, are brought into it labelled, so nothing typed is lost.
   const legacy = SERVICE_KINDS
@@ -10164,6 +10351,8 @@ function paintServices(services = {}) {
 }
 
 $('memberSvcs').oninput = (e) => {
+  const svcRow = e.target.closest('.svc');
+  if (svcRow) svcRefresh(svcRow);
   const group = e.target.dataset.t?.split('.')[0];
   if (!group) return;
   const row = e.target.closest('.tr');
@@ -10173,7 +10362,14 @@ $('memberSvcs').oninput = (e) => {
     e.target.closest('.svc').querySelector('[data-f=total]').value = timeTotal(p) ? minsLabel(timeTotal(p)) : '';
   }
 };
+/** Open or close one kind's list. */
+function svcOpen(row, open) {
+  row.classList.toggle('open', open);
+  row.querySelector('.svc-exp').setAttribute('aria-expanded', String(open));
+}
 $('memberSvcs').onclick = (e) => {
+  const exp = e.target.closest('.svc-exp');
+  if (exp) { const row = exp.closest('.svc'); svcOpen(row, !row.classList.contains('open')); return; }
   const sw = e.target.closest('.switch');
   if (!sw || sw.disabled) return;
   const row = sw.closest('.svc');
@@ -10182,11 +10378,26 @@ $('memberSvcs').onclick = (e) => {
   row.classList.toggle('off', !on);
   const inputs = row.querySelectorAll('input:not([readonly])');
   for (const i of inputs) i.disabled = !on;
+  // A service unticked inside the kind keeps its minutes closed.
+  for (const it of row.querySelectorAll('.svc-it')) {
+    it.querySelector('input[type=number]').disabled = !on || !it.querySelector('input[type=checkbox]').checked;
+  }
   const kind = SERVICE_KINDS.find(([k]) => k === row.dataset.svc);
   row.querySelector('small').textContent = on ? kind[2] : 'Not offered';
+  // Switched on: open it, so what it offers is in view.
+  if (on) svcOpen(row, true);
+  svcRefresh(row);
   paintHoursState();
   if (on) inputs[0].focus();
 };
+$('memberSvcs').addEventListener('change', (e) => {
+  if (e.target.type !== 'checkbox') return;
+  const it = e.target.closest('.svc-it');
+  if (!it) return;
+  it.classList.toggle('unticked', !e.target.checked);
+  it.querySelector('input[type=number]').disabled = !e.target.checked;
+  svcRefresh(it.closest('.svc'));
+});
 /** Sunday first, the way a rota is written and the way the schema counts. */
 const WEEKDAYS = [
   [0, 'Sunday'], [1, 'Monday'], [2, 'Tuesday'], [3, 'Wednesday'],
@@ -10365,7 +10576,16 @@ function readServices() {
       else v[tr.dataset.group] = p;
     }
     out[row.dataset.svc] = v;
+    // Each service in the kind: offered or not, and its own minutes.
+    out.items = out.items || {};
+    for (const it of row.querySelectorAll('.svc-it')) {
+      out.items[it.dataset.item] = {
+        on: it.querySelector('input[type=checkbox]').checked,
+        duration: num(it.querySelector('input[type=number]').value),
+      };
+    }
   }
+  out.items = out.items || {};
   out.notes = $('memberNotes').value.trim();
   out.lunch = $('memberLunch').querySelector('.switch').getAttribute('aria-checked') === 'true';
   return out;
@@ -11041,9 +11261,25 @@ function loadAccount() {
 let setTab = 'me';
 const SET_TABS = ['me', 'salon', 'team', 'marketing', 'payment', 'karen'];
 
+/**
+ * What the Synergy app costs, shown on Money, Subscription before anyone
+ * activates (2026-11-02). Not set yet: with no price the card says
+ * "Pricing coming soon" rather than show a figure nobody has agreed. Set
+ * `price` (dollars) and `per` ('month' or 'year') once it is decided.
+ */
+const SUBSCRIPTION = { price: null, per: 'month' };
+function paintSubscription() {
+  const p = SUBSCRIPTION.price;
+  $('subPrice').innerHTML = p == null
+    ? '<small>Price</small><span class="tbd">Pricing coming soon</span>'
+    : `<small>Price</small><span class="amt">${esc(money(p))}</span><span class="per">/ ${esc(SUBSCRIPTION.per)}</span>`;
+}
+paintSubscription();
+
 function showSetting(name) {
-  // Payroll and Billing are both on Payment now; an old link to either lands there.
-  if (name === 'payroll' || name === 'billing') name = 'payment';
+  // Payroll and Billing are both on Money now (named Payments, then Money,
+  // 2026-11-02; the key is still payment); an old link to either lands there.
+  if (name === 'payroll' || name === 'billing' || name === 'money') name = 'payment';
   if (!SET_TABS.includes(name)) name = 'salon';
   if (name === 'payment' && !me?.user?.canAdmin) name = 'me';
   setTab = name;
@@ -11113,6 +11349,78 @@ $('setSeg').onclick = (e) => {
 }
 
 let khWho = null;   // whose conversation is open
+/** A team member's face, as everywhere else (personPhoto), their stylist portrait first. */
+const khPic = (x) => personPhoto({ ...x, photo: (me?.stylists || []).find((s) => s.name === x.name)?.photo || null });
+
+/**
+ * Chat History and Call History open and close as a whole, like Email
+ * History (asked for 2026-11-02), closed until opened and remembered per
+ * browser.
+ */
+const KX_KEY = { khCard: 'ss-kh-open', kcCard: 'ss-kc-open' };
+function kxOpen(id) { try { return localStorage.getItem(KX_KEY[id]) === '1'; } catch { return false; } }
+function setKx(id, open) {
+  try { localStorage.setItem(KX_KEY[id], open ? '1' : '0'); } catch { /* private window: just this time */ }
+  $(id).classList.toggle('open', open);
+  const what = id === 'khCard' ? 'chat' : 'call';
+  for (const b of $(id).querySelectorAll('[data-kx]')) {
+    if (b.classList.contains('ml-toggle')) b.setAttribute('aria-expanded', String(open));
+    else b.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the ${what} history`);
+  }
+  if (open && id === 'khCard' && khWho) { const box = $('khThread'); box.scrollTop = box.scrollHeight; }
+}
+for (const id of Object.keys(KX_KEY)) setKx(id, kxOpen(id));
+$('kaHistory').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-kx]');
+  if (b) setKx(b.dataset.kx, !$(b.dataset.kx).classList.contains('open'));
+});
+
+/** How the salon's line answered, in words (Twilio's DialCallStatus). */
+function callOutcome(c) {
+  const len = c.durationSec ? ` · ${c.durationSec >= 60 ? `${Math.floor(c.durationSec / 60)}m ` : ''}${c.durationSec % 60}s` : '';
+  if (!c.forwarded) return ['', 'Greeted, no salon number to put through to'];
+  switch (c.status) {
+    case 'completed': case 'answered': return ['ok', `Salon answered${len}`];
+    case 'busy': return ['warn', 'Salon line busy'];
+    case 'no-answer': return ['warn', 'Salon did not answer'];
+    case 'failed': return ['warn', 'Could not connect'];
+    case 'canceled': return ['', 'Caller hung up'];
+    default: return ['', 'Put through to the salon'];
+  }
+}
+async function loadKarenCalls() {
+  if (!me?.user?.canManageTeam) return;
+  $('kcList').innerHTML = skeleton(2);
+  let calls = [];
+  try { ({ calls } = await api('/api/staff/karen?calls=1')); } catch (err) {
+    $('kcList').innerHTML = `<p class="kh-empty">${esc(err.message)}</p>`;
+    return;
+  }
+  if (!calls.length) {
+    $('kcList').innerHTML = '<p class="kh-empty">No calls yet. Calls to Karen\'s number appear here as they come in.</p>';
+    return;
+  }
+  const KIND = { staff: 'Team', client: 'Client', unknown: 'Unknown caller' };
+  $('kcList').innerHTML = calls.map((c) => {
+    const [tone, out] = callOutcome(c);
+    const face = c.kind === 'staff'
+      ? `<img src="${esc(khPic({ name: c.name, avatar: c.avatar, role: c.role }))}" alt="">`
+      : `<span class="kc-ic" aria-hidden="true">${ic(c.kind === 'client' ? 'user' : 'phone')}</span>`;
+    const sub = [c.kind === 'staff' && c.role ? (ROLE_LABEL[c.role] || KIND.staff) : KIND[c.kind], c.name && c.phone ? showPhone(c.phone) : '']
+      .filter(Boolean).join(' · ');
+    const inner = `${face}<span style="min-width:0"><b>${esc(c.name || showPhone(c.phone) || 'Unknown number')}</b><small>${esc(sub)}</small></span>
+      <span class="kc-r"><span class="chip ${tone}">${esc(out)}</span>
+        <time datetime="${esc(c.at)}" title="${esc(khWhen(c.at))}">${esc(khWhen(c.at))}</time></span>`;
+    // A client's call opens their profile.
+    return c.kind === 'client' && c.contactId
+      ? `<button type="button" class="kc-row" role="listitem" data-kc-person="${esc(c.contactId)}" title="Open ${esc(c.name || 'client')}">${inner}</button>`
+      : `<div class="kc-row" role="listitem">${inner}</div>`;
+  }).join('');
+}
+$('kcList').onclick = (e) => {
+  const b = e.target.closest('[data-kc-person]');
+  if (b) openPerson(b.dataset.kcPerson);
+};
 const khWhen = (iso) => fmtWhen(iso, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 async function loadKarenHistory() {
   const sec = $('kaHistory');
@@ -11130,7 +11438,7 @@ async function loadKarenHistory() {
     $('khThread').innerHTML = '<p class="kh-empty">Nothing to show yet.</p>';
     return;
   }
-  const pic = (x) => personPhoto({ ...x, photo: (me?.stylists || []).find((s) => s.name === x.name)?.photo || null });
+  const pic = khPic;
   $('khPeople').innerHTML = people.map((x) => `
     <button type="button" class="kh-person" role="listitem" data-kh="${esc(x.id)}" aria-current="${x.id === khWho}">
       <img src="${esc(pic(x))}" alt="">
@@ -11162,7 +11470,12 @@ async function openKarenThread(id) {
     const head = day !== lastDay ? `<span class="kh-day">${esc(day)}</span>` : '';
     lastDay = day;
     const t = fmtWhen(m.at, { hour: 'numeric', minute: '2-digit' });
-    return `${head}<div class="kh-msg ${m.role === 'user' ? 'user' : 'karen'}">${esc(m.text)}<small>${m.role === 'user' ? esc(x.name.split(' ')[0]) : 'Karen'} · ${esc(t)}${m.channel === 'text' ? ' · by text' : ''}</small></div>`;
+    // Karen on the left, gray, with her picture; the team member on the
+    // right, blue, with theirs; each bubble headed with who said it.
+    const mine = m.role === 'user';
+    const who = mine ? x.name.split(' ')[0] : 'Karen';
+    return `${head}<div class="kh-row ${mine ? 'user' : 'karen'}"><img src="${esc(mine ? khPic(x) : KAREN_PIC)}" alt="">
+      <div class="kh-msg ${mine ? 'user' : 'karen'}"><span class="kh-who">${esc(who)}</span>${esc(m.text)}<small>${esc(t)}${m.channel === 'text' ? ' · by text' : ''}</small></div></div>`;
   }).join('');
   $('khThread').innerHTML = `${top}<div class="kh-msgs">${rows || '<p class="kh-empty">No messages.</p>'}</div>`;
   const box = $('khThread');
@@ -11178,6 +11491,7 @@ $('khThread').onclick = (e) => {
 
 async function loadKarenSettings() {
   loadKarenHistory();
+  loadKarenCalls();
   const v = $('kaVid');
   if (!v.poster) { v.poster = KAREN_PIC; }
   if (!kQuiet()) {
