@@ -665,28 +665,35 @@
               background:var(--raise); display:grid; place-items:center; overflow:hidden; flex:none; }
   .logo-box img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
   .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:0 18px; }
-  /* Salon Profile, compact (asked for 2026-11-02): smaller logo, shorter
-     fields, four to a row where there is room (name and street take two,
-     the review link and About the whole row), two on a tablet, one on a
-     phone. */
-  .biz-logo { margin-bottom: 14px; gap: 12px; }
-  .biz-logo .logo-box { width: 64px; height: 64px; border-radius: 12px; }
-  .biz-logo .btn { height: 34px; padding: 0 14px; font-size: .88rem; }
-  .biz-logo { flex-wrap: nowrap; align-items: center; }
-  .biz-logo > div:last-child { flex: 1; min-width: 0; }
-  .biz-logo .acts { margin-bottom: 4px !important; }
-  .biz-logo .small.muted { font-size: .78rem; line-height: 1.4; }
+  /* Salon Profile, compact (asked for 2026-11-02, twice): the logo on the
+     left with its buttons under it, the salon's name, phone and website
+     beside it, then the rest four to a row. Labels small and in capitals,
+     as Booking page and Time zone are at the foot of the card; slim fields.
+     Two to a row on a tablet; on a phone the logo sits above. */
+  .biz-top { display: grid; grid-template-columns: 184px minmax(0, 1fr); gap: 18px; align-items: start; margin-bottom: 4px; }
+  .biz-logo { display: grid; justify-items: start; gap: 8px; }
+  .biz-logo .logo-box { width: 184px; height: 88px; border-radius: 12px; }
+  .biz-logo .logo-box img { max-width: 88%; max-height: 80%; }
+  .biz-logo-acts { display: flex; flex-wrap: nowrap; gap: 6px; }
+  .biz-logo-acts .btn { height: 30px; padding: 0 12px; font-size: .8rem; }
+  .biz-hint { font-size: .72rem; color: var(--faint); line-height: 1.3; }
   .biz-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 12px; }
   .biz-grid .c2 { grid-column: span 2; }
   .biz-grid .c4 { grid-column: 1 / -1; }
   .biz-grid label { margin-bottom: 10px; }
-  .biz-grid label > span { font-size: .78rem; margin-bottom: 4px; }
-  .biz-grid input { height: 36px; padding: 0 10px; font-size: .92rem; }
-  .biz-grid textarea { min-height: 0; padding: 8px 10px; font-size: .92rem; }
-  .biz-grid label > span.small { margin: 4px 0 0; font-size: .74rem; }
+  .biz-grid label > span:first-child { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em;
+                                       color: var(--faint); font-weight: 650; margin: 0 0 3px; }
+  .biz-grid input { height: 34px; padding: 0 10px; font-size: .9rem; border-radius: 8px; }
+  .biz-grid textarea { min-height: 0; padding: 7px 10px; font-size: .9rem; border-radius: 8px; }
+  .biz-grid label > span.small { margin: 3px 0 0; font-size: .72rem; }
   .biz-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 10px; }
-  .biz .btn[type="submit"] { height: 38px; margin-top: 2px; }
-  @media (max-width: 760px) { .biz-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .biz .btn[type="submit"] { height: 36px; margin-top: 2px; }
+  @media (max-width: 760px) { .biz-grid:not(.biz-id) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) {
+    .biz-top { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .biz-logo { grid-template-columns: 112px minmax(0, 1fr); align-items: center; column-gap: 12px; }
+    .biz-logo .logo-box { width: 112px; height: 76px; grid-row: span 2; }
+  }
   @media (max-width: 440px) { .biz-grid { grid-template-columns: minmax(0, 1fr); } .biz-grid .c2 { grid-column: 1 / -1; } }
   .fields .wide { grid-column:1/-1; }
   .subhead { margin:26px 0 12px; padding-top:20px; border-top:1px solid var(--line);
@@ -11733,27 +11740,32 @@ function renderBusiness(d) {
   const ro = d.canEdit ? '' : 'disabled';
   const a = splitAddress(d.address);
   $('business').innerHTML = `
-    <div class="prow biz-logo">
-      <div class="logo-box">${d.logo ? `<img src="${esc(d.logo)}" alt="">` : '<span class="small muted">No logo</span>'}</div>
-      <div>
-        ${d.canEdit ? `<div class="acts" style="margin:0 0 6px;justify-content:flex-start">
-          <button class="btn quiet" id="pickLogo" type="button">${d.logo ? 'Change logo' : 'Upload logo'}</button>
-          ${d.logo ? '<button class="btn quiet" id="dropLogo" type="button">Remove</button>' : ''}
-        </div>` : ''}
-        <div class="small muted">Shown on your booking page and in the menu at the top. A PNG with a transparent background works best.</div>
-        <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" class="hidden">
-      </div>
-    </div>
-
     <form id="bizForm" class="biz">
+      <!-- The logo on the left, the salon's name, phone and website beside
+           it (asked for 2026-11-02), then the rest; every field labelled
+           small and in capitals like Booking page and Time zone below. -->
+      <div class="biz-top">
+        <div class="biz-logo">
+          <div class="logo-box" title="Shown on your booking page and in the menu at the top. A PNG with a transparent background works best.">
+            ${d.logo ? `<img src="${esc(d.logo)}" alt="Salon logo">` : '<span class="small muted">No logo</span>'}</div>
+          ${d.canEdit ? `<div class="biz-logo-acts">
+            <button class="btn quiet sm" id="pickLogo" type="button">${d.logo ? 'Change logo' : 'Upload logo'}</button>
+            ${d.logo ? '<button class="btn quiet sm" id="dropLogo" type="button">Remove</button>' : ''}
+          </div>
+          <span class="biz-hint">PNG, transparent background</span>` : ''}
+          <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+        </div>
+        <div class="biz-grid biz-id">
+          <label class="c4"><span>Salon name</span><input name="name" value="${esc(d.name)}" ${ro} required></label>
+          <!-- No Salon email field (taken off on request, 2026-10-30). The
+               stored address is kept, not cleared: guest replies still fall
+               back to it when no reply-to is set, and the save below leaves
+               it out so the server leaves it alone. -->
+          <label class="c2"><span>Phone</span><input name="phone" type="tel" value="${esc(d.phone || '')}" ${ro}></label>
+          <label class="c2"><span>Website</span><input name="website" value="${esc(d.website || '')}" ${ro} placeholder="synergysalon.com"></label>
+        </div>
+      </div>
       <div class="biz-grid">
-        <label class="c2"><span>Salon name</span><input name="name" value="${esc(d.name)}" ${ro} required></label>
-        <!-- No Salon email field (taken off on request, 2026-10-30). The
-             stored address is kept, not cleared: guest replies still fall
-             back to it when no reply-to is set, and the save below leaves
-             it out so the server leaves it alone. -->
-        <label><span>Phone</span><input name="phone" type="tel" value="${esc(d.phone || '')}" ${ro}></label>
-        <label><span>Website</span><input name="website" value="${esc(d.website || '')}" ${ro} placeholder="synergysalon.com"></label>
         <label class="c4"><span>Google review link</span><input name="reviewUrl" value="${esc(d.reviewUrl || '')}" ${ro}
           placeholder="https://search.google.com/local/writereview?placeid=...">
           <span class="small muted">Where the review request email sends clients. Leave it empty and that email is not sent at all.</span></label>
