@@ -85,6 +85,28 @@ expect zero. There are scripts for this pattern in the
 scratchpad of whichever session wrote them; the shape is: unpack → re-apply →
 externalise assets → re-fix links.
 
+**Brandon, FishHawk and the AI Scalp Analysis page are copies of Riverview**
+(built 2026-11-02 on request, after the salon's hold on the town pages ended
+on 2026-10-20). Each is the Riverview bundle with its own head, schema,
+static text, hero and the block inside `.svp-riverview`; the internal page key
+stays `riverview`, because the shared CSS and the map are keyed on it, so
+those class names are not a mistake. They have no design source of their own:
+a new Riverview export does not update them, and changing them means editing
+the copy, not Claude Design. Drive times are OpenStreetMap routes without
+traffic (Brandon Blvd and Kings Ave 9 min, Westfield Brandon 13, FishHawk
+Ranch 12; the same tool gives Riverview 14 against the page's 15). Every page's
+footer links all three, and the Services menu's "AI Scalp Analysis" opens the
+scalp page rather than the treatments page's anchor.
+
+**The Schedule section's photo** was a 4032x3024, 2.4 MB phone JPEG
+(`2b1e0a12…jpg` on the home and Riverview pages, a byte-identical
+`82e0ffb4…jpg` on the service pages) loaded on every page before any
+scrolling. It is now `ff5219db…webp`, 2400 px and 279 KB, with
+`loading="lazy"`; the Kim and Micah portraits moved to WebP the same day. An
+export brings the JPEGs back: after one, `grep -l "2b1e0a12\|82e0ffb4" *.html`
+should find nothing. The old files stay in `assets/` because
+`api/_lib/stylist-photos.js` serves the portraits to the console.
+
 Exports also reference files by their name in the design tool
 (`uploads/images/x-team-dina.webp`, `Color Services.html`). None of those are
 published. Repoint them at `/assets/<uuid>` or the real routes, and check every
@@ -132,7 +154,7 @@ invented: a hash of the date and stylist name kept 42% of slots. The adapter in
 the static head reads the rendered DOM, posts to `/api/enquiry`, and replaces
 the fake availability with the real diary.
 
-The survey (same code in all six pages, Riverview included) is: 1 the kinds of service (Color,
+The survey (same code in all nine pages, Riverview and its three copies included) is: 1 the kinds of service (Color,
 Cuts, Treatments, Styling, AI Scalp Analysis, "Select all that apply" as a
 pill), 2 stylist, 3 who it is for, 4 service details (one question per kind
 picked; the scalp analysis is a details card), 5 availability, 6 name, email,
@@ -161,7 +183,7 @@ any client's email and phone. Color's "Other" has no service, so it saves a
 lead for the salon to call, as "Not sure yet" did.
 
 **Phone polish for the popup** (2026-10-22) lives in the booking script of
-all six pages' static heads, as a `<style id="ss-bk-polish">` put back into
+all nine pages' static heads, as a `<style id="ss-bk-polish">` put back into
 the page whenever it is missing (a static `<style>` is thrown away when the
 bundle swaps its document in): on touch screens a card looks picked only
 when it is (`@media (hover: none)`, the tap that opens the popup used to
@@ -1451,18 +1473,6 @@ must stay that way: anything committed here is served publicly.
 
 ## Still outstanding
 
-- **The Brandon and FishHawk pages are on hold until about 2026-10-20**
-  (salon's instruction, 2026-10-16). Do not create, publish or link
-  `hair-salon-brandon.html` or `hair-salon-fishhawk.html` before that date,
-  and do not treat the Riverview page as a template to fan out from yet.
-
-  Both towns are already served on the site and that stays as it is: they are
-  in the `areaServed` city list in every page's schema, in the home page's
-  "Valrico, Brandon, Lithia and FishHawk" lede, and in the hero line "Serving
-  Valrico, Brandon, Lithia, and FishHawk since 2004." The hold is on the two
-  dedicated geo landing pages, nothing else. Taking the towns out of the copy
-  or the schema would be the opposite of what was asked.
-
 - **Stylists are to set their own availability (salon's decision, 2026-10-15).**
   Today they cannot: `hoursOpen()` in the console opens Working hours only to
   an admin editing somebody else, and `/api/staff/profile` throws away any
@@ -1499,9 +1509,11 @@ must stay that way: anything committed here is served publicly.
   every page, untouched, behind the notice, and commit `ae6b0ab` on main
   is the site exactly as it was before the pause.
   To restore: delete the block between `ss-booking-paused:start` and
-  `ss-booking-paused:end` in the static head of **all six** pages --
-  `index.html`, the four service pages, **and `hair-salon-riverview.html`**
-  -- and set `ONLINE_BOOKING` back to `true`. This said "the four service
+  `ss-booking-paused:end` in the static head of **all nine** pages --
+  `index.html`, the four service pages, **`hair-salon-riverview.html`, and
+  the three made from it on 2026-11-02: `hair-salon-brandon.html`,
+  `hair-salon-fishhawk.html` and `scalp-analysis-valrico.html`** -- and set
+  `ONLINE_BOOKING` back to `true`. This said "the four service
   pages" until 2026-10-15, which is five files; Riverview was added after the
   pause was written and carries the block too. Following the old list would
   have left the geo landing page, the one with thirteen Book CTAs on it,
