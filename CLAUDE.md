@@ -620,8 +620,21 @@ made that way are real: name them ZZ and remove them.
   `tests/karen-personality.test.js` pins that both use it. Her rule-based
   replies (the hellos, the booking steps) are fixed lines in the console and
   are not written by it.
-- **Karen's Message History** (2026-10-31): Settings, Karen AI, Message
-  History is Karen's inbox for the owner: everyone on the team who has
+- **Karen's Chat History and Call History** (2026-11-02): two sections
+  on Settings, Karen AI that open and close from their headers like Email
+  History (`.kx`, `setKx`, remembered as `ss-kh-open`/`ss-kc-open`, closed
+  by default). Chat History is what was Message History (below); each
+  bubble is headed with its speaker and their picture, Karen on the left in
+  gray (`--bub-karen`), the team member on the right in blue (`--bub-user`).
+  Call History is every call to Karen's number (`karen_calls`, migration
+  040, also in ensure-schema; `api/_lib/karen-calls.js`): kept when the
+  voice webhook greets the caller (who, by their number), and the salon
+  line's answer added when the `<Dial>` ends, through its action, the same
+  webhook with `?after=1` (Twilio's `DialCallStatus`, `DialCallDuration`).
+  `GET /api/staff/karen?calls=1`, the admin only. A client's row opens
+  their profile. `tests/karen-calls.integration.test.js`.
+- **Karen's Message History** (2026-10-31, now Chat History, above):
+  Settings, Karen AI, Message History is Karen's inbox for the owner: everyone on the team who has
   talked to her, newest first, and each one's whole conversation, by day,
   marked "by text" where it was texted. The admin only (`canManageTeam`,
   the app's one rule: role Owner or Admin, or the support login): `GET
@@ -828,7 +841,7 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: a My Settings tab first (capital S since 2026-10-30) (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to; key `salon`; Salon Profile first since 2026-10-30, and without its Salon email field since the same day: the stored address is kept, still the reply-to fallback, and the save leaves it out) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and a Payments tab for owners, admins and managers (key `payment`; "Payments" since 2026-10-31, as is the client profile's Card on file section, while an appointment's own window keeps "Payment";
+  for everyone: a My Settings tab first (capital S since 2026-10-30) (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to; key `salon`; Salon Profile first since 2026-10-30, and without its Salon email field since the same day: the stored address is kept, still the reply-to fallback, and the save leaves it out) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and a Money tab for owners, admins and managers (key `payment`; "Money" since 2026-11-02, with a **Subscription** card first: the plan, its price from `SUBSCRIPTION` in the console, which is `null` until the salon sets it and so reads "Pricing coming soon", and an Activate subscription button disabled and marked Coming soon until payments are connected (both chosen by the salon, 2026-11-02); "Payments" from 2026-10-31, as is the client profile's Card on file section, while an appointment's own window keeps "Payment";
   it was the Payroll tab until 2026-10-30): a Billing card and a Payroll card, both "Coming soon".
   Billing was a tab of its own, then a card on Salon (2026-10-26), and moved to Payment on request
   on 2026-10-30; old `payroll` and `billing` tab names land on Payment. It has no Calendars tab:
@@ -899,7 +912,18 @@ made that way are real: name them ZZ and remove them.
   for Color and once for Highlights, with the total beside each. All of it
   lives in the same `services` object (`{cuts: {on, price, duration},
   color: {on, price, duration, start, break, finish, highlights: {...}},
-  ..., notes}`, cleaned by `servicesFrom` in `profile.js`):
+  ..., notes, items}`, cleaned by `servicesFrom` in `profile.js`):
+  **each kind opens to its services** (asked for 2026-11-02): the kind's
+  name is a button with a chevron, and open it lists every service of that
+  kind from the menu (`me.services`), ticked if offered, with its own
+  minutes (`items: {<slug>: {on, duration}}`). A service with no entry is
+  offered whenever its kind is on, as before; an unticked one is left out
+  of `stylist_services` (`serviceIdsFor` in roster.js), and its own minutes
+  beat the kind's figure, which beats the menu's (`ownTiming` in timing.js;
+  a kind's processing break is kept where it still ends before the
+  service). The placeholder in each minutes box is what it would be booked
+  for if left empty. `tests/service-items.test.js` and roster's integration
+  test.
   `staff_users.services` for a team member, `stylists.service_details`
   (023, also in ensure-schema) for a stylist without a sign-in. These
   lengths **do** set how long a guest is booked with that stylist (see

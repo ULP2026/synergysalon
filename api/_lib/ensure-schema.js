@@ -230,6 +230,23 @@ const STATEMENTS = [
      created_at timestamptz NOT NULL DEFAULT now())`,
   `CREATE INDEX IF NOT EXISTS client_texts_by_client
      ON client_texts (tenant_id, contact_id, created_at DESC)`,
+  // 040: Karen's Call History. A table of its own. Additive.
+  `CREATE TABLE IF NOT EXISTS karen_calls (
+     id           bigserial PRIMARY KEY,
+     tenant_id    uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+     call_sid     text,
+     from_phone   text,
+     caller_kind  text,
+     staff_id     uuid REFERENCES staff_users(id) ON DELETE SET NULL,
+     contact_id   uuid REFERENCES contacts(id) ON DELETE SET NULL,
+     caller_name  text,
+     forwarded_to text,
+     dial_status  text,
+     duration_sec int,
+     created_at   timestamptz NOT NULL DEFAULT now(),
+     updated_at   timestamptz NOT NULL DEFAULT now())`,
+  'CREATE UNIQUE INDEX IF NOT EXISTS karen_calls_sid ON karen_calls (call_sid) WHERE call_sid IS NOT NULL',
+  'CREATE INDEX IF NOT EXISTS karen_calls_by_salon ON karen_calls (tenant_id, created_at DESC)',
 ];
 
 let done = null;

@@ -19,6 +19,7 @@ import {
   consentKeyword, karenReply, phoneKey, sendText, tenantIdForKarenNumber, twilioSignatureOk, whoIsTexting,
 } from '../../_lib/karen-sms.js';
 import { recordConsent, revokeConsent } from '../../_lib/sms-notify.js';
+import { logCallEnd, logCallStart } from '../../_lib/karen-calls.js';
 import { query } from '../../_lib/db.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
@@ -74,14 +75,24 @@ export default async function karenWebhook(req, res) {
     }
     const tenant = await tenantForUser({ tenant_id: tenantId });
     if (voice) {
+      // The <Dial> has finished: how the salon's line answered, and for how
+      // long, goes on the call in Call History (karen-calls.js).
+      if (called.searchParams.get('after') === '1') {
+        await logCallEnd(tenant.id, { sid: params.CallSid, status: params.DialCallStatus, duration: params.DialCallDuration });
+        return twiml(res, 200, '<Hangup/>');
+      }
       // Karen talks by text; a call is greeted by name and put through to
       // the salon, where there is one to put it through to.
       const who = await whoIsTexting({ query }, tenant.id, params.From);
       const hi = who.name ? `Hi ${xml(String(who.name).split(/\s+/)[0])}! ` : 'Hi! ';
       const salon = String(tenant.phone || '').replace(/[^\d+]/g, '');
+      await logCallStart(tenant.id, { sid: params.CallSid, from: params.From, who, forwardedTo: salon || null });
+      // Twilio posts the outcome of the <Dial> to its action, this same
+      // webhook with ?after=1, signed like every other request.
+      const after = `https://${host}${called.pathname}?after=1`;
       return twiml(res, 200, `${SAY}${hi}This is Karen, the assistant at ${xml(tenant.name)}. `
         + 'You can text this number any time to book, move or cancel an appointment.'
-        + `${salon ? ' Let me put you through to the salon now.</Say>' + `<Dial>${xml(salon)}</Dial>` : ' Talk soon!</Say>'}`);
+        + `${salon ? ' Let me put you through to the salon now.</Say>' + `<Dial action="${xml(after)}" method="POST">${xml(salon)}</Dial>` : ' Talk soon!</Say>'}`);
     }
     // STOP and START: the provider replies to them itself; what is kept here
     // is the consent appointment texts go on (sms-notify.js).

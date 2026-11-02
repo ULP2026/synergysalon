@@ -74,6 +74,17 @@ function parts(p, minBreak = 0) {
  * highlights: {...}, duration }, cuts: { duration }, ... }).
  */
 export function ownTiming(details, service) {
+  const base = kindTiming(details, service);
+  // This one service's own length (asked for 2026-11-02, typed beside it in
+  // the team window) beats the kind's figure. A processing break of the kind
+  // is kept where it still ends before the service does, so a color timed
+  // on its own still frees the stylist while it develops.
+  const own = mins(details?.items?.[service.slug]?.duration, 5, 720);
+  if (!own) return base;
+  return { durationMin: own, breaks: (base?.breaks || []).filter(([at, len]) => at + len < own) };
+}
+
+function kindTiming(details, service) {
   const key = timingKey(service);
   if (key === 'highlights') return parts(details?.color?.highlights);
   if (key === 'color' && WITH_CUT.test(service.name)) return colorAndCut(details);
