@@ -517,6 +517,16 @@ made that way are real: name them ZZ and remove them.
   no times to drop on; one press keeps the time, or another is chosen.
   Passed days and days the salon is closed (`salonWeek` from diary.js,
   shaded `.cal-cell.shut`) refuse the drop.
+  **Every move is confirmed in one window** (`#mvcDlg`, `confirmMove`,
+  2026-11-02), whether dragged on the day or saved from the Move window
+  (where a month drag lands): "Are you sure you want to move this
+  appointment?", the client and service, Original and New date, time and
+  stylist, then **Send Rescheduled Appointment Notification** (the default;
+  the reschedule email, and a text only with consent on record) or **Just
+  Move Appointment**, and Cancel or Confirm. The choice goes as `notify` on
+  the move (`notify: false` skips `sendReschedule`; the stylist's Google
+  copy follows either way) and the reply's `notified` says which happened.
+  With no email or phone on file only Just Move can be chosen.
 - The client profile edits in place: a pencil on Contact details (name,
   phone, email) and on Tags and status (the stage), Add note (a dated line
   on top, `PATCH {op: 'note'}`, one statement so two people's notes both
