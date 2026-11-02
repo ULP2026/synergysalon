@@ -665,6 +665,29 @@
               background:var(--raise); display:grid; place-items:center; overflow:hidden; flex:none; }
   .logo-box img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
   .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:0 18px; }
+  /* Salon Profile, compact (asked for 2026-11-02): smaller logo, shorter
+     fields, four to a row where there is room (name and street take two,
+     the review link and About the whole row), two on a tablet, one on a
+     phone. */
+  .biz-logo { margin-bottom: 14px; gap: 12px; }
+  .biz-logo .logo-box { width: 64px; height: 64px; border-radius: 12px; }
+  .biz-logo .btn { height: 34px; padding: 0 14px; font-size: .88rem; }
+  .biz-logo { flex-wrap: nowrap; align-items: center; }
+  .biz-logo > div:last-child { flex: 1; min-width: 0; }
+  .biz-logo .acts { margin-bottom: 4px !important; }
+  .biz-logo .small.muted { font-size: .78rem; line-height: 1.4; }
+  .biz-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 12px; }
+  .biz-grid .c2 { grid-column: span 2; }
+  .biz-grid .c4 { grid-column: 1 / -1; }
+  .biz-grid label { margin-bottom: 10px; }
+  .biz-grid label > span { font-size: .78rem; margin-bottom: 4px; }
+  .biz-grid input { height: 36px; padding: 0 10px; font-size: .92rem; }
+  .biz-grid textarea { min-height: 0; padding: 8px 10px; font-size: .92rem; }
+  .biz-grid label > span.small { margin: 4px 0 0; font-size: .74rem; }
+  .biz-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 10px; }
+  .biz .btn[type="submit"] { height: 38px; margin-top: 2px; }
+  @media (max-width: 760px) { .biz-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 440px) { .biz-grid { grid-template-columns: minmax(0, 1fr); } .biz-grid .c2 { grid-column: 1 / -1; } }
   .fields .wide { grid-column:1/-1; }
   .subhead { margin:26px 0 12px; padding-top:20px; border-top:1px solid var(--line);
              font-size:var(--fs-md); font-weight:650; }
@@ -1543,14 +1566,16 @@
      headed with the speaker's name. The two colours are set here rather than
      borrowed from tokens that read as blue-grey either way. */
   .kh-row { display: flex; align-items: flex-end; gap: 8px; max-width: 86%; }
-  .kh-row.karen { align-self: flex-start; }
-  .kh-row.user { align-self: flex-end; flex-direction: row-reverse; }
+  /* Karen on the right in blue, the team member on the left in gray (the
+     salon's choice, 2026-11-02, reversing the first arrangement). */
+  .kh-row.karen { align-self: flex-end; flex-direction: row-reverse; }
+  .kh-row.user { align-self: flex-start; }
   .kh-row > img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; }
   .kh-msg { min-width: 0; padding: 8px 13px 7px; border-radius: 18px; font-size: .9rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .kh-msg.user { background: var(--bub-user); color: #fff; border-bottom-right-radius: 5px; }
-  .kh-msg.karen { background: var(--bub-karen); color: var(--ink); border-bottom-left-radius: 5px; }
+  .kh-msg.karen { background: var(--bub-user); color: #fff; border-bottom-right-radius: 5px; }
+  .kh-msg.user { background: var(--bub-karen); color: var(--ink); border-bottom-left-radius: 5px; }
   .kh-msg small { display: block; margin-top: 3px; font-size: .66rem; opacity: .7; white-space: normal; }
-  .kh-msg.user small { text-align: right; }
+  .kh-msg.karen small { text-align: right; }
   /* Consecutive messages from one side sit closer, as in a messaging app. */
   .kh-row.karen + .kh-row.karen, .kh-row.user + .kh-row.user { margin-top: -4px; }
   :root { --bub-user: #2f64d8; --bub-karen: #eceef1; }
@@ -11591,8 +11616,8 @@ async function openKarenThread(id) {
     const head = day !== lastDay ? `<span class="kh-day">${esc(day)}</span>` : '';
     lastDay = day;
     const t = fmtWhen(m.at, { hour: 'numeric', minute: '2-digit' });
-    // Karen on the left, gray, with her picture; the team member on the
-    // right, blue, with theirs. No name inside the bubble (asked for
+    // Karen on the right, blue, with her picture; the team member on the
+    // left, gray, with theirs. No name inside the bubble (asked for
     // 2026-11-02): the picture says who it is, as in a messaging app; the
     // name is kept for screen readers.
     const mine = m.role === 'user';
@@ -11708,7 +11733,7 @@ function renderBusiness(d) {
   const ro = d.canEdit ? '' : 'disabled';
   const a = splitAddress(d.address);
   $('business').innerHTML = `
-    <div class="prow">
+    <div class="prow biz-logo">
       <div class="logo-box">${d.logo ? `<img src="${esc(d.logo)}" alt="">` : '<span class="small muted">No logo</span>'}</div>
       <div>
         ${d.canEdit ? `<div class="acts" style="margin:0 0 6px;justify-content:flex-start">
@@ -11720,25 +11745,25 @@ function renderBusiness(d) {
       </div>
     </div>
 
-    <form id="bizForm">
-      <div class="fields">
-        <label class="wide"><span>Salon name</span><input name="name" value="${esc(d.name)}" ${ro} required></label>
+    <form id="bizForm" class="biz">
+      <div class="biz-grid">
+        <label class="c2"><span>Salon name</span><input name="name" value="${esc(d.name)}" ${ro} required></label>
         <!-- No Salon email field (taken off on request, 2026-10-30). The
              stored address is kept, not cleared: guest replies still fall
              back to it when no reply-to is set, and the save below leaves
              it out so the server leaves it alone. -->
         <label><span>Phone</span><input name="phone" type="tel" value="${esc(d.phone || '')}" ${ro}></label>
         <label><span>Website</span><input name="website" value="${esc(d.website || '')}" ${ro} placeholder="synergysalon.com"></label>
-        <label class="wide"><span>Google review link</span><input name="reviewUrl" value="${esc(d.reviewUrl || '')}" ${ro}
+        <label class="c4"><span>Google review link</span><input name="reviewUrl" value="${esc(d.reviewUrl || '')}" ${ro}
           placeholder="https://search.google.com/local/writereview?placeid=...">
           <span class="small muted">Where the review request email sends clients. Leave it empty and that email is not sent at all.</span></label>
-        <label class="wide"><span>Street address</span><input name="street" value="${esc(a.street)}" ${ro} autocomplete="street-address"></label>
+        <label class="c2"><span>Street address</span><input name="street" value="${esc(a.street)}" ${ro} autocomplete="street-address"></label>
         <label><span>City</span><input name="city" value="${esc(a.city)}" ${ro} autocomplete="address-level2"></label>
-        <div class="two" style="gap:0 12px">
+        <div class="biz-pair">
           <label><span>State</span><input name="state" value="${esc(a.state)}" ${ro} maxlength="20" autocomplete="address-level1"></label>
           <label><span>Zip</span><input name="zip" value="${esc(a.zip)}" ${ro} maxlength="10" inputmode="numeric" autocomplete="postal-code"></label>
         </div>
-        <label class="wide"><span>About</span><textarea name="about" rows="3" ${ro}
+        <label class="c4"><span>About</span><textarea name="about" rows="2" ${ro}
           placeholder="A sentence clients see when they book">${esc(d.about || '')}</textarea></label>
       </div>
       ${d.canEdit ? '<button class="btn" type="submit">Save Salon Profile</button>'

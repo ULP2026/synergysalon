@@ -625,8 +625,10 @@ made that way are real: name them ZZ and remove them.
   History (`.kx`, `setKx`, remembered as `ss-kh-open`/`ss-kc-open`, closed
   by default), each headed with its own icon (a speech bubble, a phone;
   `.kx-ic`). Chat History is what was Message History (below), drawn as a
-  messaging app draws a conversation: Karen on the left in gray
-  (`--bub-karen`), the team member on the right in blue (`--bub-user`),
+  messaging app draws a conversation: Karen on the right in blue, the team
+  member on the left in gray (the salon's choice, 2026-11-02, reversing the
+  first arrangement; the tokens keep their first names, `--bub-user` blue
+  and `--bub-karen` gray),
   each with their picture on the last bubble of a run and no name inside
   the bubble (taken out on request, 2026-11-02; it is the bubble's
   aria-label).
@@ -1172,7 +1174,11 @@ made that way are real: name them ZZ and remove them.
   `GET /api/staff/business?preview=<kind>` with a sample appointment. Add a
   message to `MESSAGES` and it can be previewed; there is no SMS yet, so none
   is shown. Marketing takes the nav's width, like Settings.
-- Settings, Salon Profile is the tenant's details. Its logo is the nav's mark,
+- Settings, Salon Profile is the tenant's details, compact since
+  2026-11-02 (asked for): a small logo with its button and note beside it,
+  36px fields four to a row where there is room (name and street take two,
+  the review link and About the whole row; `.biz-grid`), two on a tablet,
+  one on a phone, About two lines. Its logo is the nav's mark,
   painted from `me.salon.logo`, so saving updates the menu at once.
 - Team lists only the signed-in person for now (stylists are added later),
   plus anyone asking to join. Each person has a username (011) and their own
