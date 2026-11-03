@@ -2428,6 +2428,15 @@
   .ahead .ic { width: 17px; height: 17px; color: var(--periwinkle); }
   .asub { margin: 4px 0 14px; font-size: .82rem; color: var(--muted); }
   .arow { display: flex; align-items: center; gap: 16px; justify-content: space-between; margin-top: 12px; padding: 4px 2px; }
+  .my-who { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .my-who > div { min-width: 0; }
+  .my-face { flex: none; padding: 0; border: 0; background: none; border-radius: 50%; cursor: pointer; }
+  .my-face img { display: block; width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--peri-pale);
+                 box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--periwinkle); transition: transform .2s var(--ease); }
+  .my-face:hover img { transform: scale(1.04); }
+  .my-face:focus-visible { outline: 2px solid var(--focus); outline-offset: 6px; }
+  @media (max-width: 520px) { .my-face img { width: 46px; height: 46px; } }
+  @media (prefers-reduced-motion: reduce) { .my-face img { transition: none; } }
   .arow b { display: block; font-size: .9rem; font-weight: 600; }
   .arow span { display: block; font-size: .8rem; color: var(--muted); }
   .switch { position: relative; width: 44px; height: 24px; flex: none; border-radius: 999px; border: 0; padding: 0;
@@ -3519,8 +3528,13 @@
       <div class="acct">
           <section class="acard">
             <h2 class="ahead"><svg class="ic"><use href="#i-user"/></svg>My Profile</h2>
+            <!-- Your own picture beside your name (asked for 2026-11-03); it
+                 opens your profile window, where it is changed. -->
             <div class="arow">
-              <div><b id="myName"></b><span id="mySub"></span></div>
+              <div class="my-who">
+                <button type="button" class="my-face" id="myFaceBtn" aria-label="Change my picture"><img id="myFace" alt=""></button>
+                <div><b id="myName"></b><span id="mySub"></span></div>
+              </div>
               <button type="button" class="btn sm" id="myEdit">Edit my profile</button>
             </div>
           </section>
@@ -4490,7 +4504,7 @@ const I18N_ES = {
   'Confirm': 'Confirmar', 'Optional': 'Opcional', 'Loading…': 'Cargando…', 'Copy': 'Copiar', 'Copy link': 'Copiar enlace',
   // Settings
   'My Settings': 'Mi configuración', 'Salon': 'Salón', 'Team': 'Equipo', 'Karen AI': 'Karen IA',
-  'My Profile': 'Mi perfil', 'Edit my profile': 'Editar mi perfil', 'Appearance': 'Apariencia', 'Dark Mode': 'Modo oscuro',
+  'My Profile': 'Mi perfil', 'Change my picture': 'Cambiar mi foto', 'Edit my profile': 'Editar mi perfil', 'Appearance': 'Apariencia', 'Dark Mode': 'Modo oscuro',
   'Toggle between light and dark theme': 'Cambia entre tema claro y oscuro', 'Sign out': 'Cerrar sesión',
   'Language': 'Idioma', 'The app’s menus, buttons and labels, and Karen’s answers.': 'Los menús, botones y etiquetas de la app, y las respuestas de Karen.',
   'Owner': 'Dueño', 'Admin': 'Administrador', 'Manager': 'Gerente',
@@ -4812,11 +4826,14 @@ function paintMe() {
   paintKarenNumber();
   $('myName').textContent = me.user.name;
   $('mySub').textContent = ROLE_LABEL[me.user.role] || me.user.role;
+  // Your picture, as everyone else sees it: photo, portrait, avatar, default.
+  $('myFace').src = personPhoto(me.user);
   paintLogo();
   // A new picture shows beside Home's greeting at once.
   if (!$('pageFace').hidden) paintPageFace(true);
 }
 $('myEdit').onclick = () => openMember('me');
+$('myFaceBtn').onclick = () => openMember('me');
 // The language picker: saved for this browser, and the app starts again in it.
 $('langSel').value = LANG;
 $('langSel').onchange = (e) => {
