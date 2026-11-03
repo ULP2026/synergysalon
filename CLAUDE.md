@@ -347,10 +347,14 @@ adapter hides every time the calendar cannot honour. The stylists come from
 `/api/services` (only those with a service on and a Google Calendar
 connected, with their portraits) as the page mounts and again when the popup
 opens (`bkLoadTeam`, published on `window.__ssBkTeam`); the adapter maps a
-name to a slug through that, the old fixed map only as a fallback. The
-popup always shows the four (`bkCore`, its original fixed list) and adds
-anybody else the app returns; a stylist picked from a team card who is not
-in the list is dropped when it arrives.
+name to a slug through that, the old fixed map only as a fallback. Since
+2026-11-03 the popup's stylists are exactly the app's (names, titles and
+pictures from `/api/services`); `bkCore`, the old fixed four, is only what
+shows until that answer arrives, or if it never does. A stylist picked from
+a team card who is not in the list is dropped when it arrives. The
+confirmation writes the guest's phone as the salon writes its own
+(813.555.0199) and the address in full (3212 Lithia Pinecrest Rd, Suite
+101, Valrico, FL 33594), as the PMC has them.
 
 **The guest's manage page** is `/appointment?ref=…&t=…` (`appointment.html`),
 linked from every email: details, "Choose a new time" (the next four weeks
@@ -1153,9 +1157,10 @@ made that way are real: name them ZZ and remove them.
   client's name and phone, with the text itself (`smsText` in
   karen-sms.js, kept to one text) and its length. No SMS is sent anywhere
   yet.
-- **Sent History under each automation** (asked for 2026-11-02): below
-  "View only. This is what the app does on its own." in the automation's
-  window, a card that opens and closes like Email History (`#autoHist`,
+- **Sent History** (asked for 2026-11-02 under each automation; moved out of
+  the automation's window on 2026-11-03 to the Automations page, between the
+  list and Email History, with a list to pick one automation or all of
+  them, `renderSentHistory`, `ahFor` null for all): a card that opens and closes like Email History (`#autoHist`,
   remembered as `ss-auhist-open`, closed by default) lists who that
   automation reached, newest first, 40 at a time with Show more: the
   client, Email or SMS, the address or number, which message when it has
@@ -1347,10 +1352,33 @@ made that way are real: name them ZZ and remove them.
   the names the Automations list now uses too, in Title Case: Appointment
   Booking, Appointment Reminder, Reschedule Notice, ...), the subject beside
   the visit; a direct email by its subject, its writer from the body's
-  `fromName`. The message box starts on **Text** (red) every time, Email is
-  blue: the switch, the box's edge and "Send text"/"Send email" take the
-  colour (`--pc`). `tests/client-changes.integration.test.js`,
+  `fromName`. The message box starts on **Text** (blue) every time, Email is
+  red: the switch, the box's edge and "Send text"/"Send email" take the
+  colour (`--pc`; Text blue and Email red since later that day). `tests/client-changes.integration.test.js`,
   `tests/staff-profile-ui.test.js`.
+- **The second round of 2026-11-03** (asked for):
+  - The ticket: Check in (Done once in, Reopen when cancelled) is the main
+    button top left (`#adCta`, `.tkt-main`); No Show, Cancel Appt. and Move
+    Appt. small above a divider, then the details; "Delete Ticket" as red
+    words bottom left. No "Open client": the client's name is the button
+    (`.ad-name`, `data-ad="client"`).
+  - Dates of a visit read "Today, Nov 3", "Tomorrow, Nov 4", else "Wed, Nov
+    5" (`dateLabel`): the move confirmation, the Move window, the ticket's
+    When and Next appt, and the Activity's appointment line. The move's two
+    choices are "Send the Client a Notification" and "Just Move the
+    Appointment".
+  - Appt. Book: the day's date and count are two lines at the right of the
+    toolbar's row; each column header has a scissors icon, not Google's
+    mark; a card is the service small in capitals with the time, the
+    client's name, their phone (the booking's, else the client's, from
+    diary.js), and its status marks in the bottom-right corner.
+  - Activity: who did it is a small picture on the bottom-right corner of
+    the event's icon (`.tl-badge`), the name a small line under the event;
+    no "Sent" chip (an entry is a sent email; Failed is still marked); the
+    website form's line reads "Client Created"; an automation's email shows
+    the visit, not its subject line. Manual messages: Text blue, Email red.
+  - The nav bar and logo chip are 24px round, so their corners run parallel
+    to the 18px ring inside. Money has no Billing card.
 - **A move redraws in place** (2026-11-03): `refreshDiary()` is quiet by
   default (`loadDay(..., {quiet, force})`, `loadMonth(..., {quiet})`), so a
   move, a check-in or a block no longer wipes Appt. Book to a skeleton and

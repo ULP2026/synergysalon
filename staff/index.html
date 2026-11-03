@@ -295,8 +295,12 @@
     position: fixed; top: 16px; left: 0; right: 0; margin-inline: auto; width: max-content; z-index: 50;
     display: flex; align-items: stretch; gap: 12px; max-width: calc(100vw - 16px);
   }
-  .grn-pill { position: relative; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 18px; }
-  .grn-logo { display: grid; place-items: center; padding: 0 16px; border-radius: 16px; }
+  /* The bar's corners follow the ring inside it (2026-11-03): the ring is
+     18px round and sits 6 to 10px in, so the bar is 24px round and the two
+     curves run parallel instead of the bar looking tighter than its ring.
+     The logo chip beside it matches. */
+  .grn-pill { position: relative; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 24px; }
+  .grn-logo { display: grid; place-items: center; padding: 0 16px; border-radius: 24px; }
   .grn-mark {
     display: block; width: 22px; height: 22px; background: var(--periwinkle);
     -webkit-mask: url(/favicon-512x512.png) center / contain no-repeat;
@@ -409,7 +413,9 @@
   .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
   .toolbar input[type=date] { width: auto; }
   .toolbar .grow { flex: 1 1 220px; }
-  .toolbar .summary { margin-left: auto; color: var(--muted); font-size: var(--fs-sm); }
+  .toolbar .summary { margin-left: auto; color: var(--muted); font-size: var(--fs-sm); display: flex; flex-direction: column;
+                      align-items: flex-end; text-align: right; line-height: 1.35; min-width: 0; }
+  .toolbar .summary b { color: var(--ink); font-weight: 600; }
   .search { position: relative; }
   .search .ic { position: absolute; left: 12px; top: 11px; color: var(--faint); pointer-events: none; }
   .search input { padding-left: 40px; }
@@ -527,7 +533,7 @@
     h1 { font-size: 1.4rem; }
     .card { padding: 18px 16px; }
     .scroll { margin: 0 -16px; padding: 0 16px; }
-    .toolbar .summary { margin-left: 0; width: 100%; }
+    .toolbar .summary { margin-left: 0; width: 100%; align-items: flex-start; text-align: left; }
     .upcoming button { grid-template-columns: 84px 1fr; }
     .upcoming .go { display: none; }
     .tiles { grid-template-columns: minmax(0, 1fr); gap: 10px; }
@@ -1002,16 +1008,17 @@
   .pc-row { display: flex; gap: 8px; align-items: flex-end; }
   .pc-row textarea { flex: 1; min-height: 44px; max-height: 160px; resize: vertical; }
   .pc-send { flex: none; }
-  /* Text is red, Email blue (asked for 2026-11-03): the chosen one is filled
-     with its colour, and the message box and Send take it too. */
-  .px-compose { --pc: #c8323f; --pc-pale: #fbe5e7; }
-  .px-compose[data-ch="email"] { --pc: #2f6fd6; --pc-pale: #e3edfc; }
-  :root[data-theme="dark"] .px-compose { --pc: #e5636e; --pc-pale: rgba(229, 99, 110, .16); }
-  :root[data-theme="dark"] .px-compose[data-ch="email"] { --pc: #6aa0f0; --pc-pale: rgba(106, 160, 240, .16); }
-  .pc-ch button[data-ch="sms"] { color: #c8323f; }
-  .pc-ch button[data-ch="email"] { color: #2f6fd6; }
-  :root[data-theme="dark"] .pc-ch button[data-ch="sms"] { color: #e5636e; }
-  :root[data-theme="dark"] .pc-ch button[data-ch="email"] { color: #6aa0f0; }
+  /* Text is blue, Email red (asked for 2026-11-03, the other way round the
+     same morning): the chosen one is filled with its colour, and the
+     message box and Send take it too. */
+  .px-compose { --pc: #2f6fd6; --pc-pale: #e3edfc; }
+  .px-compose[data-ch="email"] { --pc: #c8323f; --pc-pale: #fbe5e7; }
+  :root[data-theme="dark"] .px-compose { --pc: #6aa0f0; --pc-pale: rgba(106, 160, 240, .16); }
+  :root[data-theme="dark"] .px-compose[data-ch="email"] { --pc: #e5636e; --pc-pale: rgba(229, 99, 110, .16); }
+  .pc-ch button[data-ch="sms"] { color: #2f6fd6; }
+  .pc-ch button[data-ch="email"] { color: #c8323f; }
+  :root[data-theme="dark"] .pc-ch button[data-ch="sms"] { color: #6aa0f0; }
+  :root[data-theme="dark"] .pc-ch button[data-ch="email"] { color: #e5636e; }
   .seg.pc-ch button[aria-pressed="true"] { background: var(--pc); color: #fff; box-shadow: 0 2px 6px -3px var(--pc); }
   .seg.pc-ch button:hover:not([aria-pressed="true"]) { background: var(--pc-pale); }
   .px-compose textarea, .px-compose .pc-subj { border-color: color-mix(in srgb, var(--pc) 45%, var(--line-2)); }
@@ -1078,16 +1085,19 @@
      reference), and who did it, small: a face or a mark, then a name. */
   .tl .what .tl-appt { display: flex; align-items: center; gap: 5px; font-size: var(--fs-xs); color: var(--accent-ink); font-weight: 550; margin-top: 3px; }
   .tl .what .tl-appt .ic { width: 12px; height: 12px; flex: none; }
-  .tl .what .tl-by { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 11px; color: var(--muted); }
-  .tl .what .tl-by > span { display: inline; margin: 0; font-size: 11px; color: var(--muted); }
-  .tl-by img, .tl-by i { flex: none; width: 16px; height: 16px; border-radius: 50%; object-fit: cover; display: grid; place-items: center;
-                         font-style: normal; font-size: 8px; font-weight: 700; background: var(--peri-pale); color: var(--indigo); }
-  .tl-by.k-karen img { box-shadow: 0 0 0 1px var(--periwinkle); }
-  .tl-by i .ic { width: 10px; height: 10px; }
-  .tl-by.k-automation i { background: #fdf3c8; color: #7a5a00; }
-  .tl-by.k-client i { background: #fbe6f2; color: #9c2f6b; }
-  :root[data-theme="dark"] .tl-by.k-automation i { background: rgba(214, 170, 30, .22); color: #f2d675; }
-  :root[data-theme="dark"] .tl-by.k-client i { background: rgba(200, 80, 150, .24); color: #f1b0d6; }
+  .tl .what .tl-by { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
+  /* Who did it: a small picture on the bottom-right corner of the event's
+     icon (2026-11-03), ringed in the card's colour so it reads as a badge. */
+  .tl .dot { position: relative; }
+  .tl-badge { position: absolute; right: -5px; bottom: -5px; width: 18px; height: 18px; border-radius: 50%;
+              box-shadow: 0 0 0 2px var(--card); background: var(--card); display: grid; place-items: center; overflow: hidden; }
+  .tl-badge img, .tl-badge i { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: grid; place-items: center;
+                               font-style: normal; font-size: 8px; font-weight: 700; background: var(--peri-pale); color: var(--indigo); }
+  .tl-badge i .ic { width: 10px; height: 10px; }
+  .tl-badge.k-automation i { background: #fdf3c8; color: #7a5a00; }
+  .tl-badge.k-client i { background: #fbe6f2; color: #9c2f6b; }
+  :root[data-theme="dark"] .tl-badge.k-automation i { background: rgba(214, 170, 30, .22); color: #f2d675; }
+  :root[data-theme="dark"] .tl-badge.k-client i { background: rgba(200, 80, 150, .24); color: #f1b0d6; }
   .tl .k-admin .dot { background: #ece7fb; color: #5b3fae; }
   :root[data-theme="dark"] .tl .k-admin .dot { background: rgba(130, 100, 220, .24); color: #c9b8f6; }
   .tl time { text-align: right; font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; line-height: 1.4; font-variant-numeric: tabular-nums; }
@@ -1356,7 +1366,10 @@
            transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
   .dg-ev:hover { z-index: 2; box-shadow: 0 10px 24px -12px rgba(30, 31, 92, .55); transform: translateY(-1px); }
   .dg-ev:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-  .dg-ev .st { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+  .dg-ev .st { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: center; gap: 3px; }
+  .dg-ev .top { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
+  .dg-ev .svc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .68rem; font-weight: 700;
+                letter-spacing: .05em; text-transform: uppercase; color: var(--dg-ink); opacity: .8; }
   .dg-ev > * { flex: none; min-width: 0; }
   .dg-ev .st i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
                  background: var(--card); color: var(--dg-ink); box-shadow: 0 0 0 1px var(--dg-edge); }
@@ -1369,8 +1382,9 @@
   .dg-ev .ln.p { font-weight: 650; color: var(--dg-ink); }
   .dg-ev .tm { margin-left: auto; font-weight: 600; color: var(--dg-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .dg-ev.short { flex-direction: row; align-items: center; gap: 6px; padding: 3px 8px; }
-  .dg-ev.short .st i, .dg-ev.short .ln { display: none; }
-  .dg-ev.short .st { order: 2; margin: 0 0 0 auto; }
+  .dg-ev.short .st, .dg-ev.short .ln, .dg-ev.short .svc { display: none; }
+  .dg-ev.short .top { order: 2; margin: 0 0 0 auto; }
+  .dg-ev.dg-part .st { position: static; }
   .dg-ev.short b { display: inline; font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dg-ev.here { box-shadow: 0 0 0 2px var(--ok) inset, 0 1px 2px rgba(30, 31, 92, .08); }
   .dg-ev.done, .dg-ev.noshow { opacity: .62; }
@@ -1460,7 +1474,21 @@
   .ad-dl { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px 12px; margin: 0 0 16px; font-size: var(--fs-sm); }
   .ad-dl dt { color: var(--muted); }
   .ad-dl dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-  .ad-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  .ad-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
+  .ad-acts:empty { display: none; }
+  .tkt-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 12px; }
+  .tkt-cta:empty { display: none; }
+  .tkt-top:has(.tkt-cta:empty) { justify-content: flex-end; }
+  .tkt-main { height: 40px; padding: 0 18px; gap: 7px; background: var(--cta-grad); color: #fff; box-shadow: var(--cta-shadow); }
+  .tkt-main .ic { width: 17px; height: 17px; }
+  .ad-name { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+  .ad-name:hover { color: var(--periwinkle); text-decoration: underline; text-underline-offset: 3px; }
+  .ad-name:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .ad-mini { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ad-mini:empty { display: none; }
+  .tkt-div { border: 0; border-top: 1px solid var(--line); margin: 12px 0 14px; }
+  .ad-del { border: 0; background: none; padding: 2px 0; font: inherit; font-size: var(--fs-sm); color: var(--warn); cursor: pointer; }
+  .ad-del:hover { text-decoration: underline; }
 
   /* ── Team: an arch of portraits over a soft banner, then the list ─────── */
   .team-top { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 16px; align-items: stretch; margin-bottom: 18px; }
@@ -1518,7 +1546,7 @@
   .karen-cta { gap: 8px; padding-left: 7px; font-weight: 650; border: 1px solid rgba(85, 96, 166, .28); box-shadow: var(--e1); }
   @media (min-width: 721px) {
     /* As tall as the menu beside her, with its corners and lift. */
-    .grn #karenBtn { height: auto; border-radius: 18px; padding: 0 18px 0 9px; gap: 10px;
+    .grn #karenBtn { height: auto; border-radius: 24px; padding: 0 18px 0 9px; gap: 10px;
                      box-shadow: 0 8px 32px rgba(30, 31, 92, .14); }
     .grn #karenBtn .kc-pic, .grn #karenBtn .kc-pic img { width: 34px; height: 34px; }
   }
@@ -2083,7 +2111,8 @@
   /* The flow, the view-only line and the Sent History scroll together. */
   .au-scroll { max-height: calc(100dvh - 150px); overflow-y: auto; overscroll-behavior: contain; }
   .au-scroll .au-body { max-height: none; overflow: visible; }
-  .au-hist { margin: 0 24px 22px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  #autoHist { margin-top: 16px; }
+  #autoHist .ml-filters select { flex: 0 1 300px; }
   .au-hist.open .ml-chev { transform: rotate(180deg); }
   .au-hist:not(.open) .ml-content { display: none; }
   .ah-list { display: grid; gap: 6px; }
@@ -2103,7 +2132,6 @@
   .ah-more { justify-self: center; margin-top: 4px; }
   .ah-empty { margin: 4px 0; font-size: .88rem; color: var(--muted); }
   @media (max-width: 520px) {
-    .au-hist { margin: 0 16px 18px; }
     .ah-row { grid-template-columns: 30px minmax(0, 1fr); }
     .ah-r { grid-column: 2; justify-items: start; grid-auto-flow: column; align-items: center; gap: 8px; }
   }
@@ -3060,6 +3088,7 @@
   <symbol id="i-form" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"/><path d="M14 3.5V8h4M9 12.5h6M9 16h6"/></symbol>
   <symbol id="i-sync" viewBox="0 0 24 24"><path d="M19.5 11A7.5 7.5 0 0 0 6 6.8L4.5 8.5M4.5 4v4.5H9M4.5 13A7.5 7.5 0 0 0 18 17.2l1.5-1.7M19.5 20v-4.5H15"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1-4 4-6 7.5-6s6.5 2 7.5 6"/></symbol>
+  <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></symbol>
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"/><path d="M14 3.5V8h4"/></symbol>
   <symbol id="i-users-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5 1.7 0 3.2.6 4.4 1.6M18.5 13v6M15.5 16h6"/></symbol>
@@ -3366,6 +3395,23 @@
            second scrolled to the history. -->
       <div class="setpane hidden" id="set-marketing">
         <div class="card" id="mktCard"></div>
+        <!-- Sent History (2026-11-02), out of the automation's window and
+             onto this page (asked for 2026-11-03): every email and text the
+             automations sent, with a choice of automation. -->
+        <section class="card au-hist" id="autoHist" aria-labelledby="ahTitle">
+          <div class="ml-top">
+            <button type="button" class="ml-toggle" data-ah aria-expanded="false" aria-controls="ahContent">
+              <span class="ah-ic" aria-hidden="true"><svg class="ic"><use href="#i-send"/></svg></span>
+              <span class="ml-t"><h2 id="ahTitle">Sent History</h2>
+                <p id="ahSub">Who the automations emailed and texted, newest first.</p></span>
+            </button>
+            <button type="button" class="ml-chev" data-ah aria-label="Show the sent history"><svg class="ic"><use href="#i-right"/></svg></button>
+          </div>
+          <div class="ml-content" id="ahContent">
+            <div class="ml-filters"><select id="ahPick" aria-label="Show one automation"></select></div>
+            <div class="ah-list" id="ahList" role="list"></div>
+          </div>
+        </section>
         <div class="card" id="mailCard"></div>
       </div>
 
@@ -3458,12 +3504,8 @@
             <p class="small muted" style="margin:10px 0 0">Nothing is charged today. Activating opens once card payments are connected.</p>
           </section>
 
-          <section class="acard" id="billingCard" data-admin>
-            <h2 class="ahead"><svg class="ic"><use href="#i-card"/></svg>Billing</h2>
-            <p class="asub">Plans, invoices and payment details will live here. Nothing is being charged today.</p>
-            <span class="chip">Coming soon</span>
-          </section>
-
+          <!-- No Billing card (taken off on request, 2026-11-03): it said the
+               same as Subscription, which is where the plan is paid. -->
           <section class="acard">
             <h2 class="ahead"><svg class="ic"><use href="#i-user-check"/></svg>Payroll</h2>
             <div style="margin-top:12px"><span class="chip">Coming soon</span></div>
@@ -3929,13 +3971,22 @@
 <!-- One visit as a ticket: the appointment in full, every service on it
      with its price, the total and what was paid. Appt. Book and a client's
      history both open this one window (openTicket). -->
+<!-- The ticket (laid out 2026-11-03, asked for): Check in, the visit's one
+     main action, top left; the client's name opens their profile (the
+     "Open client" button went); No show, Cancel and Move small, over a
+     divider and the details; "Delete Ticket" as plain text bottom left. -->
 <dialog id="apptDlg" class="tkt" aria-labelledby="adName">
+  <div class="tkt-top">
+    <div class="tkt-cta" id="adCta"></div>
+    <button type="button" class="iconbtn lg" id="adClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
   <div class="ad-head">
     <span class="avatar" id="adAvatar" aria-hidden="true"></span>
     <div style="flex:1;min-width:0"><h2 id="adName"></h2><div class="chips" id="adChips" style="margin-top:4px"></div></div>
-    <button type="button" class="iconbtn lg" id="adClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
   <div class="tkt-body">
+    <div class="ad-mini" id="adMini"></div>
+    <hr class="tkt-div" id="adDiv">
     <dl class="ad-dl" id="adBody"></dl>
     <section class="tkt-sec" aria-labelledby="adLinesH"><h3 class="tkt-h" id="adLinesH">Services</h3><div id="adLines"></div></section>
     <section class="tkt-sec" aria-labelledby="adPayH"><h3 class="tkt-h" id="adPayH">Payment</h3><div id="adPay"></div></section>
@@ -3984,10 +4035,10 @@
       <legend>Client notification</legend>
       <label class="mvc-opt"><input type="radio" name="mvcNotify" value="send" checked>
         <span class="mvc-ic" aria-hidden="true"><svg class="ic"><use href="#i-bell"/></svg></span>
-        <span><b>Send a Client Rescheduled Appointment Notification</b><small id="mvcSendSub">Send the client an update with their new date and time.</small></span></label>
+        <span><b>Send the Client a Notification</b><small id="mvcSendSub">Send the client an update with their new date and time.</small></span></label>
       <label class="mvc-opt"><input type="radio" name="mvcNotify" value="quiet">
         <span class="mvc-ic" aria-hidden="true"><svg class="ic"><use href="#i-calendar"/></svg></span>
-        <span><b>Just Move Appointment</b><small>Update the schedule without notifying the client.</small></span></label>
+        <span><b>Just Move the Appointment</b><small>Update the schedule without notifying the client.</small></span></label>
     </fieldset>
     <div class="dlg-actions">
       <button class="btn quiet" value="cancel" formnovalidate id="mvcCancel">Cancel</button>
@@ -4030,19 +4081,6 @@
   <div class="au-scroll">
     <div class="au-body" id="autoBody"></div>
     <p class="au-foot"><svg class="ic"><use href="#i-eye"/></svg>View only. This is what the app does on its own.</p>
-    <!-- Who this automation reached (asked for 2026-11-02): its emails and
-         texts, newest first, opening and closing like Email History. -->
-    <section class="au-hist" id="autoHist" aria-labelledby="ahTitle">
-      <div class="ml-top">
-        <button type="button" class="ml-toggle" data-ah aria-expanded="false" aria-controls="ahContent">
-          <span class="ah-ic" aria-hidden="true"><svg class="ic"><use href="#i-send"/></svg></span>
-          <span class="ml-t"><h2 id="ahTitle">Sent History</h2>
-            <p id="ahSub">Who this automation emailed and texted, newest first.</p></span>
-        </button>
-        <button type="button" class="ml-chev" data-ah aria-label="Show the sent history"><svg class="ic"><use href="#i-right"/></svg></button>
-      </div>
-      <div class="ml-content" id="ahContent"><div class="ah-list" id="ahList" role="list"></div></div>
-    </section>
   </div>
 </dialog>
 
@@ -4195,9 +4233,10 @@ const I18N_ES = {
   'Processing · free': 'Procesando · libre', 'Continues': 'Continúa', 'Finish': 'Final',
   'Check in': 'Registrar llegada', "Didn't show up": 'No se presentó', 'Didn’t show up': 'No se presentó',
   'Cancel appointment': 'Cancelar cita', 'Delete for good': 'Eliminar para siempre', 'Open client': 'Abrir cliente',
+  'No Show': 'No se presentó', 'Cancel Appt.': 'Cancelar cita', 'Move Appt.': 'Mover cita', 'Delete Ticket': 'Eliminar ticket',
   'Move': 'Mover', 'Move appointment': 'Mover cita', 'Are you sure you want to move this appointment?': '¿Seguro que quieres mover esta cita?',
   'Original': 'Original', 'Client notification': 'Aviso al cliente',
-  'Send a Client Rescheduled Appointment Notification': 'Enviar al cliente un aviso de cita reprogramada', 'Just Move Appointment': 'Solo mover la cita',
+  'Send the Client a Notification': 'Enviar un aviso al cliente', 'Just Move the Appointment': 'Solo mover la cita',
   'Update the schedule without notifying the client.': 'Actualiza la agenda sin avisar al cliente.',
   'Free times for the whole visit': 'Horas libres para toda la visita',
   'When': 'Cuándo', 'Stylist': 'Estilista', 'Processing': 'Procesando', 'Phone': 'Teléfono', 'Email': 'Correo',
@@ -4466,6 +4505,17 @@ function dayLabel(date) {
   if (date === addDays(today, 1)) return 'Tomorrow';
   return new Date(`${date}T12:00:00Z`).toLocaleDateString(LOCALE,
     { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+/**
+ * A visit's date where its date is shown (asked for 2026-11-03): "Today,
+ * Nov 3", "Tomorrow, Nov 4", else "Wed, Nov 5". Today or Tomorrow takes the
+ * weekday's place rather than sitting beside it.
+ */
+function dateLabel(date) {
+  const md = new Date(`${date}T12:00:00Z`).toLocaleDateString(LOCALE, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const near = dayLabel(date);
+  return /^(Today|Tomorrow)$/.test(near) ? `${near}, ${md}` : near;
 }
 
 // ─────────────────────────── sign in ───────────────────────────
@@ -5176,7 +5226,7 @@ const PAGES = {
   automation: {
     path: `${BASE}/marketing/automation`, title: 'Settings', group: 'settings', view: 'settings',
     sub: 'What happens on its own, before and after a client books.',
-    load: () => { showSetting('marketing'); renderAutomations(); renderMailHistory(); },
+    load: () => { showSetting('marketing'); renderAutomations(); renderSentHistory(); renderMailHistory(); },
   },
   // Email History, with its search and filter by message, is the second card
   // on Automation (2026-10-30); its old address opens the page scrolled to it.
@@ -5186,7 +5236,7 @@ const PAGES = {
     load: () => {
       // The history's own address opens the section it points at.
       try { localStorage.setItem('ss-mail-open', '1'); } catch { /* still shown, just not remembered */ }
-      showSetting('marketing'); renderAutomations(); renderMailHistory();
+      showSetting('marketing'); renderAutomations(); renderSentHistory(); renderMailHistory();
       requestAnimationFrame(() => $('mailCard').scrollIntoView({ block: 'start' }));
     },
   },
@@ -5681,20 +5731,16 @@ function openAutomation(id) {
   $('autoDlg').style.maxWidth = `${Math.max(520, 220 * (a.steps.length + 1) + 48)}px`;
   openDialog($('autoDlg'));
   $('autoDlg').querySelector('.au-scroll').scrollTop = 0;
-  ahFor = a;
-  ahNext = null;
-  setAh(ahOpenSaved());
-  loadAutoSends();
 }
 
-// ── Sent History, under one automation's flow (2026-11-02) ─────────────────
+// ── Sent History (2026-11-02; on the Automations page since 2026-11-03) ───
 //
 // Every email and text this automation sent, newest first, from
 // GET /api/staff/business?sends=<its message kinds> (automationSends): who,
 // whether by email or SMS, which message when it has more than one, when,
 // and Sent or Failed. An email opens as it was sent (openSentEmail); a text
 // opens the client's profile, where the whole SMS conversation is.
-let ahFor = null;
+let ahFor = null;          // the automation chosen, or null for all of them
 let ahNext = null;
 let ahSeq = 0;
 function ahOpenSaved() { try { return localStorage.getItem('ss-auhist-open') === '1'; } catch { return false; } }
@@ -5706,11 +5752,22 @@ function setAh(open) {
     else b.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the sent history`);
   }
 }
+/** The card on the Automations page: its list of automations, then the sends. */
+function renderSentHistory() {
+  const all = automations();
+  $('ahPick').innerHTML = `<option value="">All automations</option>${all.map((x) => `<option value="${esc(x.id)}"${ahFor?.id === x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}`;
+  setAh(ahOpenSaved());
+  ahNext = null;
+  loadAutoSends();
+}
 async function loadAutoSends(more = false) {
   const a = ahFor;
-  if (!a) return;
-  const kinds = a.steps.filter((st) => st.msg).map((st) => st.msg);
-  const titles = Object.fromEntries(a.steps.filter((st) => st.msg).map((st) => [st.msg, st.title]));
+  const all = automations();
+  const steps = (a ? [a] : all).flatMap((x) => x.steps.filter((st) => st.msg).map((st) => ({ ...st, auto: x.name })));
+  const kinds = [...new Set(steps.map((st) => st.msg))];
+  // One automation: which of its messages; all of them: which automation.
+  const titles = Object.fromEntries(steps.map((st) => [st.msg, a ? st.title : st.auto]));
+  const many = a ? kinds.length > 1 : true;
   const seq = ++ahSeq;
   if (!more) $('ahList').innerHTML = skeleton(2);
   let r;
@@ -5724,7 +5781,7 @@ async function loadAutoSends(more = false) {
   ahNext = r.next;
   const rows = r.sends.map((x) => {
     const sms = x.channel === 'sms';
-    const what = [sms ? 'SMS' : 'Email', kinds.length > 1 ? titles[x.kind] : '', x.to].filter(Boolean).join(' · ');
+    const what = [sms ? 'SMS' : 'Email', many ? titles[x.kind] : '', x.to].filter(Boolean).join(' · ');
     const chip = x.status === 'failed'
       ? `<span class="chip warn" title="${esc(x.error || 'Not delivered')}">Failed</span>`
       : `<span class="chip ok">Sent</span>`;
@@ -5741,18 +5798,24 @@ async function loadAutoSends(more = false) {
     $('ahList').querySelector('[data-ah-more]')?.remove();
     $('ahList').insertAdjacentHTML('beforeend', rows + moreBtn);
   } else {
-    $('ahList').innerHTML = rows + moreBtn || `<p class="ah-empty">Nothing sent by this automation yet. ${a.steps.some((st) => st.sms)
+    $('ahList').innerHTML = rows + moreBtn || `<p class="ah-empty">Nothing sent by ${a ? 'this automation' : 'the automations'} yet. ${steps.some((st) => st.sms)
       ? 'Emails and texts appear here as they go out.' : 'Emails appear here as they go out.'}</p>`;
   }
 }
 $('autoHist').addEventListener('click', (e) => {
   if (e.target.closest('[data-ah]')) { setAh(!$('autoHist').classList.contains('open')); return; }
   if (e.target.closest('[data-ah-more]')) { loadAutoSends(true); return; }
+  if (e.target.closest('select')) return;
   const em = e.target.closest('[data-ah-email]');
   if (em) { openSentEmail(em.dataset.ahEmail); return; }
   const pr = e.target.closest('[data-ah-person]');
-  if (pr) { closeDialog($('autoDlg')); setTimeout(() => openPerson(pr.dataset.ahPerson), 170); }
+  if (pr) openPerson(pr.dataset.ahPerson);
 });
+$('ahPick').onchange = (e) => {
+  ahFor = automations().find((x) => x.id === e.target.value) || null;
+  ahNext = null;
+  loadAutoSends();
+};
 $('autoClose').onclick = () => closeDialog($('autoDlg'));
 $('autoBody').addEventListener('click', (e) => {
   const b = e.target.closest('[data-msg]');
@@ -6580,22 +6643,17 @@ function cardMarks(a) {
 function shortDate(iso) { return iso ? fmtWhen(iso, { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
 
 function dayCard(a, top, height) {
-  const lines = [
-    `<span class="ln">${esc(a.service)}</span>`,
-    a.room ? `<span class="ln m">${esc(a.room)}</span>` : '',
-    a.guestPhone ? `<span class="ln m">${esc(showPhone(a.guestPhone))}</span>` : '',
-    a.guestEmail ? `<span class="ln m">${esc(a.guestEmail)}</span>` : '',
-    a.price != null ? `<span class="ln p">${esc(money(a.price))}</span>` : '',
-    a.createdAt ? `<span class="ln m">Created ${esc(shortDate(a.createdAt))}</span>` : '',
-    a.nextStartsAt ? `<span class="ln m">Next appt ${esc(shortDate(a.nextStartsAt))}</span>` : '',
-    a.notes ? `<span class="ln m">${ic('doc').replace('class="ic"', 'class="ic" style="width:11px;height:11px;vertical-align:-1px"')} ${esc(a.notes)}</span>` : '',
-  ].join('');
+  // Laid out as asked on 2026-11-03: the service small in capitals with the
+  // time beside it, the client's name, their phone; the status marks sit in
+  // the bottom-right corner. Everything else is on the ticket a click opens.
   const cls = [height < DG_SHORT ? 'short' : '', a.checkedInAt && a.status === 'booked' ? 'here' : '',
     a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : '', canMove(a) ? 'dg-mv' : ''].join(' ');
   return `<button type="button" class="dg-ev ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
       title="${esc(`${a.time} to ${a.endTime} · ${a.guestName} · ${a.service}${canMove(a) ? ' · Drag to move' : ''}`)}">
-    <div class="st">${cardMarks(a)}<span class="tm">${esc(a.time)}</span></div>
-    <b>${esc(a.guestName)}</b>${lines}
+    <div class="top"><span class="svc">${esc(a.service)}</span><span class="tm">${esc(a.time)}</span></div>
+    <b>${esc(a.guestName)}</b>
+    ${a.guestPhone ? `<span class="ln m">${esc(showPhone(a.guestPhone))}</span>` : ''}
+    <div class="st">${cardMarks(a)}</div>
   </button>`;
 }
 
@@ -6620,8 +6678,10 @@ function canMove(a) {
 
 function renderDiary(d) {
   diaryData = d;
-  $('dayHeading').textContent = `${d.heading} · ${d.booked} appointment${d.booked === 1 ? '' : 's'}`
-    + (d.arriving ? ` · ${d.arriving} still to arrive` : '');
+  // Two short lines on the right of the toolbar's row (2026-11-03), the
+  // date over the count, in the space that used to sit empty.
+  $('dayHeading').innerHTML = `<b>${esc(String(d.heading || '').replace(/^([A-Za-z]+) /, '$1, '))}</b>`
+    + `<span>${d.booked} appointment${d.booked === 1 ? '' : 's'}${d.arriving ? ` · ${d.arriving} still to arrive` : ''}</span>`;
 
   const live = d.appointments.filter((a) => a.status !== 'cancelled');
   const cancelled = d.appointments.filter((a) => a.status === 'cancelled');
@@ -6776,7 +6836,8 @@ function renderDiary(d) {
       <div style="min-width:0"><b>${esc(p.name)}</b><span class="sub">${sub}</span></div></div>`;
   const heads = [
     // Their role under the name (asked for 2026-10-31), not "Team member".
-    ...team.map((t, i) => personHead(t, `${GOOGLE_LOGO.replace('class="conn-logo"', '')}${esc(ROLE_LABEL[t.role] || 'Team member')}`, !i)),
+    // Scissors for the stylist, not Google's mark (asked for 2026-11-03).
+    ...team.map((t, i) => personHead(t, `${ic('scissors')}${esc(ROLE_LABEL[t.role] || 'Team member')}`, !i)),
     ...[...extra.values()].map((x) => personHead(x, 'Not connected', false)),
     ...(lanesEnd.length ? [`<div class="dg-head dg-group" style="grid-column:span ${lanesEnd.length}">
       <span class="dg-hic">${ic('calendar')}</span>
@@ -6880,10 +6941,8 @@ $('diary').addEventListener('mousemove', (e) => {
 // for 2026-11-02). Resolves to { notify } on Confirm, null on Cancel.
 let mvcResolve = null;
 function confirmMove(a, { start, stylistName }) {
-  const when = (iso) => {
-    const near = dayLabel(minutesDate(iso));
-    return `${/^(Today|Tomorrow)$/.test(near) ? `${near}, ` : ''}${fmtWhen(iso, { weekday: 'short', month: 'short', day: 'numeric' })} · ${clock(salonMinutes(iso))}`;
-  };
+  // The time never breaks across lines ("10" over "AM").
+  const when = (iso) => `${dateLabel(minutesDate(iso))} · ${clock(salonMinutes(iso)).replace(/ /g, '\u00a0')}`;
   $('mvcAv').textContent = initialsOf(a.guestName);
   $('mvcName').textContent = a.guestName || 'Client';
   $('mvcSvc').textContent = a.service || '';
@@ -6954,7 +7013,7 @@ function openMove(a, opts = {}) {
   const from = opts.date || a.date || (a.startsAt ? minutesDate(a.startsAt) : salonToday());
   $('moveTitle').textContent = `Move ${a.guestName || 'appointment'}`;
   const was = a.date || (a.startsAt ? minutesDate(a.startsAt) : from);
-  $('moveNow').textContent = `${a.service || ''}${a.stylist ? ` with ${a.stylist}` : ''}, now ${dayLabel(was)} at ${a.time || clock(salonMinutes(a.startsAt))}.`;
+  $('moveNow').textContent = `${a.service || ''}${a.stylist ? ` with ${a.stylist}` : ''}, now ${dateLabel(was)} at ${a.time || clock(salonMinutes(a.startsAt))}.`;
   const today = salonToday();
   $('moveDate').min = today;
   $('moveDate').value = from < today ? today : from;
@@ -7457,12 +7516,15 @@ function ticketPayment(a) {
 function paintTicket(a) {
   apptOpen = a;
   $('adAvatar').textContent = initialsOf(a.guestName);
-  $('adName').textContent = a.guestName || 'Ticket';
+  // The name opens the client's profile, when the visit has one.
+  $('adName').innerHTML = a.contactId && !a.loading
+    ? `<button type="button" class="ad-name" data-ad="client" title="Open ${esc(a.guestName || 'the client')}'s profile">${esc(a.guestName || 'Client')}</button>`
+    : esc(a.guestName || 'Ticket');
   $('adChips').innerHTML = a.loading ? '' : statusChips(a);
   const dash = '<span class="muted">–</span>';
   const row = (k, v) => `<dt>${esc(k)}</dt><dd>${v || dash}</dd>`;
   $('adBody').innerHTML = a.loading ? skeleton(4) : [
-    row('When', esc(`${dayLabel(a.date || day)}, ${a.time} to ${a.endTime}`)),
+    row('When', esc(`${dateLabel(a.date || day)}, ${a.time} to ${a.endTime}`)),
     row('Stylist', esc(a.stylist)),
     // Processing time inside it: the stylist is free for somebody else then.
     (a.breaks || []).length ? row('Processing', esc((a.breaks || []).map(([at, len]) => {
@@ -7473,7 +7535,7 @@ function paintTicket(a) {
     row('Phone', a.guestPhone ? `<a href="tel:${esc(a.guestPhone)}">${esc(showPhone(a.guestPhone))}</a>` : ''),
     row('Email', a.guestEmail ? `<a href="mailto:${esc(a.guestEmail)}">${mail(a.guestEmail)}</a>` : ''),
     row('Created on', esc(shortDate(a.createdAt))),
-    row('Next appt', esc(a.nextStartsAt ? fmtWhen(a.nextStartsAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '')),
+    row('Next appt', esc(a.nextStartsAt ? `${dateLabel(minutesDate(a.nextStartsAt))}, ${clock(salonMinutes(a.nextStartsAt))}` : '')),
     // The same words as the client's Activity; Karen in the app books for
     // whoever asked her, who is named too.
     row('Booked by', esc(a.via === 'karen'
@@ -7484,26 +7546,29 @@ function paintTicket(a) {
   $('adLines').innerHTML = ticketLines(a);
   $('adPay').innerHTML = ticketPayment(a);
   const b = (act, label, cls = 'quiet') => `<button type="button" class="btn ${cls} sm" data-ad="${act}">${esc(label)}</button>`;
-  const acts = [];
-  if (a.loading) { $('adActs').innerHTML = ''; return; }
-  if (a.contactId) acts.push(b('client', 'Open client'));
-  if (a.status === 'cancelled') acts.push(b('reopen', 'Reopen', ''));
+  if (a.loading) { for (const id of ['adCta', 'adMini', 'adActs']) $(id).innerHTML = ''; $('adDiv').hidden = true; return; }
+  // The one main action, top left: Check in, then Done once they are in;
+  // Reopen for a cancelled visit.
+  const cta = (act, label, icon) => `<button type="button" class="btn tkt-main" data-ad="${act}">${ic(icon)}${esc(label)}</button>`;
+  $('adCta').innerHTML = a.status === 'booked'
+    ? (a.checkedInAt ? cta('complete', 'Done', 'check') : cta('check_in', 'Check in', 'user-check'))
+    : a.status === 'cancelled' ? cta('reopen', 'Reopen', 'calendar') : '';
+  const mini = [];
   if (a.status === 'booked') {
-    acts.push(b('no_show', 'Didn’t show up'));
+    mini.push(b('no_show', 'No Show'));
     // Cancelling is ordinary: the guest called off and the slot goes back on
-    // sale. Styling it like deletion, beside deletion, is how the two get
-    // confused -- and they leave very different things behind.
-    acts.push(b('cancel', 'Cancel appointment'));
-    acts.push(b('move', 'Move'));
-    acts.push(a.checkedInAt ? b('undo_check_in', 'Undo check-in') : '');
-    acts.push(a.checkedInAt ? b('complete', 'Done', '') : b('check_in', 'Check in', ''));
+    // sale. It is kept well apart from deleting, which leaves nothing.
+    mini.push(b('cancel', 'Cancel Appt.'));
+    mini.push(b('move', 'Move Appt.'));
+    if (a.checkedInAt) mini.push(b('undo_check_in', 'Undo check-in'));
   }
-  // Last, not first: it is the one action here that cannot be undone.
-  if (me?.user?.canAdmin) acts.push(b('delete', 'Delete for good', 'danger'));
-  $('adActs').innerHTML = acts.join('');
+  $('adMini').innerHTML = mini.join('');
+  $('adDiv').hidden = !mini.length;
+  // Last, bottom left, as words: the one action here that cannot be undone.
+  $('adActs').innerHTML = me?.user?.canAdmin ? '<button type="button" class="ad-del" data-ad="delete">Delete Ticket</button>' : '';
 }
 $('adClose').onclick = () => closeDialog($('apptDlg'));
-$('adActs').onclick = (e) => {
+$('apptDlg').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-ad]');
   if (!btn || !apptOpen) return;
   const a = apptOpen;
@@ -7516,7 +7581,7 @@ $('adActs').onclick = (e) => {
     await apptAction(a.ref, btn.dataset.ad);
     if ($('personDlg').open && person) reloadPerson();
   }, 170);
-};
+});
 
 // ── lunch and blocks ──────────────────────────────────────────────────────
 let blockFor = null;
@@ -8156,7 +8221,13 @@ function activityBy(e) {
   else if (b.kind === 'team') { pic = `<i class="team">${ic('users-plus')}</i>`; label = b.name || 'The team'; }
   else { pic = `<i class="team">${ic('sync')}</i>`; label = b.name || 'The app'; }
   const verb = e.type === 'email' || e.type === 'sms' ? (e.direction === 'in' ? 'From' : 'Sent by') : 'By';
-  return `<span class="tl-by k-${esc(b.kind)}" title="${esc(`${verb} ${label}`)}">${pic}<span>${esc(label)}</span></span>`;
+  // The picture sits on the bottom-right corner of the event's icon (asked
+  // for 2026-11-03), as a client's stylist sits on their circle; the name
+  // stays as a small line under the event.
+  return {
+    badge: `<span class="tl-badge k-${esc(b.kind)}" title="${esc(`${verb} ${label}`)}" aria-hidden="true">${pic}</span>`,
+    line: `<span class="tl-by" title="${esc(`${verb} ${label}`)}">${esc(label)}</span>`,
+  };
 }
 
 function fmtWhen(iso, opts) {
@@ -8460,11 +8531,18 @@ function renderPerson() {
 
 /** An email's status on the client's Activity: Sent, or Failed with the
     provider's reason on hover (2026-10-31). */
+/** A visit's day on the Activity: Today or Tomorrow with the date, else the weekday, date and year. */
+function apptDay(iso) {
+  const d = minutesDate(iso);
+  return /^(Today|Tomorrow)$/.test(dayLabel(d)) ? dateLabel(d)
+    : fmtWhen(iso, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function emailStatus(e) {
-  if (e.type !== 'email' || !e.status) return '';
-  return e.status === 'failed'
-    ? ` <span class="chip warn tl-st" title="${esc(e.error || 'The email provider refused it.')}">Failed</span>`
-    : ' <span class="chip ok tl-st">Sent</span>';
+  // Only a failure is marked (2026-11-03): an email on the Activity has been
+  // sent, and a "Sent" chip beside it said the same thing twice.
+  if (e.type !== 'email' || e.status !== 'failed') return '';
+  return ` <span class="chip warn tl-st" title="${esc(e.error || 'The email provider refused it.')}">Failed</span>`;
 }
 
 function renderTimeline() {
@@ -8496,15 +8574,15 @@ function renderTimeline() {
     const opens = (e) => (e.sentId
       ? ` data-sent="${esc(e.sentId)}" tabindex="0" role="button" aria-label="${esc(e.title)}: open the email"`
       : e.ref ? ` data-ticket="${esc(e.ref)}" tabindex="0" role="button" aria-label="${esc(e.title)}: open the ticket"` : '');
-    body = `<ol class="tl">${shown.map((e) => `
+    body = `<ol class="tl">${shown.map((e) => { const by = activityBy(e); return `
       <li class="t-${esc(e.type)} k-${esc(e.tone || e.type)}"${opens(e)}>
-        <span class="dot">${ic(TL_ICON[e.type] || 'info')}</span>
+        <span class="dot">${ic(TL_ICON[e.type] || 'info')}${by ? by.badge : ''}</span>
         <div class="what"><b>${esc(e.title)}${emailStatus(e)}</b>
           ${e.detail ? `<span>${esc(e.detail)}</span>` : ''}
-          ${e.apptAt ? `<span class="tl-appt">${ic('calendar')}Appointment ${esc(fmtWhen(e.apptAt, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }))} at ${esc(fmtWhen(e.apptAt, { hour: 'numeric', minute: '2-digit' }))}</span>` : ''}
-          ${activityBy(e)}</div>
+          ${e.apptAt ? `<span class="tl-appt">${ic('calendar')}Appointment ${esc(apptDay(e.apptAt))} at ${esc(fmtWhen(e.apptAt, { hour: 'numeric', minute: '2-digit' }))}</span>` : ''}
+          ${by ? by.line : ''}</div>
         <time datetime="${esc(e.at)}"><b>${esc(ago(e.at))}</b>${esc(fmtWhen(e.at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))}</time>
-      </li>`).join('')}</ol>`;
+      </li>`; }).join('')}</ol>`;
   }
   $('pxRight').innerHTML = `<div class="tl-head"><h3>Activity</h3><div class="tl-filters" role="group" aria-label="Filter activity">${filters}</div></div>${body}${composeHtml()}`;
   paintCompose();
@@ -8544,7 +8622,7 @@ function paintCompose() {
   if (!pxDraft.ch) pxDraft.ch = 'sms';
   const ch = pxDraft.ch;
   for (const b of f.querySelectorAll('[data-ch]')) b.setAttribute('aria-pressed', String(b.dataset.ch === ch));
-  // Text is red and Email blue, on the switch, the box's edge and Send, so
+  // Text is blue and Email red, on the switch, the box's edge and Send, so
   // which one is about to go is plain before it is sent (2026-11-03).
   f.dataset.ch = ch;
   $('pcSend').innerHTML = `${ic('send')}Send ${ch === 'sms' ? 'text' : 'email'}`;
@@ -12682,7 +12760,7 @@ async function start(landing) {
   paintMe();
   // Settings is everyone's now (Team Settings lives there); the Billing
   // card and the Payroll tab are only for owners, admins and managers.
-  for (const b of document.querySelectorAll('#setSeg [data-admin], #billingCard')) b.classList.toggle('hidden', !me.user.canAdmin);
+  for (const b of document.querySelectorAll('#setSeg [data-admin]')) b.classList.toggle('hidden', !me.user.canAdmin);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
 

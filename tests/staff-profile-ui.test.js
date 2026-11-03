@@ -58,8 +58,8 @@ test('Activity filters are Admin, not Automations or Forms; no reference numbers
   assert.match(body('renderTimeline'), /apptAt/);
 });
 
-test('messages start on Text, red, with Email blue', () => {
+test('messages start on Text, blue, with Email red', () => {
   assert.match(body('openPerson'), /pxDraft = \{ ch: 'sms'/);
-  assert.match(html, /\.px-compose \{ --pc: #c8323f;/);
-  assert.match(html, /\.px-compose\[data-ch="email"\] \{ --pc: #2f6fd6;/);
+  assert.match(html, /\.px-compose \{ --pc: #2f6fd6;/);
+  assert.match(html, /\.px-compose\[data-ch="email"\] \{ --pc: #c8323f;/);
 });
