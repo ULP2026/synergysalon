@@ -11,6 +11,7 @@
 import { DateTime } from 'luxon';
 
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertClientInChair, chairOf, seesAll } from '../../_lib/scope.js';
 import { query } from '../../_lib/db.js';
 import { MESSAGE_KINDS, automationOn, previewMessage, previewStaffEmail } from '../../_lib/email.js';
 import { prettyPhone, smsText } from '../../_lib/karen-sms.js';
@@ -426,6 +427,25 @@ export default handler({
     const q = new URL(req.url, 'http://localhost').searchParams;
     const kind = q.get('preview');
     if (kind) return json(res, 200, await preview(kind, tenant));
+    // The email and text logs, the automations' sends and Finance are every
+    // client's and every chair's: the owner's only (asked for 2026-11-03,
+    // scope.js). A template's preview, with sample details, is anyone's.
+    const ownerOnly = ['automations', 'sends', 'history', 'finance', 'recipients'];
+    if (ownerOnly.some((k) => q.has(k)) && !seesAll(user)) {
+      throw new HttpError(403, 'Only the salon owner can see that.');
+    }
+    // One sent email opens for anyone whose client it was sent to (their
+    // client's Activity links it); nobody else's.
+    if (q.has('sent') && !seesAll(user)) {
+      const { rows } = await query(
+        `SELECT COALESCE(to_jsonb(m) ->> 'contact_id', a.contact_id::text) AS contact_id
+           FROM message_sends m LEFT JOIN appointments a ON a.id = m.appointment_id
+          WHERE m.id::text = $1::text AND m.tenant_id = $2::uuid`,
+        [String(q.get('sent')), tenant.id],
+      ).catch(() => ({ rows: [] }));
+      if (!rows[0]?.contact_id) throw new HttpError(404, 'That email is not on record.');
+      await assertClientInChair(user, rows[0].contact_id, await chairOf(user));
+    }
     if (q.has('sent')) return json(res, 200, await sentMessage(q.get('sent'), tenant));
     if (q.has('automations')) return json(res, 200, await automations(tenant));
     if (q.has('sends')) return json(res, 200, await automationSends(tenant, q.get('sends'), q.get('before')));

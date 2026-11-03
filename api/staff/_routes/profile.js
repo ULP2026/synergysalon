@@ -8,8 +8,8 @@
  * somebody *else* is team management, and lives in team.js behind a role
  * check.
  */
-import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
-import { query, transaction } from '../../_lib/db.js';
+import { assertSameOrigin, canManageTeam, needsOnboarding, requireStaff } from '../../_lib/auth.js';
+import { hasColumn, query, transaction } from '../../_lib/db.js';
 import { hoursFor, readHours, syncStylist } from '../../_lib/roster.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
@@ -211,7 +211,7 @@ export function servicesFrom(value) {
 
 export default handler({
   async GET(req, res) {
-    const user = await requireStaff(req);
+    const user = await requireStaff(req, null, { onboarding: true });
     // to_jsonb reads the two newer columns without naming them, so this page
     // still loads on a database that has not had migration 011 yet.
     const { rows } = await query(
@@ -257,13 +257,14 @@ export default handler({
       since: me.created_at,
       lastSeen: me.last_seen_at,
       minPasswordLength: MIN_PASSWORD_LENGTH,
+      onboarding: needsOnboarding(user),
       google: (() => { try { return googleStatus(me); } catch { return undefined; } })(),
     });
   },
 
   async PATCH(req, res) {
     assertSameOrigin(req);
-    const user = await requireStaff(req);
+    const user = await requireStaff(req, null, { onboarding: true });
     const body = await readJson(req);
 
     const sets = [];
@@ -337,7 +338,11 @@ export default handler({
     // everybody else and here for their own. A stylist's own hours sent here
     // are ignored, so the stored rota stands.
     const hours = canManageTeam(user) ? readHours(body.hours) : null;
-    if (!sets.length && !hours) throw new HttpError(400, 'Nothing to change.');
+    // The last step of onboarding (2026-11-03): the account is complete, so
+    // the app opens. Checked against what is stored once this save is in, so
+    // a stylist cannot finish without the mobile Karen knows them by.
+    const finishing = body.finishOnboarding === true && needsOnboarding(user);
+    if (!sets.length && !hours && !finishing) throw new HttpError(400, 'Nothing to change.');
 
     const returning = `RETURNING id, name, email, phone, role, avatar,
                   to_jsonb(staff_users) ->> 'username' AS username,
@@ -354,7 +359,15 @@ export default handler({
         services: rows[0].services, hours,
       }));
     }
+    if (finishing) {
+      const done = rows[0];
+      if (!String(done.name || '').trim()) throw new HttpError(400, 'Add your name first.');
+      assertStylistPhone(done.role, done.phone);
+      if (await hasColumn('staff_users', 'onboarded_at')) {
+        await query('UPDATE staff_users SET onboarded_at = now() WHERE id = $1 AND onboarded_at IS NULL', [user.id]);
+      }
+    }
     const { id, ...out } = rows[0];
-    return json(res, 200, { ...out, saved: true });
+    return json(res, 200, { ...out, saved: true, ...(finishing ? { onboarded: true } : {}) });
   },
 });

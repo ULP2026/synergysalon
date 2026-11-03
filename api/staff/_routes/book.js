@@ -11,6 +11,7 @@
  * absolutely can.
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertClientInChair, bookableSlug, chairOf } from '../../_lib/scope.js';
 import { createBooking } from '../../_lib/booking.js';
 import { query, transaction } from '../../_lib/db.js';
 import { sendConfirmation } from '../../_lib/email.js';
@@ -29,6 +30,12 @@ export default handler({
     const body = await readJson(req);
 
     const contactId = typeof body.contact === 'string' && body.contact ? body.contact : null;
+    // Into their own chair only, for anyone but the owner, and for a client
+    // already in their book (scope.js); a new client is made as before.
+    const stylistSlug = await bookableSlug(user, body.stylist && body.stylist !== 'any'
+      ? requireId(body.stylist, 'Stylist')
+      : null);
+    if (contactId) await assertClientInChair(user, contactId, await chairOf(user));
 
     const appointment = await transaction(async (client) => {
       let guestName = typeof body.name === 'string' ? body.name.trim() : '';
@@ -60,9 +67,7 @@ export default handler({
         extraServiceSlugs: (Array.isArray(body.with) ? body.with : String(body.with || '').split(','))
           .map((x) => String(x).trim()).filter(Boolean).slice(0, 5)
           .map((x) => requireId(x, 'Service')),
-        stylistSlug: body.stylist && body.stylist !== 'any'
-          ? requireId(body.stylist, 'Stylist')
-          : null,
+        stylistSlug,
         start: requireString(body.start, 'Appointment time', { max: 40 }),
         guestName,
         guestEmail,

@@ -261,6 +261,11 @@ const STATEMENTS = [
      new_value   text,
      created_at  timestamptz NOT NULL DEFAULT now())`,
   'CREATE INDEX IF NOT EXISTS contact_changes_by_client ON contact_changes (tenant_id, contact_id, created_at DESC)',
+  // 042: onboarding. Added with now() so everyone already on the team counts
+  // as done, then the default dropped so anyone added later starts at NULL.
+  // Run again, the ADD finds the column and fills nothing.
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS onboarded_at timestamptz DEFAULT now()',
+  'ALTER TABLE staff_users ALTER COLUMN onboarded_at DROP DEFAULT',
 ];
 
 let done = null;

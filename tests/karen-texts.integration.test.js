@@ -133,7 +133,7 @@ const lastResult = (params) => {
   return block ? { ...JSON.parse(block.content), is_error: Boolean(block.is_error) } : null;
 };
 
-test('a stylist sees the whole salon by text and can cancel any appointment in it', { skip }, async () => {
+test('a stylist sees only their own chair by text and can cancel only in it', { skip }, async () => {
   const client = await connect();
   client.inTransaction = true;
   try {
@@ -169,12 +169,13 @@ test('a stylist sees the whole salon by text and can cancel any appointment in i
     const mine = await book('ZZCHR1', dina, 'ZZ Maria Mine', 3);
     await book('ZZCHR2', micah, 'ZZ Other Client', 3);
 
-    // Every team member, whatever their role, sees the whole salon and may
-    // change any of it (2026-10-31); it used to be their own chair only.
+    // Only the owner sees the whole salon (2026-11-03, scope.js): a stylist
+    // sees and changes only their own chair. Between 2026-10-31 and then,
+    // every team member could change any appointment by text.
     const claude = fakeClaude((params, n) => {
       const facts = params.system[1].text;
-      assert.match(facts, /a stylist, who may book new appointments for clients and move or cancel any appointment in the salon/);
-      assert.match(facts, /ZZ Other Client: Haircuts? with Micah/, "another stylist's client is listed too");
+      assert.match(facts, /a stylist, who may book new appointments for clients into their own chair and move or cancel only the appointments in their own chair/);
+      assert.doesNotMatch(facts, /ZZ Other Client/, "another stylist's client is not listed");
       const mineAt = Number((facts.match(/(\d+)\. ZZ Maria Mine: Haircuts? with Dina/) || [])[1]);
       assert.ok(mineAt, 'their own client is listed');
       return n === 1 ? use('propose_cancel', { appointment: mineAt }) : say("Cancel ZZ's haircut on Friday? Reply YES to confirm.");

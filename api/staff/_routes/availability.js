@@ -14,6 +14,7 @@
  * staff looking at the person in front of them should be able to.
  */
 import { requireStaff } from '../../_lib/auth.js';
+import { bookableSlug } from '../../_lib/scope.js';
 import { availableSlots } from '../../_lib/availability.js';
 import { pool } from '../../_lib/db.js';
 import { HttpError, handler, json, requireDate, requireId } from '../../_lib/http.js';
@@ -27,9 +28,10 @@ export default handler({
 
     const serviceSlug = requireId(url.searchParams.get('service'), 'Service');
     const stylistParam = url.searchParams.get('stylist');
-    const stylistSlug = stylistParam && stylistParam !== 'any'
+    // Their own chair only, for anyone but the owner (scope.js).
+    const stylistSlug = await bookableSlug(user, stylistParam && stylistParam !== 'any'
       ? requireId(stylistParam, 'Stylist')
-      : null;
+      : null);
     const date = requireDate(url.searchParams.get('date'), 'Date');
     const to = url.searchParams.get('to') ? requireDate(url.searchParams.get('to'), 'End date') : date;
     const span = (Date.parse(to) - Date.parse(date)) / 86_400_000;

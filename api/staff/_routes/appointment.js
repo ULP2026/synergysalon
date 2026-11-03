@@ -19,6 +19,7 @@ import { DateTime } from 'luxon';
 
 import { availableSlots } from '../../_lib/availability.js';
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { chairOf, inChair } from '../../_lib/scope.js';
 import { EXCLUSION_VIOLATION, query, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle, removeGoogleCopies } from '../../_lib/google-mirror.js';
 import { sendCancellation, sendReschedule } from '../../_lib/email.js';
@@ -362,12 +363,29 @@ export async function moveAppointment(tenant, user, ref, { start, stylist, notif
   return { appt, moved };
 }
 
+/**
+ * Anyone but the owner reaches only appointments in their own chair (asked
+ * for 2026-11-03, scope.js), and moves them only within it. Anything else
+ * reads as not found, which is all it is to them.
+ */
+export async function assertMyAppointment(user, tenant, ref, { toStylist = null } = {}) {
+  const chair = await chairOf(user);
+  if (!chair) return;
+  const { rows } = await query(
+    'SELECT stylist_id FROM appointments WHERE tenant_id = $1::uuid AND ref = $2::text',
+    [tenant.id, ref],
+  );
+  if (!rows[0] || !inChair(chair, rows[0].stylist_id)) throw new HttpError(404, 'No appointment with that reference.');
+  if (toStylist && !chair.slugs.includes(toStylist)) throw new HttpError(403, 'You can only move it within your own chair.');
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
     const url = new URL(req.url, 'http://localhost');
     const ref = requireString(url.searchParams.get('ref'), 'Reference', { max: 16 }).toUpperCase();
+    await assertMyAppointment(user, tenant, ref, { toStylist: url.searchParams.get('stylist') || null });
     if (url.searchParams.has('times')) {
       const date = requireDate(url.searchParams.get('times'), 'Date');
       const slug = url.searchParams.get('stylist') || null;
@@ -386,6 +404,7 @@ export default handler({
 
     const ref = requireString(body.ref, 'Reference', { max: 16 }).toUpperCase();
     const action = requireString(body.action, 'Action', { max: 20 });
+    await assertMyAppointment(user, tenant, ref, { toStylist: action === 'move' ? body.stylist || null : null });
     if (action === 'move') {
       // Notifying is the default; only an explicit false keeps it quiet.
       const notify = body.notify !== false;

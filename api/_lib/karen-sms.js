@@ -415,11 +415,14 @@ async function facts(ctx) {
     'SELECT slug, name, category FROM services WHERE tenant_id = $1::uuid AND active ORDER BY category, name',
     [tenant.id],
   );
+  // A team member who is not the owner books only into their own chair.
+  const own = ctx.who.kind === 'staff' && !ctx.who.admin;
   const { rows: stylists } = await db.query(
     `SELECT slug, name FROM stylists
       WHERE tenant_id = $1::uuid AND active AND (to_jsonb(stylists) ->> 'removed_at') IS NULL
+        AND (NOT $2::boolean OR id = $3::uuid)
       ORDER BY name`,
-    [tenant.id],
+    [tenant.id, own, ctx.who.stylist_id || null],
   );
   // The team books as the desk does, so online booking being paused does
   // not stop them; clients follow ONLINE_BOOKING.
@@ -498,7 +501,9 @@ async function staffSchedule({ tenant, who, t, db }) {
         AND ($4::uuid IS NULL OR a.stylist_id = $4::uuid)
       ORDER BY a.starts_at
       LIMIT 40`,
-    [tenant.id, span.from.toISO(), span.to.toISO(), who.stylist_id || null],
+    // The owner with no chair asks about the salon's day; anyone else only
+    // ever about their own (asked for 2026-11-03), nothing if they have none.
+    [tenant.id, span.from.toISO(), span.to.toISO(), who.admin ? (who.stylist_id || null) : (who.stylist_id || '00000000-0000-0000-0000-000000000000')],
   );
   // Somebody with no chair of their own (the owner, the front desk) asks
   // about the salon's day; a stylist about theirs.
@@ -545,7 +550,7 @@ async function upcoming({ tenant, who, db }) {
  * Book). It used to be their own chair's, or the whole salon's for the
  * admin. Same columns as a client's list, plus the client.
  */
-async function chairAhead({ tenant, db }) {
+async function chairAhead({ tenant, who, db }) {
   const { rows } = await db.query(
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.buffer_min, a.breaks, a.notes, a.contact_id,
             to_jsonb(a) -> 'services' AS lines, a.guest_name AS client,
@@ -555,9 +560,12 @@ async function chairAhead({ tenant, db }) {
        JOIN services v ON v.id = a.service_id
       WHERE a.tenant_id = $1::uuid AND a.status = 'booked'
         AND a.starts_at > now() AND a.starts_at < now() + interval '14 days'
+        -- The owner the whole salon; anyone else their own chair only
+        -- (asked for 2026-11-03, scope.js).
+        AND ($2::boolean OR a.stylist_id = $3::uuid)
       ORDER BY a.starts_at
       LIMIT 40`,
-    [tenant.id],
+    [tenant.id, Boolean(who?.admin), who?.stylist_id || null],
   );
   return rows;
 }
@@ -809,6 +817,12 @@ async function offerBook(ctx, service, day = null) {
  */
 async function deskBook(ctx, service, p) {
   const { tenant, who } = ctx;
+  // Into their own chair only, unless they are the owner (scope.js).
+  if (!who.admin) {
+    const { rows: own } = await ctx.db.query('SELECT slug FROM stylists WHERE id = $1::uuid', [who.stylist_id || null]);
+    if (!own[0]) return { say: 'You have no chair to book into yet, so I can\'t book this one. The salon owner can set that up.', state: {} };
+    p = { ...p, stylist: own[0].slug };
+  }
   let appt;
   try {
     appt = await inTx(ctx.db, (client) => createBooking(client, tenant, {

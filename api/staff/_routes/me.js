@@ -5,7 +5,7 @@
  * the login form or the diary without a round trip that loses the URL someone
  * was trying to reach.
  */
-import { canManageTeam, requireStaff } from '../../_lib/auth.js';
+import { canManageTeam, needsOnboarding, requireStaff } from '../../_lib/auth.js';
 import { REMINDER_LEAD_HOURS } from '../../_lib/config.js';
 import { query } from '../../_lib/db.js';
 import { googleConfigured } from '../../_lib/google.js';
@@ -17,7 +17,8 @@ import { tenantForUser } from '../../_lib/tenant.js';
 
 export default handler({
   async GET(req, res) {
-    const user = await requireStaff(req);
+    // Open during onboarding: it is how the console knows to show the setup.
+    const user = await requireStaff(req, null, { onboarding: true });
     const tenant = await tenantForUser(user);
     // Every console session starts here, so this is where the profile
     // columns get made if db:migrate has not been run (see ensure-schema.js).
@@ -47,8 +48,12 @@ export default handler({
                        WHERE x.stylist_id = s.id AND v.active) AS services
            FROM stylists s
            LEFT JOIN staff_users u ON u.id = s.staff_user_id
-          WHERE s.tenant_id = $1 AND s.active ORDER BY s.sort_order`,
-        [tenant.id],
+          WHERE s.tenant_id = $1 AND s.active
+            -- Anyone but the owner has only their own chair (scope.js), so
+            -- New appointment and Appt. Book offer only them.
+            AND ($2::boolean OR s.staff_user_id = $3::uuid)
+          ORDER BY s.sort_order`,
+        [tenant.id, canManage, user.id],
       ),
       // Drives the badge on Settings, so a request does not sit unseen.
       canManage
@@ -70,14 +75,18 @@ export default handler({
            FROM staff_users u
            LEFT JOIN stylists s ON s.staff_user_id = u.id
           WHERE u.tenant_id = $1 AND u.status = 'active'
+            AND ($2::boolean OR u.id = $3::uuid)
           ORDER BY u.name`,
-        [tenant.id],
+        [tenant.id, canManage, user.id],
       ),
     ]);
 
     return json(res, 200, {
       user: {
         name: user.name, email: user.email, role: user.role, canAdmin, canManageTeam: canManage,
+        // Still to complete their account (2026-11-03): the console shows only
+        // the setup screen, and every other endpoint refuses them (auth.js).
+        onboarding: needsOnboarding(user),
         avatar: user.avatar ?? null,
         photo: own.rows[0]?.photo ?? (own.rows[0] ? stylistPhoto(tenant.slug, own.rows[0].slug) : null),
       },

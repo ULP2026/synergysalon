@@ -23,6 +23,7 @@ import { DateTime } from 'luxon';
 import { applyAppointmentAction } from '../staff/_routes/appointment.js';
 import { query } from './db.js';
 import { automationOn, sendConfirmation, sendReminder } from './email.js';
+import { chairIds, chairOf } from './scope.js';
 import { visitLinesSql, visitNameSql } from './visit.js';
 
 const TTL_MIN = 15;
@@ -41,7 +42,10 @@ export const DOABLE = {
 /** Where one person's pending proposal is kept: karen_threads, keyed by them. */
 const keyFor = (user) => `desk:${user.id}`;
 
-async function rowsFor(tenant, refs, db) {
+async function rowsFor(tenant, refs, db, user = null) {
+  // Only appointments in the asker's own chair, unless they are the owner
+  // (asked for 2026-11-03, scope.js): the rest read as not found.
+  const mine = user ? chairIds(await chairOf(user, db)) : null;
   const q = db ? db.query.bind(db) : query;
   const clean = [...new Set((refs || []).map((r) => String(r).trim().toUpperCase()).filter(Boolean))].slice(0, MAX_ITEMS);
   if (!clean.length) return { clean, rows: [] };
@@ -51,8 +55,9 @@ async function rowsFor(tenant, refs, db) {
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
       WHERE a.tenant_id = $1::uuid AND a.ref = ANY($2::text[])
+        AND ($3::uuid[] IS NULL OR a.stylist_id = ANY($3::uuid[]))
       ORDER BY a.starts_at`,
-    [tenant.id, clean],
+    [tenant.id, clean, mine],
   );
   return { clean, rows };
 }
@@ -95,7 +100,7 @@ export async function propose({ tenant, user, db = null }, input) {
     return { nothing: true, reason: `${SENDABLE[kind][0].toUpperCase()}${SENDABLE[kind].slice(1)} emails are switched off in Settings, Automations, so none would go. Switch them back on there first.` };
   }
 
-  const { clean, rows } = await rowsFor(tenant, input.refs, db);
+  const { clean, rows } = await rowsFor(tenant, input.refs, db, user);
   if (!clean.length) return { error: 'Give the appointment refs from the appointments look-up.' };
   const found = new Map(rows.map((r) => [r.ref, r]));
   const go = [];
@@ -164,7 +169,7 @@ export async function confirm({ tenant, user, db = null }, id) {
   }
 
   const zone = tenant.timezone;
-  const { rows: appts } = await rowsFor(tenant, p.refs, db);
+  const { rows: appts } = await rowsFor(tenant, p.refs, db, user);
   const ok = [];
   const no = [];
   for (const a of appts) {

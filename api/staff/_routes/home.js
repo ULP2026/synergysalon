@@ -39,6 +39,7 @@ import {
 import {
   HttpError, handler, json, readJson,
 } from '../../_lib/http.js';
+import { chairIds, chairOf, clientInChairSql } from '../../_lib/scope.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { visitNameSql } from '../../_lib/visit.js';
 
@@ -49,13 +50,19 @@ const UPCOMING = 6;
 const KEPT = "a.status::text NOT IN ('cancelled', 'no_show')";
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/**
+ * Home counts only the person's own chair unless they are the owner (asked
+ * for 2026-11-03, scope.js): $n is the chair's stylist ids, NULL for all.
+ */
+const OWN = (n) => `AND ($${n}::uuid[] IS NULL OR a.stylist_id = ANY($${n}::uuid[]))`;
+
 /** Every day or week in the range, with 0 where nothing was counted. */
 function fill(rows, keys, label) {
   const by = new Map(rows.map((r) => [r.k, r]));
   return keys.map((k) => ({ key: k, label: label(k), value: Number(by.get(k)?.n ?? 0) }));
 }
 
-async function charts(tenant, now) {
+async function charts(tenant, now, mine = null, userId = null) {
   const zone = tenant.timezone;
   const today = now.startOf('day');
   const ahead14 = today.plus({ days: 14 });
@@ -68,9 +75,9 @@ async function charts(tenant, now) {
       `SELECT to_char((a.starts_at AT TIME ZONE $2::text)::date, 'YYYY-MM-DD') AS k, count(*)::int AS n
          FROM appointments a
         WHERE a.tenant_id = $1::uuid AND a.status::text <> 'cancelled'
-          AND a.starts_at >= $3::timestamptz AND a.starts_at < $4::timestamptz
+          AND a.starts_at >= $3::timestamptz AND a.starts_at < $4::timestamptz ${OWN(5)}
         GROUP BY 1`,
-      [...p, today.toISO(), ahead14.toISO()],
+      [...p, today.toISO(), ahead14.toISO(), mine],
     ),
     query(
       `SELECT to_char(date_trunc('week', a.starts_at AT TIME ZONE $2::text), 'YYYY-MM-DD') AS k,
@@ -79,40 +86,41 @@ async function charts(tenant, now) {
               count(*) FILTER (WHERE a.price_cents IS NULL AND v.price_cents IS NULL)::int AS unpriced
          FROM appointments a JOIN services v ON v.id = a.service_id
         WHERE a.tenant_id = $1::uuid AND ${KEPT}
-          AND a.starts_at >= $3::timestamptz AND a.starts_at <= now()
+          AND a.starts_at >= $3::timestamptz AND a.starts_at <= now() ${OWN(4)}
         GROUP BY 1`,
-      [...p, week0.toISO()],
+      [...p, week0.toISO(), mine],
     ),
     query(
       `SELECT v.category AS k, count(*)::int AS n
          FROM appointments a JOIN services v ON v.id = a.service_id
         WHERE a.tenant_id = $1::uuid AND ${KEPT}
-          AND a.starts_at >= $2::timestamptz AND a.starts_at <= now()
+          AND a.starts_at >= $2::timestamptz AND a.starts_at <= now() ${OWN(3)}
         GROUP BY 1 ORDER BY 2 DESC`,
-      [tenant.id, since30.toISO()],
+      [tenant.id, since30.toISO(), mine],
     ),
     query(
       `SELECT s.name AS k, count(*)::int AS n
          FROM appointments a JOIN stylists s ON s.id = a.stylist_id
         WHERE a.tenant_id = $1::uuid AND ${KEPT}
-          AND a.starts_at >= $2::timestamptz AND a.starts_at <= now()
+          AND a.starts_at >= $2::timestamptz AND a.starts_at <= now() ${OWN(3)}
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8`,
-      [tenant.id, since30.toISO()],
+      [tenant.id, since30.toISO(), mine],
     ),
     query(
       `SELECT COALESCE(NULLIF(trim(c.source), ''), 'Not recorded') AS k, count(*)::int AS n
          FROM contacts c
         WHERE c.tenant_id = $1::uuid AND c.created_at >= $2::timestamptz
+          AND ${clientInChairSql('c', '$3', '$4')}
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8`,
-      [tenant.id, since30.toISO()],
+      [tenant.id, since30.toISO(), mine, userId],
     ),
     query(
       `SELECT extract(dow FROM a.starts_at AT TIME ZONE $2::text)::int AS k, count(*)::int AS n
          FROM appointments a
         WHERE a.tenant_id = $1::uuid AND ${KEPT}
-          AND a.starts_at >= $3::timestamptz AND a.starts_at <= now()
+          AND a.starts_at >= $3::timestamptz AND a.starts_at <= now() ${OWN(4)}
         GROUP BY 1`,
-      [...p, since90.toISO()],
+      [...p, since90.toISO(), mine],
     ),
     // Through to_jsonb, so Home still loads before migration 019.
     query("SELECT to_jsonb(t) -> 'home_layout' AS layout FROM tenants t WHERE t.id = $1::uuid", [tenant.id]),
@@ -153,6 +161,7 @@ export default handler({
     const dayFrom = now.startOf('day').toISO();
     const dayTo = now.endOf('day').toISO();
     const since = now.minus({ days: 30 }).toISO();
+    const mine = chairIds(await chairOf(user));
 
     const [clients, today, upcoming, past, dash, appts30] = await Promise.all([
       // Served is a visit that happened. Contacts the website saved for a
@@ -166,8 +175,8 @@ export default handler({
                      AND p.starts_at < $2::timestamptz))::int AS fresh
            FROM (SELECT DISTINCT a.contact_id FROM appointments a
                   WHERE a.tenant_id = $1::uuid AND a.contact_id IS NOT NULL AND ${KEPT}
-                    AND a.starts_at >= $2::timestamptz AND a.starts_at <= now()) c`,
-        [tenant.id, since],
+                    AND a.starts_at >= $2::timestamptz AND a.starts_at <= now() ${OWN(3)}) c`,
+        [tenant.id, since, mine],
       ),
       query(
         `SELECT count(*)::int AS n,
@@ -176,8 +185,8 @@ export default handler({
            FROM appointments a
            JOIN services v ON v.id = a.service_id
           WHERE a.tenant_id = $1::uuid AND a.status <> 'cancelled'
-            AND a.starts_at >= $2::timestamptz AND a.starts_at <= $3::timestamptz`,
-        [tenant.id, dayFrom, dayTo],
+            AND a.starts_at >= $2::timestamptz AND a.starts_at <= $3::timestamptz ${OWN(4)}`,
+        [tenant.id, dayFrom, dayTo, mine],
       ),
       query(
         `SELECT a.ref, a.starts_at, a.duration_min, a.channel, a.checked_in_at,
@@ -190,22 +199,22 @@ export default handler({
            FROM appointments a
            JOIN stylists s ON s.id = a.stylist_id
            JOIN services v ON v.id = a.service_id
-          WHERE a.tenant_id = $1::uuid AND a.status = 'booked' AND a.starts_at > now()
+          WHERE a.tenant_id = $1::uuid AND a.status = 'booked' AND a.starts_at > now() ${OWN(2)}
           ORDER BY a.starts_at
           LIMIT ${UPCOMING}`,
-        [tenant.id],
+        [tenant.id, mine],
       ),
       query(
-        `SELECT count(*)::int AS n FROM appointments
-          WHERE tenant_id = $1::uuid AND status <> 'cancelled' AND starts_at <= now()`,
-        [tenant.id],
+        `SELECT count(*)::int AS n FROM appointments a
+          WHERE a.tenant_id = $1::uuid AND a.status <> 'cancelled' AND a.starts_at <= now() ${OWN(2)}`,
+        [tenant.id, mine],
       ),
-      charts(tenant, now),
+      charts(tenant, now, mine, user.id),
       query(
-        `SELECT count(*)::int AS n FROM appointments
-          WHERE tenant_id = $1::uuid AND status::text <> 'cancelled'
-            AND starts_at >= $2::timestamptz AND starts_at <= now()`,
-        [tenant.id, since],
+        `SELECT count(*)::int AS n FROM appointments a
+          WHERE a.tenant_id = $1::uuid AND a.status::text <> 'cancelled'
+            AND a.starts_at >= $2::timestamptz AND a.starts_at <= now() ${OWN(3)}`,
+        [tenant.id, since, mine],
       ),
     ]);
 

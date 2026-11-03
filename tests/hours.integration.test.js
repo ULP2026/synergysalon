@@ -166,9 +166,11 @@ test("Appt. Book's day carries each stylist's hours, and none on a day off", { s
   const { tenant } = await setup();
   const db = pool();
   try {
+    // The owner, who sees every stylist's day (only the owner does, since
+    // 2026-11-03; scope.js).
     const desk = (await db.query(
       `INSERT INTO staff_users (tenant_id, email, password_hash, name, role)
-       VALUES ($1, 'zz-hours-desk@example.com', 'x', 'ZZ Desk', 'front_desk') RETURNING *`, [tenant.id],
+       VALUES ($1, 'zz-hours-desk@example.com', 'x', 'ZZ Desk', 'owner') RETURNING *`, [tenant.id],
     )).rows[0];
     const res = { headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; } };
     await createSession(res, desk);

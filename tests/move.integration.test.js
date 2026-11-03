@@ -63,7 +63,7 @@ async function setup() {
   )).rows[0].id;
   const desk = (await db.query(
     `INSERT INTO staff_users (tenant_id, email, password_hash, name, role)
-     VALUES ($1, 'zz-move-desk@example.com', 'x', 'ZZ Desk', 'front_desk') RETURNING *`, [t.id],
+     VALUES ($1, 'zz-move-desk@example.com', 'x', 'ZZ Desk', 'owner') RETURNING *`, [t.id],
   )).rows[0];
   const res = { headers: {}, setHeader(k, v2) { this.headers[k.toLowerCase()] = v2; } };
   await createSession(res, desk);
