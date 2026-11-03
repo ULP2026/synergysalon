@@ -2371,8 +2371,43 @@
   .switch[aria-checked="true"] { background: var(--periwinkle); }
   .switch[aria-checked="true"] span { transform: translateX(20px); }
   .switch:disabled { opacity: .45; cursor: not-allowed; }
-  .my-work-acts { display: flex; justify-content: flex-end; margin-top: 14px; }
-  #myWorkSlot .md-sec:first-child { margin-top: 0; }
+  .my-work-acts { display: flex; justify-content: flex-end; margin-top: 12px; }
+  /* My services, pricing & hours: compact (2026-11-03). One tab at a time,
+     the long explanations left to the Team window, tighter rows. */
+  .mw-tabs { margin: 2px 0 12px; }
+  #myWorkSlot[data-mw="svc"] .mw-hrs, #myWorkSlot[data-mw="hrs"] .mw-svc { display: none; }
+  #myWorkSlot .md-sec, #myWorkSlot .mw-long { display: none; }
+  #myWorkSlot .wh-note { margin: 0 0 8px; }
+  #myWorkSlot .svcs { gap: 4px; margin-bottom: 10px; }
+  #myWorkSlot .svc { padding-top: 7px; padding-bottom: 7px; --svc-gap: 8px; gap: 8px 12px; }
+  #myWorkSlot .svc .svc-nm small { display: inline; }
+  #myWorkSlot .svc .svc-nm small.svc-count:not(:empty)::before { content: " · "; color: var(--muted); font-weight: 400; }
+  /* Price and minutes are said by their "$" and "min": the labels go. */
+  #myWorkSlot .svc > .svc-f > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  #myWorkSlot .svc .svc-f input { height: 34px; }
+  #myWorkSlot .svc-notes textarea { min-height: 0; height: 58px; }
+  #myWorkSlot .hrs { gap: 0; margin-bottom: 10px; border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+  #myWorkSlot .hrs .hr { border: 0; border-radius: 0; padding: 5px 12px; }
+  #myWorkSlot .hrs .hr + .hr { border-top: 1px solid var(--line); }
+  #myWorkSlot .hrs .hr input[type=time] { height: 32px; padding: 4px 8px; }
+  #myWorkSlot #memberHours + .hrs { margin-top: 0; }
+  /* An opened kind: its services two to a row where there is room, no
+     header row (each box says "min"), and closer together. */
+  #myWorkSlot .svc .svc-bd { gap: 8px; padding-top: 8px; }
+  #myWorkSlot .svc .svc-list { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); column-gap: 14px; gap: 2px 14px; }
+  #myWorkSlot .svc .svc-list > .svc-it-h { display: none; }
+  #myWorkSlot .svc .svc-list > .hint { grid-column: 1 / -1; margin-top: 4px; }
+  #myWorkSlot .svc .svc-it { padding: 2px 6px; }
+  #myWorkSlot .svc .svc-it-dur input { height: 30px; }
+  #myWorkSlot .svc .svc-time { gap: 4px; }
+  #myWorkSlot .svc .price::before, #myWorkSlot .svc .dur::after { top: 50%; bottom: auto; transform: translateY(-50%); }
+  /* Phones: a kind switched off is one line; its boxes come back with the switch. */
+  @media (max-width:520px) {
+    #myWorkSlot .svc.off > .svc-f { display: none; }
+    /* A day off is one line; its times come back with the switch. */
+    #myWorkSlot .hrs .hr.off input, #myWorkSlot .hrs .hr.off .dash { display: none; }
+    #myWorkSlot .svc .svc-list > .hint { display: none; }
+  }
   .btn.signout { align-self: stretch; justify-content: center; background: var(--card); color: var(--warn);
                  border: 1px solid var(--line); box-shadow: var(--e1); }
   .btn.signout:hover:not(:disabled) { background: #fbe5e7; color: var(--warn); box-shadow: var(--e1); }
@@ -3414,8 +3449,14 @@
                (workTo), so there is one set and one way of saving. -->
           <section class="acard" id="myWorkCard">
             <h2 class="ahead"><svg class="ic"><use href="#i-calendar"/></svg>My services, pricing &amp; hours</h2>
-            <p class="asub">What you offer, what it costs, how long it takes you, and when guests can book you. The salon owner sees these too.</p>
-            <div id="myWorkSlot"></div>
+            <p class="asub">What you offer, your prices and times, and when guests can book you.</p>
+            <!-- Compact (asked for 2026-11-03): services and hours are two tabs
+                 of the one card, not one long column. -->
+            <div class="seg mw-tabs" id="mwTabs" role="group" aria-label="Show">
+              <button type="button" data-mw="svc" aria-pressed="true">Services &amp; pricing</button>
+              <button type="button" data-mw="hrs" aria-pressed="false">Available hours</button>
+            </div>
+            <div id="myWorkSlot" data-mw="svc"></div>
             <div class="my-work-acts"><button type="button" class="btn" id="myWorkSave">Save my services &amp; hours</button></div>
           </section>
 
@@ -3764,14 +3805,17 @@
            open and back here for the owner opening somebody else. -->
       <div id="memberWorkHome" hidden></div>
       <div id="memberWork">
+        <div class="mw-svc">
         <!-- Services and prices: four switches, a price beside each one that is on. -->
         <div class="md-sec">Services &amp; pricing</div>
-        <p class="small muted" style="margin:-6px 0 10px">Turn on each kind of work offered and type its starting price and usual length. Open a kind to choose exactly which of its services are offered and how many minutes each one takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
+        <p class="small muted mw-long" style="margin:-6px 0 10px">Turn on each kind of work offered and type its starting price and usual length. Open a kind to choose exactly which of its services are offered and how many minutes each one takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
         <div class="svcs" id="memberSvcs"></div>
         <label class="svc-notes" id="memberNotesWrap"><span>Special Instructions When Booking Clients</span>
           <textarea id="memberNotes" rows="3" maxlength="2000"
             placeholder="For example: arrive with dry hair, a patch test 48 hours before color."
             aria-label="Special instructions when booking clients, for all of these services"></textarea></label>
+        </div>
+        <div class="mw-hrs">
 
         <!-- Shown, grey and disabled, for everyone for now: the salon sets
              schedules: only the admin sets a stylist's hours (hoursOpen()). -->
@@ -3789,6 +3833,7 @@
             <b>Lunch break</b>
             <span class="wh-lunch-d">30 min between 11 AM and 1 PM, moved around bookings</span>
           </div></div>
+        </div>
         </div>
       </div>
 
@@ -11064,12 +11109,10 @@ function paintHours(hours = []) {
 }
 
 /**
- * Whether these hours can be changed: only by the admin, on anybody's window,
- * their own included, or while adding somebody (a stylist with or without a
- * sign-in). A stylist sees their own schedule grey and cannot change it, as
- * the salon asked, and no hours are sent from it, so the stored ones are
- * kept. The server holds the same line: /profile takes your own hours only
- * from the admin, and /team, which takes everybody's, is the admin's alone.
+ * Whether these hours can be changed: your own, in My Settings (2026-11-03),
+ * and anybody's for the admin, in the Team window or while adding somebody.
+ * The server holds the same line: /profile takes your own, and /team, which
+ * takes everybody's, is the admin's alone.
  */
 function hoursOpen() {
   // Your own in My Settings (2026-11-03), and anyone's for the owner.
@@ -11087,7 +11130,7 @@ function workTo(ctx) {
   if (ctx === 'self') $('myWorkSlot').appendChild(w);
   else $('memberWorkHome').after(w);
   $('whNote').textContent = ctx === 'self'
-    ? 'The times guests can book with you. A day switched off is closed. The salon owner sees them too and can change them.'
+    ? 'When guests can book you. A day switched off is closed.'
     : 'The times guests can book with this person. A day switched off is closed.';
 }
 /** My Settings: your own services, prices and hours, from your own account. */
@@ -11100,6 +11143,12 @@ async function loadMyWork() {
     paintHours(p.hours || []);
     paintHoursState();
   } catch (err) { fail(err); }
+}
+for (const b of document.querySelectorAll('#mwTabs [data-mw]')) {
+  b.onclick = () => {
+    $('myWorkSlot').dataset.mw = b.dataset.mw;
+    for (const x of document.querySelectorAll('#mwTabs [data-mw]')) x.setAttribute('aria-pressed', String(x === b));
+  };
 }
 $('myWorkSave').onclick = async () => {
   const btn = $('myWorkSave');

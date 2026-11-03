@@ -1449,7 +1449,13 @@ made that way are real: name them ZZ and remove them.
   keeps the hours you send (`readHours`): everyone sets their own
   available hours, and the owner still sees and changes everyone's in
   Team, so a wrong one is visible. Hours belong to a chair, so they are
-  kept only once a service is on.
+  kept only once a service is on. The card is compact (asked for 2026-11-03): two
+  tabs, Services & pricing and Available hours (`#mwTabs`,
+  `#myWorkSlot[data-mw]`), one shown at a time; in it the long
+  explanations and the Price/Duration labels are hidden, an opened kind's
+  services sit two to a row, the days are one bordered list, and on a
+  phone a kind or a day switched off is a single line. All of it is CSS
+  under `#myWorkSlot`, so the Team window is unchanged.
   **Who sees what.** Only the owner (`canManageTeam`: role Owner or Admin,
   or the support login) sees everyone's calendar, appointments and clients.
   Everybody else, stylists included, sees only their own chair (the
