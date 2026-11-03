@@ -63,3 +63,11 @@ test('messages start on Text, blue, with Email red', () => {
   assert.match(html, /\.px-compose \{ --pc: #2f6fd6;/);
   assert.match(html, /\.px-compose\[data-ch="email"\] \{ --pc: #c8323f;/);
 });
+
+test('someone added keeps the picture the window showed them with', () => {
+  // With no picture chosen, the default drawn from their name is saved with
+  // them, so the Team list cannot draw a different one afterwards.
+  assert.match(html, /if \(!memberEdit && memberPic === undefined\) fields\.avatar = charAvatar\(/);
+  // and the window's default follows the name as it is typed
+  assert.match(html, /elements\.name\.addEventListener\('input', \(\) => \{\n {2}if \(!memberEdit && memberPic === undefined\) memberPicPaint\(undefined\);/);
+});

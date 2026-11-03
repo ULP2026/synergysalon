@@ -1217,7 +1217,11 @@ made that way are real: name them ZZ and remove them.
   Microsoft's Fluent 3D emoji people (MIT, `assets/avatars/`), the style the
   team picked; the stylists are all women, so the default is always a woman,
   and men are only there to be chosen. A chosen avatar is stored in
-  `staff_users.avatar` as its `/assets/avatars/...` path.
+  `staff_users.avatar` as its `/assets/avatars/...` path. Someone added
+  with no picture chosen is saved with the default the window showed them
+  (drawn from their name as it is typed, `charAvatar`); before 2026-11-03 it
+  was left unsaved, the window had drawn it from "new" and the Team list
+  drew another from the name, so the face changed once they were added.
 - `api/_lib/ensure-schema.js` adds the 011 to 013 columns on the first
   `/api/staff/me` of each warm function, because production ran ahead of
   `db:migrate`. Idempotent; `db:migrate` remains the record.
