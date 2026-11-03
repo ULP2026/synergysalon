@@ -1354,7 +1354,9 @@ made that way are real: name them ZZ and remove them.
   the visit; a direct email by its subject, its writer from the body's
   `fromName`. The message box starts on **Text** (blue) every time, Email is
   red: the switch, the box's edge and "Send text"/"Send email" take the
-  colour (`--pc`; Text blue and Email red since later that day). `tests/client-changes.integration.test.js`,
+  colour (`--pc`; Text blue and Email red since later that day). Each of
+  the two buttons keeps its own colour on hover, light blue for Text and
+  light red for Email, whichever is chosen (`--own`). `tests/client-changes.integration.test.js`,
   `tests/staff-profile-ui.test.js`.
 - **The second round of 2026-11-03** (asked for):
   - The ticket: the close button on the name's line; No Show, Cancel Appt.
