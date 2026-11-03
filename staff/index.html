@@ -11255,6 +11255,11 @@ function openPicDlg() {
   openDialog($('picDlg'));
 }
 $('memberPic').onclick = openPicDlg;
+// Adding someone with no picture chosen yet: the default follows the name as
+// it is typed, so what the window shows is what is saved (above).
+$('memberForm').elements.name.addEventListener('input', () => {
+  if (!memberEdit && memberPic === undefined) memberPicPaint(undefined);
+});
 // Making somebody Owner takes services and hours away at once, and back.
 $('memberForm').elements.role.addEventListener('change', paintWorkVisibility);
 // The pencils: straight into the field, its text selected, ready to replace.
@@ -11526,6 +11531,11 @@ $('memberForm').onsubmit = async (e) => {
     const sendHours = hoursOpen();
     if (sendHours) fields.hours = readHoursUI();
     if (memberPic !== undefined) fields.avatar = memberPic;
+    // Someone new keeps the picture the window showed them with (2026-11-03):
+    // with no choice made that was a default drawn from the name, and it
+    // used to be left unsaved, so the Team list drew another one and the
+    // face changed the moment they were added. Saved, it never changes.
+    if (!memberEdit && memberPic === undefined) fields.avatar = charAvatar(f.get('name') || f.get('email') || 'new');
     if (memberEdit && memberEdit.noLogin) {
       await api('/api/staff/team', {
         method: 'POST',
