@@ -309,7 +309,8 @@
   /* The next thing to do, ringed on the form, softly pulsing. */
   .ob-hl { position: relative; border-radius: 14px; box-shadow: 0 0 0 2px var(--periwinkle), 0 0 0 7px rgba(125, 136, 214, .18);
            animation: obPulse 2.2s ease-in-out infinite; }
-  label.ob-hl { padding: 8px 10px; margin-left: -10px; margin-right: -10px; }
+  #obForm > label.ob-hl { padding: 8px 10px; margin-left: -10px; margin-right: -10px; }
+  #obForm .svc .ob-hl { border-radius: 10px; }
   .btn.ob-hl { border-radius: 999px; }
   @keyframes obPulse { 0%, 100% { box-shadow: 0 0 0 2px var(--periwinkle), 0 0 0 5px rgba(125, 136, 214, .14); }
                        50% { box-shadow: 0 0 0 2px var(--periwinkle), 0 0 0 9px rgba(125, 136, 214, .26); } }
@@ -350,24 +351,9 @@
   .ob-avs button img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
   .ob-avs button[aria-pressed="true"] { border-color: var(--periwinkle); }
   .ob-avs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .ob-svc { display: grid; grid-template-columns: 44px minmax(0, 1fr) 96px 96px; gap: 10px; align-items: center;
-            padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; }
-  .ob-svc b { display: block; font-size: .9rem; }
-  .ob-svc small { display: block; font-size: .75rem; color: var(--muted); }
-  .ob-svc label { margin: 0; }
-  .ob-svc label > span { display: block; font-size: .68rem; font-weight: 600; color: var(--muted); margin: 0 0 2px 2px; }
-  .ob-svc input { height: 36px; }
-  .ob-svc.off input { opacity: .5; }
   .ob-acts { display: flex; gap: 8px; justify-content: space-between; margin-top: 18px; }
   .ob-acts .btn { flex: 1; justify-content: center; }
   .ob-hint { font-size: var(--fs-xs); color: var(--muted); margin: 8px 0 0; }
-  @media (max-width: 480px) {
-    .ob-svc { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); }
-    .ob-svc > div:nth-child(2) { grid-column: 2 / -1; }
-    /* Price and minutes side by side under the name, not in the switch's column. */
-    .ob-svc > label:nth-of-type(1) { grid-column: 2; }
-    .ob-svc > label:nth-of-type(2) { grid-column: 3; }
-  }
   .pw { position: relative; }
   .pw input { padding-right: 48px; }
   .pw .iconbtn { position: absolute; right: 3px; top: 3px; }
@@ -2483,7 +2469,6 @@
   #myWorkSlot .svc .price::before, #myWorkSlot .svc .dur::after { top: 50%; bottom: auto; transform: translateY(-50%); }
   /* Phones: a kind switched off is one line; its boxes come back with the switch. */
   @media (max-width:520px) {
-    #myWorkSlot .svc.off > .svc-f { display: none; }
     /* A day off is one line; its times come back with the switch. */
     #myWorkSlot .hrs .hr.off input, #myWorkSlot .hrs .hr.off .dash { display: none; }
     #myWorkSlot .svc .svc-list > .hint { display: none; }
@@ -2615,6 +2600,9 @@
   .svc:not(.open) .svc-fold > .svc-bd { visibility: hidden; transition: visibility 0s .28s; }
   @media (prefers-reduced-motion: reduce) { .svc .svc-fold { transition: none; } }
   .svc.off .svc-chev { visibility: hidden; }
+  /* Phones: a kind switched off is one line wherever it is shown (Team,
+     My Settings, onboarding); its boxes come back with the switch. */
+  @media (max-width: 520px) { .svc.off > .svc-f { display: none; } }
   .svc.off .svc-exp { cursor: default; }
   .svc.off .svc-exp:hover { background: none; }
   .svc .svc-bd { display: grid; gap: 10px; padding: 10px 2px 2px; border-top: 1px dashed var(--line); }
@@ -13072,12 +13060,6 @@ async function showInvite(token) {
 // which the server accepts only once a stylist has a mobile number. Their
 // working hours are not asked: the owner sets those (Available Hours).
 let ob = { step: 0, steps: [], prof: null, avatar: null };
-const OB_KINDS = [
-  ['cuts', 'Cuts', 'Haircuts, trims and bangs'],
-  ['color', 'Color', 'Single process, highlights, balayage'],
-  ['treatments', 'Treatments', 'Keratin, bond repair, scalp care'],
-  ['styling', 'Styling', 'Blowouts, updos, special events'],
-];
 async function showOnboarding() {
   for (const id of ['boot', 'login', 'app']) $(id).classList.add('hidden');
   $('onboard').classList.remove('hidden');
@@ -13158,18 +13140,20 @@ function obGuide() {
     ];
   }
   if (step === 'services') {
-    const rows = [...f.querySelectorAll('[data-ob-kind]')];
+    const rows = [...f.querySelectorAll('#memberSvcs .svc')];
     const on = rows.filter((r) => r.querySelector('.switch').getAttribute('aria-checked') === 'true');
-    const missing = (fld) => on.find((r) => !r.querySelector(`[data-f=${fld}]`).value.trim());
+    // Color has no single length (its Start, Break and Finish have defaults),
+    // so only a kind with a Duration box can be missing one.
+    const missing = (fld) => on.find((r) => { const i = r.querySelector(`[data-f=${fld}]`); return i && !i.value.trim(); });
     return [
-      { key: 'on', label: 'Switch on what you do', done: on.length > 0, el: f.querySelector('.ob-svcs'),
-        tip: 'Tap the switch beside each kind of work you do. You need at least one.' },
+      { key: 'on', label: 'Switch on what you do', done: on.length > 0, el: $('memberSvcs'),
+        tip: 'Tap the switch beside each kind of work you do. It opens to its services: untick any you don\'t do.' },
       { key: 'price', label: 'A starting price for each', opt: true, done: on.length > 0 && !missing('price'),
         el: missing('price')?.querySelector('[data-f=price]').closest('label'),
         tip: "Your starting price. It goes on your appointments for the salon; clients don't see prices online." },
       { key: 'minutes', label: 'How long each takes you', opt: true, done: on.length > 0 && !missing('duration'),
         el: missing('duration')?.querySelector('[data-f=duration]').closest('label'),
-        tip: "How many minutes it usually takes you. I book your clients for exactly that long, so I never squeeze you." },
+        tip: "How many minutes it usually takes you. I book your clients for exactly that long. A service's own minutes, below, beat it." },
     ];
   }
   const g = p.google || {};
@@ -13227,7 +13211,7 @@ function obRefresh({ speak = false } = {}) {
     tip.querySelector('span').textContent = tipText;
     // Under a field, or above the buttons.
     // A price or minutes box: under its whole service row, not inside its grid.
-    if (tipAt === submit) tipAt.closest('.ob-acts').before(tip); else (tipAt.closest('.ob-svc') || tipAt).after(tip);
+    if (tipAt === submit) tipAt.closest('.ob-acts').before(tip); else (tipAt.closest('.svc') || tipAt).after(tip);
     tip.hidden = false;
   }
   if (speak && about && obWide()) obSays(about.tip);
@@ -13236,9 +13220,15 @@ function obRefresh({ speak = false } = {}) {
   if (complete && !obAllDone && !next && obWide()) obSays(doneLine);
   obAllDone = complete && !next;
 }
+/** The services control back in the Team window's block, where it lives. */
+function obSvcsHome() {
+  const el = $('memberSvcs');
+  if ($('obForm').contains(el)) $('memberNotesWrap').before(el);
+}
 function obPaint() {
   const p = ob.prof;
   const step = ob.steps[ob.step];
+  obSvcsHome();
   obKaren();
   $('obSteps').innerHTML = ob.steps.map((_, i) => `<i class="${i <= ob.step ? 'on' : ''}"></i>`).join('');
   $('obCount').textContent = `Step ${ob.step + 1} of ${ob.steps.length}`;
@@ -13264,19 +13254,16 @@ function obPaint() {
       ${tip}
       <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
   } else if (step === 'services') {
-    const sv = p.services || {};
-    $('obForm').innerHTML = `<div class="ob-svcs">${OB_KINDS.map(([k, label, hint]) => {
-      const v = sv[k] || {};
-      return `<div class="ob-svc ${v.on ? '' : 'off'}" data-ob-kind="${k}">
-        <button type="button" class="switch" role="switch" aria-checked="${Boolean(v.on)}" aria-label="${esc(label)}"><span></span></button>
-        <div><b>${esc(label)}</b><small>${esc(hint)}</small></div>
-        <label><span>Price $</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" data-f="price" value="${v.price ?? ''}" placeholder="0.00"></label>
-        <label><span>Minutes</span><input type="number" min="5" max="720" step="5" inputmode="numeric" data-f="duration" value="${v.duration ?? ''}" placeholder="60"></label>
-      </div>`;
-    }).join('')}</div>
+    // The same services control as Team Settings and My Settings (asked for
+    // 2026-11-03): a kind switched on opens to its services, switched off it
+    // folds to one line. It is the one #memberSvcs, moved in for this step
+    // and back out (obSvcsHome) before the form is drawn again.
+    $('obForm').innerHTML = `<div id="obSvcSlot"></div>
       <p class="ob-hint">Your available hours are in My Settings, once you're in.</p>
       ${tip}
       <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
+    $('obSvcSlot').appendChild($('memberSvcs'));
+    paintServices(p.services || {});
   } else {
     const g = p.google || {};
     $('obForm').innerHTML = `
@@ -13298,23 +13285,21 @@ function obTakePic(src) {
   obRefresh();
 }
 $('obForm').addEventListener('click', (e) => {
-  if (e.target.closest('[data-ob-back]')) { ob.step = Math.max(0, ob.step - 1); obPaint(); return; }
+  if (e.target.closest('[data-ob-back]')) {
+    if (ob.steps[ob.step] === 'services') ob.prof = { ...ob.prof, services: { ...(ob.prof.services || {}), ...readServices() } };
+    ob.step = Math.max(0, ob.step - 1);
+    obPaint();
+    return;
+  }
   const pic = e.target.closest('[data-ob-pic]');
   if (pic) {
     const src = $('obPic').src;
     openPicFor(obTakePic, src, { upload: pic.dataset.obPic === 'upload', avatars: pic.dataset.obPic === 'avatars' });
     return;
   }
-  const sw = e.target.closest('.ob-svc .switch');
-  if (sw) {
-    const on = sw.getAttribute('aria-checked') !== 'true';
-    sw.setAttribute('aria-checked', String(on));
-    sw.closest('.ob-svc').classList.toggle('off', !on);
-    obRefresh();
-    // Switched on: straight to its price, with Karen saying what it is for.
-    if (on) sw.closest('.ob-svc').querySelector('[data-f=price]').focus();
-    return;
-  }
+  // The services control does its own switching and folding; Karen's
+  // checklist and ring follow it.
+  if (e.target.closest('#memberSvcs')) { obRefresh(); return; }
   const g = e.target.closest('[data-ob-google]');
   if (g) {
     connectGoogle(g);
@@ -13369,22 +13354,22 @@ $('obForm').addEventListener('submit', async (e) => {
       if (ob.prof.role === 'stylist' && !title) { stop('Add your title, the way guests should see it.', f.elements.title); return; }
       // The picture shown is the one kept, chosen or not (as when the owner adds somebody).
       const avatar = ob.avatar || charAvatar(name);
+      // Services typed on step 2 before coming Back are kept, not replaced by
+      // the stored ones this answer carries.
+      const kept = ob.prof.services;
       ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ name, phone, avatar, title }) })), title };
+      if (kept) ob.prof.services = kept;
       ob.avatar = avatar;
     } else if (step === 'services') {
-      const services = { ...(ob.prof.services || {}) };
-      for (const row of f.querySelectorAll('[data-ob-kind]')) {
-        const k = row.dataset.obKind;
-        const num = (x) => { const v = row.querySelector(`[data-f=${x}]`).value.trim(); return v === '' ? null : Number(v); };
-        const price = num('price');
-        const duration = num('duration');
-        if (price != null && !(price >= 0)) { stop('Prices are numbers of dollars.', row.querySelector('[data-f=price]')); return; }
-        if (duration != null && !(Number.isInteger(duration) && duration >= 5 && duration <= 720)) {
-          stop('Minutes are a whole number from 5 to 720.', row.querySelector('[data-f=duration]')); return;
+      // The Team window's own reading of the control: kinds, prices, lengths,
+      // Color's parts and each service ticked or not, with its minutes.
+      const services = { ...(ob.prof.services || {}), ...readServices() };
+      for (const row of f.querySelectorAll('#memberSvcs .svc')) {
+        for (const i of row.querySelectorAll('input[type=number]:not(:disabled)')) {
+          if (i.value.trim() !== '' && !i.checkValidity()) { stop(i.dataset.f === 'price' ? 'Prices are numbers of dollars.' : 'Minutes are a whole number from 5 to 720.', i); return; }
         }
-        services[k] = { ...(services[k] || {}), on: row.querySelector('.switch').getAttribute('aria-checked') === 'true', price, duration };
       }
-      if (!OB_KINDS.some(([k]) => services[k].on)) { stop('Switch on at least one service you do.', f.querySelector('.ob-svc .switch')); return; }
+      if (!SERVICE_KINDS.some(([k]) => services[k]?.on)) { stop('Switch on at least one service you do.', f.querySelector('#memberSvcs .switch')); return; }
       ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ services }) })) };
     }
     if (ob.step < ob.steps.length - 1) { ob.step += 1; obPaint(); return; }
