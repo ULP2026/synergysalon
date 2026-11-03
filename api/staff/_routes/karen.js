@@ -71,7 +71,8 @@ export default handler({
         ? { people: await karenPeople(admin.tenant_id) }
         : { messages: await karenThread(admin.tenant_id, who) });
     }
-    const user = await requireStaff(req);
+    // Settings, Karen AI is Salon Settings: the owner's only (2026-11-03).
+    const user = await requireTeamAdmin(req);
     return json(res, 200, await settings(req, user.tenant_id));
   },
 

@@ -266,6 +266,8 @@ const STATEMENTS = [
   // Run again, the ADD finds the column and fills nothing.
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS onboarded_at timestamptz DEFAULT now()',
   'ALTER TABLE staff_users ALTER COLUMN onboarded_at DROP DEFAULT',
+  // 043: a team member's job title, asked at onboarding. Additive.
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS job_title text',
 ];
 
 let done = null;

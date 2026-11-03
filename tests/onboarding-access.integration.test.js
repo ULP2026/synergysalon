@@ -105,7 +105,7 @@ test('a new stylist sets up their account first, then sees only their own chair'
     assert.equal(meNow.status, 200, 'who they are is open, so the console can show the setup');
     assert.equal(meNow.body.user.onboarding, true);
     for (const [route, path] of [[diary, `/api/staff/diary?date=${date}`], [contacts, '/api/staff/contacts?q='],
-      [home, '/api/staff/home'], [team, '/api/staff/team']]) {
+      [home, '/api/staff/home']]) {
       const r = await call(route, n, 'GET', path);
       assert.equal(r.status, 403, `${path} is closed while setting up`);
       assert.equal(r.body.code, 'ONBOARDING');
@@ -145,9 +145,17 @@ test('a new stylist sets up their account first, then sees only their own chair'
     const { rows: [still] } = await db.query("SELECT status FROM appointments WHERE ref = 'ZZOB2'");
     assert.equal(still.status, 'booked');
 
-    const teamView = await call(team, n, 'GET', '/api/staff/team');
-    assert.deepEqual(teamView.body.members.map((m) => m.name), ['ZZ OB Nina'], 'their own account only');
-    assert.deepEqual(teamView.body.standalone, []);
+    // Salon settings are the owner's: the team, the salon profile, Karen.
+    assert.equal((await call(team, n, 'GET', '/api/staff/team')).status, 403, 'the team is the owner\'s');
+    assert.equal((await call(business, n, 'GET', '/api/staff/business')).status, 403, 'the salon profile is the owner\'s');
+    assert.equal((await call(business, n, 'PATCH', '/api/staff/business', { name: 'ZZ no' })).status, 403);
+    // Their own services, prices and hours are theirs to set, in My Settings.
+    const hours = [{ weekday: 1, starts: '10:00', ends: '16:00' }];
+    const mine = await call(profile, n, 'PATCH', '/api/staff/profile', { title: 'ZZ Colorist', hours, services: { cuts: { on: true } } });
+    assert.equal(mine.status, 200);
+    const back = await call(profile, n, 'GET', '/api/staff/profile');
+    assert.equal(back.body.title, 'ZZ Colorist');
+    assert.ok((back.body.hours || []).some((h) => Number(h.weekday) === 1), 'their own hours are kept');
     const ownerTeam = await call(team, o, 'GET', '/api/staff/team');
     assert.ok(ownerTeam.body.members.some((m) => m.name === 'ZZ OB Other'));
 

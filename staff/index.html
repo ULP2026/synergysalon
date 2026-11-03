@@ -250,6 +250,20 @@
   .ob-steps { display: flex; gap: 6px; margin: -6px 0 10px; }
   .ob-steps i { flex: 1; height: 4px; border-radius: 99px; background: var(--line); }
   .ob-steps i.on { background: var(--periwinkle); }
+  .ob-karen { display: flex; align-items: flex-end; gap: 12px; margin: 6px 0 16px; }
+  .ob-kpic { flex: none; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: #f6dcec;
+             box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--periwinkle); }
+  .ob-kpic video, .ob-kpic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ob-say { position: relative; flex: 1; margin: 0; padding: 12px 14px; border-radius: 16px 16px 16px 4px;
+            background: var(--peri-pale); color: var(--ink); font-size: .92rem; line-height: 1.45; text-align: left;
+            animation: obSay .35s var(--ease) both; }
+  @keyframes obSay { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .ob h1 { margin-bottom: 14px; }
+  /* Karen going back to her button once onboarding is done. */
+  .karen-fly { position: fixed; left: 50%; top: 50%; width: 120px; height: 120px; border-radius: 50%; z-index: 200;
+               object-fit: cover; background: #f6dcec; transform: translate(-50%, -50%);
+               box-shadow: 0 0 0 4px var(--card), 0 0 0 7px var(--periwinkle), 0 24px 60px -20px rgba(30, 31, 92, .5); pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) { .ob-say { animation: none; } }
   .ob-count { text-align: center; margin: 0 0 4px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .ob-pic { display: flex; align-items: center; gap: 14px; margin: 0 0 16px; }
   .ob-pic > img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex: none;
@@ -2357,6 +2371,8 @@
   .switch[aria-checked="true"] { background: var(--periwinkle); }
   .switch[aria-checked="true"] span { transform: translateX(20px); }
   .switch:disabled { opacity: .45; cursor: not-allowed; }
+  .my-work-acts { display: flex; justify-content: flex-end; margin-top: 14px; }
+  #myWorkSlot .md-sec:first-child { margin-top: 0; }
   .btn.signout { align-self: stretch; justify-content: center; background: var(--card); color: var(--warn);
                  border: 1px solid var(--line); box-shadow: var(--e1); }
   .btn.signout:hover:not(:disabled) { background: #fbe5e7; color: var(--warn); box-shadow: var(--e1); }
@@ -2800,6 +2816,9 @@
     .hrs .hr { gap: 8px 10px; }
     .hrs .hr b { flex-basis: calc(100% - 64px); }
     .hrs .hr input[type=time] { flex: 1; width: auto; min-width: 0; }
+    /* The lunch line's note goes under the switch, full width, not squeezed. */
+    .hrs .wh-lunch { flex-wrap: wrap; }
+    .hrs .wh-lunch .wh-lunch-d { flex-basis: 100%; }
   }
 
   /* ── Team member window: the name is the heading, edited in place ───── */
@@ -3220,11 +3239,16 @@
      thing keeping them out. obPaint() draws each step. -->
 <main id="onboard" class="auth ob hidden" aria-labelledby="obTitle">
   <div class="card">
-    <img class="logo" src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon">
     <div class="ob-steps" id="obSteps" aria-hidden="true"></div>
     <p class="ob-count" id="obCount"></p>
+    <!-- Karen leads it (asked for 2026-11-03): she introduces herself, says
+         what each step is for, and at the end goes back to her button. -->
+    <div class="ob-karen">
+      <span class="ob-kpic" aria-hidden="true"><video id="obKarenVid" muted playsinline loop preload="auto"></video></span>
+      <p class="ob-say" id="obSay" aria-live="polite"></p>
+    </div>
     <h1 id="obTitle">Welcome</h1>
-    <p class="lede" id="obLede"></p>
+    <p class="lede" id="obLede" hidden></p>
     <div id="obNote" class="note hidden" role="status"></div>
     <form id="obForm" novalidate></form>
     <p class="auth-alt"><a href="#" id="obSignOut">Sign out</a></p>
@@ -3382,6 +3406,17 @@
               <div><b id="myName"></b><span id="mySub"></span></div>
               <button type="button" class="btn sm" id="myEdit">Edit my profile</button>
             </div>
+          </section>
+
+          <!-- Your own services, prices and available hours (moved here from
+               your profile window on request, 2026-11-03). The same controls
+               as the Team window's, moved in while this tab is open
+               (workTo), so there is one set and one way of saving. -->
+          <section class="acard" id="myWorkCard">
+            <h2 class="ahead"><svg class="ic"><use href="#i-calendar"/></svg>My services, pricing &amp; hours</h2>
+            <p class="asub">What you offer, what it costs, how long it takes you, and when guests can book you. The salon owner sees these too.</p>
+            <div id="myWorkSlot"></div>
+            <div class="my-work-acts"><button type="button" class="btn" id="myWorkSave">Save my services &amp; hours</button></div>
           </section>
 
           <section class="acard">
@@ -3724,7 +3759,10 @@
       <div id="memberToolsList"></div>
 
       <!-- The work: services, prices and hours, for everybody, the owner
-           included; an owner can be a stylist too. -->
+           included; an owner can be a stylist too. Your own are in My
+           Settings (2026-11-03): this block moves there while that tab is
+           open and back here for the owner opening somebody else. -->
+      <div id="memberWorkHome" hidden></div>
       <div id="memberWork">
         <!-- Services and prices: four switches, a price beside each one that is on. -->
         <div class="md-sec">Services &amp; pricing</div>
@@ -3740,7 +3778,7 @@
         <!-- "Available Hours" since 2026-11-03 (on request; it was Working
              hours): the times a guest can be booked with this person. -->
         <div class="md-sec">Available Hours</div>
-        <p class="small muted wh-note">The times guests can book with this person. A day switched off is closed. Only the admin changes them.</p>
+        <p class="small muted wh-note" id="whNote">The times guests can book with this person. A day switched off is closed.</p>
         <div id="memberHoursWrap" class="wh wh-off">
           <div class="hrs" id="memberHours"></div>
           <!-- The flexible lunch (2026-10-31): half an hour between 11 and 1,
@@ -6002,9 +6040,13 @@ function go(name, { push = true } = {}) {
   name = PAGE_ALIASES[name] || name;
   // Team Settings is a tab of Settings now; its old address, the approvals
   // tile on Home and the calendar dialog's Connect all land there.
-  if (name === 'account') { setTab = 'team'; name = 'settings'; }
-  // Automations and its Email History are the owner's (2026-11-03).
-  if ((name === 'automation' || name === 'history') && me && !me.user?.canManageTeam) { setTab = 'me'; name = 'settings'; }
+  if (name === 'account' && me?.user?.canManageTeam) { setTab = 'team'; name = 'settings'; }
+  // Salon settings are the owner's (2026-11-03): Automations, Email History,
+  // the Team and the salon's calendars open My Settings for anyone else,
+  // however the address was reached.
+  if (['automation', 'history', 'account', 'calendars', 'calendarSettings'].includes(name) && me && !me.user?.canManageTeam) {
+    setTab = 'me'; name = 'settings';
+  }
   const p = PAGES[name];
   page = name;
   if (push && location.pathname !== p.path) history.pushState({ page: name }, '', p.path);
@@ -6022,7 +6064,8 @@ function go(name, { push = true } = {}) {
   if (name === 'home') paintHello(true);
   else {
     $('pageTitle').textContent = p.title;
-    $('pageSub').textContent = p.sub;
+    // Anyone but the owner has only their own settings (2026-11-03).
+    $('pageSub').textContent = name === 'settings' && !me?.user?.canManageTeam ? 'Your account, your services and hours, and how the app looks.' : p.sub;
     for (const id of ['pageTitle', 'pageSub']) $(id).classList.remove('hello-in');
   }
   paintPageFace(name === 'home');
@@ -8096,7 +8139,8 @@ function fillStylistFilter() {
   const box = $('contactStylist');
   const list = contactStylists.filter((t) => !t.left);
   if (contactStylist && !list.some((t) => t.slug === contactStylist)) contactStylist = '';
-  box.classList.toggle('hidden', !list.length);
+  // The owner's only (2026-11-03): anyone else sees only their own clients.
+  box.classList.toggle('hidden', !list.length || !me?.user?.canManageTeam);
   box.innerHTML = '<span class="clabel" id="contactStylistLbl">Choose your stylist</span>'
     + `<button type="button" data-member="" aria-pressed="${contactStylist === ''}">All</button>`
     + list.map((t) => `<button type="button" data-member="${esc(t.slug)}" title="${esc(t.name)}"
@@ -11028,8 +11072,51 @@ function paintHours(hours = []) {
  * from the admin, and /team, which takes everybody's, is the admin's alone.
  */
 function hoursOpen() {
-  return Boolean(me?.user?.canManageTeam);
+  // Your own in My Settings (2026-11-03), and anyone's for the owner.
+  return workCtx === 'self' || Boolean(me?.user?.canManageTeam);
 }
+
+/**
+ * Where the services-and-hours block is: 'self' in My Settings, for your own;
+ * 'dialog' in the Team window, for the owner opening somebody else.
+ */
+let workCtx = 'dialog';
+function workTo(ctx) {
+  workCtx = ctx;
+  const w = $('memberWork');
+  if (ctx === 'self') $('myWorkSlot').appendChild(w);
+  else $('memberWorkHome').after(w);
+  $('whNote').textContent = ctx === 'self'
+    ? 'The times guests can book with you. A day switched off is closed. The salon owner sees them too and can change them.'
+    : 'The times guests can book with this person. A day switched off is closed.';
+}
+/** My Settings: your own services, prices and hours, from your own account. */
+async function loadMyWork() {
+  if ($('memberDlg').open) return;
+  workTo('self');
+  try {
+    const p = await api('/api/staff/profile');
+    paintServices(p.services || {});
+    paintHours(p.hours || []);
+    paintHoursState();
+  } catch (err) { fail(err); }
+}
+$('myWorkSave').onclick = async () => {
+  const btn = $('myWorkSave');
+  btn.disabled = true;
+  try {
+    await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ services: readServices(), hours: readHoursUI() }) });
+    toast('Your services and hours are saved.');
+    markSaved(btn);
+    // Your column, your hours on Appt. Book and New appointment's list.
+    me = { ...me, ...(await api('/api/staff/me').catch(() => ({}))) };
+  } catch (err) { fail(err); }
+  btn.disabled = false;
+};
+// Back to My Settings after the owner's Team window closes over it.
+$('memberDlg').addEventListener('close', () => {
+  if (page === 'settings' && setTab === 'me') loadMyWork();
+});
 
 /**
  * Services, prices and hours are everybody's, the owner's included: an owner
@@ -11186,6 +11273,10 @@ function readServices() {
 }
 
 async function openMember(who) {
+  // Your own services and hours live in My Settings now; somebody else's are
+  // in this window, for the owner.
+  workTo(who === 'me' ? 'self' : 'dialog');
+  $('memberWork').hidden = false;
   const f = $('memberForm');
   f.reset();
   note($('memberNote'), '');
@@ -11517,15 +11608,19 @@ $('memberDanger').onclick = async () => {
 function showInviteLink(name, invite) {
   if (!invite) { toast(`${name} has been added.`); return; }
   $('inviteWho').textContent = name;
-  $('inviteSent').textContent = invite.emailed
-    ? 'We have emailed them a link to choose a password.'
-    : 'No email was sent: this site has no email provider connected yet. '
+  // Texted to their mobile as well as emailed (2026-11-03): Karen leads them
+  // through setting up their account on their phone.
+  const sent = [invite.texted ? 'texted their mobile' : '', invite.emailed ? 'emailed them' : ''].filter(Boolean);
+  const reached = sent.length > 0;
+  $('inviteSent').textContent = reached
+    ? `We have ${sent.join(' and ')} a link to set up their account. Karen walks them through it.`
+    : 'No text or email was sent: texting and email are not connected yet. '
       + 'Send them this link yourself.';
 
-  $('inviteLinkRow').hidden = invite.emailed;
-  $('inviteNote').hidden = invite.emailed;
-  $('inviteCopy').hidden = invite.emailed;
-  $('inviteLink').value = invite.emailed ? '' : invite.link;
+  $('inviteLinkRow').hidden = reached;
+  $('inviteNote').hidden = reached;
+  $('inviteCopy').hidden = reached;
+  $('inviteLink').value = reached ? '' : invite.link;
   $('inviteNote').textContent = `The link works once and expires in ${invite.expiresDays} days.`;
   openDialog($('inviteDlg'));
 }
@@ -11583,10 +11678,11 @@ $('memberForm').onsubmit = async (e) => {
       }
     }
     // Sent only when it changed, so saving a name works before migration 012.
-    if (JSON.stringify(services) !== memberOrig.services) fields.services = services;
+    // Your own are saved from My Settings, not from your profile window.
+    if (memberEdit !== 'me' && JSON.stringify(services) !== memberOrig.services) fields.services = services;
     // Hours only while the section is open; otherwise nothing could have
     // been changed, and leaving them out keeps what is stored.
-    const sendHours = hoursOpen();
+    const sendHours = memberEdit !== 'me' && hoursOpen();
     if (sendHours) fields.hours = readHoursUI();
     if (memberPic !== undefined) fields.avatar = memberPic;
     // Someone new keeps the picture the window showed them with (2026-11-03):
@@ -11885,13 +11981,15 @@ function showSetting(name) {
   // 2026-11-02; the key is still payment); an old link to either lands there.
   if (name === 'payroll' || name === 'billing' || name === 'money') name = 'payment';
   if (!SET_TABS.includes(name)) name = 'salon';
-  if ((name === 'payment' || name === 'marketing') && !me?.user?.canManageTeam) name = 'me';
+  // Typed or bookmarked, a salon setting opens My Settings for anyone but
+  // the owner (2026-11-03).
+  if (name !== 'me' && !me?.user?.canManageTeam) name = 'me';
   setTab = name;
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
   }
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
-  if (name === 'me') paintDarkSwitch();
+  if (name === 'me') { paintDarkSwitch(); loadMyWork(); }
   if (name === 'salon') { loadBusiness(); loadReplyTo(); }
   if (name === 'team') loadAccount();
   if (name === 'karen') loadKarenSettings();
@@ -12821,17 +12919,39 @@ async function showOnboarding() {
   ob.step = 0;
   obPaint();
 }
+/** Karen says what this step is for, in her voice. */
+function obSays(text) {
+  const say = $('obSay');
+  say.style.animation = 'none';
+  void say.offsetWidth;
+  say.style.animation = '';
+  say.textContent = text;
+}
+/** Her waving clip on the card, or her still picture when motion is reduced. */
+function obKaren() {
+  const box = document.querySelector('.ob-kpic');
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    box.innerHTML = `<img src="${KAREN_PIC}" alt="">`;
+    return;
+  }
+  const v = $('obKarenVid');
+  if (!v.src) { v.poster = KAREN_PIC; v.src = KAREN_WAVE; }
+  v.play().catch(() => {});
+}
 function obPaint() {
   const p = ob.prof;
   const step = ob.steps[ob.step];
   const first = String(p.name || '').trim().split(/\s+/)[0];
+  obKaren();
   $('obSteps').innerHTML = ob.steps.map((_, i) => `<i class="${i <= ob.step ? 'on' : ''}"></i>`).join('');
   $('obCount').textContent = `Step ${ob.step + 1} of ${ob.steps.length}`;
   note($('obNote'), '');
   const back = ob.step ? '<button type="button" class="btn quiet" data-ob-back>Back</button>' : '';
+  const salon = me?.salon?.name || 'the salon';
   if (step === 'details') {
-    $('obTitle').textContent = first ? `Welcome, ${first}!` : 'Welcome!';
-    $('obLede').textContent = `Let's set up your account at ${me?.salon?.name || 'the salon'}. It takes a minute.`;
+    $('obTitle').textContent = 'About you';
+    obSays(`Hi${first ? ` ${first}` : ''}! I'm Karen, the assistant here at ${salon}. Welcome to the team! `
+      + "I'll walk you through setting up your account, one step at a time. First, tell me about you and the work you do.");
     const pic = ob.avatar || charAvatar(p.name || p.email || 'new');
     const choices = WOMEN.filter((_, i) => i % 3 === 0).concat(AVATAR_SETS[1][1].map((k) => avatarPath(k, 'medium')));
     $('obForm').innerHTML = `
@@ -12840,11 +12960,16 @@ function obPaint() {
           <div class="ob-avs" role="group" aria-label="Choose a picture">${choices.map((src) => `<button type="button" data-ob-av="${src}" aria-pressed="${src === pic}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div></div></div>
       <label><span>Your name</span><input name="name" value="${esc(p.name || '')}" autocomplete="name" required maxlength="120"></label>
       <label><span>Mobile number${p.role === 'stylist' ? '' : ' (optional)'}</span><input name="phone" type="tel" value="${esc(usPhone(p.phone || ''))}" autocomplete="tel" placeholder="(813) 555-0170"></label>
-      ${p.role === 'stylist' ? '<p class="ob-hint">Karen, the salon\'s assistant, knows you by this number when you text her.</p>' : ''}
+      ${p.role === 'stylist' ? '<p class="ob-hint" style="margin-top:-6px">I know it\'s you by this number when you text me.</p>' : ''}
+      <label><span>Your role at the salon</span><input value="${esc(ROLE_LABEL[p.role] || p.role || '')}" disabled></label>
+      <label><span>Your title${p.role === 'stylist' ? '' : ' (optional)'}</span><input name="title" value="${esc(p.title || '')}" maxlength="80"
+        placeholder="${p.role === 'stylist' ? 'e.g. Master Stylist, Colorist' : 'e.g. Front Desk Manager'}"></label>
+      ${p.role === 'stylist' ? '<p class="ob-hint" style="margin-top:-6px">Shown with your picture on the website when guests choose a stylist.</p>' : ''}
       <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
   } else if (step === 'services') {
     $('obTitle').textContent = 'Your services';
-    $('obLede').textContent = 'Switch on what you do, with your starting price and usual time. You can change these later in Settings, Team.';
+    obSays(`Lovely to meet you${first ? `, ${first}` : ''}! Now your services: switch on what you do, with your starting price and how many minutes it takes you. `
+      + 'I use these to book your clients for the right amount of time. You can change them any time in My Settings.');
     const sv = p.services || {};
     $('obForm').innerHTML = `${OB_KINDS.map(([k, label, hint]) => {
       const v = sv[k] || {};
@@ -12856,11 +12981,12 @@ function obPaint() {
         <label><span>Minutes</span><input type="number" min="5" max="720" step="5" inputmode="numeric" data-f="duration" value="${dur}" placeholder="60"></label>
       </div>`;
     }).join('')}
-      <p class="ob-hint">The salon owner sets the hours you can be booked.</p>
+      <p class="ob-hint">Your available hours are in My Settings, once you're in.</p>
       <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
   } else {
-    $('obTitle').textContent = 'Connect your calendar';
-    $('obLede').textContent = 'Connect your Google Calendar so your appointments appear there and nobody books you when you are busy. You can do this later in Settings, Team.';
+    $('obTitle').textContent = 'Your calendar';
+    obSays("Last step! Connect your Google Calendar and I'll put your bookings in it and keep guests out of the times you're busy. "
+      + "If you'd rather do it later, skip it: it's in My Settings, Edit my profile.");
     const g = p.google || {};
     $('obForm').innerHTML = `
       <p class="ob-hint" id="obCal">${g.connected ? `Connected${g.account ? ` as ${esc(g.account)}` : ''}.` : 'Not connected yet.'}</p>
@@ -12917,7 +13043,9 @@ $('obForm').addEventListener('submit', async (e) => {
       }
       // The picture shown is the one kept, chosen or not (as when the owner adds somebody).
       const avatar = ob.avatar || charAvatar(name);
-      ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ name, phone, avatar }) })) };
+      const title = f.elements.title.value.trim();
+      if (ob.prof.role === 'stylist' && !title) { note($('obNote'), 'Add your title, the way guests should see it.'); f.elements.title.focus(); return; }
+      ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ name, phone, avatar, title }) })), title };
       ob.avatar = avatar;
     } else if (step === 'services') {
       const services = { ...(ob.prof.services || {}) };
@@ -12937,8 +13065,10 @@ $('obForm').addEventListener('submit', async (e) => {
     }
     if (ob.step < ob.steps.length - 1) { ob.step += 1; obPaint(); return; }
     await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ finishOnboarding: true }) });
-    toast("You're all set. Welcome to the team!");
-    location.reload();
+    obSays("You're all set! I'll be in my button whenever you need me.");
+    // The app opens and Karen flies back into her button (karenFlyHome).
+    try { sessionStorage.setItem('ss-karen-home', '1'); } catch { /* no fly, still fine */ }
+    setTimeout(() => location.reload(), 900);
   } catch (err) {
     if (err.message !== 'signed out') note($('obNote'), err.message);
   } finally { if (btn.isConnected) btn.disabled = false; }
@@ -12948,6 +13078,39 @@ $('obSignOut').onclick = async (e) => {
   await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
   location.reload();
 };
+
+/**
+ * The end of onboarding (2026-11-03): Karen, who led it, shrinks from the
+ * middle of the screen into her Call Karen button, at the top on a computer
+ * and the bottom-right corner on a phone, and says where to find her.
+ */
+function karenFlyHome() {
+  try { sessionStorage.removeItem('ss-karen-home'); } catch { /* fine */ }
+  const btn = $('karenBtn');
+  const say = "Welcome aboard! I live in this button now. Tap me whenever you need a hand.";
+  const target = btn?.querySelector('.kc-pic') || btn;
+  if (!target || matchMedia('(prefers-reduced-motion: reduce)').matches) { toast(say); return; }
+  const r = target.getBoundingClientRect();
+  const img = document.createElement('img');
+  img.className = 'karen-fly';
+  img.src = KAREN_PIC;
+  img.alt = '';
+  document.body.appendChild(img);
+  const dx = r.left + r.width / 2 - innerWidth / 2;
+  const dy = r.top + r.height / 2 - innerHeight / 2;
+  const scale = Math.max(0.2, r.width / 120);
+  const fly = img.animate([
+    { transform: 'translate(-50%, -50%) scale(.6)', opacity: 0 },
+    { transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.25 },
+    { transform: 'translate(-50%, -50%) scale(1)', opacity: 1, offset: 0.45 },
+    { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${scale})`, opacity: 1 },
+  ], { duration: 1600, easing: 'cubic-bezier(.45, 0, .2, 1)', fill: 'forwards' });
+  fly.onfinish = () => {
+    img.remove();
+    btn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 450, easing: 'ease-out' });
+    toast(say);
+  };
+}
 
 async function start(landing) {
   // An invite link comes before everything else: whoever follows it has no
@@ -12979,9 +13142,13 @@ async function start(landing) {
   // Automations are the owner's (2026-11-03): Finance, the plan and every
   // email and text the salon sent are the whole salon's, and only the owner
   // sees the whole salon (scope.js on the server says the same).
-  for (const b of document.querySelectorAll('#setSeg [data-admin], #setSeg [data-set="marketing"]')) {
-    b.classList.toggle('hidden', !me.user.canManageTeam);
+  // Anyone but the owner has My Settings only (2026-11-03): Salon, Team,
+  // Automations, Money and Karen AI are the salon's settings, and the
+  // server refuses them too. With one tab left, the tab bar goes.
+  for (const b of document.querySelectorAll('#setSeg button')) {
+    b.classList.toggle('hidden', !me.user.canManageTeam && b.dataset.set !== 'me');
   }
+  $('setSeg').classList.toggle('hidden', !me.user.canManageTeam);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
 
@@ -12992,6 +13159,9 @@ async function start(landing) {
   const target = landing || pageFromUrl();
   go(target, { push: false });
   document.fonts?.ready.then(() => moveRing(true));
+  let flyHome = false;
+  try { flyHome = sessionStorage.getItem('ss-karen-home') === '1'; } catch { /* private window */ }
+  if (flyHome) setTimeout(karenFlyHome, 300);
   const want = PAGES[page].path;
   if (location.pathname !== want) history.replaceState({ page }, '', want);
 }

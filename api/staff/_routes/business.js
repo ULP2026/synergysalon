@@ -430,9 +430,11 @@ export default handler({
     // The email and text logs, the automations' sends and Finance are every
     // client's and every chair's: the owner's only (asked for 2026-11-03,
     // scope.js). A template's preview, with sample details, is anyone's.
-    const ownerOnly = ['automations', 'sends', 'history', 'finance', 'recipients'];
-    if (ownerOnly.some((k) => q.has(k)) && !seesAll(user)) {
-      throw new HttpError(403, 'Only the salon owner can see that.');
+    // Everything here but one sent email is Salon Settings or the whole
+    // salon's (2026-11-03): the salon's profile, the automations and their
+    // previews and sends, the email log and Finance. The owner's only.
+    if (!q.has('sent') && !seesAll(user)) {
+      throw new HttpError(403, 'Only the salon owner can see the salon settings.');
     }
     // One sent email opens for anyone whose client it was sent to (their
     // client's Activity links it); nobody else's.
@@ -495,6 +497,8 @@ export default handler({
   async PATCH(req, res) {
     assertSameOrigin(req);
     const user = await requireStaff(req, CAN_EDIT);
+    // Salon Settings are changed by the owner only (2026-11-03).
+    if (!seesAll(user)) throw new HttpError(403, 'Only the salon owner can change the salon settings.');
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
 
