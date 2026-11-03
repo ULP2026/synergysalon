@@ -32,6 +32,7 @@ import { pool, query } from './db.js';
 import { GOOGLE_CONNECTED_SQL } from './google-busy.js';
 import { KAREN_MODEL, KAREN_PERSONALITY } from './karen-ai.js';
 import { APP_GUIDE } from './karen-knowledge.js';
+import { assertClientInChair, chairIds, chairOf, clientInChairSql } from './scope.js';
 import { flexLunchOn } from './timing.js';
 import { visitNameSql } from './visit.js';
 
@@ -215,11 +216,18 @@ export async function deskReply(ctx, client, db = null) {
     return (end ? d.endOf('day') : d.startOf('day')).toISO();
   };
 
+  // She sees what the person asking may see (asked for 2026-11-03,
+  // scope.js): the whole salon for the owner, their own chair, its
+  // appointments and its clients for anyone else.
+  const chair = await chairOf(user, db);
+  const mine = chairIds(chair);
   const { rows: stylists } = await q(
-    `SELECT slug, name, active FROM stylists WHERE tenant_id = $1::uuid
+    `SELECT id, slug, name, active FROM stylists WHERE tenant_id = $1::uuid
+        AND ($2::uuid[] IS NULL OR id = ANY($2::uuid[]))
       ORDER BY active DESC, sort_order, name`,
-    [tenant.id],
+    [tenant.id, mine],
   );
+  const notTheirs = { error: 'That is not in your chair. Only the salon owner can see the whole salon.' };
 
   const { rows: services } = await q(
     `SELECT slug, name, category, duration_min FROM services WHERE tenant_id = $1::uuid AND active
@@ -245,10 +253,11 @@ export async function deskReply(ctx, client, db = null) {
                             JOIN services v ON v.id = ss.service_id WHERE ss.stylist_id = s.id), '[]'::jsonb) AS kinds
            FROM stylists s LEFT JOIN staff_users u ON u.id = s.staff_user_id
           WHERE s.tenant_id = $1::uuid AND (to_jsonb(s) ->> 'removed_at') IS NULL
+            AND ($2::uuid[] IS NULL OR s.id = ANY($2::uuid[]))
           ORDER BY s.active DESC, s.sort_order, s.name`,
-        [tenant.id],
+        [tenant.id, mine],
       );
-      const { rows: others } = await q(
+      const { rows: others } = mine ? { rows: [] } : await q(
         `SELECT u.name, u.role, u.status FROM staff_users u
           WHERE u.tenant_id = $1::uuid AND NOT EXISTS (SELECT 1 FROM stylists s WHERE s.staff_user_id = u.id)
           ORDER BY u.name`,
@@ -292,10 +301,11 @@ export async function deskReply(ctx, client, db = null) {
       const svc = services.find((x) => x.slug === input.service);
       if (!svc) return { error: 'Use a service slug from the services list.' };
       if (input.stylist && !stylists.some((x) => x.slug === input.stylist)) return { error: 'Use a stylist slug from the stylists list.' };
+      if (chair && !stylists.length) return notTheirs;
       const c = db || await pool().connect();
       try {
         const { days, visit } = await availableSlots(c, tenant, {
-          serviceSlug: svc.slug, stylistSlug: input.stylist || null, fromDate: input.date, toDate: input.date, minLeadMin: 0,
+          serviceSlug: svc.slug, stylistSlug: input.stylist || (chair ? stylists[0].slug : null), fromDate: input.date, toDate: input.date, minLeadMin: 0,
         });
         const slots = days.flatMap((d) => d.slots);
         const name = new Map(stylists.map((x) => [x.slug, x.name]));
@@ -341,8 +351,9 @@ export async function deskReply(ctx, client, db = null) {
           AND ($2::text = '' OR c.name ILIKE '%' || $2::text || '%' OR c.email ILIKE '%' || $2::text || '%'
                OR (length($3::text) >= 4 AND regexp_replace(coalesce(c.phone, ''), '\\D', '', 'g') LIKE '%' || $3::text || '%'))
           AND ($4::timestamptz IS NULL OR c.created_at >= $4::timestamptz)
-          AND ($5::timestamptz IS NULL OR c.created_at <= $5::timestamptz)`;
-      const args = [tenant.id, search, digits, from, to];
+          AND ($5::timestamptz IS NULL OR c.created_at <= $5::timestamptz)
+          AND ${clientInChairSql('c', '$6', '$7')}`;
+      const args = [tenant.id, search, digits, from, to, mine, user.id];
       const { rows: [{ n }] } = await q(`SELECT count(*)::int AS n FROM contacts c WHERE ${where}`, args);
       const { rows } = await q(
         `SELECT c.id, c.name, c.email, c.phone, c.source, c.status, c.created_at,
@@ -369,7 +380,8 @@ export async function deskReply(ctx, client, db = null) {
     async client_history(input) {
       const id = String(input.client_id || '');
       if (!UUID.test(id)) return { error: 'Use a client id from find_clients.' };
-      const d = await contactDetail(tenant.id, id, db);
+      try { await assertClientInChair(user, id, chair, db); } catch { return { error: 'No client with that id.' }; }
+      const d = await contactDetail(tenant.id, id, db, mine);
       if (!d) return { error: 'No client with that id.' };
       const c = d.contact;
       // The client's emails exactly as their Activity lists them
@@ -421,8 +433,9 @@ export async function deskReply(ctx, client, db = null) {
            JOIN services v ON v.id = a.service_id
           WHERE a.tenant_id = $1::uuid AND a.starts_at >= $2::timestamptz AND a.starts_at <= $3::timestamptz
             AND ($4::text IS NULL OR s.slug = $4::text)
+            AND ($5::uuid[] IS NULL OR a.stylist_id = ANY($5::uuid[]))
           ORDER BY a.starts_at LIMIT 150`,
-        [tenant.id, from.startOf('day').toISO(), to.endOf('day').toISO(), st?.slug || null],
+        [tenant.id, from.startOf('day').toISO(), to.endOf('day').toISO(), st?.slug || null, mine],
       );
       return {
         count: rows.length,
@@ -441,6 +454,10 @@ export async function deskReply(ctx, client, db = null) {
       const kind = input.kind ? String(input.kind).slice(0, 40) : null;
       const cid = input.client_id ? String(input.client_id) : null;
       if (cid && !UUID.test(cid)) return { error: 'Use a client id from find_clients.' };
+      // The whole email log is the owner's; anyone else asks about one of
+      // their own clients.
+      if (chair && !cid) return { error: 'Only the salon owner sees the whole email log. Ask about one of your clients.' };
+      if (chair) { try { await assertClientInChair(user, cid, chair, db); } catch { return { error: 'No client with that id.' }; } }
       try {
         const { rows } = await q(
           `SELECT m.kind, m.to_name, m.to_email, m.sent_at, a.ref,
@@ -477,6 +494,7 @@ export async function deskReply(ctx, client, db = null) {
     // Spanish when they chose it in My Settings (2026-10-31).
     ...(ctx.lang === 'es' ? ['Language: they use the app in Spanish. Write every reply in natural, friendly Spanish (Latin American), keeping names, services as named in the records, and times as they are.'] : []),
     '',
+    ...(chair ? ['They are not the owner: they see only their own chair, its appointments and its clients. Never offer, look up or act on anyone else\'s.', ''] : []),
     'Stylists (slug: name):',
     ...(stylists.length ? stylists.map((s) => `- ${s.slug}: ${s.name}${s.active ? '' : ' (no longer taking bookings)'}`) : ['- none']),
     '',

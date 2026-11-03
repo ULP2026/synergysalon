@@ -110,7 +110,8 @@ test('Karen in the app reads clients, their history, the calendar and the email 
     });
 
     const answer = await deskReply({
-      tenant, user: { name: 'ZZ Front Desk', role: 'front_desk' },
+      // The owner, who sees the whole salon (scope.js).
+      tenant, user: { name: 'ZZ Owner', role: 'owner' },
       question: 'When was ZZ Desk Client added, and have we emailed them?', history: [],
     }, claude, client);
 

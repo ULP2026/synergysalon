@@ -181,7 +181,8 @@ async function weekBusy(targetId, tenant) {
 
 export default handler({
   async GET(req, res) {
-    const user = await requireStaff(req);
+    // Open during onboarding, which offers connecting their calendar.
+    const user = await requireStaff(req, null, { onboarding: true });
     const tenant = await tenantForUser(user);
     // ?busy=week[&member=<id>]: the coming week from Google, for Working
     // hours. Somebody else's only for owners and managers, as with connecting.
@@ -233,7 +234,8 @@ export default handler({
 
   async POST(req, res) {
     assertSameOrigin(req);
-    const user = await requireStaff(req);
+    // Open during onboarding, which offers connecting their calendar.
+    const user = await requireStaff(req, null, { onboarding: true });
     const body = await readJson(req);
     const action = requireString(body.action, 'Action', { max: 24 });
 

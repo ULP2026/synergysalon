@@ -664,7 +664,9 @@ made that way are real: name them ZZ and remove them.
   closing her is not a conversation. A team member's texts are kept in
   `karenReply` (karen-sms.js); a client's are not. The chat says under its
   message box that chats are saved for the salon owner to review.
-- **The team by text with Karen** (2026-10-31): every team member, whatever
+- **The team by text with Karen** (2026-10-31; since 2026-11-03 a team
+  member who is not the owner sees, books into and changes only their own
+  chair, below): every team member, whatever
   their role (stylist, front desk, owner, admin), may book new appointments
   for clients and move or cancel any appointment in the salon by texting
   Karen, as anyone can on Appt. Book. It used to be their own chair only (the
@@ -734,7 +736,9 @@ made that way are real: name them ZZ and remove them.
   `emails_sent` (the `message_sends` log). Nothing it does can book or
   write (`tests/karen-desk.integration.test.js` reads its source for SQL
   that writes and runs every tool against ZZ data with a stand-in model).
-  It sees the whole salon, as any staff member can in the app. The last
+  It sees what the person asking may see (2026-11-03, `scope.js`): the
+  whole salon for the owner, their own chair and its clients for anyone
+  else. The last
   12 messages travel with each question for follow-ups. Without
   `ANTHROPIC_API_KEY` the endpoint answers 503 and the chat keeps to its
   rules for the session.
@@ -1235,7 +1239,9 @@ made that way are real: name them ZZ and remove them.
   what decides whether a guest can book them online; and the same over
   PAYROLL, which is Stripe and reads Disconnected for everyone until
   something connects it. A stylist
-  without a sign in reads as not connected. Everybody can read the
+  without a sign in reads as not connected. Since 2026-11-03 only the owner
+  reads the team; anyone else sees their own account only (below). Until
+  then everybody could read the
   team (name, picture, email, phone, role, services, hours: `GET
   /api/staff/team` is `requireStaff`), as the salon asked, but only the admin
   changes anybody else: POST is `requireTeamAdmin`, and a non-admin opening a
@@ -1393,6 +1399,49 @@ made that way are real: name them ZZ and remove them.
   jumps to the top. A dragged card moves to where it was dropped as soon as
   the move is confirmed (its Finish part hidden until the redraw), and the
   quiet redraw puts everything where the server says.
+
+- **Onboarding and who sees what** (asked for 2026-11-03).
+  **Onboarding.** Somebody added to the team (by the owner, or approved
+  after asking to join) completes their own account before the app opens.
+  `staff_users.onboarded_at` (migration 042, also in ensure-schema): added
+  with `DEFAULT now()` so everyone already on the team counts as done, then
+  the default dropped, so every row inserted after is NULL (re-running
+  either statement fills nothing). `needsOnboarding` in auth.js: NULL and
+  not `canManageTeam` (owners and admins are never held). `requireStaff`
+  refuses such a person with 403 and code `ONBOARDING` everywhere except
+  the endpoints that pass `{ onboarding: true }`: `/me`, `/profile` and
+  `/calendars` (and the Google sign-in, which uses `currentUser`). The
+  console's `api()` turns that 403 into the setup screen (`#onboard`,
+  `showOnboarding`, `obPaint`): Step 1 their picture, name and mobile
+  (required for a stylist, as everywhere: Karen knows them by it), Step 2
+  for a stylist their services, prices and minutes (at least one on),
+  then Connect your calendar or Skip for now and finish. Each step saves
+  through `PATCH /api/staff/profile`; the last sends
+  `{finishOnboarding: true}`, accepted only once a name and a stylist's
+  mobile are stored. Their hours are not asked: the owner sets those. The
+  Team list marks them Invited (link not used yet), then Setting up.
+  **Who sees what.** Only the owner (`canManageTeam`: role Owner or Admin,
+  or the support login) sees everyone's calendar, appointments and clients.
+  Everybody else, stylists included, sees only their own chair (the
+  `stylists` rows linked to their login), its appointments, the clients in
+  their book (booked into their chair at least once, or added by them) and
+  their own account. One rule, `api/_lib/scope.js` (`seesAll`, `chairOf`,
+  `clientInChairSql`, `assertClientInChair`, `bookableSlug`), used on the
+  server by diary.js (appointments, blocks, hours, their own Google column
+  only; blocks only on their own chair), appointment.js (ticket, times,
+  every action and move: anything else is 404), availability.js and book.js
+  (their own chair only), home.js (figures, Coming up, charts; the tiles
+  read "My Appts." for them), contacts.js (list, profile with only their
+  chair's visits, every change, delete), team.js (themselves only), me.js
+  (stylists and team lists), business.js (Email History, Sent History, the
+  automations' counts, Finance: the owner's; one sent email opens for the
+  stylist whose client it went to), Karen in the app (karen-desk.js tools,
+  karen-actions.js proposals) and Karen by text (`chairAhead`, the schedule,
+  `deskBook` and the stylists she offers: their own chair; the owner the
+  salon). The console hides Money and Automations from them. A team member
+  with no chair (front desk) sees no appointments at all: that is what the
+  salon asked for, and the place to change it is `seesAll`.
+  `tests/onboarding-access.integration.test.js` drives the real endpoints.
 
 ## Small screens
 

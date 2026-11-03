@@ -72,6 +72,9 @@ export async function currentUser(req) {
 
   const { rows } = await query(
     `SELECT u.id, u.tenant_id, u.email, u.name, u.role, u.active, u.status, u.avatar,
+            -- Through to_jsonb so sign-in still works before migration 042:
+            -- without the column nobody is held at onboarding.
+            (to_jsonb(u) ? 'onboarded_at') AND (to_jsonb(u) ->> 'onboarded_at') IS NULL AS onboarding,
             s.id AS session_id, s.last_seen_at, t.slug AS tenant_slug, t.timezone
        FROM staff_sessions s
        JOIN staff_users u ON u.id = s.user_id
@@ -98,10 +101,30 @@ export async function currentUser(req) {
   return user;
 }
 
-/** Use at the top of every staff endpoint. */
-export async function requireStaff(req, roles = null) {
+/**
+ * Whether this person still has their account to complete before the app
+ * opens (asked for 2026-11-03). Somebody added to the team starts here; the
+ * owner and admins never do, since they set everybody else up.
+ */
+export function needsOnboarding(user) {
+  return Boolean(user?.onboarding) && !canManageTeam(user);
+}
+
+/**
+ * Use at the top of every staff endpoint.
+ *
+ * Somebody who has not finished onboarding is refused everything except the
+ * few endpoints that pass `{ onboarding: true }`: who they are (me), their
+ * own account (profile) and their own calendar connection (calendars). The
+ * console shows them only the setup screen, but hiding the app is not what
+ * keeps them out of it: this is.
+ */
+export async function requireStaff(req, roles = null, { onboarding = false } = {}) {
   const user = await currentUser(req);
   if (!user) throw new HttpError(401, 'Please sign in.');
+  if (!onboarding && needsOnboarding(user)) {
+    throw new HttpError(403, 'Finish setting up your account first.', 'ONBOARDING');
+  }
   if (roles && !roles.includes(user.role)) {
     throw new HttpError(403, 'You do not have access to that.');
   }

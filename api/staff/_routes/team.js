@@ -81,6 +81,8 @@ export default handler({
       `SELECT u.id, u.name, u.email, u.phone, u.role, u.status, u.note, u.avatar,
               u.requested_at, u.approved_at, u.last_seen_at, u.created_at,
               (to_jsonb(u) ->> 'invite_hash') IS NOT NULL AS invited,
+              -- Still to finish setting up their account (042).
+              (to_jsonb(u) ? 'onboarded_at') AND (to_jsonb(u) ->> 'onboarded_at') IS NULL AS onboarding,
               to_jsonb(u) ->> 'username' AS username,
               to_jsonb(u) ->> 'pricing' AS pricing,
               to_jsonb(u) -> 'services' AS services,
@@ -114,16 +116,18 @@ export default handler({
     // list because from a salon's point of view they are the same thing: a
     // person in a chair that a guest can book.
     // With the salon's portrait, as everywhere else a stylist's face appears.
-    const standalone = (await listStandalone({ query }, tenant.id))
-      .map((st) => ({ ...st, photo: stylistPhoto(tenant.slug, st.stylistSlug) }));
+    // Only the owner sees the team (asked for 2026-11-03): everybody else
+    // sees their own account and nobody else's, here as on Appt. Book.
+    const standalone = admin ? (await listStandalone({ query }, tenant.id))
+      .map((st) => ({ ...st, photo: stylistPhoto(tenant.slug, st.stylistSlug) })) : [];
 
-    // A non-admin sees the people on the team, not the ones asking to join
-    // or switched off: those are decisions only the admin makes.
-    const visible = admin ? rows : rows.filter((r) => r.status === 'active');
+    const visible = admin ? rows : rows.filter((r) => r.id === user.id);
     const members = visible.map((r) => ({
         id: r.id,
         // Added but never signed in: their invite is still outstanding.
         invited: r.invited,
+        // Signed in but still setting up their account (onboarding).
+        onboarding: Boolean(r.onboarding) && !canManageTeam(r),
         // Whether a guest can book them, and when.
         bookable: r.bookable,
         hours: r.hours ?? [],

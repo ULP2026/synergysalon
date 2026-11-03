@@ -245,6 +245,35 @@
      line into a 44px pill. */
   .auth .auth-alt { text-align: center; margin: 18px 0 0; font-size: var(--fs-sm); color: var(--muted); }
   .auth .auth-alt a { color: var(--link); font-weight: 600; }
+  /* Onboarding (2026-11-03): the sign-in card, a little wider, with a step bar. */
+  .ob .card { max-width: 520px; }
+  .ob-steps { display: flex; gap: 6px; margin: -6px 0 10px; }
+  .ob-steps i { flex: 1; height: 4px; border-radius: 99px; background: var(--line); }
+  .ob-steps i.on { background: var(--periwinkle); }
+  .ob-count { text-align: center; margin: 0 0 4px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .ob-pic { display: flex; align-items: center; gap: 14px; margin: 0 0 16px; }
+  .ob-pic > img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex: none;
+                  box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--periwinkle); background: var(--peri-pale); }
+  .ob-avs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ob-avs button { width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 2px solid transparent; background: var(--raise); cursor: pointer; }
+  .ob-avs button img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+  .ob-avs button[aria-pressed="true"] { border-color: var(--periwinkle); }
+  .ob-avs button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .ob-svc { display: grid; grid-template-columns: 44px minmax(0, 1fr) 96px 96px; gap: 10px; align-items: center;
+            padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; }
+  .ob-svc b { display: block; font-size: .9rem; }
+  .ob-svc small { display: block; font-size: .75rem; color: var(--muted); }
+  .ob-svc label { margin: 0; }
+  .ob-svc label > span { display: block; font-size: .68rem; font-weight: 600; color: var(--muted); margin: 0 0 2px 2px; }
+  .ob-svc input { height: 36px; }
+  .ob-svc.off input { opacity: .5; }
+  .ob-acts { display: flex; gap: 8px; justify-content: space-between; margin-top: 18px; }
+  .ob-acts .btn { flex: 1; justify-content: center; }
+  .ob-hint { font-size: var(--fs-xs); color: var(--muted); margin: 8px 0 0; }
+  @media (max-width: 480px) {
+    .ob-svc { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); }
+    .ob-svc > div:nth-child(2) { grid-column: 2 / -1; }
+  }
   .pw { position: relative; }
   .pw input { padding-right: 48px; }
   .pw .iconbtn { position: absolute; right: 3px; top: 3px; }
@@ -3183,6 +3212,25 @@
   </div>
 </main>
 
+<!-- ─────────────────────── onboarding ─────────────────────── -->
+<!-- Somebody new to the team completes their own account here before the
+     app opens (asked for 2026-11-03): their details, their services if they
+     are a stylist, and their calendar. The server refuses everything else
+     until they finish (requireStaff in auth.js), so this is not the only
+     thing keeping them out. obPaint() draws each step. -->
+<main id="onboard" class="auth ob hidden" aria-labelledby="obTitle">
+  <div class="card">
+    <img class="logo" src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon">
+    <div class="ob-steps" id="obSteps" aria-hidden="true"></div>
+    <p class="ob-count" id="obCount"></p>
+    <h1 id="obTitle">Welcome</h1>
+    <p class="lede" id="obLede"></p>
+    <div id="obNote" class="note hidden" role="status"></div>
+    <form id="obForm" novalidate></form>
+    <p class="auth-alt"><a href="#" id="obSignOut">Sign out</a></p>
+  </div>
+</main>
+
 <!-- ─────────────────────────── app ─────────────────────────── -->
 <div id="app" class="app hidden">
   <!-- GoldenRingNav, ported from RocketOS: a fixed cluster at the top centre,
@@ -4209,6 +4257,7 @@ const I18N_ES = {
   'New appointment': 'Nueva cita', 'Add client': 'Agregar cliente', 'New calendar': 'Nuevo calendario',
   // Home
   'Salon Appts. Today': 'Citas de hoy en el salón', 'Salon Appt. Today': 'Cita de hoy en el salón',
+  'My Appts. Today': 'Mis citas de hoy', 'My Appt. Today': 'Mi cita de hoy',
   'Clients Served': 'Clientes atendidos', 'Client Served': 'Cliente atendido',
   'Coming up': 'Próximas citas', 'See all appointments': 'Ver todas las citas', 'First visit': 'Primera visita',
   'Customize': 'Personalizar', 'Customize Home': 'Personalizar Inicio', 'Customizing Home': 'Personalizando Inicio',
@@ -4335,6 +4384,7 @@ const I18N_ES_RX = [
   [/^(\d+) Clients?$/, (m, n) => `${n} ${n === '1' ? 'cliente' : 'clientes'}`],
   [/^(\d+) (?:person|people)$/, (m, n) => `${n} ${n === '1' ? 'persona' : 'personas'}`],
   [/^(\d+) Salon Appts?\. in the last 30 days$/, '$1 citas del salón en los últimos 30 días'],
+  [/^(\d+) My Appts?\. in the last 30 days$/, '$1 de mis citas en los últimos 30 días'],
   [/^(\d+) new clients? in the last 30 days$/, '$1 clientes nuevos en los últimos 30 días'],
   [/^(\d+) appointments? this month$/, '$1 citas este mes'],
   [/^Past appointments \((\d+)\)$/, 'Citas pasadas ($1)'],
@@ -4430,6 +4480,9 @@ async function api(path, options = {}) {
   });
   if (res.status === 401) { showLogin(); throw new Error('signed out'); }
   const data = await res.json().catch(() => ({}));
+  // Still setting up their account: the server refuses everything else, and
+  // the answer is the setup screen, not an error under a button.
+  if (res.status === 403 && data.code === 'ONBOARDING') { showOnboarding(); throw new Error('signed out'); }
   if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
   return data;
 }
@@ -5950,6 +6003,8 @@ function go(name, { push = true } = {}) {
   // Team Settings is a tab of Settings now; its old address, the approvals
   // tile on Home and the calendar dialog's Connect all land there.
   if (name === 'account') { setTab = 'team'; name = 'settings'; }
+  // Automations and its Email History are the owner's (2026-11-03).
+  if ((name === 'automation' || name === 'history') && me && !me.user?.canManageTeam) { setTab = 'me'; name = 'settings'; }
   const p = PAGES[name];
   page = name;
   if (push && location.pathname !== p.path) history.pushState({ page: name }, '', p.path);
@@ -6226,8 +6281,11 @@ function widgetHtml(item, i) {
     if (item.id === 'today') {
       const n = h.today.count;
       const m = h.appts30 ?? 0;
-      num = `${n} <span class="unit">Salon ${n === 1 ? 'Appt.' : 'Appts.'} Today</span>`;
-      lbl = `${m} Salon ${m === 1 ? 'Appt.' : 'Appts.'} in the last 30 days`;
+      // "My" for anyone but the owner, whose figures are their own chair's
+      // (2026-11-03, scope.js on the server).
+      const who = me?.user?.canManageTeam ? 'Salon' : 'My';
+      num = `${n} <span class="unit">${who} ${n === 1 ? 'Appt.' : 'Appts.'} Today</span>`;
+      lbl = `${m} ${who} ${m === 1 ? 'Appt.' : 'Appts.'} in the last 30 days`;
       href = 'appointments'; icon = 'calendar';
     } else {
       const c = h.clients30;
@@ -11606,7 +11664,7 @@ function memberRow(m, self) {
   return `<button type="button" class="tm-row${self ? ' me' : ''}${m.status === 'disabled' ? ' off' : ''}" data-member="${self ? 'me' : esc(m.id)}"
       aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
     <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""><span class="pen">${ic('edit')}</span></span>
-    <span class="tm-who"><span class="tm-line"><b>${esc(m.name)}</b><span class="chip role">${esc(role)}</span>${self ? '<i class="tm-you">You</i>' : ''}</span>
+    <span class="tm-who"><span class="tm-line"><b>${esc(m.name)}</b><span class="chip role">${esc(role)}</span>${self ? '<i class="tm-you">You</i>' : ''}${m.invited ? '<span class="chip" title="Their invite has not been used yet.">Invited</span>' : m.onboarding ? '<span class="chip pending" title="They have signed in and are still setting up their account. The app opens for them once they finish.">Setting up</span>' : ''}</span>
       <span class="tm-phone">${m.phone ? esc(usPhone(m.phone)) : m.role === 'stylist' && !m.noLogin
         ? '<span class="warn-text">Mobile number needed</span>' : '<span class="muted">No phone number</span>'}</span></span>
     <span class="tm-badges">${cal}</span>
@@ -11827,7 +11885,7 @@ function showSetting(name) {
   // 2026-11-02; the key is still payment); an old link to either lands there.
   if (name === 'payroll' || name === 'billing' || name === 'money') name = 'payment';
   if (!SET_TABS.includes(name)) name = 'salon';
-  if (name === 'payment' && !me?.user?.canAdmin) name = 'me';
+  if ((name === 'payment' || name === 'marketing') && !me?.user?.canManageTeam) name = 'me';
   setTab = name;
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
@@ -12735,6 +12793,162 @@ async function showInvite(token) {
   };
 }
 
+// ── onboarding (2026-11-03) ───────────────────────────────────────────────
+//
+// Somebody added to the team signs in for the first time (from their invite)
+// and lands here, not in the app: their details, then their services if they
+// are a stylist, then their calendar. Each step saves as it goes (PATCH
+// /api/staff/profile), and the last one finishes ({finishOnboarding: true}),
+// which the server accepts only once a stylist has a mobile number. Their
+// working hours are not asked: the owner sets those (Available Hours).
+let ob = { step: 0, steps: [], prof: null, avatar: null };
+const OB_KINDS = [
+  ['cuts', 'Cuts', 'Haircuts, trims and bangs'],
+  ['color', 'Color', 'Single process, highlights, balayage'],
+  ['treatments', 'Treatments', 'Keratin, bond repair, scalp care'],
+  ['styling', 'Styling', 'Blowouts, updos, special events'],
+];
+async function showOnboarding() {
+  for (const id of ['boot', 'login', 'app']) $(id).classList.add('hidden');
+  $('onboard').classList.remove('hidden');
+  try {
+    ob.prof = await api('/api/staff/profile');
+  } catch (err) { if (err.message !== 'signed out') note($('obNote'), err.message); return; }
+  // Their own account only; the owner and admins are never here.
+  if (!ob.prof.onboarding) { location.reload(); return; }
+  ob.steps = ob.prof.role === 'stylist' ? ['details', 'services', 'calendar'] : ['details', 'calendar'];
+  ob.avatar = ob.prof.avatar || null;
+  ob.step = 0;
+  obPaint();
+}
+function obPaint() {
+  const p = ob.prof;
+  const step = ob.steps[ob.step];
+  const first = String(p.name || '').trim().split(/\s+/)[0];
+  $('obSteps').innerHTML = ob.steps.map((_, i) => `<i class="${i <= ob.step ? 'on' : ''}"></i>`).join('');
+  $('obCount').textContent = `Step ${ob.step + 1} of ${ob.steps.length}`;
+  note($('obNote'), '');
+  const back = ob.step ? '<button type="button" class="btn quiet" data-ob-back>Back</button>' : '';
+  if (step === 'details') {
+    $('obTitle').textContent = first ? `Welcome, ${first}!` : 'Welcome!';
+    $('obLede').textContent = `Let's set up your account at ${me?.salon?.name || 'the salon'}. It takes a minute.`;
+    const pic = ob.avatar || charAvatar(p.name || p.email || 'new');
+    const choices = WOMEN.filter((_, i) => i % 3 === 0).concat(AVATAR_SETS[1][1].map((k) => avatarPath(k, 'medium')));
+    $('obForm').innerHTML = `
+      <div class="ob-pic"><img id="obPic" src="${esc(pic)}" alt="">
+        <div><span class="small muted">Choose a picture</span>
+          <div class="ob-avs" role="group" aria-label="Choose a picture">${choices.map((src) => `<button type="button" data-ob-av="${src}" aria-pressed="${src === pic}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div></div></div>
+      <label><span>Your name</span><input name="name" value="${esc(p.name || '')}" autocomplete="name" required maxlength="120"></label>
+      <label><span>Mobile number${p.role === 'stylist' ? '' : ' (optional)'}</span><input name="phone" type="tel" value="${esc(usPhone(p.phone || ''))}" autocomplete="tel" placeholder="(813) 555-0170"></label>
+      ${p.role === 'stylist' ? '<p class="ob-hint">Karen, the salon\'s assistant, knows you by this number when you text her.</p>' : ''}
+      <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
+  } else if (step === 'services') {
+    $('obTitle').textContent = 'Your services';
+    $('obLede').textContent = 'Switch on what you do, with your starting price and usual time. You can change these later in Settings, Team.';
+    const sv = p.services || {};
+    $('obForm').innerHTML = `${OB_KINDS.map(([k, label, hint]) => {
+      const v = sv[k] || {};
+      const dur = k === 'color' ? (v.duration ?? '') : (v.duration ?? '');
+      return `<div class="ob-svc ${v.on ? '' : 'off'}" data-ob-kind="${k}">
+        <button type="button" class="switch" role="switch" aria-checked="${Boolean(v.on)}" aria-label="${esc(label)}"><span></span></button>
+        <div><b>${esc(label)}</b><small>${esc(hint)}</small></div>
+        <label><span>Price $</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" data-f="price" value="${v.price ?? ''}" placeholder="0.00"></label>
+        <label><span>Minutes</span><input type="number" min="5" max="720" step="5" inputmode="numeric" data-f="duration" value="${dur}" placeholder="60"></label>
+      </div>`;
+    }).join('')}
+      <p class="ob-hint">The salon owner sets the hours you can be booked.</p>
+      <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
+  } else {
+    $('obTitle').textContent = 'Connect your calendar';
+    $('obLede').textContent = 'Connect your Google Calendar so your appointments appear there and nobody books you when you are busy. You can do this later in Settings, Team.';
+    const g = p.google || {};
+    $('obForm').innerHTML = `
+      <p class="ob-hint" id="obCal">${g.connected ? `Connected${g.account ? ` as ${esc(g.account)}` : ''}.` : 'Not connected yet.'}</p>
+      ${g.connected ? '' : '<button type="button" class="btn quiet block" data-ob-google>Connect Google Calendar</button>'}
+      <div class="ob-acts">${back}<button class="btn">${g.connected ? 'Finish' : 'Skip for now and finish'}</button></div>`;
+  }
+}
+$('obForm').addEventListener('click', (e) => {
+  if (e.target.closest('[data-ob-back]')) { ob.step = Math.max(0, ob.step - 1); obPaint(); return; }
+  const av = e.target.closest('[data-ob-av]');
+  if (av) {
+    ob.avatar = av.dataset.obAv;
+    $('obPic').src = ob.avatar;
+    for (const b of $('obForm').querySelectorAll('[data-ob-av]')) b.setAttribute('aria-pressed', String(b === av));
+    return;
+  }
+  const sw = e.target.closest('.ob-svc .switch');
+  if (sw) {
+    const on = sw.getAttribute('aria-checked') !== 'true';
+    sw.setAttribute('aria-checked', String(on));
+    sw.closest('.ob-svc').classList.toggle('off', !on);
+    return;
+  }
+  const g = e.target.closest('[data-ob-google]');
+  if (g) {
+    connectGoogle(g);
+    // The popup reports back; reread their status a little after it closes.
+    const again = setInterval(async () => {
+      try {
+        const fresh = await api('/api/staff/profile');
+        if (fresh.google?.connected) { clearInterval(again); ob.prof = fresh; obPaint(); }
+      } catch { clearInterval(again); }
+    }, 2500);
+    setTimeout(() => clearInterval(again), 120000);
+  }
+});
+$('obForm').addEventListener('input', (e) => {
+  if (e.target.name === 'phone') e.target.value = usPhone(e.target.value);
+  if (e.target.name === 'name' && !ob.avatar) $('obPic').src = charAvatar(e.target.value || 'new');
+});
+$('obForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const step = ob.steps[ob.step];
+  const btn = f.querySelector('.ob-acts .btn:not(.quiet)');
+  btn.disabled = true;
+  try {
+    if (step === 'details') {
+      const name = f.elements.name.value.trim();
+      const phone = f.elements.phone.value.trim();
+      if (!name) { note($('obNote'), 'Add your name.'); f.elements.name.focus(); return; }
+      if (ob.prof.role === 'stylist' && phone.replace(/\D/g, '').length < 10) {
+        note($('obNote'), 'Add your mobile number, with the area code.'); f.elements.phone.focus(); return;
+      }
+      // The picture shown is the one kept, chosen or not (as when the owner adds somebody).
+      const avatar = ob.avatar || charAvatar(name);
+      ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ name, phone, avatar }) })) };
+      ob.avatar = avatar;
+    } else if (step === 'services') {
+      const services = { ...(ob.prof.services || {}) };
+      for (const row of f.querySelectorAll('[data-ob-kind]')) {
+        const k = row.dataset.obKind;
+        const num = (x) => { const v = row.querySelector(`[data-f=${x}]`).value.trim(); return v === '' ? null : Number(v); };
+        const price = num('price');
+        const duration = num('duration');
+        if (price != null && !(price >= 0)) { note($('obNote'), 'Prices are numbers of dollars.'); return; }
+        if (duration != null && !(Number.isInteger(duration) && duration >= 5 && duration <= 720)) {
+          note($('obNote'), 'Minutes are a whole number from 5 to 720.'); return;
+        }
+        services[k] = { ...(services[k] || {}), on: row.querySelector('.switch').getAttribute('aria-checked') === 'true', price, duration };
+      }
+      if (!OB_KINDS.some(([k]) => services[k].on)) { note($('obNote'), 'Switch on at least one service you do.'); return; }
+      ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ services }) })) };
+    }
+    if (ob.step < ob.steps.length - 1) { ob.step += 1; obPaint(); return; }
+    await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ finishOnboarding: true }) });
+    toast("You're all set. Welcome to the team!");
+    location.reload();
+  } catch (err) {
+    if (err.message !== 'signed out') note($('obNote'), err.message);
+  } finally { if (btn.isConnected) btn.disabled = false; }
+});
+$('obSignOut').onclick = async (e) => {
+  e.preventDefault();
+  await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+  location.reload();
+};
+
 async function start(landing) {
   // An invite link comes before everything else: whoever follows it has no
   // session, and sending them to the sign-in form asks for a password they
@@ -12755,12 +12969,19 @@ async function start(landing) {
   }
   $('boot').classList.add('hidden');
   $('login').classList.add('hidden');
+  // Somebody new completes their account before the app opens.
+  if (me.user.onboarding) { showOnboarding(); return; }
+  $('onboard').classList.add('hidden');
   $('app').classList.remove('hidden');
 
   paintMe();
-  // Settings is everyone's now (Team Settings lives there); the Billing
-  // card and the Payroll tab are only for owners, admins and managers.
-  for (const b of document.querySelectorAll('#setSeg [data-admin]')) b.classList.toggle('hidden', !me.user.canAdmin);
+  // Settings is everyone's (My Settings, Salon, Team, Karen AI). Money and
+  // Automations are the owner's (2026-11-03): Finance, the plan and every
+  // email and text the salon sent are the whole salon's, and only the owner
+  // sees the whole salon (scope.js on the server says the same).
+  for (const b of document.querySelectorAll('#setSeg [data-admin], #setSeg [data-set="marketing"]')) {
+    b.classList.toggle('hidden', !me.user.canManageTeam);
+  }
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
 

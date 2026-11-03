@@ -210,13 +210,15 @@ function details(ctx, info, st) {
       ? `Texting: ${who.name}, a client of the salon (this number is on file).`
       : who.kind === 'staff'
         ? `Texting: ${who.name}, a team member${who.admin ? " and the salon's admin" : who.stylist_id ? ', a stylist' : ''}, `
-          + 'who may book new appointments for clients and move or cancel any appointment in the salon.'
+          + (who.admin
+            ? 'who may book new appointments for clients and move or cancel any appointment in the salon.'
+            : 'who may book new appointments for clients into their own chair and move or cancel only the appointments in their own chair. They cannot see anyone else\'s.')
         : 'Texting: a number that is not on file. You do not know their name yet.',
   ];
   if (who.kind === 'staff') {
     lines.push(info.upcoming.length
-      ? "The salon's booked appointments in the next two weeks (client: visit):"
-      : 'Nothing is booked in the salon in the next two weeks.');
+      ? `${who.admin ? "The salon's" : 'Their own chair\'s'} booked appointments in the next two weeks (client: visit):`
+      : `Nothing is booked in ${who.admin ? 'the salon' : 'their chair'} in the next two weeks.`);
     info.upcoming.forEach((a, i) => lines.push(`${i + 1}. ${a.client}: ${info.describe(a)}`));
   }
   if (who.kind === 'client') {

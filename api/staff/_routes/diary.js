@@ -36,6 +36,7 @@ import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
 import { salonWeek } from '../../_lib/salon-hours.js';
+import { chairIds, chairOf } from '../../_lib/scope.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import {
   LUNCH, cleanBreaks, cleanDown, flexLunchOn, lunchGap, workSpans,
@@ -62,6 +63,11 @@ export default handler({
       throw new HttpError(400, 'Month must look like 2026-09.');
     }
 
+    // The owner sees the whole salon; anyone else only their own chair: its
+    // appointments, its blocks, its hours and their own Google column
+    // (asked for 2026-11-03, scope.js).
+    const chair = await chairOf(user);
+    const mine = chairIds(chair);
     const day = DateTime.fromISO(date, { zone: tenant.timezone });
     const from = month ? month.startOf('month') : day.startOf('day');
     const to = month ? month.endOf('month') : day.endOf('day');
@@ -95,8 +101,9 @@ export default handler({
           -- not shown. A booking with no client at all is left off with them:
           -- every booking has been given one since contactFor (booking.js).
           AND ct.id IS NOT NULL
+          AND ($4::uuid[] IS NULL OR a.stylist_id = ANY($4::uuid[]))
         ORDER BY a.starts_at, s.sort_order`,
-      [tenant.id, from.toISO(), to.toISO()],
+      [tenant.id, from.toISO(), to.toISO(), mine],
     );
 
     const appointments = rows.map((r) => {
@@ -143,8 +150,10 @@ export default handler({
            LEFT JOIN stylists s ON s.id = t.stylist_id
           WHERE t.tenant_id = $1::uuid
             AND t.during && tstzrange($2::timestamptz, $3::timestamptz, '[]')
+            -- Their own blocks and the salon-wide closures, which are theirs too.
+            AND ($4::uuid[] IS NULL OR t.stylist_id IS NULL OR t.stylist_id = ANY($4::uuid[]))
           ORDER BY lower(t.during)`,
-        [tenant.id, from.toISO(), to.toISO()],
+        [tenant.id, from.toISO(), to.toISO(), mine],
       );
       blocks = off.map((b) => ({
         id: b.id,
@@ -173,8 +182,9 @@ export default handler({
            LEFT JOIN staff_users u ON u.id = s.staff_user_id
            LEFT JOIN stylist_hours h ON h.stylist_id = s.id AND h.weekday = $2::int
           WHERE s.tenant_id = $1::uuid AND s.active
+            AND ($3::uuid[] IS NULL OR s.id = ANY($3::uuid[]))
           ORDER BY s.slug, h.starts_at`,
-        [tenant.id, day.weekday % 7],
+        [tenant.id, day.weekday % 7, mine],
       ).catch(() => ({ rows: [] }));
       const mins = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
       for (const r of shifts) {
@@ -236,8 +246,10 @@ export default handler({
           WHERE u.tenant_id = $1::uuid AND u.status = 'active'
             AND ((to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL
                  OR (to_jsonb(u) ->> 'google_ics') IS NOT NULL)
+            -- Only their own column for anyone but the owner.
+            AND ($2::boolean OR u.id = $3::uuid)
           ORDER BY u.name`,
-        [tenant.id],
+        [tenant.id, !chair, user.id],
       ).catch(() => ({ rows: [] }));
       team = await Promise.all(linked.map(async (u) => {
         const col = {
@@ -315,6 +327,9 @@ export default handler({
     const reason = kind === 'lunch'
       ? 'Lunch'
       : (String(body.reason || '').trim().slice(0, 120) || 'Blocked');
+    // Anyone but the owner blocks only their own time.
+    const chair = await chairOf(user);
+    if (chair && !chair.slugs.includes(slug)) throw new HttpError(403, 'You can only block your own time.');
 
     const { rows } = await query(
       `INSERT INTO time_off (tenant_id, stylist_id, during, reason)
@@ -361,9 +376,12 @@ export default handler({
         WHERE g.time_off_id = $1::int AND t.tenant_id = $2::uuid`,
       [id, tenant.id],
     ).catch(() => ({ rows: [] }));
+    // Anyone but the owner removes only their own blocks, never a closure.
+    const chair = await chairOf(user);
     const { rowCount } = await query(
-      'DELETE FROM time_off WHERE id = $1::int AND tenant_id = $2::uuid',
-      [id, tenant.id],
+      `DELETE FROM time_off WHERE id = $1::int AND tenant_id = $2::uuid
+          AND ($3::uuid[] IS NULL OR stylist_id = ANY($3::uuid[]))`,
+      [id, tenant.id, chairIds(chair)],
     );
     if (!rowCount) throw new HttpError(404, 'That block is already gone.');
     if (copies.length) {

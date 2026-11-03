@@ -16,6 +16,7 @@
  * up in both with somebody merging them by hand later.
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertClientInChair, chairIds, chairOf, clientInChairSql } from '../../_lib/scope.js';
 import { DEFAULT_TZ } from '../../_lib/config.js';
 import { hasColumn, query, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle } from '../../_lib/google-mirror.js';
@@ -50,7 +51,7 @@ const STYLIST_OF = `(SELECT jsonb_build_object('name', ts.name, 'slug', ts.slug)
  * left stays, marked, because their clients and history did not leave with
  * them.
  */
-export async function stylistChoices(tenantId, db = null) {
+export async function stylistChoices(tenantId, db = null, onlyIds = null) {
   const { rows } = await (db ? db.query.bind(db) : query)(
     `SELECT s.slug, s.name, s.active, (to_jsonb(s) ->> 'removed_at') IS NOT NULL AS removed,
             to_jsonb(s) ->> 'photo' AS photo, to_jsonb(u) ->> 'avatar' AS avatar, t.slug AS tenant_slug
@@ -59,8 +60,10 @@ export async function stylistChoices(tenantId, db = null) {
        LEFT JOIN staff_users u ON u.id = s.staff_user_id
       WHERE s.tenant_id = $1::uuid
         AND (s.active OR EXISTS (SELECT 1 FROM appointments a WHERE a.stylist_id = s.id))
+        -- Anyone but the owner chooses only themselves (scope.js).
+        AND ($2::uuid[] IS NULL OR s.id = ANY($2::uuid[]))
       ORDER BY (s.active AND (to_jsonb(s) ->> 'removed_at') IS NULL) DESC, s.sort_order, s.name`,
-    [tenantId],
+    [tenantId, onlyIds],
   );
   // Their face on the filter: the picture they uploaded to their login, else
   // the salon's portrait of them, else the avatar they chose (the console
@@ -281,7 +284,7 @@ export async function removeContact(client, tenantId, id) {
  * so there are no SMS or automation events, rather than placeholders that
  * look like activity. The console says so instead.
  */
-export async function contactDetail(tenantId, id, db = null) {
+export async function contactDetail(tenantId, id, db = null, onlyIds = null) {
   const q = db ? db.query.bind(db) : query;
   const { rows: found } = await q(
     `SELECT id, name, email, phone, source, status, notes, created_at,
@@ -311,9 +314,11 @@ export async function contactDetail(tenantId, id, db = null) {
        JOIN services v ON v.id = a.service_id
        LEFT JOIN staff_users b ON b.id = a.booked_by
       WHERE a.contact_id = $1::uuid AND a.tenant_id = $2::uuid
+        -- Anyone but the owner sees only the visits in their own chair.
+        AND ($3::uuid[] IS NULL OR a.stylist_id = ANY($3::uuid[]))
       ORDER BY a.starts_at DESC
       LIMIT 100`,
-    [id, tenantId],
+    [id, tenantId, onlyIds],
   );
 
   // Pushes to the CRM that went through, for this person or their bookings.
@@ -697,13 +702,16 @@ export default handler({
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
     const url = new URL(req.url, 'http://localhost');
+    const chair = await chairOf(user);
 
     if (url.searchParams.has('id')) {
       const id = requireId(url.searchParams.get('id'), 'Contact');
       // Anything that is not a uuid cannot be a contact; saying so beats a
       // cast error from Postgres.
-      const detail = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
-        ? await contactDetail(tenant.id, id) : null;
+      const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id);
+      // Only a client in their own book, for anyone but the owner (scope.js).
+      if (isId) await assertClientInChair(user, id, chair);
+      const detail = isId ? await contactDetail(tenant.id, id, null, chairIds(chair)) : null;
       if (!detail) throw new HttpError(404, 'No such client.');
       return json(res, 200, detail);
     }
@@ -747,16 +755,18 @@ export default handler({
                   JOIN stylists ms ON ms.id = ma.stylist_id
                  WHERE ma.contact_id = c.id AND ma.status <> 'cancelled'
                    AND ms.staff_user_id = $6::uuid))
+          -- Anyone but the owner lists only the clients in their own book.
+          AND ${clientInChairSql('c', '$7', '$8')}
         GROUP BY c.id
         ORDER BY (c.status = 'new') DESC, c.created_at DESC
         LIMIT $4`,
-      [tenant.id, STATUSES.includes(status) ? status : null, q, limit, stylist, member],
+      [tenant.id, STATUSES.includes(status) ? status : null, q, limit, stylist, member, chairIds(chair), user.id],
     );
 
     return json(res, 200, {
       count: rows.length,
       // Only when asked: the booking window's name search does not need it.
-      ...(url.searchParams.has('stylists') ? { stylists: await stylistChoices(tenant.id) } : {}),
+      ...(url.searchParams.has('stylists') ? { stylists: await stylistChoices(tenant.id, null, chairIds(chair)) } : {}),
       contacts: rows.map((c) => ({
         id: c.id,
         name: c.name,
@@ -832,6 +842,10 @@ export default handler({
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
+    // Changes only to a client in their own book, for anyone but the owner.
+    if (typeof body.id === 'string' && /^[0-9a-f-]{36}$/i.test(body.id)) {
+      await assertClientInChair(user, body.id, await chairOf(user));
+    }
 
     if (body.op === 'note') return json(res, 200, await addNote(tenant.id, user, body));
     if (body.op === 'prefs') return json(res, 200, await setPrefs(tenant.id, body, null, user));
@@ -908,6 +922,7 @@ export default handler({
     const body = await readJson(req);
     const id = requireString(body.id, 'Contact', { max: 64 });
     if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, 'Client is not valid.');
+    await assertClientInChair(user, id, await chairOf(user));
 
     const removed = await transaction((client) => removeContact(client, tenant.id, id));
     if (!removed) throw new HttpError(404, 'That client no longer exists.');
