@@ -388,7 +388,17 @@ export async function deskReply(ctx, client, db = null) {
           ref: a.ref, when: when(a.startsAt), minutes: a.durationMin, status: a.status,
           service: a.service, stylist: a.stylist, booked: a.channel === 'online' ? 'online' : 'by staff',
         })),
-        activity: d.activity.map((e) => ({ what: e.title, detail: e.detail || null, when: when(e.at), ref: e.ref || null })),
+        // Who did each thing travels with it (Karen, a team member by name,
+        // the client, or an automation), and a booking keeps its old wording
+        // ("Booked by Karen") so she can say who booked it.
+        activity: d.activity.map((e) => ({
+          what: e.bookedLabel || e.title,
+          detail: e.detail || null,
+          when: when(e.at),
+          ref: e.ref || null,
+          ...(e.by ? { by: e.by.kind === 'automation' ? `Automation: ${e.by.name}` : e.by.name } : {}),
+          ...(e.apptAt ? { appointment: when(e.apptAt) } : {}),
+        })),
         emails_sent: emails.map((e) => ({
           kind: e.kind, subject: e.title, status: e.status, about: e.detail, sent: when(e.at),
         })),

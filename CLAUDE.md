@@ -414,7 +414,11 @@ made that way are real: name them ZZ and remove them.
   (`homeHello()`), beside the person's own headshot (2026-10-31, `paintPageFace`,
   ringed in periwinkle), and the subtitle a word for the day ("Happy Friday!",
   "Enjoy your Saturday!", "Have a great morning today!") then the date
-  (`greeting()`). No primary button. Two tiles from `GET /api/staff/home`
+  (`greeting()`). Since 2026-11-03 the greeting is revealed left to right as
+  Home opens (`paintHello`, `.hello-in`: a 0.9s clip-path wipe of the whole
+  line, so the Spanish layer still swaps it as one phrase; the subtitle
+  fades in under it; none for reduced motion; the quiet reloads replay it
+  only if the words changed). No primary button. Two tiles from `GET /api/staff/home`
   (`_routes/home.js`, counted in SQL), two equal columns as wide as Coming
   up, each a figure on the left and a periwinkle icon on the right: "N Salon
   Appts. Today" over "M Salon Appts. in the last 30 days" (started in the
@@ -529,7 +533,7 @@ made that way are real: name them ZZ and remove them.
   copy follows either way) and the reply's `notified` says which happened.
   With no email or phone on file only Just Move can be chosen.
 - The client profile edits in place: a pencil on Contact details (name,
-  phone, email) and on Tags and status (the stage), Add note (a dated line
+  phone, email); the status and tags in the header (below), Add note (a dated line
   on top, `PATCH {op: 'note'}`, one statement so two people's notes both
   stay; notes hold 8,000 characters), and Contact preferences: Email and
   Text messages, separate switches (`contacts.email_ok`, `sms_ok`, 031,
@@ -792,7 +796,7 @@ made that way are real: name them ZZ and remove them.
 - Clients, Activity: each kind of event has its own colour (asked for
   2026-10-22): booked green, emails (and texts, when there are any) yellow,
   checked in blue, done teal, no-show orange, cancelled red, the website
-  form pink, added grey. Contact details no longer repeats the phone, which
+  form pink, added grey, Admin violet (2026-11-03). Contact details no longer repeats the phone, which
   is at the top of the profile; it is still edited with the pencil there.
 - Payroll (2026-10-22): processed every Friday, staff and stylists paid by
   the end of that day. Since 2026-10-30 the Payroll tab shows only "Coming
@@ -847,7 +851,7 @@ made that way are real: name them ZZ and remove them.
   (`combineServices`), online and at the desk, which
   `tests/synergy-calendar.integration.test.js` pins. So the calendar screens
   show and ask for a length only for a class or an event (`calSeats`). Settings is
-  for everyone: a My Settings tab first (capital S since 2026-10-30) (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to; key `salon`; Salon Profile first since 2026-10-30, and without its Salon email field since the same day: the stored address is kept, still the reply-to fallback, and the save leaves it out) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and a Money tab for owners, admins and managers (key `payment`; "Money" since 2026-11-02, with a **Subscription** card first: the plan, its price from `SUBSCRIPTION` in the console, which is `null` until the salon sets it and so reads "Pricing coming soon", and an Activate subscription button disabled and marked Coming soon until payments are connected (both chosen by the salon, 2026-11-02); "Payments" from 2026-10-31, as is the client profile's Card on file section, while an appointment's own window keeps "Payment";
+  for everyone: a My Settings tab first (capital S since 2026-10-30) (your name and role with Edit my profile, Appearance, Sign out; key `me`, where Settings opens, 2026-10-30, in place of the person chip), a Salon tab (Salon Profile, then Where do you want people to reply to; key `salon`; Salon Profile first since 2026-10-30, and without its Salon email field since the same day: the stored address is kept, still the reply-to fallback, and the save leaves it out) and a Team tab (Team Members; key `team`, where `/account` opens), split on request on 2026-10-23 after a week as one "Salon & Team" page, and a Money tab for owners, admins and managers (key `payment`; "Money" since 2026-11-02, with Finance first since 2026-11-03 and then a **Subscription** card: the plan, its price from `SUBSCRIPTION` in the console, which is `null` until the salon sets it and so reads "Pricing coming soon", and an Activate subscription button disabled and marked Coming soon until payments are connected (both chosen by the salon, 2026-11-02); "Payments" from 2026-10-31, as is the client profile's Card on file section, while an appointment's own window keeps "Payment";
   it was the Payroll tab until 2026-10-30): a Billing card and a Payroll card, both "Coming soon".
   Billing was a tab of its own, then a card on Salon (2026-10-26), and moved to Payment on request
   on 2026-10-30; old `payroll` and `billing` tab names land on Payment. It has no Calendars tab:
@@ -911,7 +915,8 @@ made that way are real: name them ZZ and remove them.
   (`.gcard.soon`, nothing to press). Services & pricing has Price and
   Duration (minutes, 5 to 720) on each service, and inside each service's
   card, directly under its description, a "Notes / Special Instructions for
-  Clients" field. Since 2026-10-17 (on request) that is **one shared box
+  Clients" field (labelled "Special Instructions When Booking Clients" since
+  2026-11-03; the section under it is "Available Hours", was Working hours). Since 2026-10-17 (on request) that is **one shared box
   under all the services** (the last card), always shown, instead of one
   per card; notes saved per service are carried into it, labelled. Color
   has no single Duration: it has Start, Break (processing) and Finish, once
@@ -919,8 +924,11 @@ made that way are real: name them ZZ and remove them.
   lives in the same `services` object (`{cuts: {on, price, duration},
   color: {on, price, duration, start, break, finish, highlights: {...}},
   ..., notes, items}`, cleaned by `servicesFrom` in `profile.js`):
-  **each kind opens to its services** (asked for 2026-11-02): the kind's
-  name is a button with a chevron, and open it lists every service of that
+  **each kind opens to its services** (asked for 2026-11-02; since
+  2026-11-03 a kind switched on opens by itself and one switched off folds
+  back to its one line, its chevron hidden, animated by grid rows, nothing
+  typed inside lost because the folded fields are still read on save): the
+  kind's name is a button with a chevron, and open it lists every service of that
   kind from the menu (`me.services`), ticked if offered, with its own
   minutes (`items: {<slug>: {on, duration}}`). A service with no entry is
   offered whenever its kind is on, as before; an unticked one is left out
@@ -1109,17 +1117,18 @@ made that way are real: name them ZZ and remove them.
   the email is rendered again from the booking as it is now and the window
   says so; the manage link carries a dummy token, never the guest's; a
   booking deleted since shows sample details. **Finance** moved to Home on
-  2026-10-24 (`#homeFin`, under the widgets; `/marketing/finance` now lands
-  on Home), owners, admins and managers only (the card stays hidden for
+  2026-10-24, and on 2026-11-03 to Settings, Money, above Subscription
+  (`#homeFin`, an `.acard`, drawn by `renderFinance()` when the tab opens;
+  `/marketing/finance` still lands on Home), owners, admins and managers only (the card stays hidden for
   anyone else, and a 403 from `?finance=1&from=&to=`): what visits were
   worth in a period, total and by stylist -- earned so far, average visit,
   booked ahead -- counted as Home counts value (kept = not cancelled and not
   a no-show; the booked price, else the service's; unpriced visits named, not
   guessed). The app records no payments yet, and Finance says so on the
   page. The old `/marketing/email` address opens Email History.
-- **Booking references are not shown** (asked for 2026-10-24), except in a
-  client's contact details (the timeline's "Ref" on each booking event): not
-  in Email History or its email window, the appointment window, Karen's
+- **Booking references are not shown** (asked for 2026-10-24; the client's
+  Activity lost its "Ref" line on 2026-11-03, which shows the visit's own
+  date instead): not in Email History or its email window, the appointment window, Karen's
   "all set" card, any guest email (`detailRows` has no Reference row) or the
   guest's manage page. The ref still travels in links and addresses, where
   it finds the booking.
@@ -1174,14 +1183,16 @@ made that way are real: name them ZZ and remove them.
   `GET /api/staff/business?preview=<kind>` with a sample appointment. Add a
   message to `MESSAGES` and it can be previewed; there is no SMS yet, so none
   is shown. Marketing takes the nav's width, like Settings.
-- Settings, Salon Profile is the tenant's details, compact since
-  2026-11-02 (asked for twice): the logo on the left with Change logo and
-  Remove under it, Salon name, Phone and Website beside it (`.biz-top`),
-  then the review link, the address four to a row and About (`.biz-grid`).
-  Labels small and in capitals like Booking page and Time zone at the
-  card's foot, fields 34px; two to a row on a tablet, one on a phone, where
-  the logo sits above with its buttons beside it. Its logo is the nav's mark,
-  painted from `me.salon.logo`, so saving updates the menu at once.
+- Settings, Salon Profile is the tenant's details, as a listing since
+  2026-11-03 (in the shape of a Google business card, asked for): the logo
+  on the left with Change logo and Remove under it, and on its right every
+  detail as a bold label and a small value, one per line: Salon name, Phone,
+  Website, Google review link, Address, Booking page, Time zone. A pencil
+  turns the editable ones into fields in place with Save and Cancel
+  (`bizEditing`); Booking page and Time zone are only shown. About was taken
+  off and there is no standing "Save Salon Profile" button any more; the
+  save leaves `about` out, so what is stored is kept. Its logo is the nav's
+  mark, painted from `me.salon.logo`, so saving updates the menu at once.
 - Team lists only the signed-in person for now (stylists are added later),
   plus anyone asking to join. Each person has a username (011) and their own
   services and prices, `staff_users.services` (012): Cuts, Treatments, Color,
@@ -1306,6 +1317,46 @@ made that way are real: name them ZZ and remove them.
   hidden so the menu fits a phone. The client profile has no header Edit
   button: each card's pencil edits in place. On Home under 760px the two
   figure tiles (`.hm-num`) stay side by side, half each.
+
+- **The client profile, 2026-11-03** (asked for): the appointments (Appt.
+  Book) come first, then Contact details; the Tags and status card is gone.
+  The header carries the status (a native `<select>` styled as a chip,
+  because the app's pop-up menu draws under a modal dialog's top layer),
+  Card on file, and the client's **tags** (`contacts.tags`, migration 041,
+  also in ensure-schema; `PATCH {op: 'tags', tags: [...]}`, `setTags`: up to
+  20, 30 characters each, duplicates dropped whatever their capitals). The
+  plus (or pencil once there are tags) opens an editor in the header:
+  removable chips, a box (Enter or comma adds), a chip clicked goes back in
+  the box to be renamed, Done. Each change saves as it is made.
+  **Activity** filters are All, Appointments, Email, SMS and **Admin**
+  (was Automations, which never had anything; Forms went too). Admin is
+  `contact_changes` (041): every change the team makes to a client's record,
+  field, old and new, who and when, written by `logChanges` from the edit
+  form's save (name, phone, email, status, source, notes, diffed so a save
+  that changes nothing logs nothing), Add note, the preference switches,
+  Card on file and tags. Older changes were never recorded. "Added as a
+  contact" reads "Client Created"; every booking reads "Appointment Booked"
+  (`bookedLabel` still says who, for Karen's tools); no event shows a ref,
+  each event of a visit shows the visit's own date (`apptAt`). Every line
+  carries `by` (`bookedBy`, `staff()` in `contactDetail`): Karen, a team
+  member (their face from `people`, the photos `contactDetail` returns once
+  each), the client (website), an automation by its name, "The team" where
+  the app knows the desk did it but not who (check-in, done, no-show), or
+  nothing where nothing recorded who (a cancellation). Automated emails and
+  texts are titled with their automation (`AUTOMATION_NAME` in contacts.js,
+  the names the Automations list now uses too, in Title Case: Appointment
+  Booking, Appointment Reminder, Reschedule Notice, ...), the subject beside
+  the visit; a direct email by its subject, its writer from the body's
+  `fromName`. The message box starts on **Text** (red) every time, Email is
+  blue: the switch, the box's edge and "Send text"/"Send email" take the
+  colour (`--pc`). `tests/client-changes.integration.test.js`,
+  `tests/staff-profile-ui.test.js`.
+- **A move redraws in place** (2026-11-03): `refreshDiary()` is quiet by
+  default (`loadDay(..., {quiet, force})`, `loadMonth(..., {quiet})`), so a
+  move, a check-in or a block no longer wipes Appt. Book to a skeleton and
+  jumps to the top. A dragged card moves to where it was dropped as soon as
+  the move is confirmed (its Finish part hidden until the redraw), and the
+  quiet redraw puts everything where the server says.
 
 ## Small screens
 
