@@ -250,23 +250,100 @@
   .ob-steps { display: flex; gap: 6px; margin: -6px 0 10px; }
   .ob-steps i { flex: 1; height: 4px; border-radius: 99px; background: var(--line); }
   .ob-steps i.on { background: var(--periwinkle); }
-  .ob-karen { display: flex; align-items: flex-end; gap: 12px; margin: 6px 0 16px; }
-  .ob-kpic { flex: none; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: #f6dcec;
-             box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--periwinkle); }
+  /* Karen's guide (2026-11-03): a panel beside the form on a computer, a
+     band above it on a phone. She types what she says, moves while she
+     talks, ticks off what is done and rings the next thing to do. */
+  .ob.auth { place-items: start center; padding-top: clamp(16px, 5vh, 56px); }
+  .ob-shell { display: grid; grid-template-columns: 300px minmax(0, 560px); gap: 24px; align-items: start;
+              width: 100%; max-width: 884px; }
+  .ob .card.ob-card { max-width: none; }
+  .ob-guide { position: sticky; top: 24px; display: grid; gap: 14px; padding: 22px 20px; border-radius: 22px;
+              background: linear-gradient(160deg, var(--card), var(--peri-pale)); border: 1px solid var(--line);
+              box-shadow: 0 18px 48px -28px rgba(30, 31, 92, .35); }
+  .ob-who { display: flex; align-items: center; gap: 14px; }
+  .ob-kwrap { position: relative; flex: none; animation: obBreathe 5s ease-in-out infinite; }
+  @keyframes obBreathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  .ob-kpic { display: block; width: 84px; height: 84px; border-radius: 50%; overflow: hidden; background: #f6dcec;
+             box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--periwinkle); transition: box-shadow .3s var(--ease); }
+  .ob-guide.talking .ob-kpic { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--periwinkle), 0 0 0 10px rgba(125, 136, 214, .22); }
   .ob-kpic video, .ob-kpic img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .ob-say { position: relative; flex: 1; margin: 0; padding: 12px 14px; border-radius: 16px 16px 16px 4px;
-            background: var(--peri-pale); color: var(--ink); font-size: .92rem; line-height: 1.45; text-align: left;
-            animation: obSay .35s var(--ease) both; }
-  @keyframes obSay { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  /* The three bars beside her while she is talking. */
+  .ob-talk { position: absolute; right: -4px; bottom: 2px; display: flex; align-items: flex-end; gap: 2px; height: 18px;
+             padding: 3px 5px; border-radius: 99px; background: var(--card); box-shadow: 0 2px 8px -2px rgba(30, 31, 92, .3);
+             opacity: 0; transform: scale(.6); transition: opacity .2s, transform .2s var(--ease); }
+  .ob-talk i { display: block; width: 3px; height: 4px; border-radius: 2px; background: var(--periwinkle); }
+  .ob-guide.talking .ob-talk { opacity: 1; transform: none; }
+  .ob-guide.talking .ob-talk i { animation: obTalk .7s ease-in-out infinite; }
+  .ob-guide.talking .ob-talk i:nth-child(2) { animation-delay: .15s; }
+  .ob-guide.talking .ob-talk i:nth-child(3) { animation-delay: .3s; }
+  @keyframes obTalk { 0%, 100% { height: 4px; } 50% { height: 12px; } }
+  .ob-kname b { display: block; font-size: 1.05rem; color: var(--ink); }
+  .ob-kname small { display: block; font-size: var(--fs-xs); color: var(--muted); }
+  .ob-kname small::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%;
+                            background: #2bb673; vertical-align: 1px; }
+  .ob-say { position: relative; min-height: 4.4em; margin: 0; padding: 12px 14px; border-radius: 4px 16px 16px 16px;
+            background: var(--card); color: var(--ink); font-size: .92rem; line-height: 1.5; border: 1px solid var(--line); }
+  .ob-say::after { content: ""; display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: -2px;
+                   background: var(--periwinkle); opacity: 0; }
+  .ob-guide.talking .ob-say::after { opacity: 1; animation: obCaret .8s steps(1) infinite; }
+  @keyframes obCaret { 50% { opacity: 0; } }
+  .ob-path { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: obp; }
+  .ob-path li { counter-increment: obp; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px;
+                font-size: var(--fs-sm); color: var(--muted); }
+  .ob-path li::before { content: counter(obp); display: grid; place-items: center; flex: none; width: 22px; height: 22px;
+                        border-radius: 50%; border: 1.5px solid var(--line); font-size: .72rem; font-weight: 700; background: var(--card); }
+  .ob-path li.now { color: var(--ink); font-weight: 650; background: var(--card); }
+  .ob-path li.now::before { border-color: var(--periwinkle); background: var(--periwinkle); color: #fff; }
+  .ob-path li.done::before { content: "\2713"; border-color: #2bb673; background: #2bb673; color: #fff; }
+  .ob-todo-h { margin: 0 0 -6px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .ob-todo { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .ob-todo li { display: flex; align-items: center; gap: 9px; font-size: var(--fs-sm); color: var(--ink); }
+  .ob-todo li::before { content: ""; flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--faint);
+                        background: var(--card) center / 10px no-repeat; transition: background-color .2s, border-color .2s; }
+  .ob-todo li.done { color: var(--muted); }
+  .ob-todo li.done::before { border-color: #2bb673; background-color: #2bb673;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2l2.3 2.3 4.7-5' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  .ob-todo li.next { font-weight: 650; }
+  .ob-todo li.next::before { border-color: var(--periwinkle); box-shadow: 0 0 0 3px rgba(125, 136, 214, .25); }
+  .ob-todo li small { color: var(--muted); font-weight: 400; }
+  /* The next thing to do, ringed on the form, softly pulsing. */
+  .ob-hl { position: relative; border-radius: 14px; box-shadow: 0 0 0 2px var(--periwinkle), 0 0 0 7px rgba(125, 136, 214, .18);
+           animation: obPulse 2.2s ease-in-out infinite; }
+  label.ob-hl { padding: 8px 10px; margin-left: -10px; margin-right: -10px; }
+  .btn.ob-hl { border-radius: 999px; }
+  @keyframes obPulse { 0%, 100% { box-shadow: 0 0 0 2px var(--periwinkle), 0 0 0 5px rgba(125, 136, 214, .14); }
+                       50% { box-shadow: 0 0 0 2px var(--periwinkle), 0 0 0 9px rgba(125, 136, 214, .26); } }
+  /* On a phone Karen's tip sits under the field it is about. */
+  .ob-tip { display: none; }
+  .ob-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .ob h1 { margin-bottom: 14px; }
+  @media (max-width: 899px) {
+    .ob-shell { grid-template-columns: minmax(0, 1fr); max-width: 560px; gap: 12px; }
+    .ob-guide { position: static; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 10px 12px; padding: 14px; }
+    .ob-who { display: contents; }
+    .ob-kpic { width: 56px; height: 56px; }
+    .ob-kname { grid-column: 2; }
+    .ob-say { grid-column: 1 / -1; min-height: 0; font-size: .88rem; }
+    .ob-path, .ob-todo, .ob-todo-h { display: none; }
+    .ob-tip { display: flex; gap: 8px; align-items: flex-start; margin: -4px 0 14px; padding: 8px 10px; border-radius: 4px 12px 12px 12px;
+              background: var(--peri-pale); color: var(--ink); font-size: .82rem; line-height: 1.45; animation: obIn .25s var(--ease) both; }
+    .ob-tip img { flex: none; width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: #f6dcec; }
+    .ob-tip[hidden] { display: none; }
+  }
+  @keyframes obIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
   /* Karen going back to her button once onboarding is done. */
   .karen-fly { position: fixed; left: 50%; top: 50%; width: 120px; height: 120px; border-radius: 50%; z-index: 200;
                object-fit: cover; background: #f6dcec; transform: translate(-50%, -50%);
                box-shadow: 0 0 0 4px var(--card), 0 0 0 7px var(--periwinkle), 0 24px 60px -20px rgba(30, 31, 92, .5); pointer-events: none; }
-  @media (prefers-reduced-motion: reduce) { .ob-say { animation: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .ob-kwrap, .ob-hl, .ob-guide.talking .ob-talk i, .ob-tip { animation: none; }
+  }
   .ob-count { text-align: center; margin: 0 0 4px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-  .ob-pic { display: flex; align-items: center; gap: 14px; margin: 0 0 16px; }
-  .ob-pic > img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex: none;
+  .ob-pic { display: flex; align-items: center; gap: 16px; margin: 0 0 16px; padding: 8px 10px; margin-left: -10px; margin-right: -10px; }
+  .ob-pic .ob-pic-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .ob-pic > button.ob-face { flex: none; padding: 0; border: 0; background: none; border-radius: 50%; cursor: pointer; }
+  .ob-pic > button.ob-face:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+  .ob-pic img.ob-face-img { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; flex: none;
                   box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--periwinkle); background: var(--peri-pale); }
   .ob-avs { display: flex; flex-wrap: wrap; gap: 6px; }
   .ob-avs button { width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 2px solid transparent; background: var(--raise); cursor: pointer; }
@@ -287,6 +364,9 @@
   @media (max-width: 480px) {
     .ob-svc { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); }
     .ob-svc > div:nth-child(2) { grid-column: 2 / -1; }
+    /* Price and minutes side by side under the name, not in the switch's column. */
+    .ob-svc > label:nth-of-type(1) { grid-column: 2; }
+    .ob-svc > label:nth-of-type(2) { grid-column: 3; }
   }
   .pw { position: relative; }
   .pw input { padding-right: 48px; }
@@ -3273,20 +3353,34 @@
      until they finish (requireStaff in auth.js), so this is not the only
      thing keeping them out. obPaint() draws each step. -->
 <main id="onboard" class="auth ob hidden" aria-labelledby="obTitle">
-  <div class="card">
-    <div class="ob-steps" id="obSteps" aria-hidden="true"></div>
-    <p class="ob-count" id="obCount"></p>
-    <!-- Karen leads it (asked for 2026-11-03): she introduces herself, says
-         what each step is for, and at the end goes back to her button. -->
-    <div class="ob-karen">
-      <span class="ob-kpic" aria-hidden="true"><video id="obKarenVid" muted playsinline loop preload="auto"></video></span>
-      <p class="ob-say" id="obSay" aria-live="polite"></p>
+  <div class="ob-shell">
+    <!-- Karen leads it (asked for 2026-11-03): her own panel beside the
+         form, not a chat bubble. She says what each step needs (typed, while
+         she moves), ticks off what is done, and rings the next field or
+         button on the form (obGuide, obRefresh). At the end she goes back
+         to her button (karenFlyHome). -->
+    <aside class="ob-guide" id="obGuide" aria-label="Karen, your setup guide">
+      <div class="ob-who">
+        <span class="ob-kwrap" aria-hidden="true">
+          <span class="ob-kpic"><video id="obKarenVid" muted playsinline preload="auto"></video></span>
+          <span class="ob-talk"><i></i><i></i><i></i></span>
+        </span>
+        <div class="ob-kname"><b>Karen</b><small>Your setup guide</small></div>
+      </div>
+      <p class="ob-say" id="obSay" aria-hidden="true"></p>
+      <p class="ob-sr" id="obSayLive" aria-live="polite"></p>
+      <ol class="ob-path" id="obPath"></ol>
+      <p class="ob-todo-h">On this step</p>
+      <ul class="ob-todo" id="obTodo"></ul>
+    </aside>
+    <div class="card ob-card">
+      <div class="ob-steps" id="obSteps" aria-hidden="true"></div>
+      <p class="ob-count" id="obCount"></p>
+      <h1 id="obTitle">Welcome</h1>
+      <div id="obNote" class="note hidden" role="status"></div>
+      <form id="obForm" novalidate></form>
+      <p class="auth-alt"><a href="#" id="obSignOut">Sign out</a></p>
     </div>
-    <h1 id="obTitle">Welcome</h1>
-    <p class="lede" id="obLede" hidden></p>
-    <div id="obNote" class="note hidden" role="status"></div>
-    <form id="obForm" novalidate></form>
-    <p class="auth-alt"><a href="#" id="obSignOut">Sign out</a></p>
   </div>
 </main>
 
@@ -11453,6 +11547,26 @@ function openPicDlg() {
   openDialog($('picDlg'));
 }
 $('memberPic').onclick = openPicDlg;
+/**
+ * The same window for somebody setting up their own account (2026-11-03):
+ * picFor takes the chosen picture instead of the Team window's memberPic.
+ * Upload opens the file chooser at once, then the crop; Choose an avatar
+ * opens the window with the avatars showing.
+ */
+let picFor = null;
+function openPicFor(take, src, { upload = false, avatars = false } = {}) {
+  picFor = take;
+  cropView(false);
+  $('picSub').textContent = 'Shown on your profile, and to guests choosing a stylist.';
+  $('picNow').innerHTML = `<img src="${esc(src)}" alt="">`;
+  $('memberPicDrop').classList.add('hidden');
+  $('memberAvatars').classList.toggle('hidden', !avatars);
+  $('picAvatars').setAttribute('aria-expanded', String(avatars));
+  paintAvatarGrid();
+  openDialog($('picDlg'));
+  if (upload) $('memberPicFile').click();
+}
+$('picDlg').addEventListener('close', () => { picFor = null; });
 // Adding someone with no picture chosen yet: the default follows the name as
 // it is typed, so what the window shows is what is saved (above).
 $('memberForm').elements.name.addEventListener('input', () => {
@@ -11481,7 +11595,7 @@ $('memberPicDrop').onclick = () => { memberPic = null; memberPicPaint(null); pai
 
 /** The avatar choices, women first; the one in use is ringed. */
 function paintAvatarGrid() {
-  const current = memberPic !== undefined ? memberPic : memberOrig.avatar;
+  const current = picFor ? ob.avatar : memberPic !== undefined ? memberPic : memberOrig.avatar;
   $('memberAvatars').innerHTML = AVATAR_SETS.map(([label, kinds]) => `
     <div class="avset"><span class="avset-l">${esc(label)}</span><div class="avset-g">${kinds.flatMap((k) => AVATAR_TONES.map((t) => {
       const src = avatarPath(k, t);
@@ -11491,6 +11605,7 @@ function paintAvatarGrid() {
 }
 $('memberAvatars').onclick = (e) => {
   const b = e.target.closest('[data-avatar]');
+  if (b && picFor) { picFor(b.dataset.avatar); closeDialog($('picDlg')); return; }
   if (!b || $('memberPic').disabled) return;
   memberPic = b.dataset.avatar;
   memberPicPaint(memberPic);
@@ -11501,11 +11616,12 @@ $('memberPicFile').onchange = (e) => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
-  if (!/^image\//.test(file.type)) { note($('memberNote'), 'That is not an image.'); closeDialog($('picDlg')); return; }
+  const where = picFor ? $('obNote') : $('memberNote');
+  if (!/^image\//.test(file.type)) { note(where, 'That is not an image.'); closeDialog($('picDlg')); return; }
   const img = $('cropImg');
   const url = URL.createObjectURL(file);
   img.onload = () => { URL.revokeObjectURL(url); cropOpen(img); };
-  img.onerror = () => { URL.revokeObjectURL(url); note($('memberNote'), 'That image could not be read.'); closeDialog($('picDlg')); };
+  img.onerror = () => { URL.revokeObjectURL(url); note(where, 'That image could not be read.'); closeDialog($('picDlg')); };
   img.src = url;
 };
 
@@ -11615,6 +11731,13 @@ $('cropUse').onclick = () => {
   g.fillRect(0, 0, 256, 256);
   g.imageSmoothingQuality = 'high';
   g.drawImage($('cropImg'), -crop.x / s, -crop.y / s, side, side, 0, 0, 256, 256);
+  if (picFor) {
+    picFor(c.toDataURL('image/jpeg', 0.86));
+    cropView(false);
+    $('cropImg').removeAttribute('src');
+    closeDialog($('picDlg'));
+    return;
+  }
   memberPic = c.toDataURL('image/jpeg', 0.86);
   memberPicPaint(memberPic);
   paintAvatarGrid();
@@ -12968,88 +13091,218 @@ async function showOnboarding() {
   ob.step = 0;
   obPaint();
 }
-/** Karen says what this step is for, in her voice. */
+const OB_STEP_NAMES = { details: 'About you', services: 'Your services', calendar: 'Your calendar' };
+const obWide = () => matchMedia('(min-width: 900px)').matches;
+const obStill = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+let obTyping = 0;
+/**
+ * Karen says something in her panel: typed out while she moves and her
+ * talking bars run, read whole by screen readers (#obSayLive). Reduced
+ * motion shows it at once, still.
+ */
 function obSays(text) {
-  const say = $('obSay');
-  say.style.animation = 'none';
-  void say.offsetWidth;
-  say.style.animation = '';
-  say.textContent = text;
+  const el = $('obSay');
+  if (el.dataset.full === text) return;
+  el.dataset.full = text;
+  $('obSayLive').textContent = text;
+  const id = ++obTyping;
+  const guide = $('obGuide');
+  const v = $('obKarenVid');
+  if (obStill()) { el.textContent = text; return; }
+  guide.classList.add('talking');
+  if (v.src) { v.currentTime = 0; v.play().catch(() => {}); }
+  let i = 0;
+  const tick = () => {
+    if (id !== obTyping) return;
+    i = Math.min(text.length, i + 2);
+    el.textContent = text.slice(0, i);
+    if (i < text.length) { setTimeout(tick, 18); return; }
+    guide.classList.remove('talking');
+    // Back to her first frame, so she is still while she listens.
+    setTimeout(() => { if (id === obTyping && v.src) { v.pause(); v.currentTime = 0; } }, 600);
+  };
+  tick();
 }
-/** Her waving clip on the card, or her still picture when motion is reduced. */
+/** Her clip in the panel (played while she talks), or her picture when motion is reduced. */
 function obKaren() {
   const box = document.querySelector('.ob-kpic');
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    box.innerHTML = `<img src="${KAREN_PIC}" alt="">`;
-    return;
-  }
+  if (obStill()) { box.innerHTML = `<img src="${KAREN_PIC}" alt="">`; return; }
   const v = $('obKarenVid');
   if (!v.src) { v.poster = KAREN_PIC; v.src = KAREN_WAVE; }
-  v.play().catch(() => {});
+}
+/**
+ * What this step needs, in the order of the form: each item says whether it
+ * is done (read from the form as it is now), where it is (the element to
+ * ring), and what Karen says about it. Required items are rung in turn;
+ * once they are done the step's button is, unless an item is `suggest`ed
+ * (connecting the calendar). Nothing here is checked only by Karen: the
+ * submit handler and the server hold the same rules.
+ */
+function obGuide() {
+  const f = $('obForm');
+  const p = ob.prof;
+  const stylist = p.role === 'stylist';
+  const step = ob.steps[ob.step];
+  const field = (n) => f.elements[n]?.closest('label');
+  const val = (n) => String(f.elements[n]?.value || '').trim();
+  if (step === 'details') {
+    return [
+      { key: 'pic', label: 'Your picture', opt: true, done: Boolean(ob.avatar), el: f.querySelector('.ob-pic'),
+        tip: 'Upload a photo of yourself and crop it so your face sits in the circle, or choose an avatar. It shows wherever you appear in the app.' },
+      { key: 'name', label: 'Your name', done: Boolean(val('name')), el: field('name'),
+        tip: 'Your name, the way clients and the team know you.' },
+      { key: 'phone', label: 'Your mobile number', opt: !stylist, done: val('phone').replace(/\D/g, '').length >= 10, el: field('phone'),
+        tip: stylist ? "Your mobile, with the area code. When you text me from it, I'll know it's you." : "Your mobile, if you'd like to text me. I'll know it's you." },
+      { key: 'title', label: 'Your title', opt: !stylist, done: Boolean(val('title')), el: field('title'),
+        tip: stylist ? 'How guests should see you, like Master Stylist or Colorist. It goes beside your picture on the website.' : 'What you do here, like Front Desk Manager.' },
+    ];
+  }
+  if (step === 'services') {
+    const rows = [...f.querySelectorAll('[data-ob-kind]')];
+    const on = rows.filter((r) => r.querySelector('.switch').getAttribute('aria-checked') === 'true');
+    const missing = (fld) => on.find((r) => !r.querySelector(`[data-f=${fld}]`).value.trim());
+    return [
+      { key: 'on', label: 'Switch on what you do', done: on.length > 0, el: f.querySelector('.ob-svcs'),
+        tip: 'Tap the switch beside each kind of work you do. You need at least one.' },
+      { key: 'price', label: 'A starting price for each', opt: true, done: on.length > 0 && !missing('price'),
+        el: missing('price')?.querySelector('[data-f=price]').closest('label'),
+        tip: "Your starting price. It goes on your appointments for the salon; clients don't see prices online." },
+      { key: 'minutes', label: 'How long each takes you', opt: true, done: on.length > 0 && !missing('duration'),
+        el: missing('duration')?.querySelector('[data-f=duration]').closest('label'),
+        tip: "How many minutes it usually takes you. I book your clients for exactly that long, so I never squeeze you." },
+    ];
+  }
+  const g = p.google || {};
+  return [
+    { key: 'google', label: 'Connect Google Calendar', opt: true, suggest: true, done: Boolean(g.connected), el: f.querySelector('[data-ob-google]'),
+      tip: "Sign in with Google and I'll copy your bookings into your calendar, and keep guests out of the times you're busy." },
+  ];
+}
+/** What Karen says about this step as it opens. */
+function obIntro() {
+  const p = ob.prof;
+  const first = String(p.name || '').trim().split(/\s+/)[0];
+  const salon = me?.salon?.name || 'the salon';
+  const step = ob.steps[ob.step];
+  if (step === 'details') {
+    return `Hi${first ? ` ${first}` : ''}! I'm Karen, the assistant here at ${salon}, and I'll set you up in ${ob.steps.length} quick steps. `
+      + "First, tell me about you. I've ringed what's next.";
+  }
+  if (step === 'services') {
+    return `Lovely to meet you${first ? `, ${first}` : ''}! Now switch on the work you do, with your starting price and how long it takes you. You can change these any time in My Settings.`;
+  }
+  return "Last step! Connect your Google Calendar so your bookings land there too. Or skip it for now: it's in My Settings later.";
+}
+let obAllDone = false;
+let obFocusKey = null;
+/**
+ * Ticks the checklist, rings the next thing to do, and puts Karen's tip by
+ * it on a phone. `speak` lets her say the tip in her panel (on focus), and
+ * she says when the step is complete, once.
+ */
+function obRefresh({ speak = false } = {}) {
+  const items = obGuide();
+  const need = items.filter((x) => !x.opt);
+  const complete = need.every((x) => x.done);
+  const next = need.find((x) => !x.done) || items.find((x) => x.suggest && !x.done) || null;
+  const submit = $('obForm').querySelector('.ob-acts .btn:not(.quiet)');
+  // The field in use is ringed while it is; otherwise the next thing to do.
+  const inUse = items.find((x) => x.key === obFocusKey && x.el);
+  const target = inUse ? inUse.el : next ? next.el : submit;
+  $('obTodo').innerHTML = items.map((x) => `<li class="${x.done ? 'done' : ''}${x === next ? ' next' : ''}">
+    <span>${esc(x.label)}${x.opt ? ' <small>(optional)</small>' : ''}</span></li>`).join('')
+    + `<li class="${complete && !next ? 'next' : ''}"><span>${esc(submit?.textContent.trim() || 'Continue')}</span></li>`;
+  for (const el of document.querySelectorAll('#obForm .ob-hl')) if (el !== target) el.classList.remove('ob-hl');
+  target?.classList.add('ob-hl');
+  // The tip: about the field in use, else about the next thing to do.
+  const focused = items.find((x) => x.key === obFocusKey);
+  const about = focused || next;
+  const doneLine = ob.step < ob.steps.length - 1
+    ? `That's everything I need here. Tap ${submit?.textContent.trim() || 'Continue'} when you're ready.`
+    : "That's everything! Tap Finish and I'll open the app for you.";
+  const tipText = about ? about.tip : doneLine;
+  const tipAt = about ? about.el : submit;
+  const tip = $('obTip');
+  if (tip && tipAt) {
+    tip.querySelector('span').textContent = tipText;
+    // Under a field, or above the buttons.
+    // A price or minutes box: under its whole service row, not inside its grid.
+    if (tipAt === submit) tipAt.closest('.ob-acts').before(tip); else (tipAt.closest('.ob-svc') || tipAt).after(tip);
+    tip.hidden = false;
+  }
+  if (speak && about && obWide()) obSays(about.tip);
+  // On a phone the tip by the button says it; her band above keeps its text,
+  // so the form does not jump.
+  if (complete && !obAllDone && !next && obWide()) obSays(doneLine);
+  obAllDone = complete && !next;
 }
 function obPaint() {
   const p = ob.prof;
   const step = ob.steps[ob.step];
-  const first = String(p.name || '').trim().split(/\s+/)[0];
   obKaren();
   $('obSteps').innerHTML = ob.steps.map((_, i) => `<i class="${i <= ob.step ? 'on' : ''}"></i>`).join('');
   $('obCount').textContent = `Step ${ob.step + 1} of ${ob.steps.length}`;
+  $('obPath').innerHTML = ob.steps.map((k, i) => `<li class="${i < ob.step ? 'done' : i === ob.step ? 'now' : ''}"${i === ob.step ? ' aria-current="step"' : ''}>${esc(OB_STEP_NAMES[k])}</li>`).join('');
   note($('obNote'), '');
   const back = ob.step ? '<button type="button" class="btn quiet" data-ob-back>Back</button>' : '';
-  const salon = me?.salon?.name || 'the salon';
+  const tip = `<div class="ob-tip" id="obTip" hidden><img src="${KAREN_PIC}" alt=""><span></span></div>`;
+  $('obTitle').textContent = OB_STEP_NAMES[step];
   if (step === 'details') {
-    $('obTitle').textContent = 'About you';
-    obSays(`Hi${first ? ` ${first}` : ''}! I'm Karen, the assistant here at ${salon}. Welcome to the team! `
-      + "I'll walk you through setting up your account, one step at a time. First, tell me about you and the work you do.");
     const pic = ob.avatar || charAvatar(p.name || p.email || 'new');
-    const choices = WOMEN.filter((_, i) => i % 3 === 0).concat(AVATAR_SETS[1][1].map((k) => avatarPath(k, 'medium')));
     $('obForm').innerHTML = `
-      <div class="ob-pic"><img id="obPic" src="${esc(pic)}" alt="">
-        <div><span class="small muted">Choose a picture</span>
-          <div class="ob-avs" role="group" aria-label="Choose a picture">${choices.map((src) => `<button type="button" data-ob-av="${src}" aria-pressed="${src === pic}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div></div></div>
+      <div class="ob-pic"><button type="button" class="ob-face" data-ob-pic="avatars" aria-label="Change your picture"><img class="ob-face-img" id="obPic" src="${esc(pic)}" alt=""></button>
+        <div><span class="small muted">Your picture</span>
+          <div class="ob-pic-btns">
+            <button type="button" class="btn sm" data-ob-pic="upload"><svg class="ic"><use href="#i-camera"/></svg>Upload a photo</button>
+            <button type="button" class="btn quiet sm" data-ob-pic="avatars"><svg class="ic"><use href="#i-user"/></svg>Choose an avatar</button>
+          </div></div></div>
       <label><span>Your name</span><input name="name" value="${esc(p.name || '')}" autocomplete="name" required maxlength="120"></label>
       <label><span>Mobile number${p.role === 'stylist' ? '' : ' (optional)'}</span><input name="phone" type="tel" value="${esc(usPhone(p.phone || ''))}" autocomplete="tel" placeholder="(813) 555-0170"></label>
-      ${p.role === 'stylist' ? '<p class="ob-hint" style="margin-top:-6px">I know it\'s you by this number when you text me.</p>' : ''}
       <label><span>Your role at the salon</span><input value="${esc(ROLE_LABEL[p.role] || p.role || '')}" disabled></label>
       <label><span>Your title${p.role === 'stylist' ? '' : ' (optional)'}</span><input name="title" value="${esc(p.title || '')}" maxlength="80"
         placeholder="${p.role === 'stylist' ? 'e.g. Master Stylist, Colorist' : 'e.g. Front Desk Manager'}"></label>
-      ${p.role === 'stylist' ? '<p class="ob-hint" style="margin-top:-6px">Shown with your picture on the website when guests choose a stylist.</p>' : ''}
+      ${tip}
       <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
   } else if (step === 'services') {
-    $('obTitle').textContent = 'Your services';
-    obSays(`Lovely to meet you${first ? `, ${first}` : ''}! Now your services: switch on what you do, with your starting price and how many minutes it takes you. `
-      + 'I use these to book your clients for the right amount of time. You can change them any time in My Settings.');
     const sv = p.services || {};
-    $('obForm').innerHTML = `${OB_KINDS.map(([k, label, hint]) => {
+    $('obForm').innerHTML = `<div class="ob-svcs">${OB_KINDS.map(([k, label, hint]) => {
       const v = sv[k] || {};
-      const dur = k === 'color' ? (v.duration ?? '') : (v.duration ?? '');
       return `<div class="ob-svc ${v.on ? '' : 'off'}" data-ob-kind="${k}">
         <button type="button" class="switch" role="switch" aria-checked="${Boolean(v.on)}" aria-label="${esc(label)}"><span></span></button>
         <div><b>${esc(label)}</b><small>${esc(hint)}</small></div>
         <label><span>Price $</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" data-f="price" value="${v.price ?? ''}" placeholder="0.00"></label>
-        <label><span>Minutes</span><input type="number" min="5" max="720" step="5" inputmode="numeric" data-f="duration" value="${dur}" placeholder="60"></label>
+        <label><span>Minutes</span><input type="number" min="5" max="720" step="5" inputmode="numeric" data-f="duration" value="${v.duration ?? ''}" placeholder="60"></label>
       </div>`;
-    }).join('')}
+    }).join('')}</div>
       <p class="ob-hint">Your available hours are in My Settings, once you're in.</p>
+      ${tip}
       <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
   } else {
-    $('obTitle').textContent = 'Your calendar';
-    obSays("Last step! Connect your Google Calendar and I'll put your bookings in it and keep guests out of the times you're busy. "
-      + "If you'd rather do it later, skip it: it's in My Settings, Edit my profile.");
     const g = p.google || {};
     $('obForm').innerHTML = `
       <p class="ob-hint" id="obCal">${g.connected ? `Connected${g.account ? ` as ${esc(g.account)}` : ''}.` : 'Not connected yet.'}</p>
       ${g.connected ? '' : '<button type="button" class="btn quiet block" data-ob-google>Connect Google Calendar</button>'}
+      ${tip}
       <div class="ob-acts">${back}<button class="btn">${g.connected ? 'Finish' : 'Skip for now and finish'}</button></div>`;
   }
+  obAllDone = false;
+  obFocusKey = null;
+  $('obSay').dataset.full = '';
+  obSays(obIntro());
+  obRefresh();
+}
+/** A picture chosen or cropped: shown, and ticked off. */
+function obTakePic(src) {
+  ob.avatar = src;
+  $('obPic').src = src;
+  obRefresh();
 }
 $('obForm').addEventListener('click', (e) => {
   if (e.target.closest('[data-ob-back]')) { ob.step = Math.max(0, ob.step - 1); obPaint(); return; }
-  const av = e.target.closest('[data-ob-av]');
-  if (av) {
-    ob.avatar = av.dataset.obAv;
-    $('obPic').src = ob.avatar;
-    for (const b of $('obForm').querySelectorAll('[data-ob-av]')) b.setAttribute('aria-pressed', String(b === av));
+  const pic = e.target.closest('[data-ob-pic]');
+  if (pic) {
+    const src = $('obPic').src;
+    openPicFor(obTakePic, src, { upload: pic.dataset.obPic === 'upload', avatars: pic.dataset.obPic === 'avatars' });
     return;
   }
   const sw = e.target.closest('.ob-svc .switch');
@@ -13057,6 +13310,9 @@ $('obForm').addEventListener('click', (e) => {
     const on = sw.getAttribute('aria-checked') !== 'true';
     sw.setAttribute('aria-checked', String(on));
     sw.closest('.ob-svc').classList.toggle('off', !on);
+    obRefresh();
+    // Switched on: straight to its price, with Karen saying what it is for.
+    if (on) sw.closest('.ob-svc').querySelector('[data-f=price]').focus();
     return;
   }
   const g = e.target.closest('[data-ob-google]');
@@ -13075,6 +13331,23 @@ $('obForm').addEventListener('click', (e) => {
 $('obForm').addEventListener('input', (e) => {
   if (e.target.name === 'phone') e.target.value = usPhone(e.target.value);
   if (e.target.name === 'name' && !ob.avatar) $('obPic').src = charAvatar(e.target.value || 'new');
+  obRefresh();
+});
+// The field in use: Karen talks about it, and her tip on a phone moves to it.
+$('obForm').addEventListener('focusin', (e) => {
+  const f = e.target;
+  const key = f.name || (f.dataset.f === 'price' ? 'price' : f.dataset.f === 'duration' ? 'minutes' : null)
+    || (f.closest('.ob-pic') ? 'pic' : f.closest('[data-ob-google]') ? 'google' : null);
+  if (!key || key === obFocusKey) return;
+  obFocusKey = key;
+  obRefresh({ speak: true });
+});
+$('obForm').addEventListener('focusout', () => {
+  setTimeout(() => {
+    if ($('obForm').contains(document.activeElement)) return;
+    obFocusKey = null;
+    obRefresh();
+  }, 0);
 });
 $('obForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -13082,18 +13355,20 @@ $('obForm').addEventListener('submit', async (e) => {
   const step = ob.steps[ob.step];
   const btn = f.querySelector('.ob-acts .btn:not(.quiet)');
   btn.disabled = true;
+  // A refusal below: Karen says it too, and rings the field.
+  const stop = (msg, input) => { note($('obNote'), msg); obSays(msg); input?.focus(); };
   try {
     if (step === 'details') {
       const name = f.elements.name.value.trim();
       const phone = f.elements.phone.value.trim();
-      if (!name) { note($('obNote'), 'Add your name.'); f.elements.name.focus(); return; }
+      const title = f.elements.title.value.trim();
+      if (!name) { stop('Add your name first.', f.elements.name); return; }
       if (ob.prof.role === 'stylist' && phone.replace(/\D/g, '').length < 10) {
-        note($('obNote'), 'Add your mobile number, with the area code.'); f.elements.phone.focus(); return;
+        stop('I need your mobile number, with the area code.', f.elements.phone); return;
       }
+      if (ob.prof.role === 'stylist' && !title) { stop('Add your title, the way guests should see it.', f.elements.title); return; }
       // The picture shown is the one kept, chosen or not (as when the owner adds somebody).
       const avatar = ob.avatar || charAvatar(name);
-      const title = f.elements.title.value.trim();
-      if (ob.prof.role === 'stylist' && !title) { note($('obNote'), 'Add your title, the way guests should see it.'); f.elements.title.focus(); return; }
       ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ name, phone, avatar, title }) })), title };
       ob.avatar = avatar;
     } else if (step === 'services') {
@@ -13103,23 +13378,23 @@ $('obForm').addEventListener('submit', async (e) => {
         const num = (x) => { const v = row.querySelector(`[data-f=${x}]`).value.trim(); return v === '' ? null : Number(v); };
         const price = num('price');
         const duration = num('duration');
-        if (price != null && !(price >= 0)) { note($('obNote'), 'Prices are numbers of dollars.'); return; }
+        if (price != null && !(price >= 0)) { stop('Prices are numbers of dollars.', row.querySelector('[data-f=price]')); return; }
         if (duration != null && !(Number.isInteger(duration) && duration >= 5 && duration <= 720)) {
-          note($('obNote'), 'Minutes are a whole number from 5 to 720.'); return;
+          stop('Minutes are a whole number from 5 to 720.', row.querySelector('[data-f=duration]')); return;
         }
         services[k] = { ...(services[k] || {}), on: row.querySelector('.switch').getAttribute('aria-checked') === 'true', price, duration };
       }
-      if (!OB_KINDS.some(([k]) => services[k].on)) { note($('obNote'), 'Switch on at least one service you do.'); return; }
+      if (!OB_KINDS.some(([k]) => services[k].on)) { stop('Switch on at least one service you do.', f.querySelector('.ob-svc .switch')); return; }
       ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ services }) })) };
     }
     if (ob.step < ob.steps.length - 1) { ob.step += 1; obPaint(); return; }
     await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ finishOnboarding: true }) });
-    obSays("You're all set! I'll be in my button whenever you need me.");
+    obSays("You're all set! Opening the app now. You'll find me in my button.");
     // The app opens and Karen flies back into her button (karenFlyHome).
     try { sessionStorage.setItem('ss-karen-home', '1'); } catch { /* no fly, still fine */ }
-    setTimeout(() => location.reload(), 900);
+    setTimeout(() => location.reload(), 1800);
   } catch (err) {
-    if (err.message !== 'signed out') note($('obNote'), err.message);
+    if (err.message !== 'signed out') { note($('obNote'), err.message); obSays(err.message); }
   } finally { if (btn.isConnected) btn.disabled = false; }
 });
 $('obSignOut').onclick = async (e) => {

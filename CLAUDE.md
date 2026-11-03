@@ -1412,9 +1412,21 @@ made that way are real: name them ZZ and remove them.
   the endpoints that pass `{ onboarding: true }`: `/me`, `/profile` and
   `/calendars` (and the Google sign-in, which uses `currentUser`). The
   console's `api()` turns that 403 into the setup screen (`#onboard`,
-  `showOnboarding`, `obPaint`), led by Karen (2026-11-03: her waving clip
-  and a speech bubble, `obSays`, introducing herself and saying what each
-  step is for): Step 1 who they are and what they do: picture, name, mobile
+  `showOnboarding`, `obPaint`), led by Karen (2026-11-03, redesigned the
+  same day on request as a guide rather than a chat bubble): her own panel
+  beside the form from 900px (`#obGuide`, sticky), a band above it on a
+  phone. She types what she says (`obSays`, a caret, her clip and three
+  talking bars while she does; read whole by `#obSayLive`; still for
+  reduced motion), lists the steps and a checklist for this one (`#obPath`,
+  `#obTodo`), and rings the next thing to do on the form (`.ob-hl`, from
+  `obGuide()`: each step's items, done or not read from the form as it is,
+  required ones first, then the step's button; the field in use is ringed
+  while it is and she says what it is for). On a phone her tip sits under
+  that field (`#obTip`) instead of resizing her band. Refusals are said by
+  her too. The picture is **Upload a photo** (with the crop) or **Choose an
+  avatar**, the Team window's own `#picDlg` through `openPicFor(take, ...)`
+  (`picFor` set, so the choice goes to the setup and not to `memberPic`).
+  Step 1 who they are and what they do: picture, name, mobile
   (required for a stylist, as everywhere: Karen knows them by it), their
   role (shown) and their title (`staff_users.job_title`, migration 043,
   also in ensure-schema, copied to their chair's `title` for the website;
