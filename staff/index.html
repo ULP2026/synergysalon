@@ -1015,12 +1015,17 @@
   .px-compose[data-ch="email"] { --pc: #c8323f; --pc-pale: #fbe5e7; }
   :root[data-theme="dark"] .px-compose { --pc: #6aa0f0; --pc-pale: rgba(106, 160, 240, .16); }
   :root[data-theme="dark"] .px-compose[data-ch="email"] { --pc: #e5636e; --pc-pale: rgba(229, 99, 110, .16); }
-  .pc-ch button[data-ch="sms"] { color: #2f6fd6; }
-  .pc-ch button[data-ch="email"] { color: #c8323f; }
-  :root[data-theme="dark"] .pc-ch button[data-ch="sms"] { color: #6aa0f0; }
-  :root[data-theme="dark"] .pc-ch button[data-ch="email"] { color: #e5636e; }
-  .seg.pc-ch button[aria-pressed="true"] { background: var(--pc); color: #fff; box-shadow: 0 2px 6px -3px var(--pc); }
-  .seg.pc-ch button:hover:not([aria-pressed="true"]) { background: var(--pc-pale); }
+  /* Each button keeps its own colour, chosen or not, hovered or not: Text
+     light blue on hover, Email light red (2026-11-03). They used to take
+     the hover tint of whichever was chosen, and the tabs' shared hover
+     turned the label indigo. */
+  .pc-ch button[data-ch="sms"] { --own: #2f6fd6; --own-pale: #e3edfc; }
+  .pc-ch button[data-ch="email"] { --own: #c8323f; --own-pale: #fbe5e7; }
+  :root[data-theme="dark"] .pc-ch button[data-ch="sms"] { --own: #6aa0f0; --own-pale: rgba(106, 160, 240, .16); }
+  :root[data-theme="dark"] .pc-ch button[data-ch="email"] { --own: #e5636e; --own-pale: rgba(229, 99, 110, .16); }
+  .seg.pc-ch button[data-ch] { color: var(--own); }
+  .seg.pc-ch button[data-ch]:hover:not([aria-pressed="true"]) { background: var(--own-pale); color: var(--own); }
+  .seg.pc-ch button[data-ch][aria-pressed="true"] { background: var(--own); color: #fff; box-shadow: 0 2px 6px -3px var(--own); }
   .px-compose textarea, .px-compose .pc-subj { border-color: color-mix(in srgb, var(--pc) 45%, var(--line-2)); }
   .px-compose textarea:focus, .px-compose .pc-subj:focus { border-color: var(--pc); box-shadow: 0 0 0 3px var(--pc-pale); }
   .px-compose .pc-send { background: var(--pc); color: #fff; box-shadow: none; }
