@@ -1157,10 +1157,10 @@ made that way are real: name them ZZ and remove them.
   client's name and phone, with the text itself (`smsText` in
   karen-sms.js, kept to one text) and its length. No SMS is sent anywhere
   yet.
-- **Sent History** (asked for 2026-11-02 under each automation; moved out of
-  the automation's window on 2026-11-03 to the Automations page, between the
-  list and Email History, with a list to pick one automation or all of
-  them, `renderSentHistory`, `ahFor` null for all): a card that opens and closes like Email History (`#autoHist`,
+- **Sent History under each automation** (asked for 2026-11-02; on the
+  Automations page for a few hours on 2026-11-03, then back in the window on
+  request): below "View only. This is what the app does on its own." in the
+  automation's window, a card that opens and closes like Email History (`#autoHist`,
   remembered as `ss-auhist-open`, closed by default) lists who that
   automation reached, newest first, 40 at a time with Show more: the
   client, Email or SMS, the address or number, which message when it has
@@ -1357,9 +1357,10 @@ made that way are real: name them ZZ and remove them.
   colour (`--pc`; Text blue and Email red since later that day). `tests/client-changes.integration.test.js`,
   `tests/staff-profile-ui.test.js`.
 - **The second round of 2026-11-03** (asked for):
-  - The ticket: Check in (Done once in, Reopen when cancelled) is the main
-    button top left (`#adCta`, `.tkt-main`); No Show, Cancel Appt. and Move
-    Appt. small above a divider, then the details; "Delete Ticket" as red
+  - The ticket: the close button on the name's line; No Show, Cancel Appt.
+    and Move Appt. small, with Check in (Done once in, Reopen when
+    cancelled) filled at the same row's right end (`.tkt-main`, moved there
+    from the top left on request), above a divider, then the details; "Delete Ticket" as red
     words bottom left. No "Open client": the client's name is the button
     (`.ad-name`, `data-ad="client"`).
   - Dates of a visit read "Today, Nov 3", "Tomorrow, Nov 4", else "Wed, Nov
@@ -1373,7 +1374,8 @@ made that way are real: name them ZZ and remove them.
     client's name, their phone (the booking's, else the client's, from
     diary.js), and its status marks in the bottom-right corner.
   - Activity: who did it is a small picture on the bottom-right corner of
-    the event's icon (`.tl-badge`), the name a small line under the event;
+    the event's icon (`.tl-badge`, who it was on hover; the name line under
+    the event was taken off on request);
     no "Sent" chip (an entry is a sent email; Failed is still marked); the
     website form's line reads "Client Created"; an automation's email shows
     the visit, not its subject line. Manual messages: Text blue, Email red.

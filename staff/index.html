@@ -1085,7 +1085,6 @@
      reference), and who did it, small: a face or a mark, then a name. */
   .tl .what .tl-appt { display: flex; align-items: center; gap: 5px; font-size: var(--fs-xs); color: var(--accent-ink); font-weight: 550; margin-top: 3px; }
   .tl .what .tl-appt .ic { width: 12px; height: 12px; flex: none; }
-  .tl .what .tl-by { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
   /* Who did it: a small picture on the bottom-right corner of the event's
      icon (2026-11-03), ringed in the card's colour so it reads as a badge. */
   .tl .dot { position: relative; }
@@ -1476,17 +1475,17 @@
   .ad-dl dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
   .ad-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
   .ad-acts:empty { display: none; }
-  .tkt-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 12px; }
-  .tkt-cta:empty { display: none; }
-  .tkt-top:has(.tkt-cta:empty) { justify-content: flex-end; }
-  .tkt-main { height: 40px; padding: 0 18px; gap: 7px; background: var(--cta-grad); color: #fff; box-shadow: var(--cta-shadow); }
-  .tkt-main .ic { width: 17px; height: 17px; }
+  /* Check in: the row's last button, pushed to its right end, filled so it
+     reads as the main action, a little taller than the small ones. */
+  .ad-mini .tkt-main { margin-left: auto; height: 36px; padding: 0 16px; gap: 6px; font-weight: 600;
+                       background: var(--cta-grad); color: #fff; box-shadow: var(--cta-shadow); }
+  .tkt-main .ic { width: 16px; height: 16px; }
   .ad-name { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
   .ad-name:hover { color: var(--periwinkle); text-decoration: underline; text-underline-offset: 3px; }
   .ad-name:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
-  .ad-mini { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ad-mini { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
   .ad-mini:empty { display: none; }
-  .tkt-div { border: 0; border-top: 1px solid var(--line); margin: 12px 0 14px; }
+  .tkt-div { border: 0; border-top: 1px solid var(--line); margin: 12px 0 12px; }
   .ad-del { border: 0; background: none; padding: 2px 0; font: inherit; font-size: var(--fs-sm); color: var(--warn); cursor: pointer; }
   .ad-del:hover { text-decoration: underline; }
 
@@ -2111,8 +2110,8 @@
   /* The flow, the view-only line and the Sent History scroll together. */
   .au-scroll { max-height: calc(100dvh - 150px); overflow-y: auto; overscroll-behavior: contain; }
   .au-scroll .au-body { max-height: none; overflow: visible; }
-  #autoHist { margin-top: 16px; }
-  #autoHist .ml-filters select { flex: 0 1 300px; }
+  .au-hist { margin: 0 24px 22px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  @media (max-width: 640px) { .au-hist { margin: 0 16px 18px; } }
   .au-hist.open .ml-chev { transform: rotate(180deg); }
   .au-hist:not(.open) .ml-content { display: none; }
   .ah-list { display: grid; gap: 6px; }
@@ -3395,23 +3394,6 @@
            second scrolled to the history. -->
       <div class="setpane hidden" id="set-marketing">
         <div class="card" id="mktCard"></div>
-        <!-- Sent History (2026-11-02), out of the automation's window and
-             onto this page (asked for 2026-11-03): every email and text the
-             automations sent, with a choice of automation. -->
-        <section class="card au-hist" id="autoHist" aria-labelledby="ahTitle">
-          <div class="ml-top">
-            <button type="button" class="ml-toggle" data-ah aria-expanded="false" aria-controls="ahContent">
-              <span class="ah-ic" aria-hidden="true"><svg class="ic"><use href="#i-send"/></svg></span>
-              <span class="ml-t"><h2 id="ahTitle">Sent History</h2>
-                <p id="ahSub">Who the automations emailed and texted, newest first.</p></span>
-            </button>
-            <button type="button" class="ml-chev" data-ah aria-label="Show the sent history"><svg class="ic"><use href="#i-right"/></svg></button>
-          </div>
-          <div class="ml-content" id="ahContent">
-            <div class="ml-filters"><select id="ahPick" aria-label="Show one automation"></select></div>
-            <div class="ah-list" id="ahList" role="list"></div>
-          </div>
-        </section>
         <div class="card" id="mailCard"></div>
       </div>
 
@@ -3971,18 +3953,16 @@
 <!-- One visit as a ticket: the appointment in full, every service on it
      with its price, the total and what was paid. Appt. Book and a client's
      history both open this one window (openTicket). -->
-<!-- The ticket (laid out 2026-11-03, asked for): Check in, the visit's one
-     main action, top left; the client's name opens their profile (the
-     "Open client" button went); No show, Cancel and Move small, over a
-     divider and the details; "Delete Ticket" as plain text bottom left. -->
+<!-- The ticket (laid out 2026-11-03, asked for): the client's name opens
+     their profile (the "Open client" button went); No show, Cancel and Move
+     small, with Check in, the visit's one main action, at the right end of
+     the same row, over a divider and the details; "Delete Ticket" as plain
+     text bottom left. -->
 <dialog id="apptDlg" class="tkt" aria-labelledby="adName">
-  <div class="tkt-top">
-    <div class="tkt-cta" id="adCta"></div>
-    <button type="button" class="iconbtn lg" id="adClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
-  </div>
   <div class="ad-head">
     <span class="avatar" id="adAvatar" aria-hidden="true"></span>
     <div style="flex:1;min-width:0"><h2 id="adName"></h2><div class="chips" id="adChips" style="margin-top:4px"></div></div>
+    <button type="button" class="iconbtn lg" id="adClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
   <div class="tkt-body">
     <div class="ad-mini" id="adMini"></div>
@@ -4081,6 +4061,20 @@
   <div class="au-scroll">
     <div class="au-body" id="autoBody"></div>
     <p class="au-foot"><svg class="ic"><use href="#i-eye"/></svg>View only. This is what the app does on its own.</p>
+    <!-- Sent History: who this automation reached, its emails and texts,
+         newest first (2026-11-02; on the Automations page for a few hours on
+         2026-11-03, then back here on request). -->
+    <section class="au-hist" id="autoHist" aria-labelledby="ahTitle">
+      <div class="ml-top">
+        <button type="button" class="ml-toggle" data-ah aria-expanded="false" aria-controls="ahContent">
+          <span class="ah-ic" aria-hidden="true"><svg class="ic"><use href="#i-send"/></svg></span>
+          <span class="ml-t"><h2 id="ahTitle">Sent History</h2>
+            <p id="ahSub">Who this automation emailed and texted, newest first.</p></span>
+        </button>
+        <button type="button" class="ml-chev" data-ah aria-label="Show the sent history"><svg class="ic"><use href="#i-right"/></svg></button>
+      </div>
+      <div class="ml-content" id="ahContent"><div class="ah-list" id="ahList" role="list"></div></div>
+    </section>
   </div>
 </dialog>
 
@@ -5226,7 +5220,7 @@ const PAGES = {
   automation: {
     path: `${BASE}/marketing/automation`, title: 'Settings', group: 'settings', view: 'settings',
     sub: 'What happens on its own, before and after a client books.',
-    load: () => { showSetting('marketing'); renderAutomations(); renderSentHistory(); renderMailHistory(); },
+    load: () => { showSetting('marketing'); renderAutomations(); renderMailHistory(); },
   },
   // Email History, with its search and filter by message, is the second card
   // on Automation (2026-10-30); its old address opens the page scrolled to it.
@@ -5236,7 +5230,7 @@ const PAGES = {
     load: () => {
       // The history's own address opens the section it points at.
       try { localStorage.setItem('ss-mail-open', '1'); } catch { /* still shown, just not remembered */ }
-      showSetting('marketing'); renderAutomations(); renderSentHistory(); renderMailHistory();
+      showSetting('marketing'); renderAutomations(); renderMailHistory();
       requestAnimationFrame(() => $('mailCard').scrollIntoView({ block: 'start' }));
     },
   },
@@ -5731,16 +5725,21 @@ function openAutomation(id) {
   $('autoDlg').style.maxWidth = `${Math.max(520, 220 * (a.steps.length + 1) + 48)}px`;
   openDialog($('autoDlg'));
   $('autoDlg').querySelector('.au-scroll').scrollTop = 0;
+  // Its own Sent History, under the flow.
+  ahFor = a;
+  ahNext = null;
+  setAh(ahOpenSaved());
+  loadAutoSends();
 }
 
-// ── Sent History (2026-11-02; on the Automations page since 2026-11-03) ───
+// ── Sent History, in each automation's window ───────────────────────────
 //
 // Every email and text this automation sent, newest first, from
 // GET /api/staff/business?sends=<its message kinds> (automationSends): who,
 // whether by email or SMS, which message when it has more than one, when,
 // and Sent or Failed. An email opens as it was sent (openSentEmail); a text
 // opens the client's profile, where the whole SMS conversation is.
-let ahFor = null;          // the automation chosen, or null for all of them
+let ahFor = null;          // the automation whose window is open
 let ahNext = null;
 let ahSeq = 0;
 function ahOpenSaved() { try { return localStorage.getItem('ss-auhist-open') === '1'; } catch { return false; } }
@@ -5752,22 +5751,14 @@ function setAh(open) {
     else b.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the sent history`);
   }
 }
-/** The card on the Automations page: its list of automations, then the sends. */
-function renderSentHistory() {
-  const all = automations();
-  $('ahPick').innerHTML = `<option value="">All automations</option>${all.map((x) => `<option value="${esc(x.id)}"${ahFor?.id === x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}`;
-  setAh(ahOpenSaved());
-  ahNext = null;
-  loadAutoSends();
-}
 async function loadAutoSends(more = false) {
   const a = ahFor;
-  const all = automations();
-  const steps = (a ? [a] : all).flatMap((x) => x.steps.filter((st) => st.msg).map((st) => ({ ...st, auto: x.name })));
+  if (!a) return;
+  const steps = a.steps.filter((st) => st.msg);
   const kinds = [...new Set(steps.map((st) => st.msg))];
-  // One automation: which of its messages; all of them: which automation.
-  const titles = Object.fromEntries(steps.map((st) => [st.msg, a ? st.title : st.auto]));
-  const many = a ? kinds.length > 1 : true;
+  // Which of its messages, when it sends more than one.
+  const titles = Object.fromEntries(steps.map((st) => [st.msg, st.title]));
+  const many = kinds.length > 1;
   const seq = ++ahSeq;
   if (!more) $('ahList').innerHTML = skeleton(2);
   let r;
@@ -5798,24 +5789,18 @@ async function loadAutoSends(more = false) {
     $('ahList').querySelector('[data-ah-more]')?.remove();
     $('ahList').insertAdjacentHTML('beforeend', rows + moreBtn);
   } else {
-    $('ahList').innerHTML = rows + moreBtn || `<p class="ah-empty">Nothing sent by ${a ? 'this automation' : 'the automations'} yet. ${steps.some((st) => st.sms)
+    $('ahList').innerHTML = rows + moreBtn || `<p class="ah-empty">Nothing sent by this automation yet. ${steps.some((st) => st.sms)
       ? 'Emails and texts appear here as they go out.' : 'Emails appear here as they go out.'}</p>`;
   }
 }
 $('autoHist').addEventListener('click', (e) => {
   if (e.target.closest('[data-ah]')) { setAh(!$('autoHist').classList.contains('open')); return; }
   if (e.target.closest('[data-ah-more]')) { loadAutoSends(true); return; }
-  if (e.target.closest('select')) return;
   const em = e.target.closest('[data-ah-email]');
   if (em) { openSentEmail(em.dataset.ahEmail); return; }
   const pr = e.target.closest('[data-ah-person]');
-  if (pr) openPerson(pr.dataset.ahPerson);
+  if (pr) { closeDialog($('autoDlg')); setTimeout(() => openPerson(pr.dataset.ahPerson), 170); }
 });
-$('ahPick').onchange = (e) => {
-  ahFor = automations().find((x) => x.id === e.target.value) || null;
-  ahNext = null;
-  loadAutoSends();
-};
 $('autoClose').onclick = () => closeDialog($('autoDlg'));
 $('autoBody').addEventListener('click', (e) => {
   const b = e.target.closest('[data-msg]');
@@ -7546,11 +7531,11 @@ function paintTicket(a) {
   $('adLines').innerHTML = ticketLines(a);
   $('adPay').innerHTML = ticketPayment(a);
   const b = (act, label, cls = 'quiet') => `<button type="button" class="btn ${cls} sm" data-ad="${act}">${esc(label)}</button>`;
-  if (a.loading) { for (const id of ['adCta', 'adMini', 'adActs']) $(id).innerHTML = ''; $('adDiv').hidden = true; return; }
-  // The one main action, top left: Check in, then Done once they are in;
-  // Reopen for a cancelled visit.
-  const cta = (act, label, icon) => `<button type="button" class="btn tkt-main" data-ad="${act}">${ic(icon)}${esc(label)}</button>`;
-  $('adCta').innerHTML = a.status === 'booked'
+  if (a.loading) { for (const id of ['adMini', 'adActs']) $(id).innerHTML = ''; $('adDiv').hidden = true; return; }
+  // The one main action, at the right end of the small buttons' row: Check
+  // in, then Done once they are in; Reopen for a cancelled visit.
+  const cta = (act, label, icon) => `<button type="button" class="btn sm tkt-main" data-ad="${act}">${ic(icon)}${esc(label)}</button>`;
+  const main = a.status === 'booked'
     ? (a.checkedInAt ? cta('complete', 'Done', 'check') : cta('check_in', 'Check in', 'user-check'))
     : a.status === 'cancelled' ? cta('reopen', 'Reopen', 'calendar') : '';
   const mini = [];
@@ -7562,8 +7547,8 @@ function paintTicket(a) {
     mini.push(b('move', 'Move Appt.'));
     if (a.checkedInAt) mini.push(b('undo_check_in', 'Undo check-in'));
   }
-  $('adMini').innerHTML = mini.join('');
-  $('adDiv').hidden = !mini.length;
+  $('adMini').innerHTML = mini.join('') + main;
+  $('adDiv').hidden = !mini.length && !main;
   // Last, bottom left, as words: the one action here that cannot be undone.
   $('adActs').innerHTML = me?.user?.canAdmin ? '<button type="button" class="ad-del" data-ad="delete">Delete Ticket</button>' : '';
 }
@@ -8222,11 +8207,11 @@ function activityBy(e) {
   else { pic = `<i class="team">${ic('sync')}</i>`; label = b.name || 'The app'; }
   const verb = e.type === 'email' || e.type === 'sms' ? (e.direction === 'in' ? 'From' : 'Sent by') : 'By';
   // The picture sits on the bottom-right corner of the event's icon (asked
-  // for 2026-11-03), as a client's stylist sits on their circle; the name
-  // stays as a small line under the event.
+  // for 2026-11-03), as a client's stylist sits on their circle. Who it was
+  // is its hover text; the name line under the event was taken off on
+  // request the same day.
   return {
-    badge: `<span class="tl-badge k-${esc(b.kind)}" title="${esc(`${verb} ${label}`)}" aria-hidden="true">${pic}</span>`,
-    line: `<span class="tl-by" title="${esc(`${verb} ${label}`)}">${esc(label)}</span>`,
+    badge: `<span class="tl-badge k-${esc(b.kind)}" title="${esc(`${verb} ${label}`)}" role="img" aria-label="${esc(`${verb} ${label}`)}">${pic}</span>`,
   };
 }
 
@@ -8580,7 +8565,7 @@ function renderTimeline() {
         <div class="what"><b>${esc(e.title)}${emailStatus(e)}</b>
           ${e.detail ? `<span>${esc(e.detail)}</span>` : ''}
           ${e.apptAt ? `<span class="tl-appt">${ic('calendar')}Appointment ${esc(apptDay(e.apptAt))} at ${esc(fmtWhen(e.apptAt, { hour: 'numeric', minute: '2-digit' }))}</span>` : ''}
-          ${by ? by.line : ''}</div>
+</div>
         <time datetime="${esc(e.at)}"><b>${esc(ago(e.at))}</b>${esc(fmtWhen(e.at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))}</time>
       </li>`; }).join('')}</ol>`;
   }
