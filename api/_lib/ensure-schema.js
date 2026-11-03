@@ -247,6 +247,20 @@ const STATEMENTS = [
      updated_at   timestamptz NOT NULL DEFAULT now())`,
   'CREATE UNIQUE INDEX IF NOT EXISTS karen_calls_sid ON karen_calls (call_sid) WHERE call_sid IS NOT NULL',
   'CREATE INDEX IF NOT EXISTS karen_calls_by_salon ON karen_calls (tenant_id, created_at DESC)',
+  // 041: a client's tags, and the Admin history of changes to their record.
+  // A column with a default and a table of its own. Additive.
+  "ALTER TABLE contacts ADD COLUMN IF NOT EXISTS tags text[] NOT NULL DEFAULT '{}'",
+  `CREATE TABLE IF NOT EXISTS contact_changes (
+     id          bigserial PRIMARY KEY,
+     tenant_id   uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+     contact_id  uuid NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+     changed_by  uuid REFERENCES staff_users(id) ON DELETE SET NULL,
+     who_name    text,
+     field       text NOT NULL,
+     old_value   text,
+     new_value   text,
+     created_at  timestamptz NOT NULL DEFAULT now())`,
+  'CREATE INDEX IF NOT EXISTS contact_changes_by_client ON contact_changes (tenant_id, contact_id, created_at DESC)',
 ];
 
 let done = null;

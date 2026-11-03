@@ -177,13 +177,18 @@ test('a contact\'s detail shows what really happened, newest first, and nothing 
 
     const titles = d.activity.map((e) => e.title);
     assert.ok(titles.includes('Filled in the website booking form'));
-    assert.ok(titles.includes('Reminder email sent'));
+    assert.ok(titles.includes('Appointment Reminder'), 'the reminder, titled with its automation');
     assert.ok(titles.includes('Marked as done'));
     assert.ok(titles.includes('Synced to the CRM'));
-    // The other was booked by nobody named (no booked_by): staff at the desk
-    // whose login is gone, or the website.
-    assert.equal(titles.filter((t) => t === 'Booked by staff' || t === 'Booked by Client (Website)').length, 1);
-    assert.ok(titles.includes('Booked by Karen'), 'a booking Karen made reads as hers');
+    // Every booking reads "Appointment Booked" (2026-11-03); who made it is
+    // beside it. The other was booked by nobody named (no booked_by): staff
+    // at the desk whose login is gone, or the website.
+    const booked = d.activity.filter((e) => e.title === 'Appointment Booked');
+    assert.equal(booked.length, 2);
+    assert.equal(booked.filter((e) => e.bookedLabel === 'Booked by staff' || e.bookedLabel === 'Booked by Client (Website)').length, 1);
+    assert.ok(booked.some((e) => e.by.kind === 'karen'), 'a booking Karen made reads as hers');
+    assert.ok(!titles.some((t) => /^Booked by/.test(t)), 'no "Booked by" titles any more');
+    assert.ok(d.activity.filter((e) => e.ref).every((e) => e.apptAt), 'each visit event carries its date');
     assert.equal(d.appointments.find((a) => a.ref === 'ZZDELE').via, 'karen');
     // No messaging history exists yet, so none is shown.
     assert.ok(!d.activity.some((e) => e.type === 'sms' || e.type === 'automation'));

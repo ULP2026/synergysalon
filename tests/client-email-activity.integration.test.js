@@ -99,14 +99,22 @@ test('a client\'s emails are on their Activity once each, with subject, time and
     assert.deepEqual(mails.map((e) => e.kind).sort(), ['cancellation', 'confirmation', 'reminder', 'win_back'],
       'each email once, the reminder not twice, nobody else\'s');
     const by = Object.fromEntries(mails.map((e) => [e.kind, e]));
-    assert.match(by.confirmation.title, /^You are booked in: /, 'titled with the subject as sent');
+    // Titled with the automation that sent it (2026-11-03), the subject as
+    // sent beside the visit, and the automation as who sent it.
+    assert.equal(by.confirmation.title, 'Appointment Booking');
+    assert.match(by.confirmation.subject, /^You are booked in: /, 'the subject as sent');
+    assert.match(by.confirmation.detail, /^You are booked in: .* · ZZ Cut with ZZ Dina$/);
+    assert.deepEqual(by.confirmation.by, { kind: 'automation', name: 'Appointment Booking' });
+    assert.equal(by.reminder.title, 'Appointment Reminder');
+    assert.equal(by.cancellation.title, 'Cancellation Notice');
+    assert.ok(by.confirmation.apptAt, 'with the visit\'s own date');
     assert.equal(by.confirmation.status, 'sent');
     assert.ok(by.confirmation.sentId, 'opens the email');
     assert.ok(!Number.isNaN(Date.parse(by.confirmation.at)), 'with when it was sent');
     assert.equal(by.cancellation.status, 'failed');
     assert.match(by.cancellation.error, /ZZ mailbox does not exist/);
-    assert.equal(by.win_back.title, 'It has been a while');
-    assert.equal(by.confirmation.detail, 'ZZ Cut with ZZ Dina');
+    assert.equal(by.win_back.title, 'Lapsed Client Win-back');
+    assert.equal(by.win_back.subject, 'It has been a while');
 
     // Email History and the email's own window say the same.
     const h = await history(tenant, null);
@@ -114,7 +122,7 @@ test('a client\'s emails are on their Activity once each, with subject, time and
     assert.equal(failed.status, 'failed');
     const win = await sentMessage(by.cancellation.sentId, tenant);
     assert.equal(win.status, 'failed');
-    assert.equal(win.subject, by.cancellation.title);
+    assert.equal(win.subject, by.cancellation.subject);
     assert.equal(sent.length, 2, 'two went: the confirmation and the reminder');
   } finally {
     delete process.env.RESEND_API_KEY;

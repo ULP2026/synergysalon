@@ -77,10 +77,18 @@ test('each booking on a client\'s Activity says who made it', { skip }, async ()
     );
 
     const d = await contactDetail(tenant.id, contact);
-    const booked = d.activity.filter((e) => e.type === 'appointment' && e.title.startsWith('Booked by'))
-      .map((e) => e.title).sort();
-    assert.deepEqual(booked, ['Booked by Client (Website)', 'Booked by Karen', 'Booked by ZZ Luis']);
-    assert.ok(d.activity.filter((e) => e.title.startsWith('Booked by')).every((e) => e.tone === 'booked'));
+    // "Appointment Booked" on every one (2026-11-03), with who booked it
+    // beside it: the client on the website, Karen, or the team member.
+    const booked = d.activity.filter((e) => e.type === 'appointment' && e.title === 'Appointment Booked');
+    assert.deepEqual(booked.map((e) => e.bookedLabel).sort(), ['Booked by Client (Website)', 'Booked by Karen', 'Booked by ZZ Luis']);
+    assert.ok(booked.every((e) => e.tone === 'booked'));
+    assert.deepEqual(booked.map((e) => e.by.kind).sort(), ['client', 'karen', 'staff']);
+    const desk = booked.find((e) => e.by.kind === 'staff');
+    assert.equal(desk.by.name, 'ZZ Luis');
+    assert.equal(desk.by.id, luis, 'the team member by id, for their face');
+    assert.equal(d.people[luis].name, 'ZZ Luis');
+    // The visit's own date, not its reference, travels with each.
+    assert.ok(booked.every((e) => e.apptAt));
   } finally {
     await cleanup();
     await pool().end();

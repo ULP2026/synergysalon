@@ -390,6 +390,20 @@
   @media (max-width: 520px) { .page-face { width: 46px; height: 46px; } }
   .pagehead h1 { font-size: 1.5rem; letter-spacing: -.02em; }
   .pagehead .sub { margin: 4px 0 0; color: var(--muted); font-size: var(--fs-sm); }
+  /* Home's greeting is revealed left to right as the page opens (asked for
+     2026-11-03: quick, about a second, subtle). A wipe of the whole line
+     rather than one letter at a time, so the title stays one text node and
+     the Spanish layer can still swap "Good morning" as a phrase. The title
+     is as wide as its words so the wipe takes the full time over them. */
+  #pageTitle { width: fit-content; max-width: 100%; }
+  #pageTitle.hello-in { animation: helloIn .9s cubic-bezier(.22, .61, .36, 1) both; }
+  #pageSub.hello-in { animation: helloSub .5s .4s ease-out both; }
+  @keyframes helloIn {
+    from { clip-path: inset(-10% 100% -20% 0); opacity: .35; filter: blur(2px); }
+    to { clip-path: inset(-10% 0 -20% 0); opacity: 1; filter: blur(0); }
+  }
+  @keyframes helloSub { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { #pageTitle.hello-in, #pageSub.hello-in { animation: none; } }
   .view { flex: 1; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
 
   .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
@@ -687,7 +701,29 @@
   .biz-grid textarea { min-height: 0; padding: 7px 10px; font-size: .9rem; border-radius: 8px; }
   .biz-grid label > span.small { margin: 3px 0 0; font-size: .72rem; }
   .biz-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 10px; }
-  .biz .btn[type="submit"] { height: 36px; margin-top: 2px; }
+  .biz .btn[type="submit"] { height: 32px; }
+  /* The details as a listing (2026-11-03): label and value on one line,
+     small, like a Google business card, with a pencil to edit them in place. */
+  .biz-info { position: relative; min-width: 0; padding-right: 36px; }
+  .biz-pen { position: absolute; top: -4px; right: -6px; margin: 0; }
+  .biz-dl { margin: 0; display: grid; gap: 7px; font-size: .84rem; line-height: 1.45; }
+  .biz-row { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 10px; align-items: baseline; margin: 0; }
+  .biz-row dt { font-weight: 650; color: var(--ink); }
+  .biz-row dd { margin: 0; min-width: 0; color: var(--ink); overflow-wrap: anywhere; }
+  .biz-row dd a { color: var(--indigo); text-decoration: none; }
+  .biz-row dd a:hover { text-decoration: underline; }
+  .biz-none { color: var(--faint); font-style: italic; }
+  .biz-row.edit { align-items: center; }
+  .biz-row.edit dt label { display: inline; margin: 0; font: inherit; color: inherit; }
+  .biz-form input { height: 32px; padding: 0 10px; font-size: .84rem; border-radius: 8px; width: 100%; }
+  .biz-form small { display: block; margin-top: 3px; font-size: .72rem; color: var(--muted); }
+  .biz-addr { display: grid; grid-template-columns: minmax(0, 1fr) 72px 84px; gap: 6px; }
+  .biz-addr input:first-child { grid-column: 1 / -1; }
+  .biz-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  .biz-acts .btn { height: 32px; }
+  @media (max-width: 640px) {
+    .biz-row { grid-template-columns: minmax(0, 1fr); gap: 1px; }
+  }
   @media (max-width: 760px) { .biz-grid:not(.biz-id) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 520px) {
     .biz-top { grid-template-columns: minmax(0, 1fr); gap: 12px; }
@@ -923,7 +959,30 @@
                     background: var(--peri-pale); box-shadow: 0 0 0 2px var(--periwinkle); }
   .px-head .who { flex: 1; min-width: 0; }
   .px-head h2 { margin: 0; font-size: 1.4rem; letter-spacing: -.015em; overflow-wrap: anywhere; }
-  .px-head .chips { margin-top: 6px; }
+  .px-head .chips { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  /* Status and tags in the header, edited there (2026-11-03). */
+  .px-head .px-status { position: relative; cursor: pointer; background: var(--card); font-weight: 600; color: var(--indigo); margin: 0; padding-right: 7px; }
+  .px-head .px-status select { appearance: none; -webkit-appearance: none; border: 0; background: none; padding: 0 2px 0 0; margin: 0;
+                               height: auto; width: auto; min-width: 0; field-sizing: content; font: inherit; color: inherit; cursor: pointer; box-shadow: none; }
+  .px-head .px-status select:focus { outline: none; box-shadow: none; }
+  .px-head .px-status .ic { width: 11px; height: 11px; pointer-events: none; }
+  .px-head .px-status:hover { border-color: var(--periwinkle); }
+  .px-head .px-status:focus-within, .px-tagbtn:focus-visible, .px-tag button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .px-tags { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .px-tag { color: #5b3fae; background: #ece7fb; border-color: transparent; font-weight: 550; }
+  :root[data-theme="dark"] .px-tag { color: #c9b8f6; background: rgba(130, 100, 220, .22); }
+  .px-tag .ic { width: 11px; height: 11px; }
+  .px-tagbtn { width: 24px; height: 24px; display: grid; place-items: center; border: 1px dashed var(--line-2); border-radius: 50%;
+               background: var(--card); color: var(--muted); cursor: pointer; padding: 0; }
+  .px-tagbtn .ic { width: 13px; height: 13px; }
+  .px-tagbtn:hover { color: var(--indigo); border-color: var(--periwinkle); background: var(--peri-pale); }
+  .px-tags.edit .px-tag { padding-right: 3px; }
+  .px-tag button { border: 0; background: none; color: inherit; font: inherit; padding: 0; cursor: pointer; }
+  .px-tag .px-tag-x { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; }
+  .px-tag .px-tag-x:hover { background: rgba(91, 63, 174, .16); }
+  .px-tag-in { height: 26px; width: 150px; padding: 0 10px; font-size: var(--fs-xs); border-radius: 999px; }
+  .px-tag-done { height: 26px; padding: 0 10px; font-size: var(--fs-xs); }
+  @media (max-width: 720px) { .px-tagbtn { width: 32px; height: 32px; } .px-tag .px-tag-x { width: 26px; height: 26px; } }
   .px-head .acts { margin: 0; gap: 8px; }
   .px-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 38fr) minmax(0, 62fr); }
   /* Bottom padding so the last line (Delete client) is not flush with the
@@ -943,6 +1002,22 @@
   .pc-row { display: flex; gap: 8px; align-items: flex-end; }
   .pc-row textarea { flex: 1; min-height: 44px; max-height: 160px; resize: vertical; }
   .pc-send { flex: none; }
+  /* Text is red, Email blue (asked for 2026-11-03): the chosen one is filled
+     with its colour, and the message box and Send take it too. */
+  .px-compose { --pc: #c8323f; --pc-pale: #fbe5e7; }
+  .px-compose[data-ch="email"] { --pc: #2f6fd6; --pc-pale: #e3edfc; }
+  :root[data-theme="dark"] .px-compose { --pc: #e5636e; --pc-pale: rgba(229, 99, 110, .16); }
+  :root[data-theme="dark"] .px-compose[data-ch="email"] { --pc: #6aa0f0; --pc-pale: rgba(106, 160, 240, .16); }
+  .pc-ch button[data-ch="sms"] { color: #c8323f; }
+  .pc-ch button[data-ch="email"] { color: #2f6fd6; }
+  :root[data-theme="dark"] .pc-ch button[data-ch="sms"] { color: #e5636e; }
+  :root[data-theme="dark"] .pc-ch button[data-ch="email"] { color: #6aa0f0; }
+  .seg.pc-ch button[aria-pressed="true"] { background: var(--pc); color: #fff; box-shadow: 0 2px 6px -3px var(--pc); }
+  .seg.pc-ch button:hover:not([aria-pressed="true"]) { background: var(--pc-pale); }
+  .px-compose textarea, .px-compose .pc-subj { border-color: color-mix(in srgb, var(--pc) 45%, var(--line-2)); }
+  .px-compose textarea:focus, .px-compose .pc-subj:focus { border-color: var(--pc); box-shadow: 0 0 0 3px var(--pc-pale); }
+  .px-compose .pc-send { background: var(--pc); color: #fff; box-shadow: none; }
+  .px-compose .pc-send:hover:not(:disabled) { background: var(--pc); opacity: .9; }
   .pc-why { margin: 0; font-size: var(--fs-xs); color: var(--muted); }
   .pc-why.bad { color: var(--warn); }
   .px-sec { background: var(--card); border-radius: 14px; padding: 16px 18px; box-shadow: var(--e1); }
@@ -999,7 +1074,22 @@
   .tl .t-lead .dot { background: var(--raise); color: var(--indigo); }
   .tl .what b { display: block; font-weight: 600; font-size: .95rem; }
   .tl .what span { display: block; color: var(--muted); font-size: var(--fs-sm); margin-top: 2px; }
-  .tl .what .ref { font-size: var(--fs-xs); color: var(--faint); }
+  /* The visit's own date on each of its events (2026-11-03, in place of its
+     reference), and who did it, small: a face or a mark, then a name. */
+  .tl .what .tl-appt { display: flex; align-items: center; gap: 5px; font-size: var(--fs-xs); color: var(--accent-ink); font-weight: 550; margin-top: 3px; }
+  .tl .what .tl-appt .ic { width: 12px; height: 12px; flex: none; }
+  .tl .what .tl-by { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 11px; color: var(--muted); }
+  .tl .what .tl-by > span { display: inline; margin: 0; font-size: 11px; color: var(--muted); }
+  .tl-by img, .tl-by i { flex: none; width: 16px; height: 16px; border-radius: 50%; object-fit: cover; display: grid; place-items: center;
+                         font-style: normal; font-size: 8px; font-weight: 700; background: var(--peri-pale); color: var(--indigo); }
+  .tl-by.k-karen img { box-shadow: 0 0 0 1px var(--periwinkle); }
+  .tl-by i .ic { width: 10px; height: 10px; }
+  .tl-by.k-automation i { background: #fdf3c8; color: #7a5a00; }
+  .tl-by.k-client i { background: #fbe6f2; color: #9c2f6b; }
+  :root[data-theme="dark"] .tl-by.k-automation i { background: rgba(214, 170, 30, .22); color: #f2d675; }
+  :root[data-theme="dark"] .tl-by.k-client i { background: rgba(200, 80, 150, .24); color: #f1b0d6; }
+  .tl .k-admin .dot { background: #ece7fb; color: #5b3fae; }
+  :root[data-theme="dark"] .tl .k-admin .dot { background: rgba(130, 100, 220, .24); color: #c9b8f6; }
   .tl time { text-align: right; font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; line-height: 1.4; font-variant-numeric: tabular-nums; }
   .tl time b { display: block; color: var(--ink); font-weight: 600; }
   /* What happened, by colour (asked for 2026-10-22), each its own: booked
@@ -1876,8 +1966,6 @@
              font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0; }
   /* Automation in Settings: Email History is a second card under the list. */
   #mailCard { margin-top: 16px; }
-  /* Finance on Home, under the widgets. */
-  .hm-fin { margin-top: 18px; }
   /* Email History, its own module in Marketing. */
   .ml-filters { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 12px; }
   .ml-filters .search { flex: 1 1 220px; }
@@ -2271,7 +2359,7 @@
   .svc.off b { color: var(--muted); }
   .svc.off .svc-f input { opacity: .5; }
   @media (max-width: 520px) {
-    .svc { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); row-gap: 8px; }
+    .svc { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); row-gap: 8px; --svc-gap: 8px; }
     .svc > div { grid-column: 2 / -1; }
     .svc .price { grid-column: 2; }
     .svc .dur { grid-column: 3; }
@@ -2322,8 +2410,22 @@
                    transition: transform var(--t) var(--ease); }
   .svc .svc-chev .ic { width: 15px; height: 15px; }
   .svc.open .svc-chev { transform: rotate(90deg); }
-  .svc .svc-bd { grid-column: 1 / -1; display: none; gap: 10px; padding: 10px 2px 2px; border-top: 1px dashed var(--line); }
-  .svc.open .svc-bd { display: grid; }
+  /* Switched on, a kind shows its services; switched off it folds back to
+     the one line it was (asked for 2026-11-03), and nothing typed inside is
+     lost: the fields stay in the form, folded away, and are saved as they
+     are. The fold is animated by height (grid rows 0fr to 1fr), and the
+     negative margin takes back the row gap a folded body would leave. */
+  .svc { --svc-gap: 12px; }
+  .svc .svc-fold { grid-column: 1 / -1; display: grid; grid-template-rows: 0fr; margin-top: calc(-1 * var(--svc-gap));
+                   opacity: 0; transition: grid-template-rows .28s var(--ease), margin-top .28s var(--ease), opacity .2s var(--ease); }
+  .svc.open .svc-fold { grid-template-rows: 1fr; margin-top: 0; opacity: 1; }
+  .svc .svc-fold > .svc-bd { min-height: 0; overflow: hidden; }
+  .svc:not(.open) .svc-fold > .svc-bd { visibility: hidden; transition: visibility 0s .28s; }
+  @media (prefers-reduced-motion: reduce) { .svc .svc-fold { transition: none; } }
+  .svc.off .svc-chev { visibility: hidden; }
+  .svc.off .svc-exp { cursor: default; }
+  .svc.off .svc-exp:hover { background: none; }
+  .svc .svc-bd { display: grid; gap: 10px; padding: 10px 2px 2px; border-top: 1px dashed var(--line); }
   .svc .svc-bd .svc-time { grid-column: auto; }
   .svc .svc-bd .hint { font-size: .72rem; color: var(--muted); margin: 0; }
   .svc .svc-list { display: grid; gap: 4px; }
@@ -3120,10 +3222,6 @@
       <div id="hmPending"></div>
       <!-- The widgets, in the admin's order (GET /api/staff/home: layout). -->
       <div class="hm-grid" id="hmGrid"></div>
-      <!-- Finance, under the widgets (moved here from Marketing on request,
-           2026-10-24). Owners, admins and managers only, here and on the
-           server; filled by renderFinance(). -->
-      <section class="card hm-fin hidden" id="homeFin" aria-label="Finance"></section>
       <div class="hm-tip hidden" id="hmTip" role="tooltip"></div>
     </section>
 
@@ -3340,6 +3438,12 @@
                price is not set yet, so it says so rather than showing a
                figure, and Activate cannot be pressed until payments are
                connected (Stripe). Put the price in SUBSCRIPTION below. -->
+          <!-- Finance, above Subscription (moved here from Home on request,
+               2026-11-03; it was on Home from 2026-10-24, and on Marketing
+               before that). Owners, admins and managers only, as the tab is,
+               and on the server; filled by renderFinance(). -->
+          <section class="acard hm-fin hidden" id="homeFin" aria-label="Finance"></section>
+
           <section class="acard sub-card" id="subCard" data-admin aria-labelledby="subTitle">
             <h2 class="ahead" id="subTitle"><svg class="ic"><use href="#i-zap"/></svg>Subscription</h2>
             <p class="asub">Your plan for the Synergy app: Appt. Book, Clients, Karen AI, Automations and the team, for the whole salon.</p>
@@ -3549,14 +3653,16 @@
         <div class="md-sec">Services &amp; pricing</div>
         <p class="small muted" style="margin:-6px 0 10px">Turn on each kind of work offered and type its starting price and usual length. Open a kind to choose exactly which of its services are offered and how many minutes each one takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
         <div class="svcs" id="memberSvcs"></div>
-        <label class="svc-notes" id="memberNotesWrap"><span>Notes / Special Instructions for Clients</span>
+        <label class="svc-notes" id="memberNotesWrap"><span>Special Instructions When Booking Clients</span>
           <textarea id="memberNotes" rows="3" maxlength="2000"
             placeholder="For example: arrive with dry hair, a patch test 48 hours before color."
-            aria-label="Notes and special instructions for clients, for all of these services"></textarea></label>
+            aria-label="Special instructions when booking clients, for all of these services"></textarea></label>
 
         <!-- Shown, grey and disabled, for everyone for now: the salon sets
              schedules: only the admin sets a stylist's hours (hoursOpen()). -->
-        <div class="md-sec">Working hours</div>
+        <!-- "Available Hours" since 2026-11-03 (on request; it was Working
+             hours): the times a guest can be booked with this person. -->
+        <div class="md-sec">Available Hours</div>
         <p class="small muted wh-note">The times guests can book with this person. A day switched off is closed. Only the admin changes them.</p>
         <div id="memberHoursWrap" class="wh wh-off">
           <div class="hrs" id="memberHours"></div>
@@ -4144,7 +4250,7 @@ const I18N_ES = {
   'Billing': 'Facturación', 'Payroll': 'Nómina', 'Coming soon': 'Próximamente', 'Coming Soon': 'Próximamente',
   'Phone Number Settings': 'Configuración del número', "Karen's number": 'Número de Karen', 'Message History': 'Historial de mensajes',
   'Personal information': 'Información personal', 'Role': 'Rol', 'Connect your tools': 'Conecta tus herramientas',
-  'Services & pricing': 'Servicios y precios', 'Working hours': 'Horario de trabajo', 'Change picture': 'Cambiar foto',
+  'Services & pricing': 'Servicios y precios', 'Working hours': 'Horario de trabajo', 'Available Hours': 'Horario disponible', 'Special Instructions When Booking Clients': 'Instrucciones especiales al reservar clientes', 'Change picture': 'Cambiar foto',
   'Upload a photo': 'Subir una foto', 'Choose an avatar': 'Elegir un avatar', 'Remove picture': 'Quitar foto',
   'Use photo': 'Usar foto', 'Calendar connected': 'Calendario conectado', 'Calendar not connected': 'Calendario no conectado',
   'Connected': 'Conectado', 'Disconnect': 'Desconectar', 'Calendar': 'Calendario', 'Checking…': 'Verificando…',
@@ -5031,7 +5137,7 @@ const PAGES = {
   // No primary button on Home: booking starts from Appt. Book.
   home: {
     path: HOME_PATH, title: 'Home', action: null,
-    load: () => { loadHome(); renderFinance(); },
+    load: () => { loadHome(); },
   },
   appointments: {
     path: `${BASE}/appointments`, title: 'Appt. Book', action: 'New appointment',
@@ -5109,7 +5215,7 @@ function automations() {
       ],
     },
     {
-      id: 'reminder', name: 'Appointment reminder', icon: 'bell',
+      id: 'reminder', name: 'Appointment Reminder', icon: 'bell',
       sub: `Reminds clients about ${lead} ahead, so fewer chairs sit empty.`,
       when: ['bell', `About ${lead} before an appointment`, 'Checked every day for appointments still booked.'],
       steps: [
@@ -5117,7 +5223,7 @@ function automations() {
       ],
     },
     {
-      id: 'reschedule', name: 'Reschedule notice', icon: 'swap',
+      id: 'reschedule', name: 'Reschedule Notice', icon: 'swap',
       sub: 'Tells a client their new time when they move an appointment.',
       when: ['swap', 'A client moves their appointment', 'From the link in their email.'],
       steps: [
@@ -5126,7 +5232,7 @@ function automations() {
       ],
     },
     {
-      id: 'cancellation', name: 'Cancellation notice', icon: 'ban',
+      id: 'cancellation', name: 'Cancellation Notice', icon: 'ban',
       sub: 'Confirms a cancellation and frees the time.',
       when: ['ban', 'An appointment is cancelled', 'By the client from their link, or by the front desk.'],
       steps: [
@@ -5140,7 +5246,7 @@ function automations() {
     // due. The timings below are what is asked for; on a once-a-day cron a
     // message can go out later than that, and the modal says so.
     {
-      id: 'welcome_new', name: 'New guest welcome', icon: 'user-check',
+      id: 'welcome_new', name: 'New Guest Welcome', icon: 'user-check',
       sub: 'Tells a first-time client what to expect before they come in.',
       when: ['user-check', 'Somebody books for the first time', 'Their first ever appointment, online or at the desk.'],
       steps: [
@@ -5148,7 +5254,7 @@ function automations() {
       ],
     },
     {
-      id: 'no_show_1', name: 'No-show recovery', icon: 'bell',
+      id: 'no_show_1', name: 'No-show Recovery', icon: 'bell',
       sub: 'Invites a client back after a missed appointment.',
       when: ['bell', 'Staff mark an appointment as a no-show', 'From the appointment window in Appt. Book.'],
       steps: [
@@ -5157,7 +5263,7 @@ function automations() {
       ],
     },
     {
-      id: 'late_cancel', name: 'Late cancellation', icon: 'ban',
+      id: 'late_cancel', name: 'Late Cancellation', icon: 'ban',
       sub: 'Confirms a cancellation made inside 24 hours.',
       when: ['ban', 'A client cancels close to the time', 'Less than 24 hours before, when the slot cannot be refilled.'],
       steps: [
@@ -5165,7 +5271,7 @@ function automations() {
       ],
     },
     {
-      id: 'post_visit', name: 'Post-visit check-in', icon: 'thumbs',
+      id: 'post_visit', name: 'Post-visit Check-in', icon: 'thumbs',
       sub: 'Asks how it turned out, and offers to put anything right.',
       when: ['thumbs', 'An appointment is marked complete', 'From the appointment window, when they check out.'],
       steps: [
@@ -5174,7 +5280,7 @@ function automations() {
       ],
     },
     {
-      id: 'review_ask', name: 'Review request', icon: 'megaphone',
+      id: 'review_ask', name: 'Review Request', icon: 'megaphone',
       sub: 'Asks happy clients for a review a couple of days later.',
       when: ['megaphone', 'An appointment is marked complete', 'Sent after the check-in, so an unhappy client has already had their say.'],
       steps: [
@@ -5182,7 +5288,7 @@ function automations() {
       ],
     },
     {
-      id: 'rebook_due', name: 'Rebook reminder', icon: 'calendar-plus',
+      id: 'rebook_due', name: 'Rebook Reminder', icon: 'calendar-plus',
       sub: 'Nudges a client when their service is about due again.',
       when: ['calendar-plus', 'A service is due and nothing is booked', 'Worked out from the length set against each service.'],
       steps: [
@@ -5190,7 +5296,7 @@ function automations() {
       ],
     },
     {
-      id: 'second_visit', name: 'New guest second visit', icon: 'users-plus',
+      id: 'second_visit', name: 'New Guest Second Visit', icon: 'users-plus',
       sub: 'Invites a first-time client back before they drift.',
       when: ['users-plus', 'A first visit finished and nothing is booked', 'About five days after their only appointment.'],
       steps: [
@@ -5198,7 +5304,7 @@ function automations() {
       ],
     },
     {
-      id: 'win_back', name: 'Lapsed client win-back', icon: 'swap',
+      id: 'win_back', name: 'Lapsed Client Win-back', icon: 'swap',
       sub: 'Reaches out to clients nobody has seen in months.',
       when: ['swap', 'Ninety days since their last visit', 'And nothing booked. Sent once per client, never on a loop.'],
       steps: [
@@ -5470,15 +5576,16 @@ function finRange(key) {
 /** Cents as dollars with cents, for Finance. */
 const finMoney = (cents) => `$${(cents / 100).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 async function renderFinance() {
-  // On Home since 2026-10-24, for owners, admins and managers only; anybody
-  // else never sees the card (and the server answers them 403 anyway).
+  // On Money, above Subscription, since 2026-11-03 (Home before that), for
+  // owners, admins and managers only; anybody else never sees the card (and
+  // the server answers them 403 anyway).
   const host = $('homeFin');
   host.classList.toggle('hidden', !me?.user?.canAdmin);
   if (!me?.user?.canAdmin) { host.innerHTML = ''; return; }
   const periods = [['month', 'This month'], ['last', 'Last month'], ['30', 'Last 30 days'], ['year', 'This year']];
   host.innerHTML = `
-    <div class="ml-top"><h2>Finance</h2>
-      <p>What visits were worth, by stylist.</p></div>
+    <h2 class="ahead"><svg class="ic"><use href="#i-dashboard"/></svg>Finance</h2>
+    <p class="asub">What visits were worth, by stylist.</p>
     <div class="seg wrapseg fin-seg" id="finSeg" role="group" aria-label="Period">
       ${periods.map(([k, l]) => `<button type="button" data-fin="${k}" aria-pressed="${finPeriod === k}">${l}</button>`).join('')}
     </div>
@@ -5804,9 +5911,13 @@ function go(name, { push = true } = {}) {
   const view = p.view || name;
   for (const v of VIEWS) $(`view-${v}`).classList.toggle('hidden', v !== view);
 
-  $('pageTitle').textContent = name === 'home' ? homeHello() : p.title;
+  if (name === 'home') paintHello(true);
+  else {
+    $('pageTitle').textContent = p.title;
+    $('pageSub').textContent = p.sub;
+    for (const id of ['pageTitle', 'pageSub']) $(id).classList.remove('hello-in');
+  }
   paintPageFace(name === 'home');
-  $('pageSub').textContent = name === 'home' ? greeting() : p.sub;
   // One primary action per view, and none where there is nothing to do yet.
   $('primaryBtn').classList.toggle('hidden', !p.action);
   // Leaving Home ends customizing without saving, as Cancel would.
@@ -5943,6 +6054,27 @@ function paintPageFace(show) {
   if (!img.hidden) img.src = personPhoto(me.user);
 }
 
+/**
+ * Home's greeting and the line under it. `reveal` plays the wipe (on
+ * arriving at Home); otherwise it plays only when the words changed, so the
+ * quiet reloads never flash it, but morning turning to afternoon does.
+ */
+function paintHello(reveal) {
+  const t = $('pageTitle');
+  const s = $('pageSub');
+  const hello = homeHello();
+  // Compared before the Spanish layer touches it: the stored English line.
+  if (!reveal && t.dataset.hello === hello) return;
+  t.dataset.hello = hello;
+  t.textContent = hello;
+  s.textContent = greeting();
+  for (const el of [t, s]) {
+    el.classList.remove('hello-in');
+    void el.offsetWidth; // restart the animation from the first frame
+    el.classList.add('hello-in');
+  }
+}
+
 function homeHello() {
   const first = String(me?.user?.name || '').trim().split(/\s+/)[0];
   const hi = `Good ${partOfDay(salonClock().hour)}`;
@@ -5990,8 +6122,7 @@ const VIEW_LABEL = { bar: 'Bars', bars: 'Bars', line: 'Line', table: 'Table', nu
 
 async function loadHome() {
   const seq = ++homeSeq;
-  $('pageTitle').textContent = homeHello();
-  $('pageSub').textContent = greeting();
+  paintHello(false);
   paintPageFace(true);
   if (!homeData) {
     $('hmGrid').innerHTML = [0, 1].map(() =>
@@ -6517,7 +6648,7 @@ function renderDiary(d) {
     $('diary').innerHTML = emptyState({
       icon: 'calendar',
       title: `${me?.salon?.name || 'The salon'} is closed this day`,
-      text: 'Nobody on the team works this day, so nothing can be booked. Working hours are set in Settings, Team.',
+      text: 'Nobody on the team works this day, so nothing can be booked. Available Hours are set in Settings, Team.',
     });
     return;
   }
@@ -6978,7 +7109,7 @@ function dgPaint(x, y) {
   g.style.height = `${Math.max(22, (a.durationMin / 60) * DG_HOUR - 3)}px`;
   g.classList.toggle('bad', Boolean(why));
   g.innerHTML = `<b>${esc(clock(t.start))} to ${esc(clock(t.start + a.durationMin))}</b><span>${esc(why || a.guestName)}</span>`;
-  dgDrag.target = { slug, start: t.start, why };
+  dgDrag.target = { slug, start: t.start, why, col: t.col };
 }
 
 function dgBegin() {
@@ -7093,9 +7224,21 @@ async function dgDrop(a, t) {
   const start = salonInstant(diaryData.date, t.start);
   const choice = await confirmMove(a, { start, stylistName: toName || a.stylist });
   if (!choice) return;
-  // Shown where it was dropped straight away; the day reloads from the server either way.
+  // Shown where it was dropped straight away (2026-11-03: the card moves to
+  // its new place while it saves, and the day is then redrawn quietly around
+  // it, with nothing reloading and no scroll lost). A color's Finish card is
+  // left out until then: the redraw puts every part back where it falls.
   const cards = [...document.querySelectorAll(`.dg-ev[data-ref="${CSS.escape(a.ref)}"]`)];
   cards.forEach((c) => c.classList.add('dg-saving'));
+  const main = cards.find((c) => !c.classList.contains('dg-part'));
+  if (main && t.col?.isConnected) {
+    t.col.appendChild(main);
+    main.style.top = `${((t.start - dgRange.from) / 60) * DG_HOUR + 1}px`;
+    main.style.height = `${Math.max(22, (a.durationMin / 60) * DG_HOUR - 3)}px`;
+    const tm = main.querySelector('.tm');
+    if (tm) tm.textContent = clock(t.start);
+    cards.filter((c) => c !== main).forEach((c) => { c.hidden = true; });
+  }
   try {
     const r = await api('/api/staff/appointment', {
       method: 'POST',
@@ -7217,8 +7360,15 @@ $('calOpts').onclick = (e) => {
 };
 
 /** Reload whichever of the two views is on screen. */
-function refreshDiary() {
-  return calView === 'month' ? loadMonth(calMonth) : loadDay(day);
+/**
+ * Redraws Appt. Book in place after something changed on it (a move, a
+ * check-in, a block). Quiet by default (asked for 2026-11-03: a move used to
+ * wipe the grid to a skeleton and jump back to the top, which read as the
+ * page reloading): the current day or month stays on screen, scrolled where
+ * it was, until the new one replaces it.
+ */
+function refreshDiary({ quiet = true } = {}) {
+  return calView === 'month' ? loadMonth(calMonth, { quiet }) : loadDay(day, { quiet, force: true });
 }
 
 $('diary').onclick = (e) => {
@@ -7474,10 +7624,11 @@ let daySeq = 0;
 // failure (what is drawn stays).
 // An appointment to open once its day has loaded (Home's Coming up).
 let diaryOpenRef = null;
-async function loadDay(date, { quiet = false } = {}) {
+async function loadDay(date, { quiet = false, force = false } = {}) {
   // The quiet reload waits while a card is being dragged: redrawing the grid
-  // would drop it mid-move.
-  if (quiet && dgDrag) return;
+  // would drop it mid-move. A redraw after a change (force) has no drag to
+  // wait for: the drop that made it has already ended the drag.
+  if (quiet && dgDrag && !force) return;
   const seq = ++daySeq;
   day = date;
   $('dayPicker').value = date;
@@ -7714,16 +7865,21 @@ $('calendar').addEventListener('click', (e) => {
 }, true);
 
 let monthSeq = 0;
-async function loadMonth(ym) {
+async function loadMonth(ym, { quiet = false } = {}) {
   const seq = ++monthSeq;
   calMonth = ym;
-  $('dayHeading').textContent = '';
-  $('calendar').innerHTML = skeleton(6);
+  // Quiet (after a change on this month): the month stays as it is until the
+  // new one is drawn over it, so nothing jumps.
+  if (!quiet) {
+    $('dayHeading').textContent = '';
+    $('calendar').innerHTML = skeleton(6);
+  }
   try {
     const d = await api(`/api/staff/diary?month=${encodeURIComponent(ym)}`);
     if (noCals) Object.assign(d, { appointments: [], booked: 0 });
     if (seq === monthSeq) renderMonth(d);
   } catch (err) {
+    if (quiet) return;
     if (seq === monthSeq && err.message !== 'signed out') {
       $('calendar').innerHTML = emptyState({
         icon: 'info', title: 'Couldn’t load this month', text: err.message,
@@ -7971,11 +8127,37 @@ async function deleteContact(c) {
 let person = null;          // { contact, appointments, activity } for the open profile
 let tlFilter = 'all';
 
+// Admin (2026-11-03; it was "Automations", which never had anything in it)
+// is the history of changes the team made to the client's record. The Forms
+// filter was taken off the same day; the website form still shows under All.
 const TL_TYPES = [
   ['all', 'All'], ['appointment', 'Appointments'], ['email', 'Email'],
-  ['sms', 'SMS'], ['automation', 'Automations'], ['form', 'Forms'],
+  ['sms', 'SMS'], ['admin', 'Admin'],
 ];
-const TL_ICON = { appointment: 'calendar', email: 'mail', sms: 'message', automation: 'zap', form: 'form', sync: 'sync', lead: 'user' };
+const TL_ICON = { appointment: 'calendar', email: 'mail', sms: 'message', admin: 'edit', automation: 'zap', form: 'form', sync: 'sync', lead: 'user' };
+
+/**
+ * Who did it, beside each line of Activity (asked for 2026-11-03), small:
+ * Karen's picture, the team member's face, the client's initials, the zap of
+ * an automation (with its name), or the app itself.
+ */
+function activityBy(e) {
+  const b = e.by;
+  if (!b) return '';
+  let pic;
+  let label;
+  if (b.kind === 'karen') { pic = `<img src="${esc(KAREN_PIC)}" alt="">`; label = 'Karen'; }
+  else if (b.kind === 'staff') {
+    const face = (b.id && person?.people?.[b.id]) || { name: b.name };
+    pic = `<img src="${esc(personPhoto(face))}" alt="">`;
+    label = b.name;
+  } else if (b.kind === 'client') { pic = `<i class="ini">${esc(initialsOf(b.name === 'Client (Website)' ? person?.contact?.name || 'C' : b.name))}</i>`; label = b.name === 'Client (Website)' ? 'Client (Website)' : 'Client'; }
+  else if (b.kind === 'automation') { pic = `<i class="zap">${ic('zap')}</i>`; label = `Automation · ${b.name}`; }
+  else if (b.kind === 'team') { pic = `<i class="team">${ic('users-plus')}</i>`; label = b.name || 'The team'; }
+  else { pic = `<i class="team">${ic('sync')}</i>`; label = b.name || 'The app'; }
+  const verb = e.type === 'email' || e.type === 'sms' ? (e.direction === 'in' ? 'From' : 'Sent by') : 'By';
+  return `<span class="tl-by k-${esc(b.kind)}" title="${esc(`${verb} ${label}`)}">${pic}<span>${esc(label)}</span></span>`;
+}
 
 function fmtWhen(iso, opts) {
   return new Date(iso).toLocaleString(LOCALE, { ...opts, ...(me?.salon?.timezone ? { timeZone: me.salon.timezone } : {}) });
@@ -8001,8 +8183,11 @@ async function openPerson(id) {
   person = null;
   tlFilter = 'all';
   pxEditing = null;
-  // A new client's profile starts with nothing written, on Text if they can be texted.
-  pxDraft = { ch: null, subject: '', text: '' };
+  pxTagEdit = false;
+  // A new client's profile starts with nothing written, on Text (2026-11-03:
+  // always Text first, even where a reason under the box says they cannot
+  // be texted yet; Email is one click away).
+  pxDraft = { ch: 'sms', subject: '', text: '' };
   $('pxSub').innerHTML = '';
   // Paint what the list already knows at once, then fill in the rest.
   $('pxAvatar').textContent = initialsOf(c?.name);
@@ -8029,6 +8214,130 @@ function personChips(c) {
     `<span class="chip">${esc(STATUS_LABEL[c.status] || c.status)}</span>`,
     c.cardOnFile ? cardChip() : '',
   ].join(' ');
+}
+
+/**
+ * The profile's header: status, Card on file and the client's tags, edited
+ * right there (asked for 2026-11-03, when the separate Tags and status card
+ * went). The status chip opens a short list of statuses. The pencil (a plus
+ * while there are no tags) turns the tags into removable chips with a box
+ * to add one; a tag clicked there goes back into the box to be renamed.
+ * Each change is saved as it is made.
+ */
+let pxTagEdit = false;
+function headerChips(c) {
+  const tags = Array.isArray(c.tags) ? c.tags : [];
+  // A native list, styled as the chip: it opens above the profile window,
+  // which the app's own pop-up menu cannot (the window is in the top layer).
+  const status = `<label class="chip px-status" title="Change status"><span class="sr">Status</span>
+      <select data-px-status aria-label="Status">${Object.entries(STATUS_LABEL).map(([k, v]) =>
+        `<option value="${k}" ${k === c.status ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>${ic('down')}</label>`;
+  if (c.tags == null) return [status, c.cardOnFile ? cardChip() : ''].join(' ');
+  if (pxTagEdit) {
+    return `${status}${c.cardOnFile ? ` ${cardChip()}` : ''}
+      <span class="px-tags edit" role="group" aria-label="Tags">
+        ${tags.map((t, i) => `<span class="chip px-tag"><button type="button" class="px-tag-t" data-tag-edit="${i}" title="Rename this tag">${esc(t)}</button><button type="button" class="px-tag-x" data-tag-drop="${i}" aria-label="Remove the tag ${esc(t)}">${ic('x')}</button></span>`).join('')}
+        <input class="px-tag-in" id="pxTagIn" maxlength="30" placeholder="${tags.length ? 'Add a tag' : 'Add a tag, e.g. VIP'}" aria-label="New tag" autocomplete="off" data-no-i18n>
+        <button type="button" class="btn quiet sm px-tag-done" data-tag-done>Done</button>
+      </span>`;
+  }
+  return `${status}${c.cardOnFile ? ` ${cardChip()}` : ''}
+    <span class="px-tags" role="group" aria-label="Tags">
+      ${tags.map((t) => `<span class="chip px-tag">${ic('tag')}${esc(t)}</span>`).join('')}
+      <button type="button" class="px-tagbtn" data-tag-open aria-label="${tags.length ? 'Edit tags' : 'Add a tag'}" title="${tags.length ? 'Edit tags' : 'Add a tag'}">${ic(tags.length ? 'edit' : 'plus')}</button>
+    </span>`;
+}
+function paintHeaderChips() {
+  if (!person) return;
+  $('pxChips').innerHTML = headerChips(person.contact);
+  if (pxTagEdit) $('pxTagIn')?.focus();
+}
+/** Save the whole list; the header shows it at once and puts it back if refused. */
+async function saveTags(next, said) {
+  const c = person?.contact;
+  if (!c) return;
+  const before = c.tags;
+  c.tags = next;
+  paintHeaderChips();
+  try {
+    const r = await api('/api/staff/contacts', { method: 'PATCH', body: JSON.stringify({ id: c.id, op: 'tags', tags: next }) });
+    if (person?.contact?.id !== c.id) return;
+    c.tags = r.tags;
+    paintHeaderChips();
+    if (said) toast(said);
+    refreshActivity();
+  } catch (err) {
+    c.tags = before;
+    paintHeaderChips();
+    fail(err);
+  }
+}
+function addTagFromBox() {
+  const box = $('pxTagIn');
+  const c = person?.contact;
+  if (!box || !c) return;
+  const t = box.value.replace(/\s+/g, ' ').trim();
+  if (!t) return;
+  box.value = '';
+  const tags = c.tags || [];
+  if (tags.some((x) => x.toLowerCase() === t.toLowerCase())) { toast(`${c.name} already has the tag ${t}.`); return; }
+  saveTags([...tags, t], `Tag ${t} added.`);
+}
+$('pxChips').addEventListener('click', (e) => {
+  const c = person?.contact;
+  if (!c) return;
+  if (e.target.closest('[data-tag-open]')) { pxTagEdit = true; paintHeaderChips(); return; }
+  if (e.target.closest('[data-tag-done]')) { addTagFromBox(); pxTagEdit = false; paintHeaderChips(); return; }
+  const drop = e.target.closest('[data-tag-drop]');
+  if (drop) {
+    const t = c.tags[Number(drop.dataset.tagDrop)];
+    saveTags(c.tags.filter((_, i) => i !== Number(drop.dataset.tagDrop)), `Tag ${t} removed.`);
+    return;
+  }
+  const ed = e.target.closest('[data-tag-edit]');
+  if (ed) {
+    // Renaming: the tag goes back into the box, to be changed and added again.
+    const i = Number(ed.dataset.tagEdit);
+    const t = c.tags[i];
+    const box = $('pxTagIn');
+    if (box && box.value.trim()) addTagFromBox();
+    saveTags(c.tags.filter((_, j) => j !== i));
+    requestAnimationFrame(() => { const b = $('pxTagIn'); if (b) { b.value = t; b.select(); } });
+  }
+});
+$('pxChips').addEventListener('change', (e) => {
+  const sel = e.target.closest('[data-px-status]');
+  if (sel && person?.contact && sel.value !== person.contact.status) saveStatus(sel.value);
+});
+$('pxChips').addEventListener('keydown', (e) => {
+  if (e.target.id !== 'pxTagIn') return;
+  if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTagFromBox(); return; }
+  if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); pxTagEdit = false; paintHeaderChips(); }
+});
+/** The status from the header's list, saved as the whole record as the edit form sends it. */
+async function saveStatus(status) {
+  const c = person?.contact;
+  if (!c) return;
+  try {
+    await api('/api/staff/contacts', {
+      method: 'PATCH',
+      body: JSON.stringify({ id: c.id, name: c.name, phone: c.phone || '', email: c.email || '', source: c.source || '', notes: c.notes || '', status }),
+    });
+    toast(`Status changed to ${STATUS_LABEL[status]}.`);
+    await reloadPerson();
+  } catch (err) { fail(err); }
+}
+/** Only the Activity again, after a change that leaves the rest as it is. */
+async function refreshActivity() {
+  const id = person?.contact?.id;
+  if (!id) return;
+  try {
+    const fresh = await api(`/api/staff/contacts?id=${encodeURIComponent(id)}`);
+    if (person?.contact?.id !== id) return;
+    person.activity = fresh.activity;
+    person.people = fresh.people;
+    renderTimeline();
+  } catch { /* the next open shows it */ }
 }
 
 /** The salon holds a card for this client: set by the team on the profile. */
@@ -8059,7 +8368,7 @@ function renderPerson() {
   // Name and phone at the top (asked for 2026-10-22); the stylist is the
   // headshot on their circle and a row in Contact details (2026-10-31).
   $('pxSub').innerHTML = c.phone ? `${ic('phone')}<a href="tel:${esc(c.phone)}">${esc(showPhone(c.phone))}</a>` : '';
-  $('pxChips').innerHTML = personChips(c);
+  $('pxChips').innerHTML = headerChips(c);
 
   const dash = '<span class="muted">–</span>';
   const upcoming = appts.filter((a) => a.status === 'booked' && new Date(a.startsAt) > Date.now())
@@ -8095,13 +8404,6 @@ function renderPerson() {
           : '<span class="muted">When they book</span>'}</dd>
       </dl>`;
 
-  const tags = pxEditing === 'status'
-    ? `<form class="px-form" id="pxStatusForm">
-        <label><span>Status</span><select name="status">${Object.entries(STATUS_LABEL).map(([k, v]) =>
-          `<option value="${k}" ${k === c.status ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
-        ${formActs}</form>`
-    : `<div class="chips">${personChips(c)}</div>`;
-
   // Two separate switches: people often want one and not the other.
   const prefs = c.prefs;
   const sw = (key, label, sub) => `<div class="px-pref">
@@ -8109,11 +8411,10 @@ function renderPerson() {
       <button type="button" class="switch" role="switch" data-pref="${key}" aria-labelledby="pxPref-${key}"
         aria-checked="${prefs ? prefs[key] !== false : true}" ${prefs ? '' : 'disabled'}><span></span></button></div>`;
 
+  // The appointments first, then Contact details (asked for 2026-11-03).
+  // Tags and status have no card of their own any more: they are in the
+  // header, edited there (headerChips).
   $('pxLeft').innerHTML = `
-    <section class="px-sec">
-      <h3>Contact details${pxEditing === 'contact' ? '' : pen('contact', 'Edit contact details')}</h3>
-      ${details}
-    </section>
     <section class="px-sec">
       <h3>Appt. Book</h3>
       <div class="px-stats">
@@ -8126,8 +8427,8 @@ function renderPerson() {
         : `<p class="px-none">${ic('calendar')}No appointments yet.</p>`}
     </section>
     <section class="px-sec">
-      <h3>Tags and status${pxEditing === 'status' ? '' : pen('status', 'Change status')}</h3>
-      ${tags}
+      <h3>Contact details${pxEditing === 'contact' ? '' : pen('contact', 'Edit contact details')}</h3>
+      ${details}
     </section>
     <section class="px-sec">
       <h3>Payments</h3>
@@ -8183,9 +8484,8 @@ function renderTimeline() {
   } else if (!shown.length) {
     const why = {
       sms: "No texts with them yet. Appointment texts, Karen's replies and anything sent from here appear here.",
-      automation: 'Automations are coming soon. Nothing has run for this person.',
+      admin: 'No changes to their details yet. Edits to their name, phone, email, status, tags, notes and preferences appear here, with who made them and when.',
       email: 'No emails have been sent to this person yet. Every one the app sends them appears here.',
-      form: 'This person did not come in through the website form.',
       appointment: 'No appointments yet.',
     }[tlFilter];
     body = `<p class="px-none" style="padding:12px 0">${ic(TL_ICON[tlFilter] || 'info')}${esc(why || 'Nothing here yet.')}</p>`;
@@ -8201,7 +8501,8 @@ function renderTimeline() {
         <span class="dot">${ic(TL_ICON[e.type] || 'info')}</span>
         <div class="what"><b>${esc(e.title)}${emailStatus(e)}</b>
           ${e.detail ? `<span>${esc(e.detail)}</span>` : ''}
-          ${e.ref ? `<span class="ref">Ref ${esc(e.ref)}</span>` : ''}</div>
+          ${e.apptAt ? `<span class="tl-appt">${ic('calendar')}Appointment ${esc(fmtWhen(e.apptAt, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }))} at ${esc(fmtWhen(e.apptAt, { hour: 'numeric', minute: '2-digit' }))}</span>` : ''}
+          ${activityBy(e)}</div>
         <time datetime="${esc(e.at)}"><b>${esc(ago(e.at))}</b>${esc(fmtWhen(e.at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))}</time>
       </li>`).join('')}</ol>`;
   }
@@ -8240,9 +8541,13 @@ function paintCompose() {
   const f = $('pxCompose');
   if (!f || !person) return;
   const m = person.contact.messaging || { text: 'Texting is not available yet.', email: null };
-  if (!pxDraft.ch) pxDraft.ch = m.text && !m.email ? 'email' : 'sms';
+  if (!pxDraft.ch) pxDraft.ch = 'sms';
   const ch = pxDraft.ch;
   for (const b of f.querySelectorAll('[data-ch]')) b.setAttribute('aria-pressed', String(b.dataset.ch === ch));
+  // Text is red and Email blue, on the switch, the box's edge and Send, so
+  // which one is about to go is plain before it is sent (2026-11-03).
+  f.dataset.ch = ch;
+  $('pcSend').innerHTML = `${ic('send')}Send ${ch === 'sms' ? 'text' : 'email'}`;
   f.elements.subject.hidden = ch !== 'email';
   f.elements.subject.value = pxDraft.subject;
   f.elements.text.value = pxDraft.text;
@@ -8398,10 +8703,9 @@ async function setCardOnFile(btn) {
   try {
     const r = await api('/api/staff/contacts', { method: 'PATCH', body: JSON.stringify({ id: c.id, op: 'card', cardOnFile: next }) });
     c.cardOnFile = r.cardOnFile;
-    $('pxChips').innerHTML = personChips(c);
-    const chips = $('pxLeft').querySelector('.px-sec .chips');
-    if (chips) chips.innerHTML = personChips(c);
+    paintHeaderChips();
     toast(next ? `${c.name} has a card on file.` : `Card on file removed for ${c.name}.`);
+    refreshActivity();
     if (page === 'clients') loadContacts();
   } catch (err) {
     btn.setAttribute('aria-checked', String(c.cardOnFile));
@@ -8421,6 +8725,7 @@ async function setPref(btn) {
     const r = await api('/api/staff/contacts', { method: 'PATCH', body: JSON.stringify({ id: c.id, op: 'prefs', ...next }) });
     c.prefs = r.prefs;
     toast(`${btn.dataset.pref === 'email' ? 'Emails' : 'Texts'} ${next[btn.dataset.pref] ? 'on' : 'off'} for ${c.name}.`);
+    refreshActivity();
   } catch (err) {
     btn.setAttribute('aria-checked', String(c.prefs[btn.dataset.pref]));
     fail(err);
@@ -10474,15 +10779,16 @@ function paintServices(services = {}) {
             aria-label="${esc(x.name)} duration in minutes" value="${it.duration ?? ''}" ${v.on && ticked ? '' : 'disabled'}></label>
         </div>`;
     }).join('');
-    const body = `<div class="svc-bd" id="svcb-${key}">${timing}
+    const body = `<div class="svc-fold"><div class="svc-bd" id="svcb-${key}"${v.on ? '' : ' inert'}>${timing}
         ${list.length ? `<div class="svc-list">
           <div class="svc-it-h"><span>Service</span><span>Minutes</span></div>${rows}
           <p class="hint">Untick a service this person does not do. Leave Minutes empty to use ${key === 'color' ? 'the color timing above' : 'the Duration above'}, or the salon's usual time.</p>
         </div>` : '<p class="hint">No services of this kind on the menu yet.</p>'}
-      </div>`;
-    return `<div class="svc ${v.on ? '' : 'off'}" data-svc="${key}">
+      </div></div>`;
+    // A kind that is on opens to its services; one that is off is one line.
+    return `<div class="svc ${v.on ? 'open' : 'off'}" data-svc="${key}">
       <button type="button" class="switch" role="switch" aria-checked="${Boolean(v.on)}" aria-label="${esc(label)} offered"><span></span></button>
-      <button type="button" class="svc-exp" aria-expanded="false" aria-controls="svcb-${key}">
+      <button type="button" class="svc-exp" aria-expanded="${Boolean(v.on)}" aria-controls="svcb-${key}">
         <span class="svc-nm"><b>${esc(label)}</b><small>${esc(v.on ? hint : 'Not offered')}</small><small class="svc-count"></small></span>
         <span class="svc-chev" aria-hidden="true">${ic('right')}</span></button>
       <label class="svc-f price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
@@ -10519,10 +10825,18 @@ $('memberSvcs').oninput = (e) => {
 function svcOpen(row, open) {
   row.classList.toggle('open', open);
   row.querySelector('.svc-exp').setAttribute('aria-expanded', String(open));
+  // Folded away, its fields are out of the tab order too.
+  row.querySelector('.svc-bd').inert = !open;
 }
 $('memberSvcs').onclick = (e) => {
   const exp = e.target.closest('.svc-exp');
-  if (exp) { const row = exp.closest('.svc'); svcOpen(row, !row.classList.contains('open')); return; }
+  if (exp) {
+    const row = exp.closest('.svc');
+    // A kind switched off has nothing to show: its services open with the switch.
+    if (row.classList.contains('off')) return;
+    svcOpen(row, !row.classList.contains('open'));
+    return;
+  }
   const sw = e.target.closest('.switch');
   if (!sw || sw.disabled) return;
   const row = sw.closest('.svc');
@@ -10537,8 +10851,9 @@ $('memberSvcs').onclick = (e) => {
   }
   const kind = SERVICE_KINDS.find(([k]) => k === row.dataset.svc);
   row.querySelector('small').textContent = on ? kind[2] : 'Not offered';
-  // Switched on: open it, so what it offers is in view.
-  if (on) svcOpen(row, true);
+  // Switched on: open it, so what it offers is in view. Switched off: fold
+  // it back to its one line. What was typed or ticked inside is kept.
+  svcOpen(row, on);
   svcRefresh(row);
   paintHoursState();
   if (on) inputs[0].focus();
@@ -11444,6 +11759,7 @@ function showSetting(name) {
   if (name === 'salon') { loadBusiness(); loadReplyTo(); }
   if (name === 'team') loadAccount();
   if (name === 'karen') loadKarenSettings();
+  if (name === 'payment') renderFinance();
 }
 $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
@@ -11736,14 +12052,52 @@ function joinAddress({ street, city, state, zip }) {
   return [street, tail].map((x) => String(x || '').trim()).filter(Boolean).join('\n');
 }
 
+let bizEditing = false;   // Salon Profile: the details as fields (pencil) or as a list
 function renderBusiness(d) {
-  const ro = d.canEdit ? '' : 'disabled';
   const a = splitAddress(d.address);
+  const addr = [a.street, a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const site = d.website ? (/^https?:\/\//i.test(d.website) ? d.website : `https://${d.website}`) : '';
+  const none = '<span class="biz-none">Not set</span>';
+  const link = (href, text) => `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(text)}</a>`;
+  // Every detail on the right of the logo, one line each in the shape of a
+  // Google business listing (asked for 2026-11-03): a bold label, then the
+  // value, small. The pencil turns the editable ones into fields in place;
+  // Booking page and Time zone are set by the app and only shown. About was
+  // taken off on request the same day: what is stored is kept, the save
+  // below leaves it out so the server leaves it alone.
+  const row = (label, value) => `<div class="biz-row"><dt>${esc(label)}:</dt><dd>${value}</dd></div>`;
+  const field = (label, html) => `<div class="biz-row edit"><dt><label for="${html.match(/id="([^"]+)"/)[1]}">${esc(label)}:</label></dt><dd>${html}</dd></div>`;
+  const editing = bizEditing && d.canEdit;
+  const details = editing ? `
+      <form id="bizForm" class="biz-dl biz-form" novalidate>
+        ${field('Salon name', `<input id="bizName" name="name" value="${esc(d.name)}" required>`)}
+        ${field('Phone', `<input id="bizPhone" name="phone" type="tel" value="${esc(d.phone || '')}">`)}
+        ${field('Website', `<input id="bizSite" name="website" value="${esc(d.website || '')}" placeholder="synergysalon.com">`)}
+        ${field('Google review link', `<input id="bizReview" name="reviewUrl" value="${esc(d.reviewUrl || '')}" placeholder="https://search.google.com/local/writereview?placeid=...">
+          <small>Where the review request email sends clients. Leave it empty and that email is not sent at all.</small>`)}
+        ${field('Address', `<span class="biz-addr">
+          <input id="bizStreet" name="street" value="${esc(a.street)}" placeholder="Street" aria-label="Street address" autocomplete="street-address">
+          <input name="city" value="${esc(a.city)}" placeholder="City" aria-label="City" autocomplete="address-level2">
+          <input name="state" value="${esc(a.state)}" placeholder="State" aria-label="State" maxlength="20" autocomplete="address-level1">
+          <input name="zip" value="${esc(a.zip)}" placeholder="Zip" aria-label="Zip" maxlength="10" inputmode="numeric" autocomplete="postal-code"></span>`)}
+        ${row('Booking page', link(d.bookingUrl, d.bookingUrl))}
+        ${row('Time zone', esc(d.timezone))}
+        <div class="biz-acts">
+          <button type="button" class="btn quiet sm" id="bizCancel">Cancel</button>
+          <button type="submit" class="btn sm" id="bizSave">Save</button>
+        </div>
+      </form>` : `
+      <dl class="biz-dl">
+        ${row('Salon name', d.name ? esc(d.name) : none)}
+        ${row('Phone', d.phone ? `<a href="tel:${esc(d.phone)}">${esc(showPhone(d.phone))}</a>` : none)}
+        ${row('Website', site ? link(site, d.website) : none)}
+        ${row('Google review link', d.reviewUrl ? link(d.reviewUrl, d.reviewUrl) : none)}
+        ${row('Address', addr ? esc(addr) : none)}
+        ${row('Booking page', link(d.bookingUrl, d.bookingUrl))}
+        ${row('Time zone', esc(d.timezone))}
+      </dl>`;
   $('business').innerHTML = `
-    <form id="bizForm" class="biz">
-      <!-- The logo on the left, the salon's name, phone and website beside
-           it (asked for 2026-11-02), then the rest; every field labelled
-           small and in capitals like Booking page and Time zone below. -->
+    <div class="biz">
       <div class="biz-top">
         <div class="biz-logo">
           <div class="logo-box" title="Shown on your booking page and in the menu at the top. A PNG with a transparent background works best.">
@@ -11755,36 +12109,12 @@ function renderBusiness(d) {
           <span class="biz-hint">PNG, transparent background</span>` : ''}
           <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp" class="hidden">
         </div>
-        <div class="biz-grid biz-id">
-          <label class="c4"><span>Salon name</span><input name="name" value="${esc(d.name)}" ${ro} required></label>
-          <!-- No Salon email field (taken off on request, 2026-10-30). The
-               stored address is kept, not cleared: guest replies still fall
-               back to it when no reply-to is set, and the save below leaves
-               it out so the server leaves it alone. -->
-          <label class="c2"><span>Phone</span><input name="phone" type="tel" value="${esc(d.phone || '')}" ${ro}></label>
-          <label class="c2"><span>Website</span><input name="website" value="${esc(d.website || '')}" ${ro} placeholder="synergysalon.com"></label>
+        <div class="biz-info">
+          ${d.canEdit && !editing ? `<button type="button" class="px-pen biz-pen" id="bizEdit" aria-label="Edit the Salon Profile" title="Edit the Salon Profile">${ic('edit')}</button>` : ''}
+          ${details}
+          ${d.canEdit ? '' : '<p class="small muted" style="margin:8px 0 0">Only an owner or a manager can change these details.</p>'}
         </div>
       </div>
-      <div class="biz-grid">
-        <label class="c4"><span>Google review link</span><input name="reviewUrl" value="${esc(d.reviewUrl || '')}" ${ro}
-          placeholder="https://search.google.com/local/writereview?placeid=...">
-          <span class="small muted">Where the review request email sends clients. Leave it empty and that email is not sent at all.</span></label>
-        <label class="c2"><span>Street address</span><input name="street" value="${esc(a.street)}" ${ro} autocomplete="street-address"></label>
-        <label><span>City</span><input name="city" value="${esc(a.city)}" ${ro} autocomplete="address-level2"></label>
-        <div class="biz-pair">
-          <label><span>State</span><input name="state" value="${esc(a.state)}" ${ro} maxlength="20" autocomplete="address-level1"></label>
-          <label><span>Zip</span><input name="zip" value="${esc(a.zip)}" ${ro} maxlength="10" inputmode="numeric" autocomplete="postal-code"></label>
-        </div>
-        <label class="c4"><span>About</span><textarea name="about" rows="2" ${ro}
-          placeholder="A sentence clients see when they book">${esc(d.about || '')}</textarea></label>
-      </div>
-      ${d.canEdit ? '<button class="btn" type="submit">Save Salon Profile</button>'
-        : '<p class="small muted">Only an owner or a manager can change these details.</p>'}
-    </form>
-
-    <div class="readonly">
-      <div><span>Booking page</span><a href="${esc(d.bookingUrl)}" target="_blank" rel="noopener">${esc(d.bookingUrl)}</a></div>
-      <div><span>Time zone</span>${esc(d.timezone)}</div>
     </div>`;
 
   if (!d.canEdit) return;
@@ -11795,20 +12125,29 @@ function renderBusiness(d) {
     try { await saveBusiness({ logo: await shrink(file, 512, 'image/png') }); } catch (err) { fail(err); }
   };
   if ($('dropLogo')) $('dropLogo').onclick = () => saveBusiness({ logo: null }).catch(fail);
-
-  $('bizForm').onsubmit = (e) => {
+  if (!editing) {
+    $('bizEdit').onclick = () => { bizEditing = true; renderBusiness(d); $('bizName').focus(); };
+    return;
+  }
+  $('bizCancel').onclick = () => { bizEditing = false; renderBusiness(d); $('bizEdit')?.focus(); };
+  $('bizForm').onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); $('bizCancel').click(); } };
+  $('bizForm').onsubmit = async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
-    saveBusiness({
-      name: f.get('name'), phone: f.get('phone'),
-      website: f.get('website'), about: f.get('about'),
-      reviewUrl: f.get('reviewUrl'),
-      address: joinAddress({ street: f.get('street'), city: f.get('city'), state: f.get('state'), zip: f.get('zip') }),
-    }).catch(fail);
+    if (!String(f.get('name') || '').trim()) { toast('The salon needs a name.'); $('bizName').focus(); return; }
+    $('bizSave').disabled = true;
+    try {
+      await saveBusiness({
+        name: f.get('name'), phone: f.get('phone'),
+        website: f.get('website'),
+        reviewUrl: f.get('reviewUrl'),
+        address: joinAddress({ street: f.get('street'), city: f.get('city'), state: f.get('state'), zip: f.get('zip') }),
+      }, { done: true });
+    } catch (err) { fail(err); if ($('bizSave')) $('bizSave').disabled = false; }
   };
 }
 
-async function saveBusiness(patch) {
+async function saveBusiness(patch, { done = false } = {}) {
   const d = await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify(patch) });
   toast('Saved.');
   // The menu's logo and the chip's salon name come from `me`; update it from
@@ -11818,11 +12157,14 @@ async function saveBusiness(patch) {
   // Replies fall back to the salon email until one is set, and that card now
   // sits on the same page, so it must not keep quoting the old address.
   loadReplyTo();
+  // A logo saved while the details are open keeps them open, as typed.
+  if (done) bizEditing = false;
+  if (bizEditing) return;
   await loadBusiness();
-  markSaved(document.querySelector('#bizForm button[type="submit"]'));
 }
 
 async function loadBusiness() {
+  if (bizEditing) return;   // never throw away what is being typed
   $('business').innerHTML = skeleton(4);
   try { renderBusiness(await api('/api/staff/business')); } catch (err) {
     if (err.message !== 'signed out') {
