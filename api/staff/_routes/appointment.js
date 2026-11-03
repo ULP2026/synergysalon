@@ -347,8 +347,8 @@ export async function moveAppointment(tenant, user, ref, { start, stylist, notif
 
   if (moved) {
     // The client hears about it only when the person moving it chose
-    // "Send a Client Rescheduled Appointment Notification" (asked for 2026-11-02);
-    // "Just Move Appointment" changes the schedule quietly. The stylist's
+    // "Send the Client a Notification" (asked for 2026-11-02);
+    // "Just Move the Appointment" changes the schedule quietly. The stylist's
     // Google copy follows either way: that is their diary, not a message.
     if (notify) {
       try {

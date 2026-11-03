@@ -47,9 +47,13 @@ test('the Appt. Book and a client\'s history open the same ticket', () => {
 
 test('check-in, no-show and cancel stay on the ticket', () => {
   const paint = body('paintTicket');
-  for (const act of ['check_in', 'no_show', 'cancel', 'complete', 'reopen']) {
-    assert.match(paint, new RegExp(`b\\('${act}'`), act);
-  }
+  // Check in, Done and Reopen are the main button top left (cta, since
+  // 2026-11-03); No Show and Cancel the small ones over the details.
+  for (const act of ['check_in', 'complete', 'reopen']) assert.match(paint, new RegExp(`cta\\('${act}'`), act);
+  for (const act of ['no_show', 'cancel', 'move']) assert.match(paint, new RegExp(`b\\('${act}'`), act);
+  assert.match(paint, /data-ad="delete">Delete Ticket</);
+  assert.match(paint, /data-ad="client"/, 'the name opens the client');
+  assert.doesNotMatch(paint, /Open client/);
 });
 
 test('a client wears their stylist, not where the record came from', () => {

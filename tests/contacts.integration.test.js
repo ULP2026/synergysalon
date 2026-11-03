@@ -176,7 +176,9 @@ test('a contact\'s detail shows what really happened, newest first, and nothing 
     assert.deepEqual(d.appointments.map((a) => a.ref), ['ZZDELE', 'ZZDELD']);
 
     const titles = d.activity.map((e) => e.title);
-    assert.ok(titles.includes('Filled in the website booking form'));
+    // A website client reads "Client Created" too, by the client (website).
+    assert.ok(!titles.includes('Filled in the website booking form'));
+    assert.equal(d.activity.find((e) => e.title === 'Client Created').by.kind, 'client');
     assert.ok(titles.includes('Appointment Reminder'), 'the reminder, titled with its automation');
     assert.ok(titles.includes('Marked as done'));
     assert.ok(titles.includes('Synced to the CRM'));

@@ -103,7 +103,7 @@ test('a client\'s emails are on their Activity once each, with subject, time and
     // sent beside the visit, and the automation as who sent it.
     assert.equal(by.confirmation.title, 'Appointment Booking');
     assert.match(by.confirmation.subject, /^You are booked in: /, 'the subject as sent');
-    assert.match(by.confirmation.detail, /^You are booked in: .* · ZZ Cut with ZZ Dina$/);
+    assert.equal(by.confirmation.detail, 'ZZ Cut with ZZ Dina', 'the visit, without the subject line');
     assert.deepEqual(by.confirmation.by, { kind: 'automation', name: 'Appointment Booking' });
     assert.equal(by.reminder.title, 'Appointment Reminder');
     assert.equal(by.cancellation.title, 'Cancellation Notice');

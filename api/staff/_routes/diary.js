@@ -69,7 +69,10 @@ export default handler({
     const { rows } = await query(
       `SELECT a.ref, a.starts_at, a.duration_min, a.buffer_min, a.status, to_jsonb(a) -> 'breaks' AS breaks, a.channel, a.checked_in_at,
               to_jsonb(a) ->> 'booked_via' AS via,
-              a.guest_name, a.guest_email, a.guest_phone, a.notes,
+              a.guest_name, a.guest_email, a.notes,
+              -- The card shows a phone (2026-11-03): the booking's own, else the
+              -- client's, since a desk booking by email alone left it empty.
+              COALESCE(NULLIF(a.guest_phone, ''), ct.phone, '') AS guest_phone,
               a.price_cents, a.created_at,
               -- The guest's next visit after this one, for the day card.
               (SELECT min(n.starts_at) FROM appointments n

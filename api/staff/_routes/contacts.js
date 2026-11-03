@@ -388,8 +388,10 @@ export async function contactDetail(tenantId, id, db = null) {
       : firstBooking && firstBooking.channel === 'staff' ? (firstBooking.via === 'karen'
         ? { kind: 'karen', name: 'Karen' } : staff(firstBooking.booked_by_id, firstBooking.booked_by))
         : null;
-  add(c.session_id ? 'form' : 'lead', c.created_at,
-      c.session_id ? 'Filled in the website booking form' : 'Client Created',
+  // "Client Created" whichever way they came (2026-11-03: the website
+  // form's own "Filled in the website booking form" line was taken off;
+  // the client (website) picture beside it says where they came from).
+  add('lead', c.created_at, 'Client Created',
       c.source ? `Source: ${c.source}` : '', null, creator ? { by: creator } : {});
 
   for (const a of appts) {
@@ -412,7 +414,7 @@ export async function contactDetail(tenantId, id, db = null) {
     if (a.status === 'completed') add('appointment', a.updated_at, 'Marked as done', what, a.ref, { by: { kind: 'team', name: 'The team' }, ...visit });
     if (a.status === 'no_show') add('appointment', a.updated_at, 'Didn’t show up', what, a.ref, { by: { kind: 'team', name: 'The team' }, ...visit });
     if (!logged.has(String(a.id))) {
-      add('email', a.reminder_sent_at, AUTOMATION_NAME.reminder, `Reminder email · ${what}`, a.ref, { by: automation('reminder'), kind: 'reminder', ...visit });
+      add('email', a.reminder_sent_at, AUTOMATION_NAME.reminder, what, a.ref, { by: automation('reminder'), kind: 'reminder', ...visit });
     }
   }
   const visitOf = new Map(appts.map((a) => [String(a.id), a]));
@@ -427,8 +429,11 @@ export async function contactDetail(tenantId, id, db = null) {
       try { from = JSON.parse(m.body || '{}').fromName || null; } catch { /* an older row */ }
       by = { kind: 'staff', name: from ? String(from).split(',')[0].trim() : 'The team' };
     } else by = automation(m.kind);
+    // An automation's email reads as the automation and the visit, without
+    // the email's own subject line under it (2026-11-03); the subject is
+    // still in the email the line opens.
     add('email', m.sent_at, m.kind === 'direct' ? subject : AUTOMATION_NAME[m.kind] || subject,
-      [m.kind === 'direct' ? '' : subject, a ? `${a.service} with ${a.stylist}` : m.to_email].filter(Boolean).join(' · '), null, {
+      a ? `${a.service} with ${a.stylist}` : m.to_email, null, {
         sentId: m.id,
         kind: m.kind,
         subject: m.subject || null,
