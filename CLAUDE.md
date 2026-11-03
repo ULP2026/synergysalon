@@ -1412,14 +1412,44 @@ made that way are real: name them ZZ and remove them.
   the endpoints that pass `{ onboarding: true }`: `/me`, `/profile` and
   `/calendars` (and the Google sign-in, which uses `currentUser`). The
   console's `api()` turns that 403 into the setup screen (`#onboard`,
-  `showOnboarding`, `obPaint`): Step 1 their picture, name and mobile
-  (required for a stylist, as everywhere: Karen knows them by it), Step 2
+  `showOnboarding`, `obPaint`), led by Karen (2026-11-03: her waving clip
+  and a speech bubble, `obSays`, introducing herself and saying what each
+  step is for): Step 1 who they are and what they do: picture, name, mobile
+  (required for a stylist, as everywhere: Karen knows them by it), their
+  role (shown) and their title (`staff_users.job_title`, migration 043,
+  also in ensure-schema, copied to their chair's `title` for the website;
+  required for a stylist), Step 2
   for a stylist their services, prices and minutes (at least one on),
   then Connect your calendar or Skip for now and finish. Each step saves
   through `PATCH /api/staff/profile`; the last sends
   `{finishOnboarding: true}`, accepted only once a name and a stylist's
-  mobile are stored. Their hours are not asked: the owner sets those. The
+  mobile are stored. Their hours are not asked there: they set them in My
+  Settings once in. On finish the app reloads and Karen flies from the
+  middle of the screen into her Call Karen button (`karenFlyHome`, through
+  `sessionStorage` `ss-karen-home`; a toast alone for reduced motion). The
+  setup link is emailed and, since 2026-11-03, texted from Karen's number
+  to the mobile the owner typed (`textInvite` in sms-notify.js, on add and
+  on Resend; skipped without Twilio or a number, never failing the add;
+  `invite.texted`), so they can finish on their phone. The
   Team list marks them Invited (link not used yet), then Setting up.
+  **Salon Settings are the owner's** (2026-11-03). Anyone else, Dina
+  included unless she holds the Owner or Admin role, has Settings, My
+  Settings only: the tab bar is hidden, `showSetting` sends any other tab
+  (typed, bookmarked or linked) to My Settings, and `go()` does the same
+  for the Automations, Email History, Team (`/account`) and calendars
+  addresses. The server agrees: `GET /api/staff/team` is 403 for them,
+  `/api/staff/business` (the salon profile and its save) needs `seesAll`
+  except one sent email of their own client, Karen's settings (`GET
+  /api/staff/karen`) are `requireTeamAdmin`, and booking calendars are
+  managed by Owner or Admin only. Clients' "Choose your stylist" is shown
+  to the owner only. **My Settings holds your own services, pricing and
+  hours** (`#myWorkCard`): the Team window's `#memberWork` block is moved
+  into it (`workTo('self')`, back with `workTo('dialog')` when the owner
+  opens somebody else) and saved by `PATCH /api/staff/profile`, which now
+  keeps the hours you send (`readHours`): everyone sets their own
+  available hours, and the owner still sees and changes everyone's in
+  Team, so a wrong one is visible. Hours belong to a chair, so they are
+  kept only once a service is on.
   **Who sees what.** Only the owner (`canManageTeam`: role Owner or Admin,
   or the support login) sees everyone's calendar, appointments and clients.
   Everybody else, stylists included, sees only their own chair (the
@@ -1670,8 +1700,10 @@ must stay that way: anything committed here is served publicly.
 
 ## Still outstanding
 
-- **Stylists are to set their own availability (salon's decision, 2026-10-15).**
-  Today they cannot: `hoursOpen()` in the console opens Working hours only to
+- ~~**Stylists are to set their own availability (salon's decision, 2026-10-15).**~~
+  Done 2026-11-03, in My Settings (see Onboarding and who sees what), in
+  the shape below: they edit their own, the owner sees and changes
+  everyone's. Kept for the reasoning. Until then they could not: `hoursOpen()` in the console opens Working hours only to
   an admin editing somebody else, and `/api/staff/profile` throws away any
   hours sent from your own window (`const hours = null`). Both say in their
   comments that this is what the salon asked for, and both now say the

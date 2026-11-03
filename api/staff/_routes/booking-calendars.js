@@ -19,7 +19,9 @@ import {
 import { tenantForUser } from '../../_lib/tenant.js';
 
 /** Creating and deleting a way to be booked is not a front-desk job. */
-const CAN_MANAGE = ['owner', 'admin', 'manager'];
+// The salon's calendars are Salon Settings: the owner's (Owner or Admin
+// role) since 2026-11-03; managers made them before.
+const CAN_MANAGE = ['owner', 'admin'];
 
 /**
  * The kinds, and what each one actually does differently.

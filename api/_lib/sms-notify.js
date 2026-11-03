@@ -168,3 +168,32 @@ export async function revokeConsent(db, tenantId, phone10) {
   );
   return rowCount;
 }
+
+/**
+ * The onboarding link, texted to somebody just added to the team (asked for
+ * 2026-11-03), so they can set up their account on their phone. From Karen's
+ * number, who leads the setup. A team member is not a client, so the
+ * client-consent rules above do not apply: the owner who adds them enters
+ * the number for exactly this. Never throws: the email and the link on the
+ * owner's screen still work when texting does not. `send` is for tests.
+ */
+export async function textInvite({ tenant, phone, name, link, expiresDays }, { send = sendText, db = { query } } = {}) {
+  const digits = String(phone || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+  if (digits.length !== 10) return { skipped: 'no mobile' };
+  if (send === sendText && (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN)) return { skipped: 'texting not connected' };
+  try {
+    const { rows } = await db.query(
+      "SELECT name, to_jsonb(t) ->> 'karen_phone' AS karen_phone FROM tenants t WHERE id = $1::uuid", [tenant.id],
+    );
+    const r = rows[0] || {};
+    if (!r.karen_phone) return { skipped: 'no number' };
+    const first = String(name || '').trim().split(/\s+/)[0];
+    const body = `Hi${first ? ` ${first}` : ''}! This is Karen from ${r.name || tenant.name}. Welcome to the team! `
+      + `Tap to set up your account, it takes a minute: ${link} (works for ${expiresDays} days)`;
+    await send({ to: `+1${digits}`, from: r.karen_phone, body });
+    return { texted: true };
+  } catch (err) {
+    console.error('invite text failed', err.message);
+    return { skipped: 'failed' };
+  }
+}

@@ -220,6 +220,8 @@ export default handler({
               to_jsonb(u) ->> 'pricing' AS pricing,
               to_jsonb(u) -> 'services' AS services,
               to_jsonb(u) -> 'avatar_style' AS avatar_style,
+              COALESCE(to_jsonb(u) ->> 'job_title',
+                       (SELECT s.title FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1)) AS job_title,
               (SELECT to_jsonb(s) ->> 'photo' FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS photo,
               (SELECT s.slug FROM stylists s WHERE s.staff_user_id = u.id LIMIT 1) AS stylist_slug,
               (SELECT t.slug FROM tenants t WHERE t.id = u.tenant_id) AS tenant_slug,
@@ -248,6 +250,7 @@ export default handler({
       pricing: me.pricing || '',
       services: me.services || {},
       avatarStyle: me.avatar_style || null,
+      title: me.job_title || '',
       photo: me.photo || (me.stylist_slug ? stylistPhoto(me.tenant_slug, me.stylist_slug) : null),
       hours,
       // Whether they run the team (canManageTeam, the one admin rule). It no
@@ -272,6 +275,9 @@ export default handler({
     const add = (sql, value) => { params.push(value); sets.push(`${sql} = $${params.length}`); };
 
     if (body.name !== undefined) add('name', requireString(body.name, 'Name', { max: 120 }));
+    // Their job title (043), asked at onboarding; on their chair too, below.
+    const title = body.title === undefined ? undefined : String(body.title || '').trim().slice(0, 80);
+    if (title !== undefined && await hasColumn('staff_users', 'job_title')) add('job_title', title || null);
     if (body.phone !== undefined) {
       const phone = phoneFrom(body.phone);
       assertStylistPhone(user.role, phone);
@@ -304,16 +310,9 @@ export default handler({
     // Everybody sets their own prices: they are the one quoting them. The
     // owner too, who can be a stylist as well as run the place; with every
     // service off they are simply not on the booking page (syncStylist).
+    // Their lunch break goes with their hours, which they set themselves
+    // now (My Settings), so it is saved as sent.
     const services = servicesFrom(body.services);
-    if (services !== undefined && !canManageTeam(user)) {
-      // The lunch belongs with the working hours, which are the admin's to
-      // set: a stylist saving their own prices keeps the lunch they have.
-      const { rows: was } = await query(
-        "SELECT (to_jsonb(u) -> 'services' ->> 'lunch') AS lunch FROM staff_users u WHERE id = $1",
-        [user.id],
-      );
-      services.lunch = was[0]?.lunch !== 'false';
-    }
     if (services !== undefined) add('services', JSON.stringify(services));
     if (body.pricing !== undefined && CAN_PRICE.includes(user.role)) {
       add('pricing', String(body.pricing || '').trim().slice(0, 120));
@@ -334,10 +333,14 @@ export default handler({
       add('password_hash', await hashPassword(next));
     }
 
-    // Working hours are the admin's to set, from the team (team.js) for
-    // everybody else and here for their own. A stylist's own hours sent here
-    // are ignored, so the stored rota stands.
-    const hours = canManageTeam(user) ? readHours(body.hours) : null;
+    // Everyone sets their own available hours, in My Settings (the salon's
+    // decision of 2026-10-15, made on 2026-11-03 when hours and pricing moved
+    // there). Until then only the admin could, after guests booked 9 AM with
+    // stylists who did not start until later (config.js). What keeps that
+    // from coming back: the owner still sees and can change everyone's
+    // hours in the Team window, and Appt. Book shows each person's hours,
+    // so a wrong rota is visible rather than silently sold.
+    const hours = readHours(body.hours);
     // The last step of onboarding (2026-11-03): the account is complete, so
     // the app opens. Checked against what is stored once this save is in, so
     // a stylist cannot finish without the mobile Karen knows them by.
@@ -347,16 +350,17 @@ export default handler({
     const returning = `RETURNING id, name, email, phone, role, avatar,
                   to_jsonb(staff_users) ->> 'username' AS username,
                   to_jsonb(staff_users) ->> 'pricing' AS pricing,
-                  to_jsonb(staff_users) -> 'services' AS services`;
+                  to_jsonb(staff_users) -> 'services' AS services,
+                  to_jsonb(staff_users) ->> 'job_title' AS job_title`;
     const { rows } = sets.length
       ? await query(`UPDATE staff_users SET ${sets.join(', ')} WHERE id = $1 ${returning}`, params)
       : await query(`UPDATE staff_users SET name = name WHERE id = $1 ${returning}`, [user.id]);
     // The same as team.js does for somebody else: your services and hours are
     // what make you bookable, so the diary follows the row as saved. Before
     // this, your own window sent hours here and they were thrown away.
-    if (body.services !== undefined || hours || body.name !== undefined || body.username !== undefined) {
+    if (body.services !== undefined || hours || body.name !== undefined || body.username !== undefined || title !== undefined) {
       await transaction((client) => syncStylist(client, user.tenant_id, rows[0], {
-        services: rows[0].services, hours,
+        services: rows[0].services, hours, title: rows[0].job_title ?? undefined,
       }));
     }
     if (finishing) {

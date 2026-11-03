@@ -25,6 +25,7 @@ import {
   hoursFor, listStandalone, readHours, syncStandalone, syncStylist,
 } from '../../_lib/roster.js';
 import { sendInvite } from '../../_lib/email.js';
+import { textInvite } from '../../_lib/sms-notify.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
 } from '../../_lib/http.js';
@@ -73,6 +74,9 @@ export default handler({
     await ensureSchema();
     const user = await requireStaff(req);
     const admin = canManageTeam(user);
+    // The Team is Salon Settings: the owner's only (2026-11-03). Everyone
+    // else keeps their own account in My Settings (/api/staff/profile).
+    if (!admin) throw new HttpError(403, 'Only the salon owner can see the team.');
     const tenant = await tenantForUser(user);
 
     const { rows } = await query(
@@ -252,8 +256,11 @@ export default handler({
       } catch (err) {
         console.error('invite email failed for', email, err);
       }
+      // And texted to their mobile (2026-11-03), so they can set up on
+      // their phone, with Karen leading them through it.
+      const texted = (await textInvite({ tenant, phone: phoneFrom(body.phone), name, link, expiresDays: INVITE_DAYS })).texted === true;
 
-      return json(res, 201, { ok: true, member: rows[0], invite: { link, emailed, expiresDays: INVITE_DAYS } });
+      return json(res, 201, { ok: true, member: rows[0], invite: { link, emailed, texted, expiresDays: INVITE_DAYS } });
     }
 
     const id = requireString(body.id, 'Member', { max: 64 });
@@ -301,7 +308,7 @@ export default handler({
         // who already has a password would be a way to take their account
         // over, which is what the password reset they do themselves is for.
         const { rows: who } = await query(
-          'SELECT id, name, email, invite_hash FROM staff_users WHERE id = $1 AND tenant_id = $2',
+          'SELECT id, name, email, phone, invite_hash FROM staff_users WHERE id = $1 AND tenant_id = $2',
           [id, tenant.id],
         );
         if (!who[0]) throw new HttpError(404, 'That person is not on this team.');
@@ -315,7 +322,8 @@ export default handler({
             { name: who[0].name, email: who[0].email, link, expiresDays: INVITE_DAYS }, tenant);
           emailed = !r?.skipped;
         } catch (err) { console.error('invite email failed for', who[0].email, err); }
-        return json(res, 200, { ok: true, invite: { link, emailed, expiresDays: INVITE_DAYS } });
+        const texted = (await textInvite({ tenant, phone: who[0].phone, name: who[0].name, link, expiresDays: INVITE_DAYS })).texted === true;
+        return json(res, 200, { ok: true, invite: { link, emailed, texted, expiresDays: INVITE_DAYS } });
       }
 
       case 'approve': {
