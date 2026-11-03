@@ -1426,6 +1426,14 @@ made that way are real: name them ZZ and remove them.
   her too. The picture is **Upload a photo** (with the crop) or **Choose an
   avatar**, the Team window's own `#picDlg` through `openPicFor(take, ...)`
   (`picFor` set, so the choice goes to the setup and not to `memberPic`).
+  Step 2 is the Team window's own services control (asked for
+  2026-11-03): `#memberSvcs` moved into the form (`#obSvcSlot`) and back
+  home before the form is redrawn (`obSvcsHome`), painted and read by
+  `paintServices`/`readServices`, so a kind switched on opens to its
+  services and one switched off folds to a line, exactly as in Team and My
+  Settings; Back keeps what was typed (and saving Step 1 again does not
+  replace it with the stored copy). On a phone a kind switched off is one
+  line everywhere (`.svc.off > .svc-f`).
   Step 1 who they are and what they do: picture, name, mobile
   (required for a stylist, as everywhere: Karen knows them by it), their
   role (shown) and their title (`staff_users.job_title`, migration 043,
