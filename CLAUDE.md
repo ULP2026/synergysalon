@@ -1584,7 +1584,11 @@ made that way are real: name them ZZ and remove them.
   server still takes one, nothing asks), no avatars (the photo window
   opens straight on the file chooser with `uploadOnly`; the face has a
   camera badge, and "Your photo" is ticked only for an uploaded one,
-  `obHasPhoto`). **Prices are per service**: each kind's services list has
+  `obHasPhoto`). About you also shows their **email** above the mobile
+  number (2026-11-04), prefilled from the invitation and editable: it is
+  their sign-in, so only a whole address that changed is saved
+  (`OB_EMAIL`, `PATCH /profile {email}`, which refuses one another team
+  member already uses). **Prices are per service**: each kind's services list has
   Price beside Minutes (`data-it="price"`), saved as
   `services.items[slug].price`, which `ownPrice` already read first; the
   kind row has no price box and saves `price: null` (a kind with no
