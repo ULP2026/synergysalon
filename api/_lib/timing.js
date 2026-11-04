@@ -135,6 +135,10 @@ const cents = (v) => {
  * leaves the price empty.
  */
 export function ownPrice(details, service) {
+  // A price typed for this one service beats its kind's. Only a stylist's
+  // own services (045) have one today; the salon's list is priced by kind.
+  const item = cents(details?.items?.[service.slug]?.price);
+  if (item != null) return item;
   const key = timingKey(service);
   if (key === 'highlights') return cents(details?.color?.highlights?.price);
   if (key === 'color' && WITH_CUT.test(service.name)) {

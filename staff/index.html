@@ -354,6 +354,41 @@
   .ob-acts { display: flex; gap: 8px; justify-content: space-between; margin-top: 18px; }
   .ob-acts .btn { flex: 1; justify-content: center; }
   .ob-hint { font-size: var(--fs-xs); color: var(--muted); margin: 8px 0 0; }
+  /* 2026-11-04: what saving is doing, Save & continue later, a field's own
+     message, the steps in Karen's panel as links back, and the review. */
+  .ob-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .ob-saved { font-size: var(--fs-xs); color: var(--muted); min-height: 1.2em; }
+  .ob-saved[data-kind="ok"]::before { content: "\2713  "; color: #2bb673; font-weight: 700; }
+  .ob-saved[data-kind="bad"] { color: var(--warn); }
+  .ob-later { padding: 4px 2px; border: 0; background: none; color: var(--link); font: inherit; font-size: var(--fs-sm);
+              font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .ob-later:disabled { opacity: .5; cursor: default; }
+  .ob-err { margin: -8px 0 12px; font-size: var(--fs-xs); font-weight: 500; color: var(--warn); }
+  #obForm [aria-invalid="true"] { border-color: var(--warn); box-shadow: 0 0 0 1px var(--warn); }
+  .ob-role-note { display: block; margin-top: 4px; font-size: var(--fs-xs); color: var(--muted); }
+  .ob-path li button { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left;
+                       text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; cursor: pointer; }
+  .ob-path li button:hover { color: var(--ink); text-decoration-color: currentColor; }
+  .btn.busy::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor;
+                      border-right-color: transparent; animation: obSpin .7s linear infinite; }
+  @keyframes obSpin { to { transform: rotate(360deg); } }
+  .ob-rv { padding: 14px 0; border-top: 1px solid var(--line); }
+  .ob-rv:first-child { border-top: 0; padding-top: 0; }
+  .ob-rv-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .ob-rv-h h2 { font-size: var(--fs-md); color: var(--indigo-deep); }
+  .ob-rv-me { display: flex; gap: 14px; align-items: flex-start; }
+  .ob-rv-me img { flex: none; width: 56px; height: 56px; border-radius: 50%; object-fit: cover; background: var(--peri-pale); }
+  .ob-rv dl { flex: 1; min-width: 0; margin: 0; display: grid; gap: 4px; }
+  .ob-rv-r { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; font-size: var(--fs-sm); }
+  .ob-rv-r dt { color: var(--muted); }
+  .ob-rv-r dd { margin: 0; overflow-wrap: anywhere; }
+  .ob-rv-l { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .ob-rv-l li { display: grid; grid-template-columns: minmax(96px, 34%) minmax(0, 1fr); gap: 10px; font-size: var(--fs-sm); }
+  .ob-rv-l b { font-weight: 600; }
+  .ob-rv-l span { color: var(--muted); }
+  .ob-rv-none { color: var(--muted); font-size: var(--fs-sm); }
+  .ob-rv-r.miss dd, .ob-rv-none.miss { color: var(--warn); font-weight: 600; }
+  @media (prefers-reduced-motion: reduce) { .btn.busy::before { animation-duration: 2s; } }
   .pw { position: relative; }
   .pw input { padding-right: 48px; }
   .pw .iconbtn { position: absolute; right: 3px; top: 3px; }
@@ -2544,6 +2579,46 @@
   .svc.off { background: var(--raise); }
   .svc.off b { color: var(--muted); }
   .svc.off .svc-f input { opacity: .5; }
+  /* A greyed box lets the tap through to its kind, which switches on (2026-11-04). */
+  .svc.off > .svc-f input:disabled { pointer-events: none; }
+  .svc.off > .svc-f { cursor: pointer; }
+  /* A stylist's own services (2026-11-04): under the four kinds. */
+  .svc-own { display: grid; gap: 6px; padding: 10px; border-radius: 10px; border: 1px dashed var(--line-2); }
+  .svc-own .own-h b { display: block; font-size: .88rem; font-weight: 600; }
+  .svc-own .own-h small { display: block; font-size: .75rem; color: var(--muted); }
+  .own-r { display: grid; grid-template-columns: 44px minmax(0, 1fr) 112px 104px auto; align-items: center; gap: 12px;
+           padding: 6px 0; border-top: 1px solid var(--line); }
+  .own-r .own-nm b { display: block; font-size: .88rem; font-weight: 600; overflow-wrap: anywhere; }
+  .own-r .own-nm small { display: block; font-size: .75rem; color: var(--muted); }
+  .own-r.off .own-nm b { color: var(--muted); }
+  .own-r .svc-f, .own-form .svc-f { position: relative; display: block; margin: 0; }
+  .own-r .svc-f > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .own-r .svc-f input { height: 36px; }
+  .own-r .price::before, .own-form .price::before { content: "$"; position: absolute; left: 10px; bottom: 9px; color: var(--muted); font-size: .9rem; }
+  .own-r .dur::after, .own-form .dur::after { content: "min"; position: absolute; right: 10px; bottom: 9px; color: var(--muted); font-size: .8rem; pointer-events: none; }
+  .own-r .price input, .own-form .price input { padding-left: 22px; }
+  .own-r .dur input, .own-form .dur input { padding-right: 38px; }
+  .own-r.off .svc-f input { opacity: .5; }
+  .own-acts { display: flex; gap: 2px; }
+  .own-acts .iconbtn { width: 32px; height: 32px; }
+  .own-form { padding: 10px; border-radius: 10px; background: var(--raise); }
+  .own-grid { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 0 12px; }
+  .own-grid label { margin-bottom: 10px; }
+  .own-grid label > span { font-size: .75rem; }
+  .own-grid .own-name, .own-grid .own-desc { grid-column: 1 / -1; }
+  .own-grid .own-name { grid-column: 1; }
+  .own-form-acts { display: flex; justify-content: flex-end; gap: 8px; }
+  .own-err { margin: 0 0 8px; }
+  .svc-own .own-add { justify-self: start; }
+  @media (max-width: 520px) {
+    .own-r { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) auto; row-gap: 6px; }
+    .own-r .own-nm { grid-column: 2 / 4; }
+    .own-r .own-acts { grid-column: 4; grid-row: 1; }
+    .own-r .price { grid-column: 2; }
+    .own-r .dur { grid-column: 3 / 5; }
+    .own-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .own-grid .own-name { grid-column: 1 / -1; }
+  }
   @media (max-width: 520px) {
     .svc { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); row-gap: 8px; --svc-gap: 8px; }
     .svc > div { grid-column: 2 / -1; }
@@ -2923,11 +2998,34 @@
   .hrs .wh-lunch b { flex: none; }
   .hrs .wh-lunch .wh-lunch-d { flex: 1; min-width: 0; color: var(--muted); font-size: var(--fs-sm); }
   #memberHours + .hrs { margin-top: -8px; }
+  /* Up to three time slots a day (2026-11-04): a split shift is two. */
+  #memberHours .hr { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 12px; row-gap: 6px; }
+  #memberHours .hr-shifts { display: grid; gap: 6px; justify-items: end; }
+  #memberHours .hr-sh { display: flex; align-items: center; gap: 8px; }
+  #memberHours .hr-x { width: 30px; height: 30px; }
+  #memberHours .hr-x.sp { display: inline-block; visibility: hidden; }
+  #memberHours .hr-add { grid-column: 3; justify-self: end; display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px;
+                         border: 0; background: none; color: var(--link); font: inherit; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; }
+  #memberHours .hr-add .ic { width: 14px; height: 14px; }
+  #memberHours .hr-err { grid-column: 1 / -1; margin: 0; font-size: var(--fs-xs); font-weight: 500; color: var(--warn); }
+  #memberHours .hr.bad { border-color: var(--warn); }
+  /* A time in a day that is off lets the tap through: the day switches on. */
+  #memberHours .hr.off .hr-shifts input:disabled { pointer-events: none; }
+  #memberHours .hr.off .hr-shifts { cursor: pointer; }
   /* Phones: the switch and the day on one line, the two times under it. */
   @media (max-width:520px) {
     .hrs .hr { gap: 8px 10px; }
     .hrs .hr b { flex-basis: calc(100% - 64px); }
     .hrs .hr input[type=time] { flex: 1; width: auto; min-width: 0; }
+    #memberHours .hr { grid-template-columns: auto minmax(0, 1fr); }
+    #memberHours .hr-shifts { grid-column: 1 / -1; justify-items: stretch; min-width: 0; }
+    /* Grid and flex items will not shrink below their content unless told:
+       two time boxes and a remove button ran off the card. */
+    #memberHours .hr-sh { min-width: 0; gap: 4px; }
+    #memberHours .hr-sh .dash { flex: none; }
+    #memberHours .hr-sh input[type=time] { padding: 7px 4px 7px 8px; font-size: .84rem; }
+    #memberHours .hr-x { width: 24px; height: 24px; }
+    #memberHours .hr-add { grid-column: 1 / -1; justify-self: start; }
     /* The lunch line's note goes under the switch, full width, not squeezed. */
     .hrs .wh-lunch { flex-wrap: wrap; }
     .hrs .wh-lunch .wh-lunch-d { flex-basis: 100%; }
@@ -3345,10 +3443,11 @@
 
 <!-- ─────────────────────── onboarding ─────────────────────── -->
 <!-- Somebody new to the team completes their own account here before the
-     app opens (asked for 2026-11-03): their details, their services if they
-     are a stylist, and their calendar. The server refuses everything else
-     until they finish (requireStaff in auth.js), so this is not the only
-     thing keeping them out. obPaint() draws each step. -->
+     app opens (asked for 2026-11-03): their details, then for a stylist
+     their services and their hours (2026-11-04), their calendar, and a
+     review. The server refuses everything else until they finish
+     (requireStaff in auth.js), so this is not the only thing keeping them
+     out. obPaint() draws each step. -->
 <main id="onboard" class="auth ob hidden" aria-labelledby="obTitle">
   <div class="ob-shell">
     <!-- Karen leads it (asked for 2026-11-03): her own panel beside the
@@ -10985,7 +11084,7 @@ const timeTotal = (p) => {
  * ticked whenever its kind is on, which is what the booking side has always
  * done (roster.js), so nothing saved before changes.
  */
-const svcOfKind = (key) => (me?.services || []).filter((x) => x.category === key);
+const svcOfKind = (key) => (me?.services || []).filter((x) => x.category === key && !x.owner);
 const HIGHLIGHTISH = /highlight|balayage|foil/i;
 
 /** What a service is booked for when its own minutes are empty: the kind's figure, else the menu's. */
@@ -11016,8 +11115,10 @@ function svcRefresh(row) {
   if (count) count.textContent = list.length ? (on ? `${ticked} of ${list.length} services` : `${list.length} services`) : '';
 }
 
-function paintServices(services = {}) {
+function paintServices(services = {}, own = []) {
   const items = services.items && typeof services.items === 'object' ? services.items : {};
+  svcOwn = (own || []).map((x) => ({ ...x }));
+  svcOwnEditing = null;
   $('memberSvcs').innerHTML = SERVICE_KINDS.map(([key, label, hint]) => {
     const v = services[key] || {};
     const list = svcOfKind(key);
@@ -11069,7 +11170,166 @@ function paintServices(services = {}) {
   const lunchOn = services.lunch !== false;
   $('memberLunch').querySelector('.switch').setAttribute('aria-checked', String(lunchOn));
   $('memberLunch').classList.toggle('off', !lunchOn);
+  paintOwn();
 }
+
+/**
+ * A stylist's own services (asked for 2026-11-04): ones the salon's list
+ * does not have, offered only with them (owner_staff_id on the server).
+ * Listed under the four kinds. Your own, in My Settings and onboarding, can
+ * be added, changed and removed; in the Team window the owner sees
+ * somebody's and can switch one off or change its price and minutes. Kept as
+ * a list rather than read back from the form, because the one being edited
+ * is half in a form until it is saved.
+ */
+let svcOwn = [];
+let svcOwnEditing = null;   // an index, 'new', or null
+const ownEditable = () => workCtx === 'self';
+const svcKindName = (k) => SERVICE_KINDS.find(([x]) => x === k)?.[1] || k;
+
+/** Somebody's own services as the Team window knows them: whose they are from the menu, figures from their own. */
+function ownFromMenu(ownerId, services = {}) {
+  return (me?.services || []).filter((x) => x.owner && x.owner === ownerId).map((x) => {
+    const it = services.items?.[x.slug] || {};
+    return {
+      slug: x.slug, name: x.name, category: x.category, description: '',
+      price: it.price ?? null, duration: it.duration ?? x.durationMin, on: it.on !== false,
+    };
+  });
+}
+
+function ownForm(x, at) {
+  return `<div class="own-form" data-own-form="${at}" role="group" aria-label="${at === 'new' ? 'New service' : `Change ${esc(x.name)}`}">
+    <div class="own-grid">
+      <label class="own-name"><span>Service name</span><input data-of="name" maxlength="80" value="${esc(x.name || '')}" placeholder="e.g. Fringe trim" autocomplete="off"></label>
+      <label><span>Kind of work</span><select data-of="category"><option value="">Choose…</option>
+        ${SERVICE_KINDS.map(([k, l]) => `<option value="${k}"${x.category === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+      <label class="svc-f price"><span>Price</span><input type="number" data-of="price" min="0" max="10000" step="0.01" inputmode="decimal"
+        value="${x.price ?? ''}" placeholder="0.00"></label>
+      <label class="svc-f dur"><span>Duration</span><input type="number" data-of="duration" min="5" max="720" step="5" inputmode="numeric"
+        value="${x.duration ?? ''}" placeholder="30"></label>
+      <label class="own-desc"><span>Description <small>(optional)</small></span><input data-of="description" maxlength="300"
+        value="${esc(x.description || '')}" placeholder="What it is, in a few words" autocomplete="off"></label>
+    </div>
+    <p class="ob-err own-err" role="alert" hidden></p>
+    <div class="own-form-acts"><button type="button" class="btn quiet sm" data-own-cancel>Cancel</button>
+      <button type="button" class="btn sm" data-own-save>${at === 'new' ? 'Add service' : 'Save'}</button></div>
+  </div>`;
+}
+
+function paintOwn() {
+  let box = $('svcOwn');
+  if (!box) {
+    $('memberSvcs').insertAdjacentHTML('beforeend', '<div class="svc-own" id="svcOwn"></div>');
+    box = $('svcOwn');
+  }
+  const edit = ownEditable();
+  if (!edit && !svcOwn.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  const rows = svcOwn.map((x, i) => (svcOwnEditing === i ? ownForm(x, i) : `
+    <div class="own-r${x.on ? '' : ' off'}" data-own="${i}">
+      <button type="button" class="switch" role="switch" aria-checked="${Boolean(x.on)}" aria-label="${esc(x.name)} offered" data-own-on><span></span></button>
+      <span class="own-nm"><b>${esc(x.name)}</b><small>${esc([svcKindName(x.category), x.description].filter(Boolean).join(' · '))}</small></span>
+      <label class="svc-f price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" data-own-f="price"
+        aria-label="${esc(x.name)} price" value="${x.price != null && x.price !== '' ? Number(x.price).toFixed(2) : ''}" placeholder="0.00" ${x.on ? '' : 'disabled'}></label>
+      <label class="svc-f dur"><span>Duration</span><input type="number" min="5" max="720" step="5" inputmode="numeric" data-own-f="duration"
+        aria-label="${esc(x.name)} minutes" value="${x.duration ?? ''}" ${x.on ? '' : 'disabled'}></label>
+      ${edit ? `<span class="own-acts"><button type="button" class="iconbtn" data-own-edit aria-label="Change ${esc(x.name)}">${ic('edit')}</button>
+        <button type="button" class="iconbtn" data-own-del aria-label="Remove ${esc(x.name)}">${ic('x')}</button></span>` : '<span></span>'}
+    </div>`)).join('');
+  box.innerHTML = `<div class="own-h"><b>${edit ? 'Your own services' : 'Their own services'}</b>
+      <small>${edit ? "Something the salon's list doesn't have? Add it here. It's offered only with you." : 'Added by them, and offered only with them.'}</small></div>
+    ${rows}
+    ${svcOwnEditing === 'new' ? ownForm({ on: true }, 'new') : ''}
+    ${edit && svcOwnEditing === null ? `<button type="button" class="btn quiet sm own-add" data-own-add>${ic('plus')}Add a service</button>` : ''}`;
+}
+
+/** Their own services as the server takes them (profile.js, ownServicesFrom). */
+function readOwnServices() {
+  return svcOwn.map((x) => ({
+    ...(x.slug ? { slug: x.slug } : {}),
+    name: x.name, category: x.category, description: x.description || '',
+    price: x.price === '' || x.price == null ? null : Number(x.price),
+    duration: x.duration === '' || x.duration == null ? null : Number(x.duration),
+    on: x.on !== false,
+  }));
+}
+
+/** Something about their own services changed: whoever is listening (onboarding) saves. */
+const ownChanged = () => $('memberSvcs').dispatchEvent(new Event('change', { bubbles: true }));
+
+/** The form's service, checked, into the list. */
+function ownSave() {
+  const form = $('svcOwn').querySelector('[data-own-form]');
+  const v = (k) => form.querySelector(`[data-of=${k}]`).value.trim();
+  const say = (msg, k) => {
+    const p = form.querySelector('.own-err');
+    p.textContent = msg;
+    p.hidden = false;
+    const el = form.querySelector(`[data-of=${k}]`);
+    el.setAttribute('aria-invalid', 'true');
+    el.focus();
+  };
+  for (const el of form.querySelectorAll('[aria-invalid]')) el.removeAttribute('aria-invalid');
+  const name = v('name').replace(/\s+/g, ' ');
+  if (name.length < 2) return say('Give the service a name.', 'name');
+  const same = (x) => x.name.toLowerCase() === name.toLowerCase();
+  if ((me?.services || []).some((x) => !x.owner && same(x))) {
+    return say(`${name} is already on the salon's list. Switch it on in its kind above instead.`, 'name');
+  }
+  if (svcOwn.some((x, j) => j !== svcOwnEditing && same(x))) return say(`You already have a service called ${name}.`, 'name');
+  if (!v('category')) return say('Choose which kind of work it is.', 'category');
+  const price = Number(v('price'));
+  if (v('price') === '' || !Number.isFinite(price) || price < 0 || price > 10000) {
+    return say('Add a price in dollars, like 25 or 25.50.', 'price');
+  }
+  const mins = Number(v('duration'));
+  if (!Number.isInteger(mins) || mins < 5 || mins > 720) return say('Add how many minutes it takes: a whole number from 5 to 720.', 'duration');
+  const item = { name, category: v('category'), description: v('description'), price: Math.round(price * 100) / 100, duration: mins };
+  if (svcOwnEditing === 'new') svcOwn.push({ ...item, on: true });
+  else svcOwn[svcOwnEditing] = { ...svcOwn[svcOwnEditing], ...item };
+  const added = svcOwnEditing === 'new';
+  svcOwnEditing = null;
+  paintOwn();
+  ownChanged();
+  toast(added ? `${name} is added. It's offered only with you.` : `${name} is updated.`);
+}
+
+$('memberSvcs').addEventListener('click', (e) => {
+  const box = e.target.closest('#svcOwn');
+  if (!box) return;
+  const at = (el) => Number(el.closest('[data-own]').dataset.own);
+  const focusForm = () => $('svcOwn').querySelector('[data-of=name]')?.focus();
+  if (e.target.closest('[data-own-add]')) { svcOwnEditing = 'new'; paintOwn(); focusForm(); return; }
+  if (e.target.closest('[data-own-edit]')) { svcOwnEditing = at(e.target); paintOwn(); focusForm(); return; }
+  if (e.target.closest('[data-own-cancel]')) { svcOwnEditing = null; paintOwn(); return; }
+  if (e.target.closest('[data-own-save]')) { ownSave(); return; }
+  if (e.target.closest('[data-own-del]')) {
+    const i = at(e.target);
+    if (!confirm(`Remove ${svcOwn[i].name}? Guests will no longer be able to book it with you.`)) return;
+    svcOwn.splice(i, 1);
+    paintOwn();
+    ownChanged();
+    return;
+  }
+  const sw = e.target.closest('[data-own-on]');
+  if (sw && !sw.disabled) {
+    const i = at(sw);
+    svcOwn[i].on = !svcOwn[i].on;
+    paintOwn();
+    ownChanged();
+  }
+});
+// Price and minutes typed in a row go straight into the list.
+$('memberSvcs').addEventListener('input', (e) => {
+  const f = e.target.dataset.ownF;
+  if (!f) return;
+  svcOwn[Number(e.target.closest('[data-own]').dataset.own)][f] = e.target.value;
+});
+// Enter in the form adds the service rather than submitting whatever form it is in.
+$('memberSvcs').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.closest('[data-own-form]') && e.target.tagName === 'INPUT') { e.preventDefault(); ownSave(); }
+});
 
 $('memberSvcs').oninput = (e) => {
   const svcRow = e.target.closest('.svc');
@@ -11091,6 +11351,15 @@ function svcOpen(row, open) {
   row.querySelector('.svc-bd').inert = !open;
 }
 $('memberSvcs').onclick = (e) => {
+  // A greyed box in a kind that is off (2026-11-04): tapping it switches the
+  // kind on and puts the cursor in it. Boxes that did nothing when tapped
+  // read as a form that was broken.
+  const dead = e.target.closest('.svc.off > .svc-f');
+  if (dead) {
+    const sw = dead.closest('.svc').querySelector('.switch');
+    if (!sw.disabled) { sw.click(); dead.querySelector('input:not([readonly])')?.focus(); }
+    return;
+  }
   const exp = e.target.closest('.svc-exp');
   if (exp) {
     const row = exp.closest('.svc');
@@ -11137,23 +11406,103 @@ const WEEKDAYS = [
 /** The hours a salon opens with when nobody has said otherwise. */
 const DEFAULT_SHIFT = { starts: '09:00', ends: '17:00' };
 
+/** At most this many time slots in a day, as the server allows (roster.js). */
+const MAX_SHIFTS = 3;
+const hmOf = (t) => { const [h, m] = String(t || '').split(':').map(Number); return h * 60 + m; };
+const hhmm = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+
+/** One day's time slots: the first has no remove button, so its place is kept blank when there are more. */
+function shiftsHtml(label, list, on) {
+  return list.map((h, i) => `<span class="hr-sh">
+      <input type="time" step="900" value="${esc(h.starts)}" aria-label="${label} start${i ? ` (slot ${i + 1})` : ''}" ${on ? '' : 'disabled'}>
+      <span class="dash">to</span>
+      <input type="time" step="900" value="${esc(h.ends)}" aria-label="${label} end${i ? ` (slot ${i + 1})` : ''}" ${on ? '' : 'disabled'}>
+      ${i ? `<button type="button" class="iconbtn hr-x" data-hr-del aria-label="Remove ${label}'s slot ${i + 1}" ${on ? '' : 'disabled'}>${ic('x')}</button>`
+    : list.length > 1 ? '<span class="hr-x sp" aria-hidden="true"></span>' : ''}
+    </span>`).join('');
+}
+
+/**
+ * Each day: a switch, and one to three time slots (2026-11-04: a split day,
+ * say 9 to 1 and 4 to 8, used to be impossible to enter here, though the
+ * server has always taken it).
+ */
 function paintHours(hours = []) {
-  const byDay = new Map(hours.map((h) => [Number(h.weekday), h]));
+  const byDay = new Map();
+  for (const h of hours) {
+    const d = Number(h.weekday);
+    if (!byDay.has(d)) byDay.set(d, []);
+    byDay.get(d).push({ starts: h.starts, ends: h.ends });
+  }
   $('memberHours').innerHTML = WEEKDAYS.map(([n, label]) => {
-    const h = byDay.get(n);
-    const on = Boolean(h);
-    return `<div class="hr ${on ? '' : 'off'}" data-day="${n}">
+    const list = byDay.get(n) || [];
+    const on = list.length > 0;
+    const shifts = on ? list : [DEFAULT_SHIFT];
+    return `<div class="hr ${on ? '' : 'off'}" data-day="${n}" data-label="${label}">
       <button type="button" class="switch" role="switch" aria-checked="${on}"
         aria-label="${label} worked"><span></span></button>
       <b>${label}</b>
-      <input type="time" step="900" value="${h ? esc(h.starts) : DEFAULT_SHIFT.starts}"
-        aria-label="${label} start" ${on ? '' : 'disabled'}>
-      <span class="dash">to</span>
-      <input type="time" step="900" value="${h ? esc(h.ends) : DEFAULT_SHIFT.ends}"
-        aria-label="${label} end" ${on ? '' : 'disabled'}>
+      <span class="hr-shifts">${shiftsHtml(label, shifts, on)}</span>
+      <button type="button" class="hr-add" data-hr-add${on && shifts.length < MAX_SHIFTS ? '' : ' hidden'}>${ic('plus')}Add hours</button>
+      <p class="hr-err" role="alert" hidden></p>
     </div>`;
   }).join('');
 }
+
+/** A day's slots as typed. */
+const readDay = (row) => [...row.querySelectorAll('.hr-sh')].map((sh) => {
+  const [a, b] = sh.querySelectorAll('input[type=time]');
+  return { starts: a.value, ends: b.value };
+});
+function paintDay(row, list) {
+  const on = row.querySelector('.switch').getAttribute('aria-checked') === 'true';
+  row.querySelector('.hr-shifts').innerHTML = shiftsHtml(row.dataset.label, list, on);
+  row.querySelector('.hr-add').hidden = !on || list.length >= MAX_SHIFTS;
+  hoursCheck(row);
+}
+
+/**
+ * What is wrong with one day, said in words, or null: a slot that ends
+ * before it starts, an empty time, or two slots that overlap. The server
+ * refuses the same (readHours in roster.js); this says which day.
+ */
+function dayProblem(row) {
+  if (row.querySelector('.switch').getAttribute('aria-checked') !== 'true') return null;
+  const label = row.dataset.label;
+  const sh = [...row.querySelectorAll('.hr-sh')];
+  const list = readDay(row).map((h, i) => ({ ...h, i }));
+  for (const h of list) {
+    if (!h.starts || !h.ends) return { input: sh[h.i].querySelector(`input:nth-of-type(${h.starts ? 2 : 1})`), msg: `${label}: add a start and an end time.` };
+    if (hmOf(h.ends) <= hmOf(h.starts)) return { input: sh[h.i].querySelectorAll('input')[1], msg: `${label}: the end time has to be after the start.` };
+  }
+  const sorted = [...list].sort((a, b) => hmOf(a.starts) - hmOf(b.starts));
+  for (let k = 1; k < sorted.length; k += 1) {
+    if (hmOf(sorted[k].starts) < hmOf(sorted[k - 1].ends)) {
+      return { input: sh[sorted[k].i].querySelector('input'), msg: `${label}: two time slots overlap. Move one so they don't.` };
+    }
+  }
+  return null;
+}
+/** Shows (or clears) one day's message; returns its problem. */
+function hoursCheck(row) {
+  if (!row) return null;
+  const bad = dayProblem(row);
+  const p = row.querySelector('.hr-err');
+  p.textContent = bad ? bad.msg : '';
+  p.hidden = !bad;
+  row.classList.toggle('bad', Boolean(bad));
+  return bad ? { ...bad, row } : null;
+}
+/** The first day with something wrong, every day's message brought up to date. */
+function hoursProblem() {
+  let first = null;
+  for (const row of $('memberHours').querySelectorAll('.hr')) {
+    const bad = hoursCheck(row);
+    if (bad && !first) first = bad;
+  }
+  return first;
+}
+$('memberHours').addEventListener('input', (e) => hoursCheck(e.target.closest('.hr')));
 
 /**
  * Whether these hours can be changed: your own, in My Settings (2026-11-03),
@@ -11186,7 +11535,7 @@ async function loadMyWork() {
   workTo('self');
   try {
     const p = await api('/api/staff/profile');
-    paintServices(p.services || {});
+    paintServices(p.services || {}, p.ownServices || []);
     paintHours(p.hours || []);
     paintHoursState();
   } catch (err) { fail(err); }
@@ -11199,9 +11548,17 @@ for (const b of document.querySelectorAll('#mwTabs [data-mw]')) {
 }
 $('myWorkSave').onclick = async () => {
   const btn = $('myWorkSave');
+  const bad = hoursProblem();
+  if (bad) { toast(bad.msg, 'bad'); bad.input?.focus(); return; }
+  if (svcOwnEditing !== null) { toast('Add or cancel the service you are writing first.', 'bad'); $('svcOwn')?.querySelector('[data-of=name]')?.focus(); return; }
   btn.disabled = true;
   try {
-    await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ services: readServices(), hours: readHoursUI() }) });
+    const d = await api('/api/staff/profile', {
+      method: 'PATCH', body: JSON.stringify({ services: readServices(), ownServices: readOwnServices(), hours: readHoursUI() }),
+    });
+    // Services added here get their names on the server; keep them, so the
+    // next save changes them rather than adding them again.
+    if (d.ownServices) { svcOwn = d.ownServices.map((x) => ({ ...x })); paintOwn(); }
     toast('Your services and hours are saved.');
     markSaved(btn);
     // Your column, your hours on Appt. Book and New appointment's list.
@@ -11292,7 +11649,8 @@ function paintHoursState() {
     const sw = row.querySelector('.switch');
     const on = sw.getAttribute('aria-checked') === 'true';
     sw.disabled = !open;
-    for (const input of row.querySelectorAll('input')) input.disabled = !open || !on;
+    for (const input of row.querySelectorAll('input, button.hr-x')) input.disabled = !open || !on;
+    row.querySelector('.hr-add').hidden = !open || !on || readDay(row).length >= MAX_SHIFTS;
   }
   $('memberLunch').querySelector('.switch').disabled = !open;
 }
@@ -11312,22 +11670,49 @@ $('memberLunch').onclick = (e) => {
   $('memberLunch').classList.toggle('off', !on);
 };
 $('memberHours').onclick = (e) => {
-  const sw = e.target.closest('.switch');
-  if (!sw || sw.disabled) return;
-  const row = sw.closest('.hr');
+  const row = e.target.closest('.hr');
+  if (!row) return;
+  const sw = row.querySelector('.switch');
+  if (sw.disabled) return;
+  if (e.target.closest('[data-hr-add]')) {
+    const list = readDay(row);
+    // The next slot an hour after the last one ends, three hours long, as a
+    // split day is usually written; the stylist changes it to suit.
+    const from = Math.min(hmOf(list[list.length - 1].ends) + 60, 22 * 60);
+    list.push({ starts: hhmm(from), ends: hhmm(Math.min(from + 180, 23 * 60 + 45)) });
+    paintDay(row, list);
+    const times = row.querySelectorAll('input[type=time]');
+    times[times.length - 2].focus();
+    row.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
+  }
+  const del = e.target.closest('[data-hr-del]');
+  if (del) {
+    const list = readDay(row);
+    list.splice([...row.querySelectorAll('.hr-sh')].indexOf(del.closest('.hr-sh')), 1);
+    paintDay(row, list);
+    row.querySelector('.switch').focus();
+    row.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
+  }
+  // A time in a day that is off (2026-11-04): tapping it switches the day on.
+  const dead = row.classList.contains('off') && e.target.closest('.hr-shifts');
+  if (!e.target.closest('.switch') && !dead) return;
   const on = sw.getAttribute('aria-checked') !== 'true';
   sw.setAttribute('aria-checked', String(on));
   row.classList.toggle('off', !on);
-  for (const input of row.querySelectorAll('input')) input.disabled = !on;
+  for (const input of row.querySelectorAll('input, button.hr-x')) input.disabled = !on;
+  row.querySelector('.hr-add').hidden = !on || readDay(row).length >= MAX_SHIFTS;
+  if (dead) row.querySelector('input[type=time]').focus();
+  hoursCheck(row);
 };
 
-/** What the rows say, in the shape the API validates. */
+/** What the rows say, in the shape the API validates: one entry a time slot. */
 function readHoursUI() {
   const out = [];
   for (const row of $('memberHours').querySelectorAll('.hr')) {
     if (row.querySelector('.switch').getAttribute('aria-checked') !== 'true') continue;
-    const [a, b] = row.querySelectorAll('input[type=time]');
-    out.push({ weekday: Number(row.dataset.day), starts: a.value, ends: b.value });
+    for (const h of readDay(row)) out.push({ weekday: Number(row.dataset.day), ...h });
   }
   return out;
 }
@@ -11363,6 +11748,12 @@ function readServices() {
     }
   }
   out.items = out.items || {};
+  // Their own services (2026-11-04): on, minutes and price, by slug. One
+  // not saved yet has no slug; it goes in ownServices, and gets one there.
+  for (const x of svcOwn) {
+    if (!x.slug) continue;
+    out.items[x.slug] = { on: x.on !== false, duration: num(x.duration ?? ''), price: num(x.price ?? '') };
+  }
   out.notes = $('memberNotes').value.trim();
   out.lunch = $('memberLunch').querySelector('.switch').getAttribute('aria-checked') === 'true';
   return out;
@@ -11413,7 +11804,7 @@ async function openMember(who) {
   memberPicPaint(m?.avatar || null, m?.photo || null);
   memberOrig.avatar = m?.avatar || null;
   toolsFor = m;
-  paintServices(m?.services || {});
+  paintServices(m?.services || {}, m && !m.noLogin ? ownFromMenu(m.id, m.services || {}) : []);
   // Compared as the form reads it back, so opening and saving untouched
   // sends nothing, however the stored copy was shaped.
   memberOrig.services = JSON.stringify(readServices());
@@ -11808,7 +12199,11 @@ $('memberForm').onsubmit = async (e) => {
     // Hours only while the section is open; otherwise nothing could have
     // been changed, and leaving them out keeps what is stored.
     const sendHours = memberEdit !== 'me' && hoursOpen();
-    if (sendHours) fields.hours = readHoursUI();
+    if (sendHours) {
+      const bad = hoursProblem();
+      if (bad) { note($('memberNote'), bad.msg); bad.input?.focus(); return; }
+      fields.hours = readHoursUI();
+    }
     if (memberPic !== undefined) fields.avatar = memberPic;
     // Someone new keeps the picture the window showed them with (2026-11-03):
     // with no choice made that was a default drawn from the name, and it
@@ -13016,15 +13411,46 @@ async function showInvite(token) {
   };
 }
 
-// ── onboarding (2026-11-03) ───────────────────────────────────────────────
+// ── onboarding (2026-11-03, steps and saving reworked 2026-11-04) ─────────
 //
 // Somebody added to the team signs in for the first time (from their invite)
-// and lands here, not in the app: their details, then their services if they
-// are a stylist, then their calendar. Each step saves as it goes (PATCH
-// /api/staff/profile), and the last one finishes ({finishOnboarding: true}),
-// which the server accepts only once a stylist has a mobile number. Their
-// working hours are not asked: the owner sets those (Available Hours).
-let ob = { step: 0, steps: [], prof: null, avatar: null };
+// and lands here, not in the app. A stylist has five steps: About you,
+// Services & Pricing, Hours & Availability, their calendar (optional) and
+// Review & Finish; anyone else About you, the calendar and the review.
+//
+// Everything saves as it is typed (obQueueSave, PATCH /api/staff/profile),
+// and so does the step they are on (onboardingStep, migration 044): a
+// reload, a closed tab or signing in again used to start them at step one,
+// and now picks up where they were with what they typed. A copy of About you
+// is kept in this browser too, in case a save never reached the server; the
+// account is the record and the copy only fills what it does not have.
+// Finishing ({finishOnboarding: true}) is refused by the server until a
+// stylist has a mobile number, a service and some hours (profile.js).
+let ob = { step: 0, steps: [], prof: null, avatar: null, furthest: 0 };
+const OB_STEP_NAMES = {
+  details: 'About you', services: 'Services & Pricing', hours: 'Hours & Availability',
+  calendar: 'Connect your calendar', review: 'Review & Finish',
+};
+const OB_PATH_NAMES = { ...OB_STEP_NAMES, calendar: 'Calendar (optional)' };
+const obIsStylist = () => ob.prof?.role === 'stylist';
+
+/** This browser's copy of About you and the step, keyed by who is signed in. */
+const obKey = () => `ss-ob-${String(me?.user?.email || '').toLowerCase()}`;
+function obBackupRead() {
+  try { return JSON.parse(localStorage.getItem(obKey()) || 'null'); } catch { return null; }
+}
+function obBackupWrite() {
+  try {
+    const d = { ...(obBackupRead() || {}), step: ob.steps[ob.step] };
+    const f = $('obForm');
+    if (ob.steps[ob.step] === 'details') for (const n of ['name', 'phone', 'title']) if (f.elements[n]) d[n] = f.elements[n].value;
+    localStorage.setItem(obKey(), JSON.stringify(d));
+  } catch { /* a private window: the server's copy is the one that counts */ }
+}
+function obBackupClear() {
+  try { localStorage.removeItem(obKey()); } catch { /* fine */ }
+}
+
 async function showOnboarding() {
   for (const id of ['boot', 'login', 'app']) $(id).classList.add('hidden');
   $('onboard').classList.remove('hidden');
@@ -13033,12 +13459,17 @@ async function showOnboarding() {
   } catch (err) { if (err.message !== 'signed out') note($('obNote'), err.message); return; }
   // Their own account only; the owner and admins are never here.
   if (!ob.prof.onboarding) { location.reload(); return; }
-  ob.steps = ob.prof.role === 'stylist' ? ['details', 'services', 'calendar'] : ['details', 'calendar'];
+  ob.steps = obIsStylist() ? ['details', 'services', 'hours', 'calendar', 'review'] : ['details', 'calendar', 'review'];
   ob.avatar = ob.prof.avatar || null;
-  ob.step = 0;
+  const kept = obBackupRead();
+  if (kept) for (const k of ['name', 'phone', 'title']) if (!ob.prof[k] && kept[k]) ob.prof[k] = kept[k];
+  // Back where they stopped: the account's step, else this browser's.
+  ob.step = Math.max(0, ob.steps.indexOf(ob.prof.onboardingStep || kept?.step));
+  ob.furthest = ob.step;
+  // Their services and hours are theirs to set here, as in My Settings.
+  workCtx = 'self';
   obPaint();
 }
-const OB_STEP_NAMES = { details: 'About you', services: 'Your services', calendar: 'Your calendar' };
 const obWide = () => matchMedia('(min-width: 900px)').matches;
 const obStill = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 let obTyping = 0;
@@ -13077,6 +13508,25 @@ function obKaren() {
   const v = $('obKarenVid');
   if (!v.src) { v.poster = KAREN_PIC; v.src = KAREN_WAVE; }
 }
+
+/** Whether anything is offered: a kind switched on, or a service of their own that is on. */
+function obOffers(services, own) {
+  return SERVICE_KINDS.some(([k]) => services?.[k]?.on) || (own || []).some((x) => x.on !== false);
+}
+/** What is still missing before they can finish, from what is saved: each with the step it is on. */
+function obMissing() {
+  const p = ob.prof;
+  const out = [];
+  if (!String(p.name || '').trim()) out.push({ step: 'details', msg: 'Add your name, on About you.' });
+  if (obIsStylist()) {
+    if (String(p.phone || '').replace(/\D/g, '').length < 10) out.push({ step: 'details', msg: 'Add your mobile number, on About you.' });
+    if (!String(p.title || '').trim()) out.push({ step: 'details', msg: 'Add your title, on About you.' });
+    if (!obOffers(p.services, p.ownServices)) out.push({ step: 'services', msg: 'Switch on at least one service you do, on Services & Pricing.' });
+    if (!(p.hours || []).length) out.push({ step: 'hours', msg: 'Add the hours you are available, on Hours & Availability.' });
+  }
+  return out;
+}
+
 /**
  * What this step needs, in the order of the form: each item says whether it
  * is done (read from the form as it is now), where it is (the element to
@@ -13088,7 +13538,7 @@ function obKaren() {
 function obGuide() {
   const f = $('obForm');
   const p = ob.prof;
-  const stylist = p.role === 'stylist';
+  const stylist = obIsStylist();
   const step = ob.steps[ob.step];
   const field = (n) => f.elements[n]?.closest('label');
   const val = (n) => String(f.elements[n]?.value || '').trim();
@@ -13111,14 +13561,33 @@ function obGuide() {
     // so only a kind with a Duration box can be missing one.
     const missing = (fld) => on.find((r) => { const i = r.querySelector(`[data-f=${fld}]`); return i && !i.value.trim(); });
     return [
-      { key: 'on', label: 'Switch on what you do', done: on.length > 0, el: $('memberSvcs'),
-        tip: 'Tap the switch beside each kind of work you do. It opens to its services: untick any you don\'t do.' },
+      { key: 'on', label: 'Switch on what you do', done: on.length > 0 || svcOwn.some((x) => x.on), el: $('memberSvcs'),
+        tip: "Tap the switch beside each kind of work you do. It opens to its services: untick any you don't do. Something not on the list? Add it as your own service at the bottom." },
       { key: 'price', label: 'A starting price for each', opt: true, done: on.length > 0 && !missing('price'),
         el: missing('price')?.querySelector('[data-f=price]').closest('label'),
         tip: "Your starting price. It goes on your appointments for the salon; clients don't see prices online." },
       { key: 'minutes', label: 'How long each takes you', opt: true, done: on.length > 0 && !missing('duration'),
         el: missing('duration')?.querySelector('[data-f=duration]').closest('label'),
         tip: "How many minutes it usually takes you. I book your clients for exactly that long. A service's own minutes, below, beat it." },
+    ];
+  }
+  if (step === 'hours') {
+    const days = [...$('memberHours').querySelectorAll('.hr')]
+      .filter((r) => r.querySelector('.switch').getAttribute('aria-checked') === 'true');
+    const bad = days.map(dayProblem).find(Boolean);
+    return [
+      { key: 'days', label: 'Switch on the days you work', done: days.length > 0, el: $('memberHours'),
+        tip: 'Tap the switch beside each day you work. A day left off is closed: nobody can book you then.' },
+      { key: 'times', label: 'Your hours each day', done: days.length > 0 && !bad, el: bad ? bad.input.closest('.hr') : null,
+        tip: 'Set when you start and when you finish. Working a split day? Tap Add hours for a second time slot.' },
+    ];
+  }
+  if (step === 'review') {
+    const miss = obMissing();
+    return [
+      { key: 'check', label: 'Check everything is right', done: !miss.length,
+        el: miss[0] ? f.querySelector(`[data-ob-sec="${miss[0].step}"]`) : null,
+        tip: miss.length ? `One thing first: ${miss[0].msg}` : 'Have a look over everything. Tap Edit beside anything to change it.' },
     ];
   }
   const g = p.google || {};
@@ -13135,12 +13604,16 @@ function obIntro() {
   const step = ob.steps[ob.step];
   if (step === 'details') {
     return `Hi${first ? ` ${first}` : ''}! I'm Karen, the assistant here at ${salon}, and I'll set you up in ${ob.steps.length} quick steps. `
-      + "First, tell me about you. I've ringed what's next.";
+      + "First, tell me about you. I save as you type, so you can stop and come back any time.";
   }
   if (step === 'services') {
-    return `Lovely to meet you${first ? `, ${first}` : ''}! Now switch on the work you do, with your starting price and how long it takes you. You can change these any time in My Settings.`;
+    return `Lovely to meet you${first ? `, ${first}` : ''}! Now switch on the work you do, with your starting price and how long it takes. Something not on the list? Add it as your own service at the bottom.`;
   }
-  return "Last step! Connect your Google Calendar so your bookings land there too. Or skip it for now: it's in My Settings later.";
+  if (step === 'hours') {
+    return "When can guests book you? Switch on the days you work and set your hours. You can change them any time in My Settings, and the owner sees them too.";
+  }
+  if (step === 'review') return "Nearly done! Here's everything you told me. Tap Edit beside anything to change it, then Finish.";
+  return "Connect your Google Calendar so your bookings land there too. Or skip it for now: it's in My Settings later.";
 }
 let obAllDone = false;
 let obFocusKey = null;
@@ -13166,7 +13639,7 @@ function obRefresh({ speak = false } = {}) {
   // The tip: about the field in use, else about the next thing to do.
   const focused = items.find((x) => x.key === obFocusKey);
   const about = focused || next;
-  const doneLine = ob.step < ob.steps.length - 1
+  const doneLine = ob.steps[ob.step] !== 'review'
     ? `That's everything I need here. Tap ${submit?.textContent.trim() || 'Continue'} when you're ready.`
     : "That's everything! Tap Finish and I'll open the app for you.";
   const tipText = about ? about.tip : doneLine;
@@ -13185,57 +13658,143 @@ function obRefresh({ speak = false } = {}) {
   if (complete && !obAllDone && !next && obWide()) obSays(doneLine);
   obAllDone = complete && !next;
 }
-/** The services control back in the Team window's block, where it lives. */
+/** The services and hours controls back where they live (My Settings, the Team window). */
 function obSvcsHome() {
   const el = $('memberSvcs');
   if ($('obForm').contains(el)) $('memberNotesWrap').before(el);
+  const hw = $('memberHoursWrap');
+  if ($('obForm').contains(hw)) $('whNote').after(hw);
 }
+
+const obClock = (t) => {
+  const n = hmOf(t);
+  const h = Math.floor(n / 60);
+  return `${h % 12 || 12}:${String(n % 60).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+};
+/** Everything they have told us, one section a step, each with Edit. */
+function obReviewHtml() {
+  const p = ob.prof;
+  const stylist = obIsStylist();
+  const miss = new Set(obMissing().map((m) => m.msg));
+  const missing = (txt) => [...miss].some((m) => m.includes(txt));
+  const sec = (step, title, body) => `<section class="ob-rv" data-ob-sec="${step}">
+      <div class="ob-rv-h"><h2>${esc(title)}</h2><button type="button" class="btn quiet sm" data-ob-goto="${step}">${ic('edit')}Edit</button></div>
+      ${body}</section>`;
+  const row = (k, v, bad) => `<div class="ob-rv-r${bad ? ' miss' : ''}"><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
+  const none = (t, bad) => `<span class="ob-rv-none${bad ? ' miss' : ''}">${esc(t)}</span>`;
+  const pic = ob.avatar || charAvatar(p.name || p.email || 'new');
+  let html = sec('details', 'About you', `<div class="ob-rv-me"><img src="${esc(pic)}" alt=""><dl>
+      ${row('Name', p.name ? esc(p.name) : 'Missing', missing('your name'))}
+      ${row('Mobile', p.phone ? esc(showPhone(p.phone)) : (stylist ? 'Missing' : 'Not given'), missing('mobile'))}
+      ${row('Role', esc(ROLE_LABEL[p.role] || p.role || ''))}
+      ${row('Title', p.title ? esc(p.title) : (stylist ? 'Missing' : 'Not given'), missing('title'))}
+    </dl></div>`);
+  if (stylist) {
+    const s = p.services || {};
+    const money = (v) => (v == null || v === '' ? null : `$${Number(v).toFixed(2)}`);
+    const kinds = SERVICE_KINDS.filter(([k]) => s[k]?.on).map(([k, label]) => {
+      const v = s[k];
+      const len = k === 'color' ? (timeTotal(v) || v.duration) : v.duration;
+      const list = svcOfKind(k);
+      const n = list.filter((x) => s.items?.[x.slug]?.on !== false).length;
+      const bits = [money(v.price) || 'No price yet', len ? `${len} min` : null, list.length ? `${n} of ${list.length} services` : null];
+      return `<li><b>${esc(label)}</b><span>${esc(bits.filter(Boolean).join(' · '))}</span></li>`;
+    });
+    const own = (p.ownServices || []).map((x) => `<li><b>${esc(x.name)}</b><span>${esc(
+      [money(x.price), x.duration ? `${x.duration} min` : null, x.on !== false ? 'your own' : 'your own, switched off'].filter(Boolean).join(' · '),
+    )}</span></li>`);
+    html += sec('services', 'Services & Pricing', kinds.length || own.length
+      ? `<ul class="ob-rv-l">${kinds.join('')}${own.join('')}</ul>` : none('Nothing switched on yet', true));
+    const byDay = new Map();
+    for (const h of p.hours || []) {
+      const d = Number(h.weekday);
+      if (!byDay.has(d)) byDay.set(d, []);
+      byDay.get(d).push(h);
+    }
+    const days = WEEKDAYS.map(([n, label]) => {
+      const list = (byDay.get(n) || []).sort((a, b) => hmOf(a.starts) - hmOf(b.starts));
+      return `<li><b>${esc(label)}</b><span>${esc(list.length ? list.map((h) => `${obClock(h.starts)} – ${obClock(h.ends)}`).join(', ') : 'Closed')}</span></li>`;
+    });
+    html += sec('hours', 'Hours & Availability', (p.hours || []).length
+      ? `<ul class="ob-rv-l">${days.join('')}<li><b>Lunch break</b><span>${s.lunch !== false ? '30 min between 11 AM and 1 PM' : 'Off'}</span></li></ul>`
+      : none('No hours yet', true));
+  }
+  const g = p.google || {};
+  html += sec('calendar', 'Calendar', g.connected
+    ? `<span class="ob-rv-none">Connected${g.account ? ` as ${esc(g.account)}` : ''}.</span>`
+    : none('Not connected. That is fine: you can connect it later in My Settings.'));
+  return html;
+}
+
 function obPaint() {
   const p = ob.prof;
   const step = ob.steps[ob.step];
+  const stylist = obIsStylist();
   obSvcsHome();
   obKaren();
   $('obSteps').innerHTML = ob.steps.map((_, i) => `<i class="${i <= ob.step ? 'on' : ''}"></i>`).join('');
   $('obCount').textContent = `Step ${ob.step + 1} of ${ob.steps.length}`;
-  $('obPath').innerHTML = ob.steps.map((k, i) => `<li class="${i < ob.step ? 'done' : i === ob.step ? 'now' : ''}"${i === ob.step ? ' aria-current="step"' : ''}>${esc(OB_STEP_NAMES[k])}</li>`).join('');
+  // Karen's list of steps: any step already reached opens again from here.
+  $('obPath').innerHTML = ob.steps.map((k, i) => {
+    const now = i === ob.step;
+    const cls = now ? 'now' : i <= ob.furthest ? 'done' : '';
+    const label = esc(OB_PATH_NAMES[k]);
+    return `<li class="${cls}"${now ? ' aria-current="step"' : ''}>${!now && i <= ob.furthest
+      ? `<button type="button" data-ob-goto="${k}">${label}</button>` : label}</li>`;
+  }).join('');
   note($('obNote'), '');
   const back = ob.step ? '<button type="button" class="btn quiet" data-ob-back>Back</button>' : '';
   const tip = `<div class="ob-tip" id="obTip" hidden><img src="${KAREN_PIC}" alt=""><span></span></div>`;
+  const g = p.google || {};
+  const label = step === 'review' ? 'Finish' : step === 'calendar' && !g.connected ? 'Skip for now' : 'Continue';
+  const acts = `${tip}
+      <div class="ob-acts">${back}<button class="btn">${label}</button></div>
+      <div class="ob-foot"><span class="ob-saved" id="obSaved" aria-live="polite"></span>
+        ${step === 'review' ? '' : '<button type="button" class="ob-later" data-ob-later>Save &amp; continue later</button>'}</div>`;
   $('obTitle').textContent = OB_STEP_NAMES[step];
   if (step === 'details') {
     const pic = ob.avatar || charAvatar(p.name || p.email || 'new');
     $('obForm').innerHTML = `
       <div class="ob-pic"><button type="button" class="ob-face" data-ob-pic="avatars" aria-label="Change your picture"><img class="ob-face-img" id="obPic" src="${esc(pic)}" alt=""></button>
-        <div><span class="small muted">Your picture</span>
+        <div><span class="small muted">Your picture (optional)</span>
           <div class="ob-pic-btns">
             <button type="button" class="btn sm" data-ob-pic="upload"><svg class="ic"><use href="#i-camera"/></svg>Upload a photo</button>
             <button type="button" class="btn quiet sm" data-ob-pic="avatars"><svg class="ic"><use href="#i-user"/></svg>Choose an avatar</button>
           </div></div></div>
       <label><span>Your name</span><input name="name" value="${esc(p.name || '')}" autocomplete="name" required maxlength="120"></label>
-      <label><span>Mobile number${p.role === 'stylist' ? '' : ' (optional)'}</span><input name="phone" type="tel" value="${esc(usPhone(p.phone || ''))}" autocomplete="tel" placeholder="(813) 555-0170"></label>
-      <label><span>Your role at the salon</span><input value="${esc(ROLE_LABEL[p.role] || p.role || '')}" disabled></label>
-      <label><span>Your title${p.role === 'stylist' ? '' : ' (optional)'}</span><input name="title" value="${esc(p.title || '')}" maxlength="80"
-        placeholder="${p.role === 'stylist' ? 'e.g. Master Stylist, Colorist' : 'e.g. Front Desk Manager'}"></label>
-      ${tip}
-      <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
+      <label><span>Mobile number${stylist ? '' : ' (optional)'}</span><input name="phone" type="tel" inputmode="tel" value="${esc(usPhone(p.phone || ''))}" autocomplete="tel" placeholder="(813) 555-0170"></label>
+      <label><span>Your role at the salon</span><input value="${esc(ROLE_LABEL[p.role] || p.role || '')}" disabled aria-describedby="obRoleNote">
+        <small class="ob-role-note" id="obRoleNote">Set by the salon owner. Ask them if it should be different.</small></label>
+      <label><span>Your title${stylist ? '' : ' (optional)'}</span><input name="title" value="${esc(p.title || '')}" maxlength="80"
+        placeholder="${stylist ? 'e.g. Master Stylist, Colorist' : 'e.g. Front Desk Manager'}"></label>
+      ${acts}`;
   } else if (step === 'services') {
-    // The same services control as Team Settings and My Settings (asked for
-    // 2026-11-03): a kind switched on opens to its services, switched off it
-    // folds to one line. It is the one #memberSvcs, moved in for this step
-    // and back out (obSvcsHome) before the form is drawn again.
+    // The same services control as My Settings and the Team window (asked
+    // for 2026-11-03): the one #memberSvcs, moved in for this step and back
+    // out (obSvcsHome) before the form is drawn again.
     $('obForm').innerHTML = `<div id="obSvcSlot"></div>
-      <p class="ob-hint">Your available hours are in My Settings, once you're in.</p>
-      ${tip}
-      <div class="ob-acts">${back}<button class="btn">Continue</button></div>`;
+      <p class="ob-hint">Prices are what you charge in the salon. Clients don't see prices online.</p>
+      ${acts}`;
     $('obSvcSlot').appendChild($('memberSvcs'));
-    paintServices(p.services || {});
-  } else {
-    const g = p.google || {};
+    paintServices(p.services || {}, p.ownServices || []);
+  } else if (step === 'hours') {
+    // The hours control from My Settings (#memberHoursWrap), the same way.
+    $('obForm').innerHTML = `<p class="ob-hint" style="margin:0 0 12px">The times guests can book you. A day switched off is closed. Change them any time in My Settings.</p>
+      <div id="obHrsSlot"></div>
+      ${acts}`;
+    $('obHrsSlot').appendChild($('memberHoursWrap'));
+    paintHours(p.hours || []);
+    const lunchOn = p.services?.lunch !== false;
+    $('memberLunch').querySelector('.switch').setAttribute('aria-checked', String(lunchOn));
+    $('memberLunch').classList.toggle('off', !lunchOn);
+    paintHoursState();
+  } else if (step === 'calendar') {
     $('obForm').innerHTML = `
-      <p class="ob-hint" id="obCal">${g.connected ? `Connected${g.account ? ` as ${esc(g.account)}` : ''}.` : 'Not connected yet.'}</p>
+      <p class="ob-hint" id="obCal">${g.connected ? `Connected${g.account ? ` as ${esc(g.account)}` : ''}.` : 'Not connected yet. This step is optional.'}</p>
       ${g.connected ? '' : '<button type="button" class="btn quiet block" data-ob-google>Connect Google Calendar</button>'}
-      ${tip}
-      <div class="ob-acts">${back}<button class="btn">${g.connected ? 'Finish' : 'Skip for now and finish'}</button></div>`;
+      ${acts}`;
+  } else {
+    $('obForm').innerHTML = `${obReviewHtml()}${acts}`;
   }
   obAllDone = false;
   obFocusKey = null;
@@ -13243,28 +13802,274 @@ function obPaint() {
   obSays(obIntro());
   obRefresh();
 }
-/** A picture chosen or cropped: shown, and ticked off. */
+
+/** A picture chosen or cropped: shown, ticked off, and saved. */
 function obTakePic(src) {
   ob.avatar = src;
   $('obPic').src = src;
   obRefresh();
+  obQueueSave();
 }
-$('obForm').addEventListener('click', (e) => {
-  if (e.target.closest('[data-ob-back]')) {
-    if (ob.steps[ob.step] === 'services') ob.prof = { ...ob.prof, services: { ...(ob.prof.services || {}), ...readServices() } };
-    ob.step = Math.max(0, ob.step - 1);
+
+/**
+ * What this step can save, read from the form. `strict` is for Continue:
+ * every problem, said in words and pinned to its field. Otherwise (saving as
+ * they type) only what is whole so far goes: a half-typed number is not a
+ * worse number, it is not one yet, and the server would refuse it.
+ */
+function obPayload(strict) {
+  const f = $('obForm');
+  const step = ob.steps[ob.step];
+  const stylist = obIsStylist();
+  const errs = [];
+  if (step === 'details') {
+    const name = f.elements.name.value.trim();
+    const phone = f.elements.phone.value.trim();
+    const title = f.elements.title.value.trim();
+    const digits = phone.replace(/\D/g, '').length;
+    const phoneOk = stylist ? digits >= 10 : digits === 0 || digits >= 10;
+    if (strict) {
+      if (!name) errs.push({ el: f.elements.name, msg: 'Add your name.' });
+      if (!phoneOk) errs.push({ el: f.elements.phone, msg: stylist ? 'Add your mobile number, with the area code.' : 'That number looks short: include the area code.' });
+      if (stylist && !title) errs.push({ el: f.elements.title, msg: 'Add your title, the way guests should see it.' });
+    }
+    const body = { title };
+    if (name) body.name = name;
+    if (phoneOk) body.phone = phone;
+    // The picture only when it changed: it can be most of a request.
+    const avatar = ob.avatar || (strict ? charAvatar(name) : null);
+    if (avatar && avatar !== ob.prof.avatar) body.avatar = avatar;
+    return { errs, body: errs.length ? null : body };
+  }
+  if (step === 'services') {
+    for (const i of f.querySelectorAll('#memberSvcs input[type=number]:not(:disabled):not([data-of])')) {
+      if (i.value.trim() !== '' && !i.checkValidity()) {
+        errs.push({ el: i, msg: /price/.test(`${i.dataset.f} ${i.dataset.ownF}`) ? 'Prices are numbers of dollars, like 45 or 45.50.' : 'Minutes are a whole number from 5 to 720.' });
+        break;
+      }
+    }
+    if (strict && svcOwnEditing !== null) {
+      errs.push({ el: $('svcOwn').querySelector('[data-own-save]'), msg: 'Add or cancel the service you are writing first.' });
+    }
+    const services = { ...(ob.prof.services || {}), ...readServices() };
+    const own = readOwnServices();
+    if (strict && !errs.length && !obOffers(services, own)) {
+      errs.push({ el: f.querySelector('#memberSvcs .switch'), msg: 'Switch on at least one service you do, or add one of your own.' });
+    }
+    return { errs, body: errs.length ? null : { services, ownServices: own } };
+  }
+  if (step === 'hours') {
+    const bad = hoursProblem();
+    if (bad) errs.push({ el: bad.input, msg: bad.msg, shown: true });
+    const hours = readHoursUI();
+    if (strict && !bad && !hours.length) errs.push({ el: $('memberHours').querySelector('.switch'), msg: 'Switch on at least one day you work.' });
+    const lunch = $('memberLunch').querySelector('.switch').getAttribute('aria-checked') === 'true';
+    return { errs, body: errs.length ? null : { hours, services: { ...(ob.prof.services || {}), lunch } } };
+  }
+  return { errs, body: null };
+}
+
+/** What the server sent back after a save, into what this page knows. */
+function obMerge(out, body) {
+  const { job_title: title, ...rest } = out || {};
+  ob.prof = { ...ob.prof, ...rest, title: title ?? body?.title ?? ob.prof.title };
+  if (body?.hours) ob.prof.hours = body.hours;
+  if (body?.avatar) ob.prof.avatar = body.avatar;
+  if (out?.ownServices) {
+    ob.prof.ownServices = out.ownServices;
+    // New ones now have slugs: give them to the list being edited, by name,
+    // so the next save changes them rather than adding them again.
+    for (const x of svcOwn) {
+      if (x.slug) continue;
+      const saved = out.ownServices.find((s) => s.name.toLowerCase() === String(x.name).toLowerCase());
+      if (saved) x.slug = saved.slug;
+    }
+  }
+}
+
+/** Whatever is typed but not sent, kept in this page so Back or a step link loses nothing. */
+function obKeep() {
+  const f = $('obForm');
+  const step = ob.steps[ob.step];
+  if (step === 'details') for (const n of ['name', 'phone', 'title']) ob.prof[n] = f.elements[n].value.trim();
+  if (step === 'services') {
+    ob.prof.services = { ...(ob.prof.services || {}), ...readServices() };
+    ob.prof.ownServices = svcOwn.map((x) => ({ ...x }));
+  }
+  if (step === 'hours') {
+    ob.prof.hours = readHoursUI();
+    ob.prof.services = { ...(ob.prof.services || {}), lunch: $('memberLunch').querySelector('.switch').getAttribute('aria-checked') === 'true' };
+  }
+}
+
+let obTimer = null;
+let obSaving = Promise.resolve();
+function obSavedSay(text, kind = '') {
+  const el = $('obSaved');
+  if (!el) return;
+  el.textContent = text;
+  el.dataset.kind = kind;
+}
+/** Save a moment after the last keystroke, not on every one. */
+function obQueueSave() {
+  clearTimeout(obTimer);
+  obBackupWrite();
+  obTimer = setTimeout(obFlush, 900);
+}
+/**
+ * Save what can be saved now. Saves run one after another, and each reads
+ * the form when its turn comes: two in flight would both add a new service
+ * of their own, and the second would be refused as a duplicate.
+ */
+function obFlush() {
+  clearTimeout(obTimer);
+  const step = ob.steps[ob.step];
+  obSaving = obSaving.then(async () => {
+    if (ob.steps[ob.step] !== step || !$('obSaved')) return;
+    const { body } = obPayload(false);
+    if (!body) return;
+    obSavedSay('Saving…');
+    try {
+      const out = await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ ...body, onboardingStep: step }) });
+      obMerge(out, body);
+      obSavedSay('All changes saved', 'ok');
+    } catch (err) {
+      if (err.message !== 'signed out') obSavedSay(`Not saved yet: ${err.message}`, 'bad');
+    }
+  });
+  return obSaving;
+}
+
+/** Field messages: under each field, the field marked, the first one focused, and Karen says it. */
+function obClearErrs() {
+  for (const p of $('obForm').querySelectorAll('.ob-err:not(.own-err)')) p.remove();
+  for (const el of $('obForm').querySelectorAll('[aria-invalid]:not([data-of])')) el.removeAttribute('aria-invalid');
+  note($('obNote'), '');
+}
+/** A refusal at the top goes once they change something: the message by the field stays while it is still wrong. */
+function obClearNote() {
+  if ($('obNote').classList.contains('bad')) note($('obNote'), '');
+}
+function obShowErrs(errs) {
+  for (const { el, msg, shown } of errs) {
+    if (!el || shown) continue;
+    if (el.matches('input, select, textarea')) el.setAttribute('aria-invalid', 'true');
+    const host = el.closest('#obForm > label') || el.closest('.svc') || el.closest('.svc-own') || el.closest('.hr') || el;
+    host.insertAdjacentHTML('afterend', `<p class="ob-err" role="alert">${esc(msg)}</p>`);
+  }
+  note($('obNote'), errs[0].msg);
+  obSays(errs[0].msg);
+  errs[0].el?.focus();
+}
+function obBusy(btn, on) {
+  if (!btn) return;
+  if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+  btn.disabled = on;
+  btn.classList.toggle('busy', on);
+  btn.textContent = on ? 'Saving…' : btn.dataset.label;
+}
+
+/**
+ * Move to another step, saving this one and the step itself first. Forward
+ * (Continue) stops on a refusal; back, or to a step from the list, goes
+ * anyway (`lenient`), with what was typed kept in the page.
+ */
+async function obGo(to, { btn = null, body = null, lenient = false } = {}) {
+  clearTimeout(obTimer);
+  obBusy(btn, true);
+  try {
+    await obSaving;
+    const next = ob.steps[to];
+    try {
+      const out = await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ ...(body || {}), onboardingStep: next }) });
+      if (body) obMerge(out, body);
+    } catch (err) {
+      if (!lenient || err.message === 'signed out') throw err;
+    }
+    ob.step = to;
+    ob.furthest = Math.max(ob.furthest, to);
+    obBackupWrite();
     obPaint();
+    $('obTitle').focus?.();
+    window.scrollTo({ top: 0, behavior: obStill() ? 'auto' : 'smooth' });
+  } catch (err) {
+    if (err.message !== 'signed out') { note($('obNote'), err.message); obSays(err.message); }
+  } finally { if (btn?.isConnected) obBusy(btn, false); }
+}
+function obJump(to) {
+  if (to < 0 || to === ob.step || to > ob.furthest) return;
+  obKeep();
+  obGo(to, { body: obPayload(false).body, lenient: true });
+}
+
+/** The last step: the server checks it all again, and the app opens. */
+async function obFinish(btn) {
+  const miss = obMissing();
+  if (miss.length) {
+    note($('obNote'), miss[0].msg);
+    obSays(`One thing first: ${miss[0].msg}`);
+    $('obForm').querySelector(`[data-ob-sec="${miss[0].step}"] [data-ob-goto]`)?.focus();
     return;
   }
+  obBusy(btn, true);
+  try {
+    await obSaving;
+    await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ finishOnboarding: true }) });
+    obBackupClear();
+    obSays("You're all set! Opening the app now. You'll find me in my button.");
+    // The app opens and Karen flies back into her button (karenFlyHome).
+    try { sessionStorage.setItem('ss-karen-home', '1'); } catch { /* no fly, still fine */ }
+    setTimeout(() => location.reload(), 1800);
+  } catch (err) {
+    if (err.message !== 'signed out') { note($('obNote'), err.message); obSays(err.message); }
+    obBusy(btn, false);
+  }
+}
+
+/** Save & continue later: everything in, and where they are, then say so. */
+async function obLater(b) {
+  b.disabled = true;
+  obKeep();
+  clearTimeout(obTimer);
+  const step = ob.steps[ob.step];
+  try {
+    await obSaving;
+    const { body } = obPayload(false);
+    const out = await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ ...(body || {}), onboardingStep: step }) });
+    if (body) obMerge(out, body);
+    obBackupWrite();
+    const msg = `Saved! You can close this page. When you sign in again, you'll pick up right here, on ${OB_STEP_NAMES[step]}.`;
+    note($('obNote'), msg, 'good');
+    obSays(msg);
+    obSavedSay('All changes saved', 'ok');
+  } catch (err) {
+    if (err.message !== 'signed out') note($('obNote'), `That did not save: ${err.message}`);
+  } finally { if (b.isConnected) b.disabled = false; }
+}
+
+$('obPath').addEventListener('click', (e) => {
+  const go = e.target.closest('[data-ob-goto]');
+  if (go) obJump(ob.steps.indexOf(go.dataset.obGoto));
+});
+$('obForm').addEventListener('click', (e) => {
+  if (e.target.closest('[data-ob-back]')) { obJump(ob.step - 1); return; }
+  const go = e.target.closest('[data-ob-goto]');
+  if (go) { obJump(ob.steps.indexOf(go.dataset.obGoto)); return; }
+  const later = e.target.closest('[data-ob-later]');
+  if (later) { obLater(later); return; }
   const pic = e.target.closest('[data-ob-pic]');
   if (pic) {
     const src = $('obPic').src;
     openPicFor(obTakePic, src, { upload: pic.dataset.obPic === 'upload', avatars: pic.dataset.obPic === 'avatars' });
     return;
   }
-  // The services control does its own switching and folding; Karen's
-  // checklist and ring follow it.
-  if (e.target.closest('#memberSvcs')) { obRefresh(); return; }
+  // The services and hours controls do their own switching; Karen's
+  // checklist and ring follow them, and what changed is saved.
+  if (e.target.closest('#memberSvcs, #memberHoursWrap')) {
+    obRefresh();
+    if (e.target.closest('.switch, [data-hr-del], [data-hr-add], .svc-tick')) obQueueSave();
+    return;
+  }
   const g = e.target.closest('[data-ob-google]');
   if (g) {
     connectGoogle(g);
@@ -13272,21 +14077,42 @@ $('obForm').addEventListener('click', (e) => {
     const again = setInterval(async () => {
       try {
         const fresh = await api('/api/staff/profile');
-        if (fresh.google?.connected) { clearInterval(again); ob.prof = fresh; obPaint(); }
+        if (fresh.google?.connected) { clearInterval(again); ob.prof = { ...ob.prof, google: fresh.google }; obPaint(); }
       } catch { clearInterval(again); }
     }, 2500);
     setTimeout(() => clearInterval(again), 120000);
   }
 });
 $('obForm').addEventListener('input', (e) => {
-  if (e.target.name === 'phone') e.target.value = usPhone(e.target.value);
+  // Formatted as typed with the caret kept in place, and a deletion left
+  // alone (phoneAsTyped): formatting the whole value on every keystroke put
+  // the caret at the end and put a deleted bracket straight back.
+  if (e.target.name === 'phone') phoneAsTyped(e);
   if (e.target.name === 'name' && !ob.avatar) $('obPic').src = charAvatar(e.target.value || 'new');
+  if (e.target.getAttribute('aria-invalid') && !e.target.dataset.of) {
+    e.target.removeAttribute('aria-invalid');
+    const host = e.target.closest('#obForm > label');
+    if (host?.nextElementSibling?.classList.contains('ob-err')) host.nextElementSibling.remove();
+  }
+  obClearNote();
   obRefresh();
+  if (!e.target.closest('[data-own-form]')) obQueueSave();
 });
+// A tick, a time picked, a service of their own added or removed.
+$('obForm').addEventListener('change', (e) => {
+  if (e.target.closest('[data-own-form]')) return;
+  obClearNote();
+  obRefresh();
+  obQueueSave();
+});
+$('obForm').addEventListener('blur', (e) => {
+  if (e.target.name === 'phone') e.target.value = usPhone(e.target.value);
+}, true);
 // The field in use: Karen talks about it, and her tip on a phone moves to it.
 $('obForm').addEventListener('focusin', (e) => {
   const f = e.target;
   const key = f.name || (f.dataset.f === 'price' ? 'price' : f.dataset.f === 'duration' ? 'minutes' : null)
+    || (f.type === 'time' ? 'times' : f.closest('#memberHours .switch') ? 'days' : null)
     || (f.closest('.ob-pic') ? 'pic' : f.closest('[data-ob-google]') ? 'google' : null);
   if (!key || key === obFocusKey) return;
   obFocusKey = key;
@@ -13301,52 +14127,16 @@ $('obForm').addEventListener('focusout', () => {
 });
 $('obForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const f = e.target;
   const step = ob.steps[ob.step];
-  const btn = f.querySelector('.ob-acts .btn:not(.quiet)');
-  btn.disabled = true;
-  // A refusal below: Karen says it too, and rings the field.
-  const stop = (msg, input) => { note($('obNote'), msg); obSays(msg); input?.focus(); };
-  try {
-    if (step === 'details') {
-      const name = f.elements.name.value.trim();
-      const phone = f.elements.phone.value.trim();
-      const title = f.elements.title.value.trim();
-      if (!name) { stop('Add your name first.', f.elements.name); return; }
-      if (ob.prof.role === 'stylist' && phone.replace(/\D/g, '').length < 10) {
-        stop('I need your mobile number, with the area code.', f.elements.phone); return;
-      }
-      if (ob.prof.role === 'stylist' && !title) { stop('Add your title, the way guests should see it.', f.elements.title); return; }
-      // The picture shown is the one kept, chosen or not (as when the owner adds somebody).
-      const avatar = ob.avatar || charAvatar(name);
-      // Services typed on step 2 before coming Back are kept, not replaced by
-      // the stored ones this answer carries.
-      const kept = ob.prof.services;
-      ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ name, phone, avatar, title }) })), title };
-      if (kept) ob.prof.services = kept;
-      ob.avatar = avatar;
-    } else if (step === 'services') {
-      // The Team window's own reading of the control: kinds, prices, lengths,
-      // Color's parts and each service ticked or not, with its minutes.
-      const services = { ...(ob.prof.services || {}), ...readServices() };
-      for (const row of f.querySelectorAll('#memberSvcs .svc')) {
-        for (const i of row.querySelectorAll('input[type=number]:not(:disabled)')) {
-          if (i.value.trim() !== '' && !i.checkValidity()) { stop(i.dataset.f === 'price' ? 'Prices are numbers of dollars.' : 'Minutes are a whole number from 5 to 720.', i); return; }
-        }
-      }
-      if (!SERVICE_KINDS.some(([k]) => services[k]?.on)) { stop('Switch on at least one service you do.', f.querySelector('#memberSvcs .switch')); return; }
-      ob.prof = { ...ob.prof, ...(await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ services }) })) };
-    }
-    if (ob.step < ob.steps.length - 1) { ob.step += 1; obPaint(); return; }
-    await api('/api/staff/profile', { method: 'PATCH', body: JSON.stringify({ finishOnboarding: true }) });
-    obSays("You're all set! Opening the app now. You'll find me in my button.");
-    // The app opens and Karen flies back into her button (karenFlyHome).
-    try { sessionStorage.setItem('ss-karen-home', '1'); } catch { /* no fly, still fine */ }
-    setTimeout(() => location.reload(), 1800);
-  } catch (err) {
-    if (err.message !== 'signed out') { note($('obNote'), err.message); obSays(err.message); }
-  } finally { if (btn.isConnected) btn.disabled = false; }
+  const btn = e.target.querySelector('.ob-acts .btn:not(.quiet)');
+  obClearErrs();
+  if (step === 'review') { obFinish(btn); return; }
+  const { errs, body } = obPayload(true);
+  if (errs.length) { obShowErrs(errs); return; }
+  await obGo(ob.step + 1, { btn, body });
 });
+// Leaving with a save still waiting: send it now, so a closed tab keeps it.
+addEventListener('pagehide', () => { if (!$('onboard').classList.contains('hidden')) obFlush(); });
 $('obSignOut').onclick = async (e) => {
   e.preventDefault();
   await fetch('/api/staff/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});

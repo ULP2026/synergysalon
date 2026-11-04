@@ -1440,11 +1440,58 @@ made that way are real: name them ZZ and remove them.
   also in ensure-schema, copied to their chair's `title` for the website;
   required for a stylist), Step 2
   for a stylist their services, prices and minutes (at least one on),
-  then Connect your calendar or Skip for now and finish. Each step saves
-  through `PATCH /api/staff/profile`; the last sends
-  `{finishOnboarding: true}`, accepted only once a name and a stylist's
-  mobile are stored. Their hours are not asked there: they set them in My
-  Settings once in. On finish the app reloads and Karen flies from the
+  then their hours, Connect your calendar (optional, "Skip for now") and
+  Review & Finish.
+  **Reworked 2026-11-04** (on request): a stylist has five steps, About
+  you, Services & Pricing, Hours & Availability, Calendar, Review & Finish;
+  anyone else About you, Calendar, Review. Everything saves as it is
+  typed (`obQueueSave`/`obFlush`, 0.9 s after the last keystroke, one save
+  at a time and each reading the form when its turn comes, or two would
+  both add the same new service), with "Saving…"/"All changes saved" under
+  the buttons (`#obSaved`) and **Save & continue later**. The step they are
+  on is saved too, `staff_users.onboarding_step` (migration 044, also in
+  ensure-schema; `onboardingStep` on `/profile`, cleared on finish), so a
+  reload, a closed tab or signing in again resumes there; it used to start
+  at step 1 every time. A copy of About you and the step sits in
+  `localStorage` (`ss-ob-<email>`) only as a backup for what the server
+  does not have. Steps already reached reopen from Karen's list and from
+  Edit on the review; Back and a jump keep what was typed (`obKeep`) even
+  if it cannot be saved yet. Continue checks the step and puts each
+  message under its field (`.ob-err`, `aria-invalid`). The Hours step is
+  My Settings' own hours control (`#memberHoursWrap`, moved in and home
+  like the services); the stylist sets their own hours and the owner sees
+  and changes them in Team, as decided on 2026-10-15. The server now
+  refuses `finishOnboarding` for a stylist until their chair offers a
+  service and has hours (`ONBOARDING_SERVICES`, `ONBOARDING_HOURS`), on top
+  of name and mobile. "Fields that cannot be filled" was never reproduced;
+  the likeliest cause was greyed boxes: a kind's Price and Minutes are
+  disabled until its switch is on, and tapping one did nothing. Now the tap
+  switches the kind on (a day's times likewise), the role box says it is
+  set by the owner, and the phone box formats with `phoneAsTyped` (it used
+  `usPhone` on every keystroke, which put the caret at the end and a
+  deleted bracket straight back).
+  **Hours take up to three time slots a day** everywhere the control is
+  (onboarding, My Settings, Team): "Add hours", a remove button, and a
+  message on the day for an empty, backwards or overlapping slot
+  (`dayProblem`, `hoursProblem`); the server always took several
+  (`readHours`, roster.js).
+  **A stylist's own services** (2026-11-04): "Add a service" under the four
+  kinds, in onboarding and My Settings: name, kind, optional description,
+  price and minutes (both required), on or off. They are rows in
+  `services` with `owner_staff_id` (migration 045, also in ensure-schema,
+  no foreign key on purpose) and an `own-<id>-<name>` slug, and their
+  on/minutes/price live in the stylist's `services.items` like every other
+  figure (`ownPrice` in timing.js now reads an item's price first).
+  `serviceIdsFor` in roster.js offers one only with its owner, whatever
+  kinds anybody else has on, and whether or not the owner's own kind is
+  on. A name already on the salon's list or theirs is refused. Dropping
+  one, or removing the stylist from the team, switches it off rather than
+  deleting it (appointments point at it). `/me` lists them with `owner`
+  (the owner sees everyone's, anyone else only their own); the Team window
+  shows them as "Their own services" (switch, price, minutes; no add).
+  `tests/onboarding-progress.integration.test.js` covers the step and the
+  services. The onboarding text is not translated for the Spanish setting
+  yet. On finish the app reloads and Karen flies from the
   middle of the screen into her Call Karen button (`karenFlyHome`, through
   `sessionStorage` `ss-karen-home`; a toast alone for reduced motion). The
   setup link is emailed and, since 2026-11-03, texted from Karen's number

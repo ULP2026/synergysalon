@@ -96,15 +96,26 @@ async function freeSlug(client, tenantId, wanted, stylistId) {
  * on, less any they unticked inside a kind (services.items, 2026-11-02). A
  * service with no entry is offered, so a kind switched on before the list
  * existed still offers everything in it.
+ *
+ * Plus their own services (045, 2026-11-04), whichever kind they are in:
+ * each has its own switch, so it is offered while that is on. Somebody
+ * else's own service is never theirs, however their kinds are set; that is
+ * the whole difference between one and the salon's list. owner_staff_id is
+ * read through to_jsonb so this still runs before 045.
  */
-async function serviceIdsFor(client, tenantId, kinds, items = {}) {
-  if (!kinds.length) return [];
+async function serviceIdsFor(client, tenantId, kinds, items = {}, ownerId = null) {
   const { rows } = await client.query(
-    `SELECT id, slug FROM services
-      WHERE tenant_id = $1 AND active AND category = ANY($2::text[])`,
-    [tenantId, kinds],
+    `SELECT id, slug, category, to_jsonb(v) ->> 'owner_staff_id' AS owner
+       FROM services v
+      WHERE tenant_id = $1 AND active
+        AND (category = ANY($2::text[]) OR (to_jsonb(v) ->> 'owner_staff_id') = $3::text)`,
+    [tenantId, kinds, ownerId],
   );
-  return rows.filter((r) => items?.[r.slug]?.on !== false).map((r) => r.id);
+  return rows.filter((r) => {
+    if (items?.[r.slug]?.on === false) return false;
+    if (r.owner) return r.owner === ownerId;
+    return kinds.includes(r.category);
+  }).map((r) => r.id);
 }
 
 /**
@@ -118,7 +129,10 @@ async function serviceIdsFor(client, tenantId, kinds, items = {}) {
  */
 export async function syncStylist(client, tenantId, user, { services, hours, title } = {}) {
   const kinds = SERVICE_KINDS.filter((k) => services?.[k]?.on);
-  const takesAppointments = kinds.length > 0;
+  const ids = await serviceIdsFor(client, tenantId, kinds, services?.items, user.id);
+  // A kind switched on, or a service of their own that is on: either puts
+  // them on the booking page.
+  const takesAppointments = kinds.length > 0 || ids.length > 0;
 
   const { rows: found } = await client.query(
     'SELECT id, slug, active FROM stylists WHERE tenant_id = $1 AND staff_user_id = $2',
@@ -155,7 +169,6 @@ export async function syncStylist(client, tenantId, user, { services, hours, tit
 
   // Services: replace wholesale. Working out the difference would save two
   // statements and cost the certainty that the table says what the switches say.
-  const ids = await serviceIdsFor(client, tenantId, kinds, services?.items);
   await client.query('DELETE FROM stylist_services WHERE stylist_id = $1', [stylist.id]);
   if (ids.length) {
     await client.query(

@@ -140,6 +140,129 @@ function partsFrom(p, label) {
 
 const total = (p) => (p.start != null && p.finish != null ? p.start + (p.break || 0) + p.finish : null);
 
+/** Dollars and cents, or null for none. */
+function priceFrom(v) {
+  if (v === '' || v == null) return null;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0 || n > 10000) throw new HttpError(400, 'A price is a number of dollars, up to 10,000.');
+  return Math.round(n * 100) / 100;
+}
+
+/** The onboarding steps, in order; the one somebody is on is kept (044). */
+export const ONBOARDING_STEPS = ['details', 'services', 'hours', 'calendar', 'review'];
+
+/**
+ * A stylist's own services (asked for 2026-11-04), cleaned: a name, which
+ * kind it is, an optional description, a price, how long it takes, and
+ * whether it is offered. `slug` names one already saved; without it, it is
+ * new. The price and minutes are required here, unlike the salon's list:
+ * nothing else times or prices a service only one person does.
+ */
+export function ownServicesFrom(value) {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new HttpError(400, 'Those services are not valid.');
+  if (value.length > 30) throw new HttpError(400, 'That is more services than one person can add.');
+  return value.map((v) => {
+    const name = String(v?.name ?? '').trim().replace(/\s+/g, ' ');
+    if (name.length < 2 || name.length > 80) throw new HttpError(400, 'A service needs a name of 2 to 80 characters.');
+    if (!SERVICE_KINDS.includes(v?.category)) throw new HttpError(400, `Choose which kind of work ${name} is.`);
+    const price = priceFrom(v?.price);
+    if (price == null) throw new HttpError(400, `Add a price for ${name}.`);
+    const duration = minutesFrom(v?.duration, 5, 720, `${name}'s length`);
+    if (duration == null) throw new HttpError(400, `Add how many minutes ${name} takes.`);
+    const slug = typeof v?.slug === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(v.slug) ? v.slug : null;
+    return {
+      slug, name, category: v.category, price, duration, on: v?.on !== false,
+      description: String(v?.description ?? '').trim().slice(0, 300),
+    };
+  });
+}
+
+const slugOf = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'service';
+
+/**
+ * Write a stylist's own services to the salon's services table, offered only
+ * with them (owner_staff_id), and say what each one's slug is. One left out
+ * of the list is switched off, not deleted: appointments point at it. A name
+ * the salon's list or their own already has is refused, because two
+ * services called Haircut is a choice nobody booking can make.
+ */
+async function saveOwnServices(client, tenantId, userId, list) {
+  const { rows: mine } = await client.query(
+    'SELECT id, slug FROM services WHERE tenant_id = $1 AND owner_staff_id = $2',
+    [tenantId, userId],
+  );
+  const bySlug = new Map(mine.map((r) => [r.slug, r]));
+  const seen = new Set();
+  const kept = [];
+  for (const svc of list) {
+    const key = svc.name.toLowerCase();
+    if (seen.has(key)) throw new HttpError(409, `${svc.name} is in your list twice.`);
+    seen.add(key);
+    const own = svc.slug && bySlug.get(svc.slug);
+    const { rows: clash } = await client.query(
+      `SELECT 1 FROM services
+        WHERE tenant_id = $1 AND active AND lower(name) = $2
+          AND (owner_staff_id IS NULL OR owner_staff_id = $3) AND id <> $4`,
+      [tenantId, key, userId, own?.id ?? '00000000-0000-0000-0000-000000000000'],
+    );
+    if (clash[0]) {
+      throw new HttpError(409, `There is already a service called ${svc.name}. If it is on the salon's list, tick it there instead.`);
+    }
+    if (own) {
+      await client.query(
+        `UPDATE services SET name = $2, category = $3, blurb = $4, duration_min = $5, active = true
+          WHERE id = $1`,
+        [own.id, svc.name, svc.category, svc.description, svc.duration],
+      );
+      kept.push({ ...svc, slug: own.slug });
+      continue;
+    }
+    // A slug of its own, never one the website's links use: "own-" and a
+    // piece of their id keep it apart from the salon's list.
+    const base = `own-${String(userId).slice(0, 6)}-${slugOf(svc.name)}`;
+    let slug = base;
+    for (let n = 2; n < 50; n += 1) {
+      const { rows } = await client.query('SELECT 1 FROM services WHERE tenant_id = $1 AND slug = $2', [tenantId, slug]);
+      if (!rows[0]) break;
+      slug = `${base}-${n}`;
+    }
+    // price_cents stays empty as on the salon's list: the stylist's price is
+    // in their services object, which is where every stylist's price lives.
+    await client.query(
+      `INSERT INTO services (tenant_id, slug, name, category, blurb, duration_min, owner_staff_id, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7,
+               COALESCE((SELECT MAX(sort_order) + 1 FROM services WHERE tenant_id = $1), 0))`,
+      [tenantId, slug, svc.name, svc.category, svc.description, svc.duration, userId],
+    );
+    kept.push({ ...svc, slug });
+  }
+  const keep = kept.map((k) => k.slug);
+  await client.query(
+    `UPDATE services SET active = false
+      WHERE tenant_id = $1 AND owner_staff_id = $2 AND active AND NOT (slug = ANY($3::text[]))`,
+    [tenantId, userId, keep],
+  );
+  return { kept, dropped: mine.map((r) => r.slug).filter((sl) => !keep.includes(sl)) };
+}
+
+/** Their own services as saved, for the form to show back. */
+async function ownServicesOf(tenantId, userId, services) {
+  if (!await hasColumn('services', 'owner_staff_id')) return [];
+  const { rows } = await query(
+    `SELECT slug, name, category, blurb, duration_min FROM services
+      WHERE tenant_id = $1 AND owner_staff_id = $2 AND active ORDER BY sort_order`,
+    [tenantId, userId],
+  );
+  return rows.map((r) => {
+    const it = services?.items?.[r.slug] || {};
+    return {
+      slug: r.slug, name: r.name, category: r.category, description: r.blurb || '',
+      duration: it.duration ?? r.duration_min, price: it.price ?? null, on: it.on !== false,
+    };
+  });
+}
+
 /**
  * A stylist's services and prices, cleaned: only the four known kinds, each
  * on or off, with a price in dollars and a length in minutes, and one set of
@@ -201,7 +324,12 @@ export function servicesFrom(value) {
   const srcItems = src.items && typeof src.items === 'object' && !Array.isArray(src.items) ? src.items : {};
   for (const [slug, v] of Object.entries(srcItems).slice(0, 300)) {
     if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug) || !v || typeof v !== 'object') continue;
-    items[slug] = { on: v.on !== false, duration: minutesFrom(v.duration, 5, 720, 'A service duration') };
+    const item = { on: v.on !== false, duration: minutesFrom(v.duration, 5, 720, 'A service duration') };
+    // A price of its own: a stylist's own services (045) carry one, since
+    // nothing else prices them. Beats the kind's price (timing.js, ownPrice).
+    const price = priceFrom(v.price);
+    if (price != null) item.price = price;
+    items[slug] = item;
   }
   out.items = items;
   // The flexible lunch (timing.js): on unless switched off.
@@ -230,7 +358,8 @@ export default handler({
               -- says otherwise. Through to_jsonb, as everywhere else.
               to_jsonb(u) ->> 'google_email' AS google_email,
               to_jsonb(u) ->> 'google_connected_at' AS google_connected_at,
-              to_jsonb(u) ->> 'google_ics' AS google_ics
+              to_jsonb(u) ->> 'google_ics' AS google_ics,
+              to_jsonb(u) ->> 'onboarding_step' AS onboarding_step
          FROM staff_users u WHERE id = $1`,
       [user.id],
     );
@@ -249,6 +378,7 @@ export default handler({
       username: me.username || '',
       pricing: me.pricing || '',
       services: me.services || {},
+      ownServices: await ownServicesOf(user.tenant_id, user.id, me.services),
       avatarStyle: me.avatar_style || null,
       title: me.job_title || '',
       photo: me.photo || (me.stylist_slug ? stylistPhoto(me.tenant_slug, me.stylist_slug) : null),
@@ -261,6 +391,8 @@ export default handler({
       lastSeen: me.last_seen_at,
       minPasswordLength: MIN_PASSWORD_LENGTH,
       onboarding: needsOnboarding(user),
+      // Where they stopped, so a reload or signing in again picks up there.
+      onboardingStep: needsOnboarding(user) && ONBOARDING_STEPS.includes(me.onboarding_step) ? me.onboarding_step : null,
       google: (() => { try { return googleStatus(me); } catch { return undefined; } })(),
     });
   },
@@ -312,8 +444,26 @@ export default handler({
     // service off they are simply not on the booking page (syncStylist).
     // Their lunch break goes with their hours, which they set themselves
     // now (My Settings), so it is saved as sent.
-    const services = servicesFrom(body.services);
+    let services = servicesFrom(body.services);
+    // Their own services (045) go into the salon's table, offered only with
+    // them, and their on, minutes and price into their services object,
+    // where everybody's prices and minutes already live.
+    const own = ownServicesFrom(body.ownServices);
+    if (own !== undefined && await hasColumn('services', 'owner_staff_id')) {
+      const { kept, dropped } = await transaction((client) => saveOwnServices(client, user.tenant_id, user.id, own));
+      if (services === undefined) {
+        const { rows: cur } = await query('SELECT services FROM staff_users WHERE id = $1', [user.id]);
+        services = servicesFrom(cur[0]?.services || {});
+      }
+      for (const slug of dropped) delete services.items[slug];
+      for (const k of kept) services.items[k.slug] = { on: k.on, duration: k.duration, price: k.price };
+    }
     if (services !== undefined) add('services', JSON.stringify(services));
+    // The onboarding step they are on (044), saved as they move between steps.
+    if (body.onboardingStep !== undefined && needsOnboarding(user)
+        && ONBOARDING_STEPS.includes(body.onboardingStep) && await hasColumn('staff_users', 'onboarding_step')) {
+      add('onboarding_step', body.onboardingStep);
+    }
     if (body.pricing !== undefined && CAN_PRICE.includes(user.role)) {
       add('pricing', String(body.pricing || '').trim().slice(0, 120));
     }
@@ -358,7 +508,7 @@ export default handler({
     // The same as team.js does for somebody else: your services and hours are
     // what make you bookable, so the diary follows the row as saved. Before
     // this, your own window sent hours here and they were thrown away.
-    if (body.services !== undefined || hours || body.name !== undefined || body.username !== undefined || title !== undefined) {
+    if (services !== undefined || hours || body.name !== undefined || body.username !== undefined || title !== undefined) {
       await transaction((client) => syncStylist(client, user.tenant_id, rows[0], {
         services: rows[0].services, hours, title: rows[0].job_title ?? undefined,
       }));
@@ -367,11 +517,30 @@ export default handler({
       const done = rows[0];
       if (!String(done.name || '').trim()) throw new HttpError(400, 'Add your name first.');
       assertStylistPhone(done.role, done.phone);
+      // A stylist finishes once they can be booked (2026-11-04): something
+      // offered and some hours to offer it in. Anything less opens the app
+      // to somebody guests cannot book, which reads as working and is not.
+      if (done.role === 'stylist') {
+        const { rows: ready } = await query(
+          `SELECT EXISTS (SELECT 1 FROM stylist_services x WHERE x.stylist_id = s.id) AS offers,
+                  EXISTS (SELECT 1 FROM stylist_hours h WHERE h.stylist_id = s.id) AS hours
+             FROM stylists s WHERE s.tenant_id = $1 AND s.staff_user_id = $2 AND s.active`,
+          [user.tenant_id, user.id],
+        );
+        if (!ready[0]?.offers) throw new HttpError(400, 'Switch on at least one service you do.', 'ONBOARDING_SERVICES');
+        if (!ready[0]?.hours) throw new HttpError(400, 'Add the hours you are available, on at least one day.', 'ONBOARDING_HOURS');
+      }
       if (await hasColumn('staff_users', 'onboarded_at')) {
         await query('UPDATE staff_users SET onboarded_at = now() WHERE id = $1 AND onboarded_at IS NULL', [user.id]);
       }
+      if (await hasColumn('staff_users', 'onboarding_step')) {
+        await query('UPDATE staff_users SET onboarding_step = NULL WHERE id = $1', [user.id]);
+      }
     }
     const { id, ...out } = rows[0];
-    return json(res, 200, { ...out, saved: true, ...(finishing ? { onboarded: true } : {}) });
+    // Their own services as saved, when they sent some: new ones have slugs
+    // now, and the page needs them so the next save does not add them again.
+    const ownBack = own !== undefined ? { ownServices: await ownServicesOf(user.tenant_id, user.id, rows[0].services) } : {};
+    return json(res, 200, { ...out, ...ownBack, saved: true, ...(finishing ? { onboarded: true } : {}) });
   },
 });

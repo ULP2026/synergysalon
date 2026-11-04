@@ -115,6 +115,15 @@ test('a new stylist sets up their account first, then sees only their own chair'
     const early = await call(profile, n, 'PATCH', '/api/staff/profile', { finishOnboarding: true });
     assert.equal(early.status, 400);
     assert.equal((await call(profile, n, 'PATCH', '/api/staff/profile', { phone: '(813) 555-0144' })).status, 200);
+    // Nor until a guest could book them (2026-11-04): a service, then hours.
+    const noSvc = await call(profile, n, 'PATCH', '/api/staff/profile', { finishOnboarding: true });
+    assert.equal(noSvc.body.code, 'ONBOARDING_SERVICES');
+    assert.equal((await call(profile, n, 'PATCH', '/api/staff/profile', { services: { cuts: { on: true } } })).status, 200);
+    const noHours = await call(profile, n, 'PATCH', '/api/staff/profile', { finishOnboarding: true });
+    assert.equal(noHours.body.code, 'ONBOARDING_HOURS');
+    assert.equal((await call(profile, n, 'PATCH', '/api/staff/profile', {
+      hours: [{ weekday: 2, starts: '09:00', ends: '17:00' }],
+    })).status, 200);
     const done = await call(profile, n, 'PATCH', '/api/staff/profile', { finishOnboarding: true });
     assert.equal(done.status, 200);
     assert.equal(done.body.onboarded, true);

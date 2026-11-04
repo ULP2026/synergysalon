@@ -369,6 +369,20 @@ export default handler({
                 WHERE staff_user_id = $1::uuid AND tenant_id = $2::uuid`,
               [target.id, tenant.id],
             );
+            // Their own services (045) go off with them: nobody else does
+            // them, and with no owner left they must not become the salon's.
+            // Kept, not deleted, because appointments point at them.
+            await client.query('SAVEPOINT own');
+            try {
+              await client.query(
+                `UPDATE services SET active = false
+                  WHERE owner_staff_id = $1::uuid AND tenant_id = $2::uuid`,
+                [target.id, tenant.id],
+              );
+              await client.query('RELEASE SAVEPOINT own');
+            } catch {
+              await client.query('ROLLBACK TO SAVEPOINT own');   // before 045: nothing of theirs to switch off
+            }
             await client.query(
               'DELETE FROM staff_users WHERE id = $1::uuid AND tenant_id = $2::uuid',
               [target.id, tenant.id],

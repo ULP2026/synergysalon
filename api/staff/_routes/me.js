@@ -30,9 +30,16 @@ export default handler({
     const canManage = canManageTeam(user);
     const [services, stylists, pending, own, team] = await Promise.all([
       query(
-        `SELECT slug, name, category, duration_min, price_cents, consult_first
-           FROM services WHERE tenant_id = $1 AND active ORDER BY sort_order`,
-        [tenant.id],
+        // A stylist's own services (045) come with whose they are, so each
+        // person's window lists theirs and nobody else's. The owner gets
+        // everyone's; anyone else the salon's list and their own.
+        `SELECT slug, name, category, duration_min, price_cents, consult_first,
+                to_jsonb(v) ->> 'owner_staff_id' AS owner
+           FROM services v WHERE tenant_id = $1 AND active
+            AND ($2::boolean OR (to_jsonb(v) ->> 'owner_staff_id') IS NULL
+                 OR (to_jsonb(v) ->> 'owner_staff_id') = $3::text)
+          ORDER BY sort_order`,
+        [tenant.id, canManage, user.id],
       ),
       // The photo is the linked login's picture, so a stylist who changes it
       // in the team modal changes it on the day view's column too.
@@ -104,6 +111,7 @@ export default handler({
         durationMin: s.duration_min,
         price: s.price_cents == null ? null : s.price_cents / 100,
         consultFirst: s.consult_first,
+        ...(s.owner ? { owner: s.owner } : {}),
       })),
       // A real picture first: an uploaded photo, then the salon's portrait of
       // the stylist, and a chosen avatar only when there is neither.

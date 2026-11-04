@@ -268,6 +268,11 @@ const STATEMENTS = [
   'ALTER TABLE staff_users ALTER COLUMN onboarded_at DROP DEFAULT',
   // 043: a team member's job title, asked at onboarding. Additive.
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS job_title text',
+  // 044: the onboarding step somebody stopped at. Additive.
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS onboarding_step text',
+  // 045: a service of one stylist's own, offered only with them. Additive.
+  'ALTER TABLE services ADD COLUMN IF NOT EXISTS owner_staff_id uuid',
+  'CREATE INDEX IF NOT EXISTS services_by_owner ON services (tenant_id, owner_staff_id) WHERE owner_staff_id IS NOT NULL',
 ];
 
 let done = null;
