@@ -13979,6 +13979,7 @@ const OB_STEP_NAMES = {
 const OB_PATH_NAMES = { ...OB_STEP_NAMES, calendar: 'Calendar (optional)' };
 const obIsStylist = () => ob.prof?.role === 'stylist';
 /** A photo of their own, uploaded and cropped: a data: URI, not a drawn default or an avatar file. */
+const OB_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const obHasPhoto = () => String(ob.avatar || '').startsWith('data:');
 
 /** This browser's copy of About you and the step, keyed by who is signed in. */
@@ -13990,7 +13991,7 @@ function obBackupWrite() {
   try {
     const d = { ...(obBackupRead() || {}), step: ob.steps[ob.step] };
     const f = $('obForm');
-    if (ob.steps[ob.step] === 'details') for (const n of ['name', 'phone']) if (f.elements[n]) d[n] = f.elements[n].value;
+    if (ob.steps[ob.step] === 'details') for (const n of ['name', 'email', 'phone']) if (f.elements[n]) d[n] = f.elements[n].value;
     localStorage.setItem(obKey(), JSON.stringify(d));
   } catch { /* a private window: the server's copy is the one that counts */ }
 }
@@ -14009,7 +14010,7 @@ async function showOnboarding() {
   ob.steps = obIsStylist() ? ['details', 'services', 'hours', 'calendar', 'review'] : ['details', 'calendar', 'review'];
   ob.avatar = ob.prof.avatar || null;
   const kept = obBackupRead();
-  if (kept) for (const k of ['name', 'phone']) if (!ob.prof[k] && kept[k]) ob.prof[k] = kept[k];
+  if (kept) for (const k of ['name', 'email', 'phone']) if (!ob.prof[k] && kept[k]) ob.prof[k] = kept[k];
   // Back where they stopped: the account's step, else this browser's.
   ob.step = Math.max(0, ob.steps.indexOf(ob.prof.onboardingStep || kept?.step));
   ob.furthest = ob.step;
@@ -14065,6 +14066,7 @@ function obMissing() {
   const p = ob.prof;
   const out = [];
   if (!String(p.name || '').trim()) out.push({ step: 'details', msg: 'Add your name, on About you.' });
+  if (!OB_EMAIL.test(String(p.email || ''))) out.push({ step: 'details', msg: 'Add your email, on About you.' });
   if (obIsStylist()) {
     if (String(p.phone || '').replace(/\D/g, '').length < 10) out.push({ step: 'details', msg: 'Add your mobile number, on About you.' });
     if (!obOffers(p.services, p.ownServices)) out.push({ step: 'services', msg: 'Switch on at least one service you do, on Services & Pricing.' });
@@ -14094,6 +14096,8 @@ function obGuide() {
         tip: 'Upload a photo of yourself and drag it so your face sits in the circle. Clients and the team see it wherever you appear.' },
       { key: 'name', label: 'Your name', done: Boolean(val('name')), el: field('name'),
         tip: 'Your name, the way clients and the team know you.' },
+      { key: 'email', label: 'Your email', done: OB_EMAIL.test(val('email')), el: field('email'),
+        tip: "Your email, filled in from your invitation. It's what you sign in with, and where the salon's app emails you." },
       { key: 'phone', label: 'Your mobile number', opt: !stylist, done: val('phone').replace(/\D/g, '').length >= 10, el: field('phone'),
         tip: stylist ? "Your mobile, with the area code. When you text me from it, I'll know it's you." : "Your mobile, if you'd like to text me. I'll know it's you." },
     ];
@@ -14150,7 +14154,7 @@ function obIntro() {
   const step = ob.steps[ob.step];
   if (step === 'details') {
     return `Hi${first ? ` ${first}` : ''}! I'm Karen, the assistant here at ${salon}, and I'll set you up in ${ob.steps.length} quick steps. `
-      + "First, add a photo of yourself and your mobile number. I save as you type, so you can stop and come back any time.";
+      + "First, add a photo of yourself, check your email and add your mobile number. I save as you type, so you can stop and come back any time.";
   }
   if (step === 'services') {
     return `Lovely to meet you${first ? `, ${first}` : ''}! Now switch on the work you do. Each kind opens to its services: give each one you do its own price, and untick any you don't. Something not on the list? Add it as your own service at the bottom.`;
@@ -14231,6 +14235,7 @@ function obReviewHtml() {
   const pic = ob.avatar || charAvatar(p.name || p.email || 'new');
   let html = sec('details', 'About you', `<div class="ob-rv-me"><img src="${esc(pic)}" alt=""><dl>
       ${row('Name', p.name ? esc(p.name) : 'Missing', missing('your name'))}
+      ${row('Email', p.email ? esc(p.email) : 'Missing', missing('email'))}
       ${row('Mobile', p.phone ? esc(showPhone(p.phone)) : (stylist ? 'Missing' : 'Not given'), missing('mobile'))}
       ${row('Role', esc(ROLE_LABEL[p.role] || p.role || ''))}
     </dl></div>`);
@@ -14316,6 +14321,8 @@ function obPaint() {
             <button type="button" class="btn sm" data-ob-pic="upload"><svg class="ic"><use href="#i-camera"/></svg>${obHasPhoto() ? 'Change photo' : 'Upload a photo'}</button>
           </div></div></div>
       <label><span>Your name</span><input name="name" value="${esc(p.name || '')}" autocomplete="name" required maxlength="120"></label>
+      <label><span>Email</span><input name="email" type="email" value="${esc(p.email || '')}" autocomplete="email" required maxlength="200"
+        aria-describedby="obEmailNote"><small class="ob-role-note" id="obEmailNote">You sign in with this. Change it if it should be different.</small></label>
       <label><span>Mobile number${stylist ? '' : ' (optional)'}</span><input name="phone" type="tel" inputmode="tel" value="${esc(usPhone(p.phone || ''))}" autocomplete="tel" placeholder="(813) 555-0170"></label>
       <label><span>Your role at the salon</span><input value="${esc(ROLE_LABEL[p.role] || p.role || '')}" disabled aria-describedby="obRoleNote">
         <small class="ob-role-note" id="obRoleNote">Set by the salon owner. Ask them if it should be different.</small></label>
@@ -14385,14 +14392,18 @@ function obPayload(strict) {
   if (step === 'details') {
     const name = f.elements.name.value.trim();
     const phone = f.elements.phone.value.trim();
+    const email = f.elements.email.value.trim();
     const digits = phone.replace(/\D/g, '').length;
     const phoneOk = stylist ? digits >= 10 : digits === 0 || digits >= 10;
     if (strict) {
       if (!name) errs.push({ el: f.elements.name, msg: 'Add your name.' });
+      if (!OB_EMAIL.test(email)) errs.push({ el: f.elements.email, msg: 'Add your email address, like name@example.com.' });
       if (!phoneOk) errs.push({ el: f.elements.phone, msg: stylist ? 'Add your mobile number, with the area code.' : 'That number looks short: include the area code.' });
     }
     const body = {};
     if (name) body.name = name;
+    // Only a whole address, and only when it changed: a half-typed one is not an email yet.
+    if (OB_EMAIL.test(email) && email.toLowerCase() !== String(ob.prof.email || '').toLowerCase()) body.email = email;
     if (phoneOk) body.phone = phone;
     // The picture only when it changed: it can be most of a request.
     const avatar = ob.avatar || (strict ? charAvatar(name) : null);
@@ -14449,7 +14460,7 @@ function obMerge(out, body) {
 function obKeep() {
   const f = $('obForm');
   const step = ob.steps[ob.step];
-  if (step === 'details') for (const n of ['name', 'phone']) ob.prof[n] = f.elements[n].value.trim();
+  if (step === 'details') for (const n of ['name', 'email', 'phone']) ob.prof[n] = f.elements[n].value.trim();
   if (step === 'services') {
     ob.prof.services = { ...(ob.prof.services || {}), ...readServices() };
     ob.prof.ownServices = svcOwn.map((x) => ({ ...x }));
