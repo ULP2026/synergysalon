@@ -781,6 +781,24 @@
   .mvc-t.old b { color: var(--muted); }
   .mvc-arrow { color: var(--faint); display: grid; place-items: center; }
   .mvc-arrow .ic { width: 18px; height: 18px; }
+  /* Moving a stylist's upcoming appointments to somebody else (2026-11-04). */
+  .reas { max-width: 520px; }
+  .reas-list { list-style: none; margin: 0 0 14px; padding: 0; max-height: 240px; overflow-y: auto;
+               border: 1px solid var(--line); border-radius: 12px; }
+  .reas-list li { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 2px 12px; padding: 9px 12px; font-size: var(--fs-sm); }
+  .reas-list li + li { border-top: 1px solid var(--line); }
+  .reas-list .when { font-weight: 600; color: var(--ink); }
+  .reas-list .who b { display: block; font-weight: 600; }
+  .reas-list .who small { display: block; color: var(--muted); }
+  .reas-list .why { grid-column: 1 / -1; color: var(--warn); font-size: var(--fs-xs); }
+  .reas-list li.bad { background: color-mix(in srgb, var(--warn) 6%, var(--card)); }
+  .reas .dlg-actions { flex-wrap: wrap; align-items: center; }
+  .reas .spacer { flex: 1; }
+  .btn.danger-text { color: var(--warn); }
+  .dg-gone { color: var(--warn); font-weight: 600; }
+  .dg-reas { margin-top: 4px; height: 26px; padding: 0 10px; font-size: .72rem; gap: 4px; }
+  .dg-reas .ic { width: 13px; height: 13px; }
+  @media (max-width: 520px) { .reas-list li { grid-template-columns: minmax(0, 1fr); } }
   .mvc-opts { border: 0; padding: 0; margin: 0 0 8px; }
   .mvc-opts legend { padding: 0; margin-bottom: 8px; font-size: var(--fs-sm); color: var(--muted); font-weight: 500; }
   .mvc-opt { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 8px; padding: 12px 14px; cursor: pointer;
@@ -4528,6 +4546,35 @@
   </form>
 </dialog>
 
+<!-- A stylist's upcoming appointments to somebody else (2026-11-04): when
+     they are removed from the team, or from a removed stylist's column on
+     Appt. Book. Each keeps its time; one the new stylist cannot take stays
+     put and is listed with why. openReassign() fills it. -->
+<dialog id="reasDlg" class="mvc reas" aria-labelledby="reasTitle">
+  <form method="dialog" id="reasForm">
+    <h2 id="reasTitle">Move appointments</h2>
+    <p class="mvc-q" id="reasQ"></p>
+    <div id="reasNote" class="note hidden" role="alert"></div>
+    <ul class="reas-list" id="reasList"></ul>
+    <label><span>Move them to</span><select id="reasTo"></select></label>
+    <fieldset class="mvc-opts">
+      <legend>Client notification</legend>
+      <label class="mvc-opt"><input type="radio" name="reasNotify" value="send" checked>
+        <span class="mvc-ic" aria-hidden="true"><svg class="ic"><use href="#i-bell"/></svg></span>
+        <span><b>Send the Client a Notification</b><small>Each client gets an update with their stylist, date and time.</small></span></label>
+      <label class="mvc-opt"><input type="radio" name="reasNotify" value="quiet">
+        <span class="mvc-ic" aria-hidden="true"><svg class="ic"><use href="#i-calendar"/></svg></span>
+        <span><b>Just Move the Appointments</b><small>Update the schedule without notifying the clients.</small></span></label>
+    </fieldset>
+    <div class="dlg-actions">
+      <button type="button" class="btn quiet danger-text hidden" id="reasKeep">Remove anyway, move them later</button>
+      <span class="spacer"></span>
+      <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
+      <button type="button" class="btn" id="reasOk">Move</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Lunch or a block on one stylist's column. -->
 <dialog id="blockDlg">
   <form method="dialog" id="blockForm">
@@ -4931,7 +4978,14 @@ async function api(path, options = {}) {
   // Still setting up their account: the server refuses everything else, and
   // the answer is the setup screen, not an error under a button.
   if (res.status === 403 && data.code === 'ONBOARDING') { showOnboarding(); throw new Error('signed out'); }
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  if (!res.ok) {
+    // The reply comes with the error, for a caller that acts on its code
+    // (a removal refused with the appointments still booked, 2026-11-04).
+    const err = new Error(data.error || `Request failed (${res.status})`);
+    err.code = data.code;
+    err.data = data;
+    throw err;
+  }
   return data;
 }
 
@@ -7289,7 +7343,8 @@ function renderDiary(d) {
   for (const x of [...live, ...blocks]) {
     if (!x.stylistSlug || owned(x.stylistSlug) || extra.has(x.stylistSlug)) continue;
     const st = byStylist.get(x.stylistSlug);
-    extra.set(x.stylistSlug, { slug: x.stylistSlug, name: st?.name || x.stylist || x.stylistSlug, photo: st?.photo || null });
+    extra.set(x.stylistSlug, { slug: x.stylistSlug, name: st?.name || x.stylist || x.stylistSlug, photo: st?.photo || null,
+      removed: Boolean(x.stylistRemoved) });
   }
   const loose = live.filter((a) => !a.stylistSlug)
     .map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin }))
@@ -7308,7 +7363,12 @@ function renderDiary(d) {
     // Their role under the name (asked for 2026-10-31), not "Team member".
     // Scissors for the stylist, not Google's mark (asked for 2026-11-03).
     ...team.map((t, i) => personHead(t, `${ic('scissors')}${esc(ROLE_LABEL[t.role] || 'Team member')}`, !i)),
-    ...[...extra.values()].map((x) => personHead(x, 'Not connected', false)),
+    // A stylist removed from the team who still has clients booked
+    // (2026-11-04): said plainly, with the way to give them to somebody.
+    ...[...extra.values()].map((x) => personHead(x, x.removed
+      ? `<span class="dg-gone">Removed from team</span>${me?.user?.canManageTeam
+        ? `<button type="button" class="btn sm quiet dg-reas" data-reas="${esc(x.slug)}">${ic('swap')}Move appointments</button>` : ''}`
+      : 'Not connected', false)),
     ...(lanesEnd.length ? [`<div class="dg-head dg-group" style="grid-column:span ${lanesEnd.length}">
       <span class="dg-hic">${ic('calendar')}</span>
       <div style="min-width:0"><b>Unassigned</b><span class="sub">No stylist yet</span></div></div>`] : []),
@@ -7741,6 +7801,13 @@ let dgSwallowUntil = 0;
 $('diary').addEventListener('click', (e) => {
   if (Date.now() < dgSwallowUntil) { e.stopPropagation(); e.preventDefault(); dgSwallowUntil = 0; }
 }, true);
+// A removed stylist's column: give their upcoming clients to somebody (2026-11-04).
+$('diary').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-reas]');
+  if (!b) return;
+  e.stopPropagation();
+  openReassignFor(b.dataset.reas);
+});
 
 async function dgDrop(a, t) {
   const to = t.slug && t.slug !== a.stylistSlug
@@ -12304,15 +12371,136 @@ $('memberDanger').onclick = async () => {
 `
     + (m.noLogin ? '' : 'Their login, profile and calendar connection are deleted and they are signed out '
     + 'straight away. ')
-    + 'Their past and booked appointments stay on Appt. Book under their name, '
-    + 'and nobody can book them online any more. This cannot be undone: to have them back, '
-    + 'add them again.')) return;
+    + 'Their past appointments stay on Appt. Book under their name, and nobody can book them online any more. '
+    + 'If they have appointments still to come, you choose who takes them next. This cannot be undone: '
+    + 'to have them back, add them again.')) return;
   if (act === 'reject' && !confirm('Decline this request? They can ask again later.')) return;
   try {
     await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: m.id, action: act }) });
     closeDialog($('memberDlg'));
     await loadTeam();
-  } catch (err) { note($('memberNote'), err.message); }
+  } catch (err) {
+    // Still booked (2026-11-04): who takes their clients is chosen first.
+    if (err.code === 'HAS_APPOINTMENTS' && err.data?.upcoming?.length) {
+      closeDialog($('memberDlg'));
+      setTimeout(() => openReassign({
+        from: err.data.upcoming[0].stylistSlug, name: m.name, upcoming: err.data.upcoming, removeId: m.id,
+      }), 180);
+      return;
+    }
+    note($('memberNote'), err.message);
+  }
+};
+
+// ── Moving a stylist's upcoming appointments (2026-11-04) ────────────────
+//
+// Each keeps its time and goes to the stylist chosen, through the desk's own
+// move on the server (team.js, reassignChair), so the new stylist must do
+// the service and be free then. Any that cannot move stay where they are and
+// are listed again with why, to send to somebody else or place by hand.
+// Removing a person (`removeId`) moves theirs first and removes them only
+// when every one has moved, unless the owner chooses to move them later.
+let reas = null;
+function reasPaint() {
+  const r = reas;
+  const n = r.upcoming.length;
+  const first = String(r.name || '').trim().split(/\s+/)[0] || r.name;
+  $('reasTitle').textContent = r.removeId ? `Before ${first} is removed` : `Move ${first}'s appointments`;
+  $('reasQ').textContent = r.removeId
+    ? `${r.name} still has ${n} appointment${n === 1 ? '' : 's'} to come. Choose who takes ${n === 1 ? 'it' : 'them'}, at the same time${n === 1 ? '' : 's'}, so no client is left booked with somebody who has left.`
+    : `${r.name} is no longer on the team but still has ${n} appointment${n === 1 ? '' : 's'} to come. Choose who takes ${n === 1 ? 'it' : 'them'}. Each keeps its date and time.`;
+  $('reasList').innerHTML = r.upcoming.map((a) => {
+    const d = new Date(a.startsAt);
+    const date = d.toLocaleDateString('en-CA', me?.salon?.timezone ? { timeZone: me.salon.timezone } : {});
+    const time = d.toLocaleTimeString(LOCALE, { hour: 'numeric', minute: '2-digit', timeZone: me?.salon?.timezone || undefined });
+    return `<li class="${a.reason ? 'bad' : ''}"><span class="when">${esc(dateLabel(date))}<br>${esc(time)}</span>
+      <span class="who"><b>${esc(a.client || 'Client')}</b><small>${esc(a.service || '')}</small></span>
+      ${a.reason ? `<span class="why">${esc(a.reason)}</span>` : ''}</li>`;
+  }).join('');
+  const choices = (me?.stylists || []).filter((x) => x.slug !== r.from);
+  const prev = $('reasTo').value;
+  $('reasTo').innerHTML = choices.length
+    ? `<option value="">Choose a stylist…</option>${choices.map((x) => `<option value="${esc(x.slug)}">${esc(x.name)}</option>`).join('')}`
+    : '<option value="">Nobody else takes bookings yet</option>';
+  if (choices.some((x) => x.slug === prev)) $('reasTo').value = prev;
+  // The same person added again under the same name (a new login) is the
+  // likeliest home for their own clients: chosen for the owner to confirm.
+  else {
+    const same = choices.find((x) => x.name.trim().toLowerCase() === String(r.name).trim().toLowerCase());
+    if (same) $('reasTo').value = same.slug;
+  }
+  $('reasKeep').classList.toggle('hidden', !r.removeId);
+  $('reasOk').textContent = r.removeId ? `Move ${n === 1 ? 'it' : `all ${n}`} and remove ${first}` : `Move ${n === 1 ? 'it' : `all ${n}`}`;
+}
+function openReassign({ from, name, upcoming, removeId = null }) {
+  reas = { from, name, upcoming: upcoming.map((a) => ({ ...a })), removeId };
+  note($('reasNote'), '');
+  $('reasTo').value = '';
+  $('reasForm').elements.reasNotify.value = 'send';
+  reasPaint();
+  openDialog($('reasDlg'));
+}
+/** From a removed stylist's column on Appt. Book: what is still to come there. */
+async function openReassignFor(slug) {
+  try {
+    const r = await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ action: 'upcoming', from: slug }) });
+    if (!r.upcoming.length) { toast(`${r.name} has nothing still to come.`); return; }
+    openReassign({ from: slug, name: r.name, upcoming: r.upcoming });
+  } catch (err) { if (err.message !== 'signed out') toast(err.message, 'bad'); }
+}
+$('reasOk').onclick = async () => {
+  const r = reas;
+  const to = $('reasTo').value;
+  if (!to) { note($('reasNote'), 'Choose who takes them.'); $('reasTo').focus(); return; }
+  const notify = $('reasForm').elements.reasNotify.value !== 'quiet';
+  const btn = $('reasOk');
+  btn.disabled = true;
+  btn.classList.add('busy');
+  const toName = $('reasTo').selectedOptions[0]?.textContent || 'them';
+  try {
+    if (r.removeId) {
+      await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: r.removeId, action: 'delete', reassignTo: to, notify }) });
+      closeDialog($('reasDlg'));
+      toast(`Moved to ${toName}, and ${r.name} is removed.`);
+      if (page === 'settings') await loadTeam();
+    } else {
+      const out = await api('/api/staff/team', {
+        method: 'POST', body: JSON.stringify({ action: 'reassign', from: r.from, to, notify, refs: r.upcoming.map((a) => a.ref) }),
+      });
+      if (out.skipped.length) {
+        r.upcoming = out.skipped;
+        reasPaint();
+        note($('reasNote'), `${out.moved.length} moved to ${out.to}. ${out.skipped.length} could not move: see why below. Choose somebody else, or place them on Appt. Book.`);
+      } else {
+        closeDialog($('reasDlg'));
+        toast(`${out.moved.length} appointment${out.moved.length === 1 ? '' : 's'} moved to ${out.to}.`);
+      }
+    }
+    if (page === 'appointments') refreshDiary();
+  } catch (err) {
+    if (err.data?.upcoming?.length) {
+      r.upcoming = err.data.upcoming;
+      reasPaint();
+    }
+    note($('reasNote'), err.message);
+    if (page === 'appointments') refreshDiary();
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('busy');
+  }
+};
+$('reasKeep').onclick = async () => {
+  const r = reas;
+  if (!r?.removeId) return;
+  if (!confirm(`Remove ${r.name} and leave their ${r.upcoming.length} appointment${r.upcoming.length === 1 ? '' : 's'} where ${r.upcoming.length === 1 ? 'it is' : 'they are'}?\n\n`
+    + 'They stay on Appt. Book in a column marked "Removed from team", with a button there to move them later. '
+    + 'Until then nobody is in that chair for those clients.')) return;
+  try {
+    await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: r.removeId, action: 'delete', keepAppointments: true }) });
+    closeDialog($('reasDlg'));
+    toast(`${r.name} is removed. Their appointments are on Appt. Book to move.`);
+    if (page === 'settings') await loadTeam();
+  } catch (err) { note($('reasNote'), err.message); }
 };
 
 /**

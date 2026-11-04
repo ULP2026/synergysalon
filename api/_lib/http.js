@@ -37,7 +37,7 @@ export function handler(methods) {
       return await fn(req, res);
     } catch (err) {
       if (err instanceof HttpError) {
-        return json(res, err.status, { error: err.message, code: err.code });
+        return json(res, err.status, { error: err.message, code: err.code, ...(err.extra || {}) });
       }
       console.error('unhandled error', err);
       return json(res, 500, { error: 'Something went wrong on our end.' });

@@ -33,6 +33,7 @@ import { MIN_PASSWORD_LENGTH, hashPassword } from '../../_lib/password.js';
 import { stylistPhoto } from '../../_lib/stylist-photos.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { googleStatus } from './calendars.js';
+import { moveAppointment } from './appointment.js';
 import {
   assertStylistPhone, assertUsernameFree, avatarFrom, avatarStyleFrom, phoneFrom, servicesFrom, usernameFrom,
 } from './profile.js';
@@ -93,6 +94,99 @@ export async function deliverInvite(tenant, { id, name, email, phone, link, invi
     link, emailed, emailFailed, texted: t.texted === true, textFailed: Boolean(t.failed),
     hasPhone: String(phone || '').replace(/\D/g, '').length >= 10, off, expiresDays: INVITE_DAYS,
   };
+}
+
+/**
+ * What is still to come in a chair: booked visits that have not started.
+ * Past visits stay where they were, under the name of whoever did them.
+ */
+export async function upcomingIn(tenantId, stylistIds) {
+  if (!stylistIds.length) return [];
+  const { rows } = await query(
+    `SELECT a.ref, a.starts_at, a.guest_name, s.slug AS stylist_slug, s.name AS stylist_name,
+            COALESCE(v.name, 'Appointment') AS service_name
+       FROM appointments a
+       JOIN stylists s ON s.id = a.stylist_id
+       LEFT JOIN services v ON v.id = a.service_id
+      WHERE a.tenant_id = $1::uuid AND a.stylist_id = ANY($2::uuid[])
+        AND a.status = 'booked' AND a.starts_at > now()
+      ORDER BY a.starts_at`,
+    [tenantId, stylistIds],
+  );
+  return rows.map((r) => ({
+    ref: r.ref, startsAt: r.starts_at, client: r.guest_name, service: r.service_name,
+    stylist: r.stylist_name, stylistSlug: r.stylist_slug,
+  }));
+}
+
+/**
+ * Move every visit still to come from one chair to another, each at its own
+ * time (asked for 2026-11-04, after a removed stylist's clients were left in
+ * a chair nobody works). Each goes through moveAppointment, the desk's own
+ * move: the new stylist must offer the service and be free then, within
+ * their hours, and the no-overlap rule has the last word, so nothing is
+ * double-booked. One that cannot move stays where it is and is returned with
+ * why, for the owner to place by hand or send to somebody else. The client
+ * is told of the change only when `notify` (the move's own choice).
+ */
+export async function reassignChair(tenant, user, { from, to, notify = true, refs = null }, deps = {}) {
+  const move = deps.move || moveAppointment;
+  const { rows: chairs } = await query(
+    `SELECT id, slug, name, active FROM stylists WHERE tenant_id = $1::uuid AND slug = ANY($2::text[])`,
+    [tenant.id, [from, to]],
+  );
+  const src = chairs.find((c) => c.slug === from);
+  const dst = chairs.find((c) => c.slug === to);
+  if (!src) throw new HttpError(404, 'That stylist is not on this salon.');
+  if (!dst || !dst.active) throw new HttpError(400, 'Choose a stylist who is on the team and takes bookings.');
+  if (src.id === dst.id) throw new HttpError(400, 'Choose a different stylist to move them to.');
+  let list = await upcomingIn(tenant.id, [src.id]);
+  if (Array.isArray(refs)) list = list.filter((a) => refs.includes(a.ref));
+  const moved = [];
+  const skipped = [];
+  for (const a of list) {
+    try {
+      await move(tenant, user, a.ref, { start: new Date(a.startsAt).toISOString(), stylist: dst.slug, notify });
+      moved.push(a);
+    } catch (err) {
+      skipped.push({ ...a, reason: err instanceof HttpError ? err.message : 'It could not be moved.' });
+      if (!(err instanceof HttpError)) console.error('reassign failed for', a.ref, err);
+    }
+  }
+  return { from: src.name, to: dst.name, moved, skipped };
+}
+
+/**
+ * Before anybody is removed (2026-11-04): what is still booked in their
+ * chair goes to another stylist first (`reassignTo`, a slug), or the owner
+ * says plainly to keep it there (`keepAppointments`), to move one by one on
+ * Appt. Book. Otherwise the removal is refused with the list, so a client
+ * is never left booked with somebody who no longer works there without the
+ * owner having chosen it. A visit that cannot move stops the removal, with
+ * the reasons; the ones that did move stay moved.
+ */
+async function guardUpcoming(tenant, user, body, stylistIds, name) {
+  const { rows: slugs } = stylistIds.length
+    ? await query('SELECT slug FROM stylists WHERE id = ANY($1::uuid[])', [stylistIds]) : { rows: [] };
+  const upcoming = await upcomingIn(tenant.id, stylistIds);
+  if (!upcoming.length || body.keepAppointments === true) return;
+  if (!body.reassignTo) {
+    const err = new HttpError(409, `${name} still has ${upcoming.length} upcoming appointment${upcoming.length === 1 ? '' : 's'}. `
+      + 'Choose who takes them before removing them.', 'HAS_APPOINTMENTS');
+    err.extra = { upcoming };
+    throw err;
+  }
+  const skipped = [];
+  for (const { slug } of slugs) {
+    const out = await reassignChair(tenant, user, { from: slug, to: String(body.reassignTo), notify: body.notify !== false });
+    skipped.push(...out.skipped);
+  }
+  if (skipped.length) {
+    const err = new HttpError(409, `${skipped.length} appointment${skipped.length === 1 ? '' : 's'} could not move, so ${name} was not removed. `
+      + 'The others have moved. Place these on Appt. Book, or choose another stylist.', 'REASSIGN_INCOMPLETE');
+    err.extra = { upcoming: skipped };
+    throw err;
+  }
 }
 
 export default handler({
@@ -286,6 +380,24 @@ export default handler({
       return json(res, 201, { ok: true, member: rows[0], invite });
     }
 
+    // Moving a chair's upcoming visits to somebody else, by slug: also for
+    // a chair already removed, whose login no longer exists.
+    if (action === 'reassign') {
+      const out = await reassignChair(tenant, user, {
+        from: requireString(body.from, 'From', { max: 80 }),
+        to: requireString(body.to, 'Stylist', { max: 80 }),
+        notify: body.notify !== false,
+        refs: Array.isArray(body.refs) ? body.refs.map(String).slice(0, 500) : null,
+      });
+      return json(res, 200, { ok: true, ...out });
+    }
+    if (action === 'upcoming') {
+      const from = requireString(body.from, 'From', { max: 80 });
+      const { rows: ch } = await query('SELECT id, name FROM stylists WHERE tenant_id = $1::uuid AND slug = $2::text', [tenant.id, from]);
+      if (!ch[0]) throw new HttpError(404, 'That stylist is not on this salon.');
+      return json(res, 200, { ok: true, name: ch[0].name, upcoming: await upcomingIn(tenant.id, [ch[0].id]) });
+    }
+
     const id = requireString(body.id, 'Member', { max: 64 });
 
     // "st_<uuid>" is a stylist with no login. They have no role, no password
@@ -293,6 +405,7 @@ export default handler({
     // what they do and when.
     if (id.startsWith('st_')) {
       if (action === 'delete') {
+        await guardUpcoming(tenant, user, body, [id.slice(3)], 'This stylist');
         // Removed for good, like anybody else: off the team and the website.
         // The row itself stays, switched off and marked removed, because
         // appointments point at it and past work keeps its name.
@@ -374,6 +487,12 @@ export default handler({
       case 'delete': {
         if (target.role === 'owner' && !canManageTeam(user)) {
           throw new HttpError(403, 'Only an owner can remove another owner.');
+        }
+        {
+          const { rows: theirs } = await query(
+            'SELECT id FROM stylists WHERE staff_user_id = $1::uuid AND tenant_id = $2::uuid', [target.id, tenant.id],
+          );
+          await guardUpcoming(tenant, user, body, theirs.map((r) => r.id), target.name);
         }
         try {
           await transaction(async (client) => {
