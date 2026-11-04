@@ -62,10 +62,14 @@ async function mintInvite(req, userId) {
       WHERE id = $1`,
     [userId, createHash('sha256').update(token).digest('hex'), INVITE_DAYS],
   );
+  return `${appBase(req)}/invite?t=${token}`;
+}
+
+/** The app's own address on this host: app.synergysalon.com has no /staff in its addresses (vercel.json). */
+function appBase(req) {
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0];
   const proto = host.startsWith('localhost') ? 'http' : 'https';
-  // The app's own host has no /staff in its addresses (vercel.json).
-  return `${proto}://${host}${host.startsWith('app.') ? '' : '/staff'}/invite?t=${token}`;
+  return `${proto}://${host}${host.startsWith('app.') ? '' : '/staff'}`;
 }
 
 /**
@@ -75,23 +79,26 @@ async function mintInvite(req, userId) {
  * the Team Member Invitation automation off. Never throws: the account and
  * its link exist either way, and the window then shows the link to hand on.
  */
-export async function deliverInvite(tenant, { id, name, email, phone, link, invitedBy }, deps = {}) {
+export async function deliverInvite(tenant, { id, name, email, phone, link, invitedBy, stage = null, step = null, appUrl }, deps = {}) {
   const sendMail = deps.sendInvite || sendInvite;
   const sendSms = deps.textInvite || textInvite;
   let emailed = false;
   let emailFailed = false;
   let off = false;
   try {
-    const r = await sendMail({ name, email, link, expiresDays: INVITE_DAYS, invitedBy }, tenant);
+    const r = await sendMail({ name, email, link, appUrl, expiresDays: INVITE_DAYS, invitedBy, stage, step }, tenant);
     emailed = !r?.skipped;
     off = Boolean(r?.off);
   } catch (err) {
     emailFailed = true;
     console.error('invite email failed for', email, err);
   }
-  const t = await sendSms({ tenant, phone, name, link, expiresDays: INVITE_DAYS, staffUserId: id });
+  const t = await sendSms({ tenant, phone, name, link, expiresDays: INVITE_DAYS, staffUserId: id, stage });
   return {
-    link, emailed, emailFailed, texted: t.texted === true, textFailed: Boolean(t.failed),
+    // `stage`: null for the first welcome, 'invite' for a reminder with a
+    // fresh link, 'finish' for a reminder to finish setting up (no link
+    // that sets a password: `link` is then the app's address).
+    stage, step, link, emailed, emailFailed, texted: t.texted === true, textFailed: Boolean(t.failed),
     hasPhone: String(phone || '').replace(/\D/g, '').length >= 10, off, expiresDays: INVITE_DAYS,
   };
 }
@@ -207,6 +214,12 @@ export default handler({
       `SELECT u.id, u.name, u.email, u.phone, u.role, u.status, u.note, u.avatar,
               u.requested_at, u.approved_at, u.last_seen_at, u.created_at,
               (to_jsonb(u) ->> 'invite_hash') IS NOT NULL AS invited,
+              -- An unused link that has run out (2026-11-04): the Team list
+              -- says so rather than "Invited", and Resend sends a fresh one.
+              (to_jsonb(u) ->> 'invite_hash') IS NOT NULL
+                AND (to_jsonb(u) ->> 'invite_expires_at')::timestamptz < now() AS invite_expired,
+              to_jsonb(u) ->> 'invite_expires_at' AS invite_expires_at,
+              to_jsonb(u) ->> 'onboarding_step' AS onboarding_step,
               -- Still to finish setting up their account (042).
               (to_jsonb(u) ? 'onboarded_at') AND (to_jsonb(u) ->> 'onboarded_at') IS NULL AS onboarding,
               to_jsonb(u) ->> 'username' AS username,
@@ -252,6 +265,9 @@ export default handler({
         id: r.id,
         // Added but never signed in: their invite is still outstanding.
         invited: r.invited,
+        inviteExpired: Boolean(r.invite_expired),
+        inviteExpiresAt: r.invite_expires_at || null,
+        onboardingStep: r.onboarding_step || null,
         // Signed in but still setting up their account (onboarding).
         onboarding: Boolean(r.onboarding) && !canManageTeam(r),
         // Whether a guest can book them, and when.
@@ -440,20 +456,37 @@ export default handler({
 
     switch (action) {
       case 'reinvite': {
-        // Only for an account that has never been used. Re-inviting somebody
-        // who already has a password would be a way to take their account
-        // over, which is what the password reset they do themselves is for.
+        // Resend Invitation (2026-11-04): Karen's reminder, worded for where
+        // they are.
+        // - Link never used (or run out): a fresh link, which ends the old
+        //   one, and the "your invitation is waiting" reminder.
+        // - Password chosen, setup not finished: the "finish setting up"
+        //   reminder with the app's address and the step they stopped at.
+        //   Never a link that sets the password again: that would be a way
+        //   to take their account over.
+        // - Finished: nothing to resend.
         const { rows: who } = await query(
-          'SELECT id, name, email, phone, invite_hash FROM staff_users WHERE id = $1 AND tenant_id = $2',
+          `SELECT id, name, email, phone, role, invite_hash,
+                  (to_jsonb(u) ? 'onboarded_at') AND (to_jsonb(u) ->> 'onboarded_at') IS NULL AS setting_up,
+                  to_jsonb(u) ->> 'onboarding_step' AS step
+             FROM staff_users u WHERE id = $1 AND tenant_id = $2`,
           [id, tenant.id],
         );
-        if (!who[0]) throw new HttpError(404, 'That person is not on this team.');
-        if (!who[0].invite_hash) {
-          throw new HttpError(409, `${who[0].name} has already set a password.`);
+        const m = who[0];
+        if (!m) throw new HttpError(404, 'That person is not on this team.');
+        if (m.invite_hash) {
+          const link = await mintInvite(req, id);
+          const invite = await deliverInvite(tenant, { ...m, link, invitedBy: user.name, stage: 'invite' });
+          return json(res, 200, { ok: true, invite });
         }
-        const link = await mintInvite(req, id);
-        const invite = await deliverInvite(tenant, { ...who[0], link, invitedBy: user.name });
-        return json(res, 200, { ok: true, invite });
+        if (m.setting_up && !canManageTeam(m)) {
+          const app = appBase(req);
+          const invite = await deliverInvite(tenant, {
+            ...m, link: app, appUrl: app, invitedBy: user.name, stage: 'finish', step: m.step,
+          });
+          return json(res, 200, { ok: true, invite });
+        }
+        throw new HttpError(409, `${m.name} has already finished setting up their account, so there is nothing to resend.`);
       }
 
       case 'approve': {

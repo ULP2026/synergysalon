@@ -22,8 +22,12 @@ import { MIN_PASSWORD_LENGTH, hashPassword } from '../../_lib/password.js';
 const hash = (token) => createHash('sha256').update(token).digest('hex');
 
 /** The same answer for every kind of bad token. */
+// It says both ways forward (2026-11-04): somebody who already chose a
+// password only needs to sign in, and a resend ends any earlier link.
 const DEAD = () => new HttpError(410,
-  'This invite link has expired or has already been used. Ask the salon to send another.');
+  'This invite link has expired, has already been used, or was replaced by a newer one. '
+  + 'If you already chose your password, sign in to finish setting up. Otherwise use the newest link Karen sent you, '
+  + 'or ask the salon to send another.', 'INVITE_DEAD');
 
 async function inviteFor(token) {
   if (!/^[A-Za-z0-9_-]{20,200}$/.test(String(token || ''))) throw DEAD();

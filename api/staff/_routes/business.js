@@ -14,7 +14,7 @@ import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { assertClientInChair, chairOf, seesAll } from '../../_lib/scope.js';
 import { query } from '../../_lib/db.js';
 import {
-  INVITE_KIND, MESSAGE_KINDS, automationOn, previewInvite, previewMessage, previewStaffEmail,
+  INVITE_KIND, INVITE_REMINDER_KIND, MESSAGE_KINDS, automationOn, previewInvite, previewMessage, previewStaffEmail,
 } from '../../_lib/email.js';
 import { inviteText } from '../../_lib/sms-notify.js';
 
@@ -24,7 +24,8 @@ import { inviteText } from '../../_lib/sms-notify.js';
  * so it has no appointment and is not in MESSAGE_KINDS (the queue and the
  * client's Activity only ever deal in those).
  */
-const AUTOMATION_KINDS = [...MESSAGE_KINDS, INVITE_KIND];
+const AUTOMATION_KINDS = [...MESSAGE_KINDS, INVITE_KIND, INVITE_REMINDER_KIND];
+const TEAM_KINDS = [INVITE_KIND, INVITE_REMINDER_KIND];
 import { prettyPhone, smsText } from '../../_lib/karen-sms.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
@@ -89,27 +90,29 @@ async function sampleAppt(tenant) {
 }
 
 /** The welcome as a new team member gets it, with sample details and a placeholder for the link. */
-async function previewTeamInvite(tenant) {
-  const sample = { name: 'Jamie Sample', email: 'jamie@example.com', expiresDays: 7, invitedBy: null };
+async function previewTeamInvite(tenant, kind = INVITE_KIND) {
+  // The reminder previews as the one with a fresh link, the commoner case.
+  const stage = kind === INVITE_REMINDER_KIND ? 'invite' : null;
+  const sample = { name: 'Jamie Sample', email: 'jamie@example.com', expiresDays: 7, invitedBy: null, stage };
   const out = previewInvite(sample, tenant);
   const { rows } = await query(
     "SELECT to_jsonb(tenants) ->> 'karen_phone' AS karen_phone FROM tenants WHERE id = $1::uuid", [tenant.id],
   );
   return {
-    kind: INVITE_KIND, to: `${sample.name} <${sample.email}>`, ...out,
+    kind, to: `${sample.name} <${sample.email}>`, ...out,
     sms: {
       from: `Karen from ${tenant.name || 'the salon'}`,
       number: prettyPhone(rows[0]?.karen_phone),
       to: sample.name,
       toPhone: '(813) 555-0142',
-      body: inviteText({ salon: tenant.name || 'the salon', name: sample.name, link: 'https://app.synergysalon.com/invite?t=...', expiresDays: 7 }),
+      body: inviteText({ salon: tenant.name || 'the salon', name: sample.name, link: 'https://app.synergysalon.com/invite?t=...', expiresDays: 7, stage }),
       connected: Boolean(rows[0]?.karen_phone && process.env.TWILIO_AUTH_TOKEN),
     },
   };
 }
 
 async function preview(kind, tenant) {
-  if (kind === INVITE_KIND) return previewTeamInvite(tenant);
+  if (TEAM_KINDS.includes(kind)) return previewTeamInvite(tenant, kind);
   if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such message.');
   const appt = await sampleAppt(tenant);
   const start = DateTime.fromJSDate(appt.starts_at);
@@ -177,16 +180,19 @@ export async function sentMessage(id, tenant) {
   // A team member's welcome (2026-11-04): rebuilt from the facts it was
   // written from, which the log keeps. The setup link is a credential and
   // was never kept, so the button carries a placeholder.
-  if (r?.kind === INVITE_KIND) {
+  if (TEAM_KINDS.includes(r?.kind)) {
     let kept = {};
     try { kept = JSON.parse(r.body || '{}'); } catch { /* an unreadable row shows the bare welcome */ }
     const out = previewInvite({ name: r.to_name || kept.name, email: r.to_email, ...kept }, tenant);
     return {
-      kind: INVITE_KIND, sentAt: r.sent_at, toName: r.to_name || r.to_email,
+      kind: r.kind, sentAt: r.sent_at, toName: r.to_name || r.to_email,
       to: r.to_name ? `${r.to_name} <${r.to_email}>` : r.to_email, ref: null, ...out,
       subject: r.subject || out.subject,
       status: r.status === 'failed' ? 'failed' : 'sent', error: r.status === 'failed' ? r.error || null : null,
-      note: 'Their setup link is not kept here, because anyone holding it could set up the account. The button stands in for it.',
+      // A reminder to finish setting up carries only the app's address,
+      // which is kept; the others' setup link never is.
+      note: kept.stage === 'finish' ? null
+        : 'Their setup link is not kept here, because anyone holding it could set up the account. The button stands in for it.',
     };
   }
   if (!r || !MESSAGE_KINDS.includes(r.kind)) throw new HttpError(404, 'No such email.');

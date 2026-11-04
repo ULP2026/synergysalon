@@ -102,6 +102,7 @@ export const EMAIL_KIND = {
   second_visit: 'Come back and see us',
   win_back: 'It has been a while',
   team_invite: 'Welcome to the team',
+  team_invite_reminder: 'Setup reminder',
 };
 
 /**
@@ -126,6 +127,7 @@ export const AUTOMATION_NAME = {
   second_visit: 'New Guest Second Visit',
   win_back: 'Lapsed Client Win-back',
   team_invite: 'Team Member Invitation',
+  team_invite_reminder: 'Team Member Invitation',
 };
 
 const TONE = {
@@ -354,7 +356,7 @@ export async function contactDetail(tenantId, id, db = null, onlyIds = null) {
         WHERE m.tenant_id = $2::uuid
           -- A team member's welcome is not a client's email, even to an
           -- address a client shares (2026-11-04).
-          AND m.kind <> 'team_invite'
+          AND m.kind NOT IN ('team_invite', 'team_invite_reminder')
           AND ((to_jsonb(m) ->> 'contact_id')::uuid = $1::uuid
                OR m.appointment_id IN (SELECT id FROM appointments WHERE contact_id = $1::uuid)
                OR (m.appointment_id IS NULL AND (to_jsonb(m) ->> 'contact_id') IS NULL

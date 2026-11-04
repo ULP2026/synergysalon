@@ -382,6 +382,76 @@ export function welcomeContent({ name, email, link, appUrl, expiresDays, invited
   };
 }
 
+/**
+ * Karen's reminder to somebody invited who has not finished (asked for
+ * 2026-11-04), sent by the owner's Resend Invitation. Two versions, by where
+ * they are:
+ *
+ * - `invite`: the link was never used (or ran out). A fresh link, since
+ *   minting it ended the old one, and the same steps.
+ * - `finish`: they chose a password but stopped partway through setup. No
+ *   link that sets a password (they have one, and a link that set it again
+ *   would hand the account to whoever holds it): the app's address to sign
+ *   in, and the step they will pick up from.
+ *
+ * Same sender and layout as the welcome; only Karen's words differ.
+ */
+export const INVITE_REMINDER_KIND = 'team_invite_reminder';
+export const SETUP_STEP_NAMES = {
+  details: 'About you', services: 'Services & Pricing', hours: 'Hours & Availability',
+  calendar: 'Connect your calendar', review: 'Review & Finish',
+};
+export function reminderContent({ name, email, link, appUrl, expiresDays, stage = 'invite', step = null }, shop) {
+  const first = String(name || '').trim().split(/\s+/)[0] || 'there';
+  if (stage === 'finish') {
+    const where = SETUP_STEP_NAMES[step];
+    return {
+      subject: `${first}, you're almost there! Let's finish your ${shop.name} account`,
+      content: {
+        heading: `Hi ${first}, it's Karen again!`,
+        intro: 'Just a friendly reminder: you chose your password (nice!), but your account setup isn\u2019t '
+          + 'finished yet, so the app is still waiting for you. It only takes a few more minutes, and I\u2019ll '
+          + `be right there with you.${where ? `\n\nYou\u2019ll pick up right where you left off, on ${where}.` : ''}`,
+        rows: [['Your sign-in email', email], ['The app', appUrl]],
+        action: { label: 'Finish setting up', href: appUrl },
+        steps: {
+          title: 'What\u2019s left',
+          items: [
+            { title: 'Sign in', text: `Go to ${appUrl} and sign in with ${email} and the password you chose.` },
+            { title: 'Finish your profile', text: 'Your photo, your mobile number, and if you are a stylist your services, '
+              + 'prices and hours. I save as you go.' },
+            { title: 'Connect your Google Calendar', text: 'Optional, and you can skip it for now.' },
+          ],
+        },
+        footnote: 'Forgot the password you chose? Ask the owner and they can help you get back in.\n\nSee you inside!\nKaren',
+      },
+    };
+  }
+  return {
+    subject: `Reminder from Karen: your ${shop.name} invitation is waiting`,
+    content: {
+      heading: `Hi ${first}, just a friendly reminder!`,
+      intro: `It\u2019s Karen, the assistant at ${shop.name}. Your invitation to join the team is still waiting, `
+        + 'and I\u2019d love to get you set up. I\u2019ve made you a fresh link below; any earlier link I sent '
+        + 'no longer works, so use this one.\n\nSetting up takes about five minutes, and I\u2019ll guide you through every step.',
+      rows: [['Your sign-in email', email], ['The app', appUrl]],
+      action: { label: 'Set up my account', href: link || appUrl },
+      steps: {
+        title: 'Here\u2019s what we\u2019ll do together',
+        items: [
+          { title: 'Choose your password', text: 'Tap the button above. You choose your own password, so nobody else '
+            + `ever knows it. The link works once and lasts ${expiresDays} days.` },
+          { title: 'Complete your profile', text: 'Your photo, your mobile number, and if you are a stylist your services, '
+            + 'prices and hours.' },
+          { title: 'Connect your Google Calendar', text: 'Optional, and you can do it later in My Settings.' },
+        ],
+      },
+      footnote: 'This link is just for you, so please do not forward it. If it runs out again, ask the owner '
+        + 'to send another.\n\nSee you inside!\nKaren',
+    },
+  };
+}
+
 /** The app's own address for an invite link: the app. host serves it at its root, any other under /staff. */
 function appUrlFor(link, appUrl) {
   if (appUrl) return appUrl;
@@ -391,36 +461,46 @@ function appUrlFor(link, appUrl) {
   } catch { return 'https://app.synergysalon.com'; }
 }
 
-/** The welcome as it will be sent, for a preview or a test. */
+/** Which message and kind: the first welcome, or a reminder (`stage` invite or finish). */
+function inviteMessage(args, shop) {
+  const app = appUrlFor(args.link, args.appUrl);
+  const reminder = args.stage === 'invite' || args.stage === 'finish';
+  const { subject, content } = reminder
+    ? reminderContent({ ...args, appUrl: app }, shop)
+    : welcomeContent({ ...args, appUrl: app }, shop);
+  return { kind: reminder ? INVITE_REMINDER_KIND : INVITE_KIND, app, subject, content };
+}
+
+/** The welcome (or a reminder, with `stage`) as it will be sent, for a preview or a test. */
 export function welcomeEmail(args, tenant = {}) {
   const shop = shopFrom(tenant);
-  const { subject, content } = welcomeContent({ ...args, appUrl: appUrlFor(args.link, args.appUrl) }, shop);
+  const { subject, content } = inviteMessage(args, shop);
   return { from: fromFor(shop), replyTo: shop.replyTo || null, subject, html: layout(content, shop), text: plain(content, shop) };
 }
 
 /**
- * Send the welcome, and keep it in Email History (asked for 2026-11-04) as
- * kind team_invite: who, the subject, sent or failed, and the facts it was
- * written from, never the link. Throws when the provider refuses, as before,
- * after logging the failure. `{ skipped }` without a provider, or with the
- * Team Member Invitation automation switched off (`off`).
+ * Send the welcome, or Karen's reminder (`stage` 'invite' or 'finish'), and
+ * keep it in Email History (asked for 2026-11-04) as team_invite or
+ * team_invite_reminder: who, the subject, sent or failed, and the facts it
+ * was written from, never the link. Throws when the provider refuses, after
+ * logging the failure. `{ skipped }` without a provider, or with the Team
+ * Member Invitation automation switched off (`off`), which governs both.
  */
-export async function sendInvite({ name, email, link, appUrl, expiresDays, invitedBy }, tenant = {}) {
+export async function sendInvite({ name, email, link, appUrl, expiresDays, invitedBy, stage = null, step = null }, tenant = {}) {
   const shop = shopFrom(tenant);
   if (!automationOn(INVITE_KIND, tenant)) return { skipped: true, off: true };
-  const app = appUrlFor(link, appUrl);
-  const { subject, content } = welcomeContent({ name, email, link, appUrl: app, expiresDays, invitedBy }, shop);
+  const { kind, app, subject, content } = inviteMessage({ name, email, link, appUrl, expiresDays, invitedBy, stage, step }, shop);
   const log = async (status, error = null) => {
     if (!tenant?.id) return;
     try {
       await query(
         `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email, subject, status, error, contact_id, body)
          VALUES ($1::uuid, $2::text, NULL, $3::text, $4::text, $5::text, $6::text, $7::text, NULL, $8::text)`,
-        [tenant.id, INVITE_KIND, name || null, email, subject, status, error ? String(error).slice(0, 500) : null,
-          JSON.stringify({ name, email, appUrl: app, expiresDays, invitedBy: invitedBy || null })],
+        [tenant.id, kind, name || null, email, subject, status, error ? String(error).slice(0, 500) : null,
+          JSON.stringify({ name, email, appUrl: app, expiresDays, invitedBy: invitedBy || null, stage, step })],
       );
     } catch (err) {
-      console.warn('message_sends insert failed', INVITE_KIND, err.message);
+      console.warn('message_sends insert failed', kind, err.message);
     }
   };
   let out;
@@ -431,10 +511,10 @@ export async function sendInvite({ name, email, link, appUrl, expiresDays, invit
     throw err;
   }
   if (out.sent) await log('sent');
-  return out;
+  return { ...out, kind };
 }
 
-/** A sent welcome rebuilt from its log row (Email History), with a placeholder for the link that is never kept. */
+/** A sent welcome or reminder rebuilt from its log row (Email History), with a placeholder for the link that is never kept. */
 export function previewInvite(kept, tenant = {}) {
   return welcomeEmail({ ...kept, link: null }, tenant);
 }

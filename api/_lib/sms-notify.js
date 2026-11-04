@@ -177,9 +177,19 @@ export async function revokeConsent(db, tenantId, phone10) {
  * apply: the owner who invites them enters the number for exactly this.
  * Plain characters only (GSM-7), so the link and all fit two segments.
  */
-export function inviteText({ salon, name, link, expiresDays }) {
+export function inviteText({ salon, name, link, expiresDays, stage = null }) {
   const first = String(name || '').trim().split(/\s+/)[0];
-  return `Hi${first ? ` ${first}` : ''}! I'm Karen, the assistant at ${salon}. You're invited to join the team! `
+  const hi = `Hi${first ? ` ${first}` : ''}! `;
+  // Karen's reminders (2026-11-04), sent by the owner's Resend Invitation.
+  if (stage === 'finish') {
+    return `${hi}It's Karen from ${salon}, just a friendly reminder: your account setup isn't finished yet. `
+      + `Sign in and I'll pick up right where you left off: ${link}`;
+  }
+  if (stage === 'invite') {
+    return `${hi}It's Karen from ${salon}, just a friendly reminder that your invitation is waiting. `
+      + `Here's a fresh link (the old one no longer works): ${link} (works ${expiresDays || 7} days, just for you)`;
+  }
+  return `${hi}I'm Karen, the assistant at ${salon}. You're invited to join the team! `
     + `Tap to choose your password and I'll walk you through your profile: ${link} `
     + `(link works ${expiresDays || 7} days, just for you)`;
 }
@@ -205,7 +215,8 @@ async function logTeamText(db, row) {
  * texting does not. Skipped when the owner switched the Team Member
  * Invitation automation off. `send` and `db` are for tests.
  */
-export async function textInvite({ tenant, phone, name, link, expiresDays, staffUserId = null }, { send = sendText, db = { query } } = {}) {
+export async function textInvite({ tenant, phone, name, link, expiresDays, staffUserId = null, stage = null }, { send = sendText, db = { query } } = {}) {
+  const kind = stage ? 'team_invite_reminder' : 'team_invite';
   const digits = String(phone || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
   if (digits.length !== 10) return { skipped: 'no mobile' };
   if (Array.isArray(tenant?.automations_off) && tenant.automations_off.includes('team_invite')) return { skipped: 'off' };
@@ -218,17 +229,17 @@ export async function textInvite({ tenant, phone, name, link, expiresDays, staff
     );
     Object.assign(salonRow, rows[0] || {});
     if (!salonRow.karen_phone) return { skipped: 'no number' };
-    body = inviteText({ salon: salonRow.name || tenant.name || 'the salon', name, link, expiresDays });
+    body = inviteText({ salon: salonRow.name || tenant.name || 'the salon', name, link, expiresDays, stage });
     await send({ to: `+1${digits}`, from: salonRow.karen_phone, body });
   } catch (err) {
     console.error('invite text failed', err.message);
     if (body) {
-      await logTeamText(db, { tenantId: tenant.id, staffUserId, kind: 'team_invite', name, phone: digits,
-        body: body.replace(link, '[setup link]'), status: 'failed', error: err.message });
+      await logTeamText(db, { tenantId: tenant.id, staffUserId, kind, name, phone: digits,
+        body: body.replace(link, stage === 'finish' ? link : '[setup link]'), status: 'failed', error: err.message });
     }
     return { skipped: 'failed', failed: true };
   }
-  await logTeamText(db, { tenantId: tenant.id, staffUserId, kind: 'team_invite', name, phone: digits,
-    body: body.replace(link, '[setup link]'), status: 'sent' });
+  await logTeamText(db, { tenantId: tenant.id, staffUserId, kind, name, phone: digits,
+    body: body.replace(link, stage === 'finish' ? link : '[setup link]'), status: 'sent' });
   return { texted: true };
 }

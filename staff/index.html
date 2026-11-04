@@ -4197,7 +4197,7 @@
       <button type="button" class="btn danger hidden" id="memberDanger"></button>
       <!-- Their invite not used yet: Karen sends the welcome again with a
            fresh link (the old one stops working). -->
-      <button type="button" class="btn quiet hidden" id="memberResend"><svg class="ic"><use href="#i-send"/></svg>Resend invitation</button>
+      <button type="button" class="btn quiet hidden" id="memberResend"><svg class="ic"><use href="#i-send"/></svg>Resend Invitation</button>
       <span class="spacer"></span>
       <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
       <button class="btn" value="save" id="memberSave">Add</button>
@@ -5870,6 +5870,7 @@ function automations() {
         { msg: 'team_invite', title: 'Welcome Message', sms: true, text: 'Karen introduces herself and the app, with their setup link, by email and text.' },
         ['lock', 'Account setup invitation', 'The link lets them choose their own password. It works once and lasts 7 days.'],
         ['user-check', 'Guided onboarding', 'Karen walks them through their photo, services, prices, hours and calendar.'],
+        { msg: 'team_invite_reminder', title: 'Reminder Message', sms: true, text: 'When the owner presses Resend Invitation: a fresh link if theirs was never used, or a nudge to sign in and finish setting up.' },
       ],
     },
     {
@@ -6342,7 +6343,7 @@ let msgView = 'email';
 // text-only version as "Plain text", which read as a text message.
 async function openMessage(kind, title, withSms = false) {
   $('msgTitle').textContent = title;
-  $('msgSub').textContent = kind === 'team_invite'
+  $('msgSub').textContent = /^team_invite/.test(kind)
     ? 'Shown with a sample name. Each new team member gets their own, with their own setup link.'
     : 'Shown with a sample appointment. Clients see their own details.';
   $('msgBody').innerHTML = skeleton(4);
@@ -6369,8 +6370,8 @@ function paintMessage(m, types, { sent = false } = {}) {
       const t = m.sms;
       $('msgView').innerHTML = `
         ${t.connected ? '' : `<div class="note mp-note">${ic('info')}<span>${t.number
-          ? `Texting is not switched on yet, so this is not being sent. It is exactly what ${m.kind === 'team_invite' ? 'new team members' : 'clients'} will get once it is.`
-          : `No phone number is connected to Karen yet (Settings, Karen AI), so this is not being sent. It is exactly what ${m.kind === 'team_invite' ? 'new team members' : 'clients'} will get once it is.`}</span></div>`}
+          ? `Texting is not switched on yet, so this is not being sent. It is exactly what ${/^team_invite/.test(m.kind) ? 'new team members' : 'clients'} will get once it is.`
+          : `No phone number is connected to Karen yet (Settings, Karen AI), so this is not being sent. It is exactly what ${/^team_invite/.test(m.kind) ? 'new team members' : 'clients'} will get once it is.`}</span></div>`}
         <dl class="mp-env">
           <dt>From</dt><dd>${esc(t.from)} · ${t.number ? esc(t.number) : '<span class="muted">No number connected yet</span>'}</dd>
           <dt>To</dt><dd>${esc(t.to)} · ${esc(t.toPhone)}</dd>
@@ -6419,7 +6420,7 @@ async function openSentEmail(id) {
     const at = fmtWhen(m.sentAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     $('msgSub').textContent = (m.status === 'failed'
       ? `Not delivered to ${m.toName}, ${at}${m.error ? `. ${m.error}` : ''}`
-      : `Sent to ${m.toName}, ${at}`) + (m.kind === 'team_invite' && m.note ? `. ${m.note}` : '');
+      : `Sent to ${m.toName}, ${at}`) + (/^team_invite/.test(m.kind) && m.note ? `. ${m.note}` : '');
     if (a) $('msgIc').innerHTML = ic(a.icon);
     msgView = 'email';
     paintMessage(m, ['email'], { sent: true });
@@ -12138,7 +12139,13 @@ async function openMember(who) {
     danger.dataset.act = act;
   }
   danger.classList.toggle('hidden', !danger.dataset.act);
-  $('memberResend').classList.toggle('hidden', !(m && !self && admin && m.invited && !m.noLogin));
+  // Resend Invitation (2026-11-04): while the link is unused (a fresh link)
+  // or while they are still setting up (a reminder to finish).
+  const resendable = Boolean(m && !self && admin && !m.noLogin && (m.invited || m.onboarding));
+  $('memberResend').classList.toggle('hidden', !resendable);
+  $('memberResend').title = !resendable ? ''
+    : m.invited ? 'Karen emails and texts them a friendly reminder with a fresh link. The old link stops working.'
+      : 'Karen emails and texts them a friendly reminder to sign in and finish setting up.';
   openDialog($('memberDlg'));
 }
 
@@ -12534,34 +12541,59 @@ function inviteKarenSay(text) {
   };
   tick();
 }
+/** A setup step's name, read through a function so callers above the onboarding code can use it. */
+function setupStepName(k) {
+  return { details: 'About you', services: 'Services & Pricing', hours: 'Hours & Availability',
+    calendar: 'Connect your calendar', review: 'Review & Finish' }[k] || null;
+}
 function showInviteLink(name, invite, role = '') {
   if (!invite) { toast(`${name} has been invited.`); return; }
   $('inviteWho').textContent = name;
   const first = String(name || '').trim().split(/\s+/)[0] || 'them';
+  // What was sent depends on where they are (2026-11-04): the first welcome,
+  // a reminder with a fresh link, or a reminder to finish setting up.
+  const stage = invite.stage || null;
+  const reminder = Boolean(stage);
   const reached = Boolean(invite.emailed || invite.texted);
+  $('inviteTitle').innerHTML = stage === 'finish' ? `Reminder sent to <span id="inviteWho">${esc(name)}</span>`
+    : stage === 'invite' ? `Invitation resent to <span id="inviteWho">${esc(name)}</span>`
+      : `<span id="inviteWho">${esc(name)}</span> has been invited`;
   const item = (state, icon, title, text) => `<li class="${state}"><span class="invdone-ic">${ic(icon)}</span>
       <span><b>${esc(title)}</b><small>${esc(text)}</small></span>
       <span class="invdone-st">${state === 'ok' ? ic('check') : state === 'bad' ? ic('x') : ''}</span></li>`;
-  const mail = invite.off ? item('off', 'mail', 'Welcome email', 'Not sent: the Team Member Invitation automation is off.')
-    : invite.emailed ? item('ok', 'mail', 'Welcome email sent', 'From Karen, with their setup link. It is in Email History.')
-      : invite.emailFailed ? item('bad', 'mail', 'Welcome email not delivered', 'The email provider refused it. Check the address.')
-        : item('off', 'mail', 'Welcome email', 'Not sent: email is not connected yet.');
-  const sms = invite.off ? item('off', 'message', 'Welcome text', 'Not sent: the automation is off.')
-    : invite.texted ? item('ok', 'message', 'Welcome text sent', 'From Karen’s number, so they can set up on their phone.')
-      : !invite.hasPhone ? item('off', 'message', 'Welcome text', 'Not sent: no mobile number.')
-        : invite.textFailed ? item('bad', 'message', 'Welcome text not delivered', 'The text provider refused it.')
-          : item('off', 'message', 'Welcome text', 'Not sent: texting is not connected yet.');
-  const setup = item(reached ? 'ok' : 'off', 'user-check', 'Account setup with Karen',
-    `Karen helps ${first} choose a password, then their photo, ${role === 'stylist' ? 'services, prices, hours ' : 'mobile '}and calendar.`);
+  const mailName = reminder ? 'Reminder email' : 'Welcome email';
+  const textName = reminder ? 'Reminder text' : 'Welcome text';
+  const what = stage === 'finish' ? 'a nudge to sign in and finish setting up' : stage === 'invite' ? 'a fresh setup link' : 'their setup link';
+  const mail = invite.off ? item('off', 'mail', mailName, 'Not sent: the Team Member Invitation automation is off.')
+    : invite.emailed ? item('ok', 'mail', `${mailName} sent`, `From Karen, with ${what}. It is in Email History.`)
+      : invite.emailFailed ? item('bad', 'mail', `${mailName} not delivered`, 'The email provider refused it. Check the address.')
+        : item('off', 'mail', mailName, 'Not sent: email is not connected yet.');
+  const sms = invite.off ? item('off', 'message', textName, 'Not sent: the automation is off.')
+    : invite.texted ? item('ok', 'message', `${textName} sent`, 'From Karen’s number, so they can do it on their phone.')
+      : !invite.hasPhone ? item('off', 'message', textName, 'Not sent: no mobile number.')
+        : invite.textFailed ? item('bad', 'message', `${textName} not delivered`, 'The text provider refused it.')
+          : item('off', 'message', textName, 'Not sent: texting is not connected yet.');
+  const step = setupStepName(invite.step);
+  const setup = stage === 'finish'
+    ? item(reached ? 'ok' : 'off', 'user-check', 'Picks up where they left off',
+      `They have chosen a password. Once they sign in, Karen takes them back to ${step || 'their next step'}.`)
+    : item(reached ? 'ok' : 'off', 'user-check', 'Account setup with Karen',
+      `Karen helps ${first} choose a password, then their photo, ${role === 'stylist' ? 'services, prices, hours ' : 'mobile '}and calendar.`
+      + (stage === 'invite' ? ' Any earlier link no longer works.' : ''));
   $('inviteSteps').innerHTML = mail + sms + setup;
-  $('inviteSent').textContent = reached
-    ? `Karen has sent ${first} a welcome and is guiding them through setting up their account.`
-    : `Karen could not reach ${first}, so send them this link yourself.`;
+  $('inviteSent').textContent = !reached
+    ? (stage === 'finish' ? `Karen could not reach ${first}, so tell them to sign in at this address.`
+      : `Karen could not reach ${first}, so send them this link yourself.`)
+    : stage === 'finish' ? `Karen has sent ${first} a friendly reminder to finish setting up their account.`
+      : stage === 'invite' ? `Karen has sent ${first} a friendly reminder with a fresh link.`
+        : `Karen has sent ${first} a welcome and is guiding them through setting up their account.`;
   $('inviteLinkRow').hidden = reached;
   $('inviteNote').hidden = reached;
   $('inviteCopy').hidden = reached;
+  $('inviteLinkRow').querySelector('span').textContent = stage === 'finish' ? 'Where they sign in' : 'Their invite link';
   $('inviteLink').value = reached ? '' : invite.link;
-  $('inviteNote').textContent = `The link works once and expires in ${invite.expiresDays} days.`;
+  $('inviteNote').textContent = stage === 'finish' ? 'They sign in with their email and the password they chose.'
+    : `The link works once and expires in ${invite.expiresDays} days.`;
   // Karen, waving while she speaks; still for reduced motion.
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   $('inviteKarenPic').src = KAREN_PIC;
@@ -12574,7 +12606,8 @@ function showInviteLink(name, invite, role = '') {
   $('inviteKaren').classList.toggle('still', still);
   $('inviteSay').textContent = '';
   openDialog($('inviteDlg'));
-  inviteKarenSay(reached ? 'I’ll take it from here!' : 'I couldn’t reach them, so here’s their link.');
+  inviteKarenSay(!reached ? 'I couldn’t reach them, so here’s what to send.'
+    : reminder ? 'I’ll give them a friendly nudge!' : 'I’ll take it from here!');
 }
 $('inviteDlg').addEventListener('close', () => {
   inviteTyping++;
@@ -12641,6 +12674,7 @@ $('memberResend').onclick = async () => {
     const r = await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: m.id, action: 'reinvite' }) });
     closeDialog($('memberDlg'));
     setTimeout(() => showInviteLink(m.name, r.invite, m.role), 180);
+    if (page === 'settings') loadTeam();
   } catch (err) { note($('memberNote'), err.message); } finally { b.disabled = false; }
 };
 
@@ -12786,7 +12820,10 @@ function memberRow(m, self) {
   return `<button type="button" class="tm-row${self ? ' me' : ''}${m.status === 'disabled' ? ' off' : ''}" data-member="${self ? 'me' : esc(m.id)}"
       aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
     <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""><span class="pen">${ic('edit')}</span></span>
-    <span class="tm-who"><span class="tm-line"><b>${esc(m.name)}</b><span class="chip role">${esc(role)}</span>${self ? '<i class="tm-you">You</i>' : ''}${m.invited ? '<span class="chip" title="Their invite has not been used yet.">Invited</span>' : m.onboarding ? '<span class="chip pending" title="They have signed in and are still setting up their account. The app opens for them once they finish.">Setting up</span>' : ''}</span>
+    <span class="tm-who"><span class="tm-line"><b>${esc(m.name)}</b><span class="chip role">${esc(role)}</span>${self ? '<i class="tm-you">You</i>' : ''}${m.invited ? (m.inviteExpired
+        ? '<span class="chip warn" title="Their invite link ran out before they used it. Open them and press Resend Invitation for a fresh one.">Invite expired</span>'
+        : '<span class="chip" title="Their invite has not been used yet.">Invited</span>')
+        : m.onboarding ? `<span class="chip pending" title="${esc(`They chose a password and are still setting up their account${setupStepName(m.onboardingStep) ? `, on ${setupStepName(m.onboardingStep)}` : ''}. The app opens for them once they finish.`)}">Setting up</span>` : ''}</span>
       <span class="tm-phone">${m.phone ? esc(usPhone(m.phone)) : m.role === 'stylist' && !m.noLogin
         ? '<span class="warn-text">Mobile number needed</span>' : '<span class="muted">No phone number</span>'}</span></span>
     <span class="tm-badges">${cal}</span>
@@ -13904,6 +13941,12 @@ async function showInvite(token) {
     const n = $('inviteErr');
     n.textContent = err.message;
     n.className = 'note bad';
+    // Somebody who already chose a password only needs to sign in.
+    if (!$('inviteSignIn')) {
+      n.insertAdjacentHTML('afterend', '<a class="btn block" id="inviteSignIn" style="margin-top:14px">Sign in</a>');
+      $('inviteSignIn').href = HOME_PATH;
+      $('inviteSignIn').onclick = (e) => { e.preventDefault(); history.replaceState(null, '', HOME_PATH); location.reload(); };
+    }
     return;
   }
 
