@@ -1829,6 +1829,34 @@
   /* At the top of every page, right of the menu where the person chip was
      (2026-10-30; beside each page's title before). Pink by id, so dark mode
      keeps her pink. */
+  /* Karen's hello after setup (karenHelloBubble): bold, a soft periwinkle
+     glow, pinned to her button with a tail pointing at her. */
+  .k-hello { position: fixed; z-index: 60; display: flex; align-items: flex-start; gap: 4px;
+    width: min(320px, calc(100vw - 24px)); padding: 6px 6px 6px 4px; border-radius: 18px;
+    background: var(--card); border: 1.5px solid rgba(125, 136, 214, .55);
+    box-shadow: 0 10px 30px -12px rgba(30, 31, 92, .35), 0 0 0 4px rgba(125, 136, 214, .12), 0 0 26px rgba(125, 136, 214, .45);
+    animation: k-hello-in .35s cubic-bezier(.2, .9, .3, 1.2) both, k-hello-glow 2.8s ease-in-out .4s infinite; }
+  .k-hello::before { content: ''; position: absolute; left: var(--tail, 50%); top: -8px; width: 14px; height: 14px;
+    transform: translateX(-50%) rotate(45deg); background: var(--card);
+    border-left: 1.5px solid rgba(125, 136, 214, .55); border-top: 1.5px solid rgba(125, 136, 214, .55); border-radius: 3px 0 0 0; }
+  .k-hello.up::before { top: auto; bottom: -8px; transform: translateX(-50%) rotate(225deg); }
+  .k-hello-go { all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 6px 4px 6px 6px;
+    border-radius: 14px; flex: 1; min-width: 0; }
+  .k-hello-go:hover { background: rgba(125, 136, 214, .08); }
+  .k-hello-go:focus-visible { outline: 2px solid var(--viz, #7d88d6); outline-offset: 2px; }
+  .k-hello-go img { width: 40px; height: 40px; border-radius: 50%; flex: none; object-fit: cover;
+    box-shadow: 0 0 0 2px var(--card), 0 0 0 4px rgba(125, 136, 214, .7); }
+  .k-hello-go span { font-weight: 750; font-size: 14.5px; line-height: 1.35; color: var(--ink); }
+  .k-hello-x { all: unset; cursor: pointer; flex: none; display: grid; place-items: center; width: 32px; height: 32px;
+    border-radius: 50%; color: var(--muted, #6b6f8a); }
+  .k-hello-x:hover { background: rgba(125, 136, 214, .12); color: var(--ink); }
+  .k-hello-x:focus-visible { outline: 2px solid var(--viz, #7d88d6); }
+  .k-hello-x .ic { width: 16px; height: 16px; }
+  .k-hello.out { animation: k-hello-out .2s ease-in both; }
+  @keyframes k-hello-in { from { opacity: 0; transform: translateY(-6px) scale(.94); } }
+  @keyframes k-hello-out { to { opacity: 0; transform: translateY(-4px) scale(.97); } }
+  @keyframes k-hello-glow { 50% { box-shadow: 0 10px 30px -12px rgba(30, 31, 92, .35), 0 0 0 5px rgba(125, 136, 214, .16), 0 0 36px rgba(125, 136, 214, .6); } }
+  @media (prefers-reduced-motion: reduce) { .k-hello, .k-hello.out { animation: none; } }
   .karen-cta { gap: 8px; padding-left: 7px; font-weight: 650; border: 1px solid rgba(85, 96, 166, .28); box-shadow: var(--e1); }
   @media (min-width: 721px) {
     /* As tall as the menu beside her, with its corners and lift. */
@@ -4819,6 +4847,7 @@ const I18N_ES = {
   'Earned': 'Ganado', 'No visits in this period.': 'No hay visitas en este periodo.',
   // Appt. Book
   'Today': 'Hoy', 'Day': 'Día', 'Month': 'Mes', 'Previous': 'Anterior', 'Next': 'Siguiente',
+  'I’m right here if you need help! Just click my menu to chat with me.': '¡Aquí estoy si necesitas ayuda! Solo haz clic en mi menú para chatear conmigo.',
   'Team member': 'Miembro del equipo', 'Not connected': 'No conectado', 'Unassigned': 'Sin asignar', 'No stylist yet': 'Sin estilista aún',
   'Busy': 'Ocupado', 'Lunch': 'Almuerzo', 'Block': 'Bloqueo', 'Block · Not bookable': 'Bloqueo · No reservable',
   'Block, not bookable': 'Bloqueo, no reservable', 'Block (not bookable)': 'Bloqueo (no reservable)', 'Block time': 'Bloquear tiempo',
@@ -14986,9 +15015,8 @@ $('obSignOut').onclick = async (e) => {
 function karenFlyHome() {
   try { sessionStorage.removeItem('ss-karen-home'); } catch { /* fine */ }
   const btn = $('karenBtn');
-  const say = "Welcome aboard! I live in this button now. Tap me whenever you need a hand.";
   const target = btn?.querySelector('.kc-pic') || btn;
-  if (!target || matchMedia('(prefers-reduced-motion: reduce)').matches) { toast(say); return; }
+  if (!target || matchMedia('(prefers-reduced-motion: reduce)').matches) { karenHelloBubble(); return; }
   const r = target.getBoundingClientRect();
   const img = document.createElement('img');
   img.className = 'karen-fly';
@@ -15007,8 +15035,59 @@ function karenFlyHome() {
   fly.onfinish = () => {
     img.remove();
     btn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 450, easing: 'ease-out' });
-    toast(say);
+    karenHelloBubble();
   };
+}
+
+/**
+ * Karen's first words once setup is done (asked for 2026-11-04): a bold
+ * bubble with a soft glow, pinned to her Call Karen button rather than a
+ * toast at the foot of the page. Under the button on a computer (it sits
+ * top right), above it on a phone (it floats bottom right), its tail
+ * pointing at her. Pressing the bubble opens her chat; the cross, Escape,
+ * or opening her any other way puts it away. Shown once, after onboarding.
+ */
+function karenHelloBubble() {
+  const btn = $('karenBtn');
+  if (!btn || document.getElementById('kHello')) return;
+  const b = document.createElement('div');
+  b.id = 'kHello';
+  b.className = 'k-hello';
+  b.setAttribute('role', 'status');
+  b.innerHTML = `<button type="button" class="k-hello-go" aria-label="Chat with Karen">`
+    + `<img src="${KAREN_PIC}" alt=""><span>I\u2019m right here if you need help! Just click my menu to chat with me.</span></button>`
+    + `<button type="button" class="k-hello-x" aria-label="Dismiss">${ic('x')}</button>`;
+  document.body.appendChild(b);
+  const place = () => {
+    const r = btn.getBoundingClientRect();
+    const below = r.top < innerHeight / 2;
+    b.classList.toggle('up', !below);
+    b.style.right = `${Math.max(12, innerWidth - r.right)}px`;
+    b.style.left = 'auto';
+    if (below) { b.style.top = `${r.bottom + 14}px`; b.style.bottom = 'auto'; }
+    else { b.style.bottom = `${innerHeight - r.top + 14}px`; b.style.top = 'auto'; }
+    // The tail points at the middle of her picture.
+    const pic = btn.querySelector('.kc-pic')?.getBoundingClientRect() || r;
+    const br = b.getBoundingClientRect();
+    b.style.setProperty('--tail', `${Math.min(br.width - 28, Math.max(18, pic.left + pic.width / 2 - br.left))}px`);
+  };
+  const close = () => {
+    removeEventListener('resize', place);
+    removeEventListener('scroll', place, true);
+    removeEventListener('keydown', onKey);
+    btn.removeEventListener('click', close);
+    b.classList.add('out');
+    setTimeout(() => b.remove(), 220);
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  place();
+  requestAnimationFrame(place);
+  addEventListener('resize', place);
+  addEventListener('scroll', place, true);
+  addEventListener('keydown', onKey);
+  btn.addEventListener('click', close);
+  b.querySelector('.k-hello-x').onclick = close;
+  b.querySelector('.k-hello-go').onclick = () => { close(); btn.click(); };
 }
 
 async function start(landing) {

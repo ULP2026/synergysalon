@@ -497,12 +497,12 @@ function karenImages(shop) {
   if (!/^https?:\/\//i.test(shop.site || '')) return {};
   return {
     logo: `${shop.site}${WORDMARK}`,
-    // "Karen · (813) 555-0199 · Synergy Salon's Assistant" (asked for
-    // 2026-11-04), the number tappable; just her name and role until a
-    // number is connected.
+    // "(813) 555-0199 · Synergy Salon's Assistant" (asked for 2026-11-04;
+    // the greeting already says she is Karen), the number tappable; just
+    // her role until a number is connected.
     avatar: {
       src: `${shop.site}${KAREN_EMAIL_PIC}`, alt: 'Karen',
-      caption: ['Karen', usPhoneText(shop.karenPhone), `${shop.name}'s Assistant`].filter(Boolean),
+      caption: [usPhoneText(shop.karenPhone), `${shop.name}'s Assistant`].filter(Boolean),
       phone: usPhoneText(shop.karenPhone),
       phoneHref: shop.karenPhone ? `tel:${String(shop.karenPhone).replace(/[^\d+]/g, '')}` : '',
     },

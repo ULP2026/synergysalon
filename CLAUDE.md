@@ -1655,10 +1655,19 @@ made that way are real: name them ZZ and remove them.
     picture is the frame at 5.0s of `karen-wave.mp4` (smiling at the reader,
     hand open), cut to the same 192px circle and periwinkle ring, in place of
     the clip's first frame, whose mouth is flat. The line under the greeting
-    reads "Karen · (813) 555-0199 · Synergy Salon's Assistant", the number
-    from `tenants.karen_phone` (`shopFrom().karenPhone`, written as the salon
-    writes numbers by `usPhoneText`, a `tel:` link); without a number it is
-    "Karen · Synergy Salon's Assistant".
+    reads "(813) 555-0199 · Synergy Salon's Assistant" (her name dropped on
+    request: the greeting says it), the number from `tenants.karen_phone`
+    (`shopFrom().karenPhone`, written as the salon writes numbers by
+    `usPhoneText`, a `tel:` link); without a number it is "Synergy Salon's
+    Assistant".
+  - **Karen's hello after setup** (asked for 2026-11-04): once Karen has
+    flown into her button at the end of onboarding, a bold bubble with a
+    soft periwinkle glow is pinned to the Call Karen button (under it on a
+    computer, above it on a phone, its tail pointing at her): "I'm right
+    here if you need help! Just click my menu to chat with me."
+    (`karenHelloBubble`, `.k-hello`; it replaced a toast at the foot of the
+    page). Pressing it opens her chat; its cross, Escape or opening her any
+    other way dismisses it. Shown once, with no animation for reduced motion.
   - **Karen's emails carry Karen and the wordmark**: `karenImages` in
     email.js, from the salon's own site (`/assets/karen/karen-email.png`, a
     192px PNG already cut to a circle with her ring, because Outlook ignores
