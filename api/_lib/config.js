@@ -130,6 +130,9 @@ export function shopFrom(tenant = {}) {
     // review with nowhere to leave one wastes the one ask you get.
     reviewUrl: /^https?:\/\//i.test(String(tenant.review_url || '')) ? tenant.review_url : '',
     site,
+    // Karen's own number (Settings, Karen AI), for her line in the team's
+    // emails; empty until one is connected.
+    karenPhone: tenant.karen_phone || '',
     timezone: tenant.timezone || DEFAULT_TZ,
   };
 }

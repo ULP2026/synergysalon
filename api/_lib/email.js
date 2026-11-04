@@ -224,7 +224,10 @@ function layout({ heading, intro, rows, action, secondary, where, change, steps,
          <td style="padding:0 14px 0 0;vertical-align:middle;"><img src="${avatar.src}" alt="${escapeHtml(avatar.alt || '')}"
             width="64" height="64" style="width:64px;height:64px;border:0;display:block;border-radius:50%;"></td>
          <td style="vertical-align:middle;"><h1 style="margin:0;font-size:22px;line-height:1.3;color:${INK};">${escapeHtml(heading)}</h1>
-           ${avatar.caption ? `<p style="margin:2px 0 0;color:${MUTED};font-size:13px;">${escapeHtml(avatar.caption)}</p>` : ''}</td>
+           ${avatar.caption ? `<p style="margin:3px 0 0;color:${MUTED};font-size:13px;line-height:1.4;">${
+    [].concat(avatar.caption).map((part) => (part === avatar.phone && avatar.phoneHref
+      ? `<a href="${avatar.phoneHref}" style="color:${MUTED};text-decoration:none;white-space:nowrap;">${escapeHtml(part)}</a>`
+      : escapeHtml(part))).join(' &middot; ')}</p>` : ''}</td>
        </tr></table>`
     : `<h1 style="margin:0 0 8px;font-size:22px;line-height:1.3;color:${INK};">${escapeHtml(heading)}</h1>`}
       <p style="margin:0 0 24px;color:#4A4A57;font-size:15px;line-height:1.55;white-space:pre-line;">${escapeHtml(intro)}</p>
@@ -483,12 +486,26 @@ function appUrlFor(link, appUrl) {
  * has no web address to serve them from (a test, a preview).
  */
 const KAREN_EMAIL_PIC = '/assets/karen/karen-email.png';
+
+/** A stored number as the salon writes it, (813) 555-0199; anything else as it is. */
+function usPhoneText(raw) {
+  const d = String(raw || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+  return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : String(raw || '').trim();
+}
 const WORDMARK = '/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png';
 function karenImages(shop) {
   if (!/^https?:\/\//i.test(shop.site || '')) return {};
   return {
     logo: `${shop.site}${WORDMARK}`,
-    avatar: { src: `${shop.site}${KAREN_EMAIL_PIC}`, alt: 'Karen', caption: `Karen · ${shop.name}'s assistant` },
+    // "Karen · (813) 555-0199 · Synergy Salon's Assistant" (asked for
+    // 2026-11-04), the number tappable; just her name and role until a
+    // number is connected.
+    avatar: {
+      src: `${shop.site}${KAREN_EMAIL_PIC}`, alt: 'Karen',
+      caption: ['Karen', usPhoneText(shop.karenPhone), `${shop.name}'s Assistant`].filter(Boolean),
+      phone: usPhoneText(shop.karenPhone),
+      phoneHref: shop.karenPhone ? `tel:${String(shop.karenPhone).replace(/[^\d+]/g, '')}` : '',
+    },
   };
 }
 

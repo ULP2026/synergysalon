@@ -1651,6 +1651,14 @@ made that way are real: name them ZZ and remove them.
     hides the four stylists without a sign-in (Dina, Micah, Tami, Kim) from
     the book until they have a login with a calendar.
   - **Invited** is a yellow chip (`.chip.invited`), Setting up periwinkle.
+  - **Karen in the team's emails smiles** (asked for 2026-11-04, later): the
+    picture is the frame at 5.0s of `karen-wave.mp4` (smiling at the reader,
+    hand open), cut to the same 192px circle and periwinkle ring, in place of
+    the clip's first frame, whose mouth is flat. The line under the greeting
+    reads "Karen · (813) 555-0199 · Synergy Salon's Assistant", the number
+    from `tenants.karen_phone` (`shopFrom().karenPhone`, written as the salon
+    writes numbers by `usPhoneText`, a `tel:` link); without a number it is
+    "Karen · Synergy Salon's Assistant".
   - **Karen's emails carry Karen and the wordmark**: `karenImages` in
     email.js, from the salon's own site (`/assets/karen/karen-email.png`, a
     192px PNG already cut to a circle with her ring, because Outlook ignores
