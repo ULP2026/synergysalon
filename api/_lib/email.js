@@ -220,7 +220,7 @@ function layout({ heading, intro, rows, action, secondary, where, change, steps,
       ${whereLine}
       ${changeLine}
       ${list}
-      ${footnote ? `<p style="margin:28px 0 0;color:${MUTED};font-size:13px;line-height:1.55;">${escapeHtml(footnote)}</p>` : ''}
+      ${footnote ? `<p style="margin:28px 0 0;color:${MUTED};font-size:13px;line-height:1.55;white-space:pre-line;">${escapeHtml(footnote)}</p>` : ''}
       <hr style="border:none;border-top:1px solid ${TINT};margin:28px 0 16px;">
       <p style="margin:0;color:${MUTED};font-size:13px;line-height:1.6;">
         ${escapeHtml(shop.name)}<br>
@@ -324,75 +324,119 @@ function calUrl(appt, shop, zone) {
  * confirmed", which every shop's guests would have received.
  */
 /**
- * The welcome a new team member gets the moment they are added.
+ * The welcome a new team member gets the moment they are invited, from
+ * Karen (asked for 2026-11-04): she introduces herself, says in two lines
+ * what the app is, and hands them the link that sets them up. The steps are
+ * the ones she then walks them through on screen: choose a password, then
+ * their profile (photo, mobile, and for a stylist their services, prices and
+ * hours), then their calendar. No password is ever in it: there is none to
+ * send, since they choose it themselves through the link, which is the only
+ * credential here and says plainly how long it lasts and not to forward it.
  *
- * Everything they need in one place, because the person who added them is
- * often not beside them when they open it: the link that sets them up, where
- * the app lives afterwards, what to fill in on their own account, and how to
- * put their calendar on Appt. Book. No password is ever in it: there is none
- * to send, since they choose it themselves through the link, which is the
- * only credential here and says plainly how long it lasts and not to forward
- * it.
+ * `link` is null when the welcome is rebuilt for Email History or a preview:
+ * the link is a credential and is never kept, so a placeholder stands in.
  */
-export function welcomeContent({ name, email, link, appUrl, expiresDays }, shop) {
+export const INVITE_KIND = 'team_invite';
+export function welcomeContent({ name, email, link, appUrl, expiresDays, invitedBy }, shop) {
   const first = String(name || '').trim().split(/\s+/)[0] || 'there';
+  const by = String(invitedBy || '').trim().split(/\s+/)[0];
   return {
-    subject: `Welcome to the ${shop.name} team: set up your account`,
+    subject: `${first}, welcome to ${shop.name}! Let's set up your account`,
     content: {
-      heading: `Welcome to the team, ${first}`,
-      intro: `You have been added to the ${shop.name} app, where the team keeps the `
-        + 'appointment book, clients and their own calendars. Setting up takes a few minutes.',
+      heading: `Hi ${first}, I'm Karen!`,
+      intro: `${by ? `${by} has invited you` : 'You have been invited'} to join the team at ${shop.name}, `
+        + 'and I\u2019m the salon\u2019s assistant. I\u2019ll be the one guiding you through getting set up.\n\n'
+        + 'The app is where the team runs the salon: your appointment book, your clients, and your '
+        + 'own calendar, all in one place. I live in it too, so you can ask me to look something up '
+        + 'or book a client any time. Setting up takes about five minutes, and I\u2019ll be beside '
+        + 'you on every step.',
       rows: [['Your sign-in email', email], ['The app', appUrl]],
-      action: { label: 'Set up your account', href: link },
+      action: { label: 'Set up my account', href: link || appUrl },
       steps: {
-        title: 'Getting started',
+        title: 'Here\u2019s what we\u2019ll do together',
         items: [
           {
             title: 'Choose your password',
-            text: `Use the button above. It signs you straight in. The link works once `
-              + `and expires in ${expiresDays} days.`,
+            text: 'Tap the button above. You choose your own password, so nobody else ever knows it, '
+              + `and you are signed straight in. The link works once and lasts ${expiresDays} days.`,
+          },
+          {
+            title: 'Complete your profile',
+            text: 'Add a photo of yourself and your mobile number. If you are a stylist, switch on the '
+              + 'services you do with your price for each, and the hours you are available.',
+          },
+          {
+            title: 'Connect your Google Calendar',
+            text: 'One tap, and your salon bookings land in your own calendar too. You can skip it '
+              + 'and do it later in My Settings.',
           },
           {
             title: 'Sign in any time after that',
             text: `Go to ${appUrl} and sign in with ${email} and the password you chose.`,
           },
-          {
-            title: 'Complete your Team Settings',
-            text: 'Open Settings, then Team, and click your own name. Add your photo, a username, '
-              + 'your phone number, and switch on the services you do with your price for each. '
-              + 'The owner sets your weekly hours.',
-          },
-          {
-            title: 'Connect your calendar',
-            text: 'In the same window, under Connect your tools, choose Google Calendar. Paste your '
-              + 'calendar\u2019s secret address (in Google Calendar: Settings, your calendar, '
-              + 'Integrate calendar, "Secret address in iCal format"), or sign in with Google if '
-              + 'that option is shown. Your busy times then appear on Appt. Book, so nobody books '
-              + 'you when you are away. Only the times are read, never what the events are.',
-          },
         ],
       },
-      footnote: 'The setup link is just for you: anyone who has it can set up your account, so '
-        + 'please do not forward it. If it has expired, ask the owner to send a new one.',
+      footnote: 'This link is just for you: anyone who has it can set up your account, so please '
+        + 'do not forward it. If it has expired, ask the owner to send a new one.\n\nSee you inside!\nKaren',
     },
   };
+}
+
+/** The app's own address for an invite link: the app. host serves it at its root, any other under /staff. */
+function appUrlFor(link, appUrl) {
+  if (appUrl) return appUrl;
+  try {
+    const u = new URL(link);
+    return u.hostname.startsWith('app.') ? u.origin : `${u.origin}/staff`;
+  } catch { return 'https://app.synergysalon.com'; }
 }
 
 /** The welcome as it will be sent, for a preview or a test. */
 export function welcomeEmail(args, tenant = {}) {
   const shop = shopFrom(tenant);
-  const { subject, content } = welcomeContent(args, shop);
-  return { from: fromFor(shop), subject, html: layout(content, shop), text: plain(content, shop) };
+  const { subject, content } = welcomeContent({ ...args, appUrl: appUrlFor(args.link, args.appUrl) }, shop);
+  return { from: fromFor(shop), replyTo: shop.replyTo || null, subject, html: layout(content, shop), text: plain(content, shop) };
 }
 
-export function sendInvite({ name, email, link, appUrl, expiresDays }, tenant = {}) {
+/**
+ * Send the welcome, and keep it in Email History (asked for 2026-11-04) as
+ * kind team_invite: who, the subject, sent or failed, and the facts it was
+ * written from, never the link. Throws when the provider refuses, as before,
+ * after logging the failure. `{ skipped }` without a provider, or with the
+ * Team Member Invitation automation switched off (`off`).
+ */
+export async function sendInvite({ name, email, link, appUrl, expiresDays, invitedBy }, tenant = {}) {
   const shop = shopFrom(tenant);
-  // The app's own address: app.synergysalon.com opens the console at its
-  // root, and any other host (a preview, localhost) serves it under /staff.
-  const u = new URL(link);
-  const app = appUrl || (u.hostname.startsWith('app.') ? u.origin : `${u.origin}/staff`);
-  const { subject, content } = welcomeContent({ name, email, link, appUrl: app, expiresDays }, shop);
-  return send(shop, email, subject, content);
+  if (!automationOn(INVITE_KIND, tenant)) return { skipped: true, off: true };
+  const app = appUrlFor(link, appUrl);
+  const { subject, content } = welcomeContent({ name, email, link, appUrl: app, expiresDays, invitedBy }, shop);
+  const log = async (status, error = null) => {
+    if (!tenant?.id) return;
+    try {
+      await query(
+        `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email, subject, status, error, contact_id, body)
+         VALUES ($1::uuid, $2::text, NULL, $3::text, $4::text, $5::text, $6::text, $7::text, NULL, $8::text)`,
+        [tenant.id, INVITE_KIND, name || null, email, subject, status, error ? String(error).slice(0, 500) : null,
+          JSON.stringify({ name, email, appUrl: app, expiresDays, invitedBy: invitedBy || null })],
+      );
+    } catch (err) {
+      console.warn('message_sends insert failed', INVITE_KIND, err.message);
+    }
+  };
+  let out;
+  try {
+    out = await send(shop, email, subject, content);
+  } catch (err) {
+    await log('failed', err.message);
+    throw err;
+  }
+  if (out.sent) await log('sent');
+  return out;
+}
+
+/** A sent welcome rebuilt from its log row (Email History), with a placeholder for the link that is never kept. */
+export function previewInvite(kept, tenant = {}) {
+  return welcomeEmail({ ...kept, link: null }, tenant);
 }
 
 /**

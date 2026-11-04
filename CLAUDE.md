@@ -1545,6 +1545,60 @@ made that way are real: name them ZZ and remove them.
   with no chair (front desk) sees no appointments at all: that is what the
   salon asked for, and the place to change it is `seesAll`.
   `tests/onboarding-access.integration.test.js` drives the real endpoints.
+- **Inviting a team member, led by Karen** (asked for 2026-11-04).
+  Add Team Member opens its own small form (`#invNewDlg`,
+  `openInviteNew`): Name, Phone number, Email, Role and **Send
+  Invitation**; the phone is asked of everybody, since the welcome text
+  goes there. The big team window (`#memberDlg`) is now only for editing.
+  Sending creates the account as before (`action: 'create'`, the drawn
+  default picture saved with it) and `deliverInvite` in team.js sends
+  Karen's welcome both ways and says what came of each (`emailed`,
+  `emailFailed`, `texted`, `textFailed`, `hasPhone`, `off`). The window
+  that follows (`#inviteDlg`, `showInviteLink`) reads "<name> has been
+  invited", Karen waving (her clip, looped while it is open) with "I'll
+  take it from here!" typed in a bubble, then a row each for the welcome
+  email, the welcome text and the account setup, ticked or not and why.
+  The link is shown only when neither went. An unused invite can be sent
+  again from the person's window (**Resend invitation**, `reinvite`,
+  which mints a fresh link). The welcome email (`welcomeContent` in
+  email.js) is Karen introducing herself and the app, who invited them,
+  the button, and the four steps she then leads; the text
+  (`inviteText` in sms-notify.js) is plain GSM-7, two segments with the
+  link. **The Team Member Invitation automation** (kind `team_invite`,
+  `INVITE_KIND`) is in Settings, Automations with the twelve, its switch
+  in `automations_off` like theirs: off, neither is sent and the owner is
+  handed the link. It is not in `MESSAGE_KINDS` (the queue and the
+  client's Activity deal only in guest messages): business.js lists
+  `AUTOMATION_KINDS`. The email is logged in `message_sends` (kind
+  `team_invite`, no appointment, no client) with the facts it was written
+  from in `body`, **never the link**: Email History lists it and opens it
+  rebuilt with the app's address on the button (`previewInvite`). The text
+  is logged in `team_texts` (migration 046, also in ensure-schema; not
+  `client_texts`, whose client is required) with the link replaced by
+  "[setup link]", and the automation's Sent History merges both. A client
+  who shares the address never sees it on their Activity (contacts.js and
+  Karen's tools leave `team_invite` out). Karen meets them on the
+  password page too (`#pwKaren`: her clip waving once, what to do, and
+  how many characters are still needed), which now has the salon's logo
+  (`#inviteMark` was an empty box). **Setup changes**: no title field (the
+  server still takes one, nothing asks), no avatars (the photo window
+  opens straight on the file chooser with `uploadOnly`; the face has a
+  camera badge, and "Your photo" is ticked only for an uploaded one,
+  `obHasPhoto`). **Prices are per service**: each kind's services list has
+  Price beside Minutes (`data-it="price"`), saved as
+  `services.items[slug].price`, which `ownPrice` already read first; the
+  kind row has no price box and saves `price: null` (a kind with no
+  services on the menu keeps what it had, `data-price`). A kind's old
+  price is shown in each of its services until they are given their own,
+  so nothing priced before is lost. The same control is in Team, My
+  Settings and onboarding; on a phone each service's name has its own line
+  with price and minutes under it. **Lunch break** reads "Flexible" under
+  its title. **Google Calendar** has its own logo (`GCAL_LOGO`; Google's G
+  stays for signing in) on the tools card and the onboarding step; once
+  connected the button is green with a tick and "Connected" (`.gcal-ok`),
+  the account in green under the name, and Disconnect a quiet link.
+  `tests/team-invite.integration.test.js` drives the invite through the
+  real handler with stand-ins for Resend and Twilio.
 
 ## Small screens
 

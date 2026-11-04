@@ -273,6 +273,20 @@ const STATEMENTS = [
   // 045: a service of one stylist's own, offered only with them. Additive.
   'ALTER TABLE services ADD COLUMN IF NOT EXISTS owner_staff_id uuid',
   'CREATE INDEX IF NOT EXISTS services_by_owner ON services (tenant_id, owner_staff_id) WHERE owner_staff_id IS NOT NULL',
+  // 046: the texts Karen sends the team (the invitation welcome), kept for
+  // Sent History. A table of its own; additive.
+  `CREATE TABLE IF NOT EXISTS team_texts (
+     id            bigserial PRIMARY KEY,
+     tenant_id     uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+     staff_user_id uuid REFERENCES staff_users(id) ON DELETE SET NULL,
+     kind          text NOT NULL,
+     to_name       text,
+     phone         text,
+     body          text NOT NULL,
+     status        text NOT NULL DEFAULT 'sent',
+     error         text,
+     created_at    timestamptz NOT NULL DEFAULT now())`,
+  'CREATE INDEX IF NOT EXISTS team_texts_by_kind ON team_texts (tenant_id, kind, created_at DESC)',
 ];
 
 let done = null;
