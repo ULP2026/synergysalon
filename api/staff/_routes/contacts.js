@@ -101,6 +101,7 @@ export const EMAIL_KIND = {
   rebook_due: 'Time for a refresh?',
   second_visit: 'Come back and see us',
   win_back: 'It has been a while',
+  team_invite: 'Welcome to the team',
 };
 
 /**
@@ -124,6 +125,7 @@ export const AUTOMATION_NAME = {
   rebook_due: 'Rebook Reminder',
   second_visit: 'New Guest Second Visit',
   win_back: 'Lapsed Client Win-back',
+  team_invite: 'Team Member Invitation',
 };
 
 const TONE = {
@@ -350,6 +352,9 @@ export async function contactDetail(tenantId, id, db = null, onlyIds = null) {
               to_jsonb(m) ->> 'body' AS body
          FROM message_sends m
         WHERE m.tenant_id = $2::uuid
+          -- A team member's welcome is not a client's email, even to an
+          -- address a client shares (2026-11-04).
+          AND m.kind <> 'team_invite'
           AND ((to_jsonb(m) ->> 'contact_id')::uuid = $1::uuid
                OR m.appointment_id IN (SELECT id FROM appointments WHERE contact_id = $1::uuid)
                OR (m.appointment_id IS NULL AND (to_jsonb(m) ->> 'contact_id') IS NULL

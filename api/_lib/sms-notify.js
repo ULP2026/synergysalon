@@ -170,30 +170,65 @@ export async function revokeConsent(db, tenantId, phone10) {
 }
 
 /**
- * The onboarding link, texted to somebody just added to the team (asked for
- * 2026-11-03), so they can set up their account on their phone. From Karen's
- * number, who leads the setup. A team member is not a client, so the
- * client-consent rules above do not apply: the owner who adds them enters
- * the number for exactly this. Never throws: the email and the link on the
- * owner's screen still work when texting does not. `send` is for tests.
+ * The welcome text Karen sends somebody invited to the team (2026-11-03;
+ * reworded 2026-11-04 as Karen introducing herself), so they can set up
+ * their account on their phone. From Karen's number, who leads the setup. A
+ * team member is not a client, so the client-consent rules above do not
+ * apply: the owner who invites them enters the number for exactly this.
+ * Plain characters only (GSM-7), so the link and all fit two segments.
  */
-export async function textInvite({ tenant, phone, name, link, expiresDays }, { send = sendText, db = { query } } = {}) {
+export function inviteText({ salon, name, link, expiresDays }) {
+  const first = String(name || '').trim().split(/\s+/)[0];
+  return `Hi${first ? ` ${first}` : ''}! I'm Karen, the assistant at ${salon}. You're invited to join the team! `
+    + `Tap to choose your password and I'll walk you through your profile: ${link} `
+    + `(link works ${expiresDays || 7} days, just for you)`;
+}
+
+/** Keep a text to the team (046). Never throws; a missing table is fine. */
+async function logTeamText(db, row) {
+  try {
+    await db.query(
+      `INSERT INTO team_texts (tenant_id, staff_user_id, kind, to_name, phone, body, status, error)
+       VALUES ($1::uuid, $2::uuid, $3::text, $4::text, $5::text, $6::text, $7::text, $8::text)`,
+      [row.tenantId, row.staffUserId || null, row.kind, row.name || null, row.phone, row.body, row.status,
+        row.error ? String(row.error).slice(0, 500) : null],
+    );
+  } catch (err) {
+    if (err.code !== '42P01') console.warn('team text not logged', err.message);
+  }
+}
+
+/**
+ * Text the welcome. Logged in team_texts with the link taken out (it is a
+ * credential), sent or failed, for the automation's Sent History. Never
+ * throws: the email and the link on the owner's screen still work when
+ * texting does not. Skipped when the owner switched the Team Member
+ * Invitation automation off. `send` and `db` are for tests.
+ */
+export async function textInvite({ tenant, phone, name, link, expiresDays, staffUserId = null }, { send = sendText, db = { query } } = {}) {
   const digits = String(phone || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
   if (digits.length !== 10) return { skipped: 'no mobile' };
+  if (Array.isArray(tenant?.automations_off) && tenant.automations_off.includes('team_invite')) return { skipped: 'off' };
   if (send === sendText && (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN)) return { skipped: 'texting not connected' };
+  let body = '';
+  const salonRow = {};
   try {
     const { rows } = await db.query(
       "SELECT name, to_jsonb(t) ->> 'karen_phone' AS karen_phone FROM tenants t WHERE id = $1::uuid", [tenant.id],
     );
-    const r = rows[0] || {};
-    if (!r.karen_phone) return { skipped: 'no number' };
-    const first = String(name || '').trim().split(/\s+/)[0];
-    const body = `Hi${first ? ` ${first}` : ''}! This is Karen from ${r.name || tenant.name}. Welcome to the team! `
-      + `Tap to set up your account, it takes a minute: ${link} (works for ${expiresDays} days)`;
-    await send({ to: `+1${digits}`, from: r.karen_phone, body });
-    return { texted: true };
+    Object.assign(salonRow, rows[0] || {});
+    if (!salonRow.karen_phone) return { skipped: 'no number' };
+    body = inviteText({ salon: salonRow.name || tenant.name || 'the salon', name, link, expiresDays });
+    await send({ to: `+1${digits}`, from: salonRow.karen_phone, body });
   } catch (err) {
     console.error('invite text failed', err.message);
-    return { skipped: 'failed' };
+    if (body) {
+      await logTeamText(db, { tenantId: tenant.id, staffUserId, kind: 'team_invite', name, phone: digits,
+        body: body.replace(link, '[setup link]'), status: 'failed', error: err.message });
+    }
+    return { skipped: 'failed', failed: true };
   }
+  await logTeamText(db, { tenantId: tenant.id, staffUserId, kind: 'team_invite', name, phone: digits,
+    body: body.replace(link, '[setup link]'), status: 'sent' });
+  return { texted: true };
 }

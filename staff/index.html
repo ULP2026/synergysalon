@@ -245,6 +245,23 @@
      line into a 44px pill. */
   .auth .auth-alt { text-align: center; margin: 18px 0 0; font-size: var(--fs-sm); color: var(--muted); }
   .auth .auth-alt a { color: var(--link); font-weight: 600; }
+  /* The face in setup opens the photo upload: a camera on its corner says so. */
+  .ob-face { position: relative; }
+  .ob-face-cam { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 28px; height: 28px;
+                 border-radius: 50%; background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 3px var(--card); }
+  .ob-face-cam .ic { width: 14px; height: 14px; }
+  /* Karen on the password step (2026-11-04). */
+  .pw-karen { display: flex; align-items: flex-start; gap: 14px; margin: -4px 0 18px; text-align: left; }
+  .pw-kpic { position: relative; flex: none; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: #f6dcec;
+             box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--periwinkle); animation: obBreathe 5s ease-in-out infinite; }
+  .pw-kpic img, .pw-kpic video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .pw-ksay { min-width: 0; flex: 1; }
+  .pw-ksay b { display: block; font-size: .95rem; }
+  .pw-ksay b small { font-weight: 500; color: var(--muted); font-size: var(--fs-xs); margin-left: 4px; }
+  .pw-ksay p { margin: 6px 0 0; padding: 10px 12px; border-radius: 4px 14px 14px 14px; background: var(--peri-pale);
+               color: var(--ink); font-size: .88rem; line-height: 1.45; }
+  .pw-rule { margin: -6px 0 14px; }
+  @media (prefers-reduced-motion: reduce) { .pw-kpic { animation: none; } .pw-kpic video { display: none; } }
   /* Onboarding (2026-11-03): the sign-in card, a little wider, with a step bar. */
   .ob .card { max-width: 520px; }
   .ob-steps { display: flex; gap: 6px; margin: -6px 0 10px; }
@@ -1615,6 +1632,74 @@
   .dg-off { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; font-size: var(--fs-sm); color: var(--muted); }
   .dg-demo { margin-bottom: 12px; }
 
+  /* Inviting somebody (2026-11-04): four fields and Send Invitation. */
+  .invnew { max-width: 460px; }
+  .invnew .ad-head { align-items: flex-start; }
+  .invnew .ad-head h2 { margin: 0 !important; }
+  .invnew-ic { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px;
+               background: var(--peri-pale); color: var(--periwinkle); }
+  .invnew-ic .ic { width: 22px; height: 22px; }
+  .invnew label { margin-bottom: 12px; }
+  .invnew .ad-acts { justify-content: flex-end; margin-top: 18px; }
+  .invnew #invNewSend { gap: 8px; }
+  .invnew #invNewSend .ic { width: 16px; height: 16px; }
+  .invnew [aria-invalid="true"] { border-color: var(--warn); }
+  /* "User has been invited", with Karen waving while she says she'll take it from here. */
+  .invdone { max-width: 440px; text-align: center; position: relative; padding-top: 30px; }
+  .invdone-x { position: absolute; top: 12px; right: 12px; }
+  .invdone-karen { position: relative; display: grid; justify-items: center; gap: 12px; margin: 0 0 14px; }
+  .invdone-pic { position: relative; display: block; width: 112px; height: 112px; border-radius: 50%; overflow: hidden; background: #f6dcec;
+                 box-shadow: 0 0 0 4px var(--card), 0 0 0 6px var(--periwinkle), 0 18px 34px -16px rgba(30, 31, 92, .55);
+                 animation: invHello .6s var(--ease) both, obBreathe 5s ease-in-out .6s infinite; transition: box-shadow .3s var(--ease); }
+  .invdone-karen.talking .invdone-pic { box-shadow: 0 0 0 4px var(--card), 0 0 0 6px var(--periwinkle), 0 0 0 14px rgba(125, 136, 214, .22),
+                                                    0 18px 34px -16px rgba(30, 31, 92, .55); }
+  .invdone-pic img, .invdone-pic video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .invdone-karen.still video { display: none; }
+  .invdone-talk { position: absolute; top: 86px; left: calc(50% + 34px); display: flex; align-items: flex-end; gap: 2px; height: 20px;
+                  padding: 4px 6px; border-radius: 99px; background: var(--card); box-shadow: 0 2px 8px -2px rgba(30, 31, 92, .3);
+                  opacity: 0; transform: scale(.6); transition: opacity .2s, transform .2s var(--ease); }
+  .invdone-talk i { display: block; width: 3px; height: 4px; border-radius: 2px; background: var(--periwinkle); }
+  .invdone-karen.talking .invdone-talk { opacity: 1; transform: none; }
+  .invdone-karen.talking .invdone-talk i { animation: obTalk .7s ease-in-out infinite; }
+  .invdone-karen.talking .invdone-talk i:nth-child(2) { animation-delay: .15s; }
+  .invdone-karen.talking .invdone-talk i:nth-child(3) { animation-delay: .3s; }
+  .invdone-bubble { position: relative; margin: 0; padding: 10px 18px; border-radius: 18px; min-height: 1.5em; min-width: 12ch;
+                    background: var(--cta-grad); color: #fff; font-size: 1.05rem; font-weight: 650; line-height: 1.4;
+                    box-shadow: var(--cta-shadow); animation: invHello .5s var(--ease) .15s both; }
+  .invdone-bubble::before { content: ""; position: absolute; top: -7px; left: 50%; width: 14px; height: 14px; margin-left: -7px;
+                            background: inherit; transform: rotate(45deg); border-radius: 3px 0 0 0; }
+  .invdone-karen.talking #inviteSay::after { content: ""; display: inline-block; width: 2px; height: 1em; margin-left: 2px;
+                                             vertical-align: -2px; background: #fff; animation: obCaret .8s steps(1) infinite; }
+  @keyframes invHello { from { opacity: 0; transform: translateY(8px) scale(.94); } to { opacity: 1; transform: none; } }
+  .invdone h2 { margin: 0 0 4px !important; }
+  .invdone-sub { margin: 0 0 16px; }
+  .invdone-list { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; text-align: left; }
+  .invdone-list li { display: grid; grid-template-columns: 36px minmax(0, 1fr) 24px; gap: 12px; align-items: center;
+                     padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .invdone-list b { display: block; font-size: .9rem; }
+  .invdone-list small { display: block; font-size: .78rem; color: var(--muted); line-height: 1.4; }
+  .invdone-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--raise); color: var(--muted); }
+  .invdone-ic .ic { width: 18px; height: 18px; }
+  .invdone-list li.ok .invdone-ic { background: var(--peri-pale); color: var(--periwinkle); }
+  .invdone-st { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; }
+  .invdone-st .ic { width: 14px; height: 14px; stroke-width: 2.6; }
+  .invdone-list li.ok .invdone-st { background: #2bb673; color: #fff; }
+  .invdone-list li.bad .invdone-st { background: var(--warn); color: #fff; }
+  .invdone-list li.off { background: var(--raise); }
+  .invdone #inviteLinkRow { text-align: left; }
+  .invdone .ad-acts { justify-content: center; }
+  @media (prefers-reduced-motion: reduce) { .invdone-pic, .invdone-bubble { animation: none; } }
+  @media (max-width: 520px) {
+    .invdone { padding: 22px 18px 18px; }
+    .invdone-pic { width: 84px; height: 84px; }
+    .invdone-talk { top: 62px; left: calc(50% + 24px); }
+    .invdone-bubble { font-size: .98rem; padding: 8px 16px; }
+    .invdone-sub { margin-bottom: 12px; }
+    .invdone-list { gap: 6px; margin-bottom: 14px; }
+    .invdone-list li { padding: 8px 10px; gap: 10px; grid-template-columns: 32px minmax(0, 1fr) 22px; }
+    .invdone-ic { width: 32px; height: 32px; }
+  }
+
   /* Appointment detail: everything the card had to cut short. */
   .ad-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
   .ad-head .avatar { width: 44px; height: 44px; }
@@ -2504,7 +2589,8 @@
   /* An opened kind: its services two to a row where there is room, no
      header row (each box says "min"), and closer together. */
   #myWorkSlot .svc .svc-bd { gap: 8px; padding-top: 8px; }
-  #myWorkSlot .svc .svc-list { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); column-gap: 14px; gap: 2px 14px; }
+  #myWorkSlot .svc .svc-list { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); column-gap: 14px; gap: 2px 14px; }
+  #myWorkSlot .svc .svc-it-price input { height: 30px; }
   #myWorkSlot .svc .svc-list > .svc-it-h { display: none; }
   #myWorkSlot .svc .svc-list > .hint { grid-column: 1 / -1; margin-top: 4px; }
   #myWorkSlot .svc .svc-it { padding: 2px 6px; }
@@ -2564,7 +2650,7 @@
 
   /* Services and prices in the team modal: a switch, the kind of work, a price. */
   .svcs { display: grid; gap: 6px; margin-bottom: 14px; }
-  .svc { display: grid; grid-template-columns: 44px minmax(0, 1fr) 112px 104px; align-items: center; gap: 12px;
+  .svc { display: grid; grid-template-columns: 44px minmax(0, 1fr) 104px; align-items: center; gap: 12px;
          padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); }
   .svc b { display: block; font-size: .88rem; font-weight: 600; }
   .svc small { display: block; font-size: .75rem; color: var(--muted); }
@@ -2624,6 +2710,8 @@
     .svc > div { grid-column: 2 / -1; }
     .svc .price { grid-column: 2; }
     .svc .dur { grid-column: 3; }
+    /* The kind's own box (Duration, or Color's Total) under its name. */
+    .svc > .svc-f { grid-column: 2 / -1; max-width: 150px; }
   }
   /* Color's timing, on a second row under its description: Start, Break and
      Finish, once for color and once for highlights, each with its total. The
@@ -2693,7 +2781,8 @@
   .svc .svc-bd .svc-time { grid-column: auto; }
   .svc .svc-bd .hint { font-size: .72rem; color: var(--muted); margin: 0; }
   .svc .svc-list { display: grid; gap: 4px; }
-  .svc .svc-it-h, .svc .svc-it { display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 12px; align-items: center; }
+  .svc .svc-it-h, .svc .svc-it { display: grid; grid-template-columns: minmax(0, 1fr) 104px 96px; gap: 10px; align-items: center; }
+  .svc .svc-it-price input { height: 34px; }
   .svc .svc-it-h { font-size: .68rem; font-weight: 600; color: var(--muted); padding: 0 2px; }
   .svc .svc-it-h span:last-child { padding-left: 2px; }
   .svc .svc-it { padding: 4px 6px; border-radius: 8px; }
@@ -2706,9 +2795,14 @@
   .svc.off .svc-list { opacity: .55; }
   @media (max-width: 520px) {
     .svc .svc-exp { grid-column: 2 / -1; }
-    .svc .svc-it-h, .svc .svc-it { grid-template-columns: minmax(0, 1fr) 96px; gap: 8px; }
-    /* The kind's Duration moves to the third column on a phone; a service's
-       own minutes share its class and must stay beside the service. */
+    /* A phone: each service's name on its own line, its price and minutes
+       side by side under it, so neither the name nor a figure is cut. */
+    .svc .svc-it-h { display: none; }
+    .svc .svc-it { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 8px; padding: 6px 4px 8px; }
+    .svc .svc-it + .svc-it { border-top: 1px solid var(--line); border-radius: 0; }
+    .svc .svc-it .svc-tick { grid-column: 1 / -1; }
+    .svc .svc-it .svc-tick span { white-space: normal; }
+    .svc .svc-it .svc-it-price { grid-column: 1; }
     .svc .svc-it .svc-it-dur { grid-column: 2; }
   }
   /* One set of notes for clients, under every service that is on, rather than
@@ -2996,6 +3090,10 @@
   .hrs .hr input[disabled] { opacity:.5; }
   .hrs .hr .dash { color:var(--muted); font-size:var(--fs-sm); }
   .hrs .wh-lunch b { flex: none; }
+  .hrs .wh-lunch .wh-lunch-t { flex: none; display: flex; flex-direction: column; line-height: 1.2; }
+  .hrs .wh-lunch .wh-flex { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; font-size: .7rem; font-weight: 650;
+                            letter-spacing: .04em; text-transform: uppercase; color: var(--periwinkle); }
+  .hrs .wh-lunch.off .wh-flex { color: var(--faint); }
   .hrs .wh-lunch .wh-lunch-d { flex: 1; min-width: 0; color: var(--muted); font-size: var(--fs-sm); }
   #memberHours + .hrs { margin-top: -8px; }
   /* Up to three time slots a day (2026-11-04): a split shift is two. */
@@ -3114,6 +3212,28 @@
   :root[data-theme="dark"] .gcard .soon-chip { color: var(--ink); }
   @media (max-width: 520px) { .gcard.soon { grid-template-columns: 40px minmax(0, 1fr) auto; } }
   .btn.gbtn { gap: 8px; }
+  .gcard .tool-ic svg.gcal-logo { width: 26px; height: 26px; }
+  .btn.gbtn svg.gcal-logo { background: #fff; border-radius: 4px; padding: 1px; }
+  /* Connected: green, with a tick, and nothing to press (2026-11-04). */
+  .btn.gcal-ok { gap: 6px; background: #1f9d5a; color: #fff; box-shadow: 0 6px 16px -10px rgba(31, 157, 90, .9); cursor: default; }
+  .btn.gcal-ok:hover { opacity: 1; }
+  .btn.gcal-ok .ic { width: 15px; height: 15px; stroke-width: 2.6; }
+  .gcard.on { border-color: rgba(31, 157, 90, .45); }
+  .gcard .linkbtn.gcal-off { border: 0; background: none; padding: 0; font: inherit; font-size: var(--fs-xs); color: var(--muted);
+                             text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .gcard .linkbtn.gcal-off:hover { color: var(--warn); }
+  .gcard .gacct { color: #1f9d5a; font-weight: 600; }
+  .ob-gcal { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px 14px; align-items: center; margin: 0 0 18px;
+             padding: 16px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); }
+  .ob-gcal.on { border-color: rgba(31, 157, 90, .5); background: color-mix(in srgb, #1f9d5a 7%, var(--card)); }
+  .ob-gcal-logo { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+  .ob-gcal-logo svg { width: 34px; height: 34px; }
+  .ob-gcal-t b { display: block; font-size: .98rem; }
+  .ob-gcal-t span { display: block; font-size: var(--fs-sm); color: var(--muted); }
+  .ob-gcal.on .ob-gcal-t span { color: #1f9d5a; font-weight: 600; }
+  .ob-gcal > .btn { grid-column: 1 / -1; justify-content: center; }
+  .ob-rv-ok { display: inline-flex; align-items: center; gap: 6px; color: #1f9d5a; font-weight: 600; font-size: var(--fs-sm); }
+  .ob-rv-ok .ic { width: 15px; height: 15px; stroke-width: 2.6; }
   .btn.gbtn svg { width: 18px; height: 18px; background: #fff; border-radius: 50%; padding: 2px; }
   @media (max-width: 520px) { .gcard { grid-template-columns: 40px minmax(0, 1fr); } .gcard > .btn, .gcard > .gacts { grid-column: 1 / -1; }
     .gcard .gacts { justify-content: space-between; } .gstate { align-items: flex-start; } }
@@ -3382,9 +3502,16 @@
      the app, because whoever is here has no session and no password yet. -->
 <main id="invite" class="auth hidden">
   <div class="card">
-    <div class="logo" id="inviteMark"></div>
+    <img class="logo" id="inviteMark" src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon">
+    <!-- Karen meets them here, at the first step (asked for 2026-11-04): the
+         same guide who then leads the rest of their setup. -->
+    <div class="pw-karen hidden" id="pwKaren">
+      <span class="pw-kpic" aria-hidden="true"><img id="pwKarenPic" alt=""><video id="pwKarenVid" muted playsinline preload="none"></video></span>
+      <div class="pw-ksay"><b>Karen <small>Your setup guide</small></b><p id="pwKarenSay" aria-live="polite"></p></div>
+    </div>
     <div id="inviteErr" class="note hidden" role="status"></div>
     <form id="inviteForm" class="hidden">
+      <p class="ob-count" style="text-align:center">First · Your password</p>
       <h1 id="inviteHead">Choose your password</h1>
       <p class="lede" id="inviteLede"></p>
       <label><span>Password</span>
@@ -3395,7 +3522,8 @@
           </button>
         </div>
       </label>
-      <button class="btn block" type="submit">Set password and sign in</button>
+      <p class="small muted pw-rule" id="pwRule"></p>
+      <button class="btn block" type="submit">Set password and continue</button>
     </form>
   </div>
 </main>
@@ -4003,7 +4131,7 @@
         <div class="mw-svc">
         <!-- Services and prices: four switches, a price beside each one that is on. -->
         <div class="md-sec">Services &amp; pricing</div>
-        <p class="small muted mw-long" style="margin:-6px 0 10px">Turn on each kind of work offered and type its starting price and usual length. Open a kind to choose exactly which of its services are offered and how many minutes each one takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
+        <p class="small muted mw-long" style="margin:-6px 0 10px">Turn on each kind of work offered and its usual length. Open a kind to choose exactly which of its services are offered, with each one's own price and how many minutes it takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
         <div class="svcs" id="memberSvcs"></div>
         <label class="svc-notes" id="memberNotesWrap"><span>Special Instructions When Booking Clients</span>
           <textarea id="memberNotes" rows="3" maxlength="2000"
@@ -4025,7 +4153,9 @@
                services object as `lunch`, set by the admin like the hours. -->
           <div class="hrs"><div class="hr wh-lunch" id="memberLunch">
             <button type="button" class="switch" role="switch" aria-checked="true" aria-label="Flexible lunch break"><span></span></button>
-            <b>Lunch break</b>
+            <!-- "Flexible" under the title (asked for 2026-11-04): the lunch
+                 has no fixed place, it moves around bookings. -->
+            <span class="wh-lunch-t"><b>Lunch break</b><small class="wh-flex">Flexible</small></span>
             <span class="wh-lunch-d">30 min between 11 AM and 1 PM, moved around bookings</span>
           </div></div>
         </div>
@@ -4047,6 +4177,9 @@
     </div>
     <footer class="md-foot">
       <button type="button" class="btn danger hidden" id="memberDanger"></button>
+      <!-- Their invite not used yet: Karen sends the welcome again with a
+           fresh link (the old one stops working). -->
+      <button type="button" class="btn quiet hidden" id="memberResend"><svg class="ic"><use href="#i-send"/></svg>Resend invitation</button>
       <span class="spacer"></span>
       <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
       <button class="btn" value="save" id="memberSave">Add</button>
@@ -4232,17 +4365,54 @@
   </form>
 </dialog>
 
-<!-- Somebody has just been added. The link is a credential -- whoever holds
-     it can set that account up -- so it is only put on screen when the email
-     did not go and somebody has to hand it over themselves. -->
-<dialog id="inviteDlg" aria-labelledby="inviteTitle">
-  <div class="ad-head">
-    <div style="flex:1;min-width:0">
-      <h2 id="inviteTitle"><span id="inviteWho"></span> has been added</h2>
-      <p class="small muted" id="inviteSent" style="margin:2px 0 0"></p>
+<!-- Inviting somebody to the team (asked for 2026-11-04): only what Karen
+     needs to reach them. Their name, mobile, email and role; everything
+     else (picture, services, prices, hours, calendar) they fill in
+     themselves, with Karen, when they set up their account. -->
+<dialog id="invNewDlg" class="invnew" aria-labelledby="invNewTitle">
+  <form method="dialog" id="invNewForm" novalidate>
+    <div class="ad-head">
+      <span class="invnew-ic" aria-hidden="true"><svg class="ic"><use href="#i-users-plus"/></svg></span>
+      <div style="flex:1;min-width:0">
+        <h2 id="invNewTitle">Invite a team member</h2>
+        <p class="small muted" style="margin:2px 0 0">Karen emails and texts them a link to set up their own account.</p>
+      </div>
+      <button type="button" class="iconbtn lg" id="invNewClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
     </div>
-    <button type="button" class="iconbtn lg" id="inviteClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    <div id="invNewNote" class="note bad hidden" role="alert"></div>
+    <label><span>Name</span><input name="name" required maxlength="120" autocomplete="off" placeholder="Full name"></label>
+    <label><span>Phone number</span><input name="phone" type="tel" inputmode="tel" required maxlength="40" autocomplete="off" placeholder="(813) 555-0170"></label>
+    <label><span>Email</span><input name="email" type="email" required maxlength="200" autocomplete="off" placeholder="name@example.com"></label>
+    <label><span>Role</span>
+      <select name="role">
+        <option value="stylist">Stylist</option>
+        <option value="front_desk">Front desk</option>
+        <option value="manager">Manager</option>
+        <option value="admin">Admin</option>
+        <option value="owner">Owner</option>
+      </select></label>
+    <div class="ad-acts">
+      <button type="button" class="btn quiet" id="invNewCancel">Cancel</button>
+      <button type="submit" class="btn" id="invNewSend"><svg class="ic"><use href="#i-send"/></svg>Send Invitation</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Somebody has just been invited (2026-11-04): Karen says she'll take it
+     from here, waving, and the window lists what she sent. The link is a
+     credential -- whoever holds it can set that account up -- so it is only
+     put on screen when neither the email nor the text went and somebody has
+     to hand it over themselves. -->
+<dialog id="inviteDlg" class="invdone" aria-labelledby="inviteTitle">
+  <button type="button" class="iconbtn lg invdone-x" id="inviteClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  <div class="invdone-karen" id="inviteKaren">
+    <span class="invdone-pic" aria-hidden="true"><img id="inviteKarenPic" alt=""><video id="inviteKarenVid" muted playsinline loop preload="none"></video></span>
+    <span class="invdone-talk" aria-hidden="true"><i></i><i></i><i></i></span>
+    <p class="invdone-bubble"><span id="inviteSay" aria-hidden="true"></span><span class="ob-sr" id="inviteSayLive" aria-live="polite"></span></p>
   </div>
+  <h2 id="inviteTitle"><span id="inviteWho"></span> has been invited</h2>
+  <p class="small muted invdone-sub" id="inviteSent"></p>
+  <ul class="invdone-list" id="inviteSteps"></ul>
   <label id="inviteLinkRow"><span>Their invite link</span>
     <input id="inviteLink" readonly onclick="this.select()"></label>
   <p class="small muted" id="inviteNote" style="margin:-6px 0 14px"></p>
@@ -5634,6 +5804,20 @@ function automations() {
         { msg: 'second_visit', title: 'Come back and see us', text: 'The one email that turns a trial into a regular.' },
       ],
     },
+    // The team's own (2026-11-04): Karen welcomes somebody invited to the
+    // team by email and text, and leads their account setup. Its switch
+    // works like the others: off, nothing is sent and the owner is handed
+    // the link to pass on themselves.
+    {
+      id: 'team_invite', name: 'Team Member Invitation', icon: 'users-plus',
+      sub: 'Karen welcomes a new team member and guides them through setting up their account.',
+      when: ['users-plus', 'A team member or stylist is invited', 'From Settings, Team, Add Team Member.'],
+      steps: [
+        { msg: 'team_invite', title: 'Welcome Message', sms: true, text: 'Karen introduces herself and the app, with their setup link, by email and text.' },
+        ['lock', 'Account setup invitation', 'The link lets them choose their own password. It works once and lasts 7 days.'],
+        ['user-check', 'Guided onboarding', 'Karen walks them through their photo, services, prices, hours and calendar.'],
+      ],
+    },
     {
       id: 'win_back', name: 'Lapsed Client Win-back', icon: 'swap',
       sub: 'Reaches out to clients nobody has seen in months.',
@@ -5810,7 +5994,7 @@ function renderMailHistory() {
     <div class="ml-top">
       <button type="button" class="ml-toggle" data-ml-toggle aria-expanded="${open}" aria-controls="mlContent">
         <span class="ml-t"><h2>Email History</h2>
-          <p>Every email the automations have sent, newest first.</p></span>
+          <p>Every email the automations have sent, newest first, team invitations included.</p></span>
       </button>
       <span class="ml-info">
         <button type="button" aria-label="How a sent email is shown" aria-expanded="false" data-ml-info>${ic('info')}</button>
@@ -6003,7 +6187,9 @@ function openAutomation(id) {
     ${a.steps.map((st) => (st.msg ? `
       <li><button type="button" class="au-step" data-msg="${st.msg}" data-title="${esc(st.title)}"${st.sms ? ' data-sms' : ''}>
         ${st.sms ? duo() : tile('mail')}<h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>
-        ${st.sms ? `<span class="duo-chips">${mail.replace('>On<', '>Email · On<')}<span class="chip pending" title="No text message is sent yet: texting is not connected.">SMS · Coming soon</span></span>` : mail}
+        ${st.sms ? `<span class="duo-chips">${mail.replace('>On<', '>Email · On<')}${!live ? '' : me?.salon?.karenPhone
+          ? '<span class="chip ok">SMS · On</span>'
+          : '<span class="chip pending" title="No text message is sent yet: Karen has no number connected.">SMS · Coming soon</span>'}</span>` : mail}
         <span class="open">View Message${ic('right')}</span></button></li>` : `
       <li><div class="au-step">${tile(st[0])}<h3>${esc(st[1])}</h3><p>${esc(st[2])}</p>${on}</div></li>`)).join('')}
   </ol>`;
@@ -6102,7 +6288,9 @@ let msgView = 'email';
 // text-only version as "Plain text", which read as a text message.
 async function openMessage(kind, title, withSms = false) {
   $('msgTitle').textContent = title;
-  $('msgSub').textContent = 'Shown with a sample appointment. Clients see their own details.';
+  $('msgSub').textContent = kind === 'team_invite'
+    ? 'Shown with a sample name. Each new team member gets their own, with their own setup link.'
+    : 'Shown with a sample appointment. Clients see their own details.';
   $('msgBody').innerHTML = skeleton(4);
   openDialog($('msgDlg'));
   try {
@@ -6127,8 +6315,8 @@ function paintMessage(m, types, { sent = false } = {}) {
       const t = m.sms;
       $('msgView').innerHTML = `
         ${t.connected ? '' : `<div class="note mp-note">${ic('info')}<span>${t.number
-          ? 'Texting is not switched on yet, so this is not being sent. It is exactly what clients will get once it is.'
-          : 'No phone number is connected to Karen yet (Settings, Karen AI), so this is not being sent. It is exactly what clients will get once it is.'}</span></div>`}
+          ? `Texting is not switched on yet, so this is not being sent. It is exactly what ${m.kind === 'team_invite' ? 'new team members' : 'clients'} will get once it is.`
+          : `No phone number is connected to Karen yet (Settings, Karen AI), so this is not being sent. It is exactly what ${m.kind === 'team_invite' ? 'new team members' : 'clients'} will get once it is.`}</span></div>`}
         <dl class="mp-env">
           <dt>From</dt><dd>${esc(t.from)} · ${t.number ? esc(t.number) : '<span class="muted">No number connected yet</span>'}</dd>
           <dt>To</dt><dd>${esc(t.to)} · ${esc(t.toPhone)}</dd>
@@ -6175,9 +6363,9 @@ async function openSentEmail(id) {
     $('msgTitle').textContent = a ? a.name : 'Email';
     // Whether it went, as the client's Activity and Email History say (037).
     const at = fmtWhen(m.sentAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-    $('msgSub').textContent = m.status === 'failed'
+    $('msgSub').textContent = (m.status === 'failed'
       ? `Not delivered to ${m.toName}, ${at}${m.error ? `. ${m.error}` : ''}`
-      : `Sent to ${m.toName}, ${at}`;
+      : `Sent to ${m.toName}, ${at}`) + (m.kind === 'team_invite' && m.note ? `. ${m.note}` : '');
     if (a) $('msgIc').innerHTML = ic(a.icon);
     msgView = 'email';
     paintMessage(m, ['email'], { sent: true });
@@ -11107,7 +11295,7 @@ function svcRefresh(row) {
   for (const it of row.querySelectorAll('.svc-it')) {
     const svc = list.find((x) => x.slug === it.dataset.item);
     const d = svc && svcDefaultMins(row, svc);
-    it.querySelector('input[type=number]').placeholder = d ? String(d) : '–';
+    it.querySelector('[data-it=duration]').placeholder = d ? String(d) : '–';
   }
   const ticked = row.querySelectorAll('.svc-it input[type=checkbox]:checked').length;
   const on = row.querySelector('.switch').getAttribute('aria-checked') === 'true';
@@ -11132,30 +11320,35 @@ function paintServices(services = {}, own = []) {
           ${timeRow('highlights', 'Highlights', v.highlights || {}, v.on)}
           <p class="hint">In minutes, for any color service below with no minutes of its own. Highlights also times balayage and foils. Color &amp; Cut adds your Cuts time after Finish.</p>
         </div>` : '';
+    // Each service its own price (asked for 2026-11-04: pricing sits under
+    // the services, not the kind). A kind's old single price is carried into
+    // every service of it that has none yet, shown here so it can be
+    // changed, and saved per service from then on.
     const rows = list.map((x) => {
       const it = items[x.slug] || {};
       const ticked = it.on !== false;
+      const price = it.price ?? v.price;
       return `<div class="svc-it${ticked ? '' : ' unticked'}" data-item="${esc(x.slug)}">
           <label class="svc-tick"><input type="checkbox" ${ticked ? 'checked' : ''} ${v.on ? '' : 'disabled'}
             aria-label="${esc(x.name)} offered"><span>${esc(x.name)}</span></label>
+          <label class="svc-f price svc-it-price"><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
+            data-it="price" aria-label="${esc(x.name)} price" value="${price != null && price !== '' ? Number(price).toFixed(2) : ''}" ${v.on && ticked ? '' : 'disabled'}></label>
           <label class="svc-f dur svc-it-dur"><input type="number" min="5" max="720" step="5" inputmode="numeric"
-            aria-label="${esc(x.name)} duration in minutes" value="${it.duration ?? ''}" ${v.on && ticked ? '' : 'disabled'}></label>
+            data-it="duration" aria-label="${esc(x.name)} duration in minutes" value="${it.duration ?? ''}" ${v.on && ticked ? '' : 'disabled'}></label>
         </div>`;
     }).join('');
     const body = `<div class="svc-fold"><div class="svc-bd" id="svcb-${key}"${v.on ? '' : ' inert'}>${timing}
         ${list.length ? `<div class="svc-list">
-          <div class="svc-it-h"><span>Service</span><span>Minutes</span></div>${rows}
-          <p class="hint">Untick a service this person does not do. Leave Minutes empty to use ${key === 'color' ? 'the color timing above' : 'the Duration above'}, or the salon's usual time.</p>
+          <div class="svc-it-h"><span>Service</span><span>Price</span><span>Minutes</span></div>${rows}
+          <p class="hint">Each service has its own price. Untick a service this person does not do. Leave Minutes empty to use ${key === 'color' ? 'the color timing above' : 'the Duration above'}, or the salon's usual time.</p>
         </div>` : '<p class="hint">No services of this kind on the menu yet.</p>'}
       </div></div>`;
     // A kind that is on opens to its services; one that is off is one line.
-    return `<div class="svc ${v.on ? 'open' : 'off'}" data-svc="${key}">
+    return `<div class="svc ${v.on ? 'open' : 'off'}" data-svc="${key}" data-price="${v.price ?? ''}">
       <button type="button" class="switch" role="switch" aria-checked="${Boolean(v.on)}" aria-label="${esc(label)} offered"><span></span></button>
       <button type="button" class="svc-exp" aria-expanded="${Boolean(v.on)}" aria-controls="svcb-${key}">
         <span class="svc-nm"><b>${esc(label)}</b><small>${esc(v.on ? hint : 'Not offered')}</small><small class="svc-count"></small></span>
         <span class="svc-chev" aria-hidden="true">${ic('right')}</span></button>
-      <label class="svc-f price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
-        data-f="price" aria-label="${esc(label)} starting price" value="${v.price != null ? Number(v.price).toFixed(2) : ''}" ${v.on ? '' : 'disabled'}></label>
       ${length}
       ${body}
     </div>`;
@@ -11378,7 +11571,7 @@ $('memberSvcs').onclick = (e) => {
   for (const i of inputs) i.disabled = !on;
   // A service unticked inside the kind keeps its minutes closed.
   for (const it of row.querySelectorAll('.svc-it')) {
-    it.querySelector('input[type=number]').disabled = !on || !it.querySelector('input[type=checkbox]').checked;
+    for (const n of it.querySelectorAll('input[type=number]')) n.disabled = !on || !it.querySelector('input[type=checkbox]').checked;
   }
   const kind = SERVICE_KINDS.find(([k]) => k === row.dataset.svc);
   row.querySelector('small').textContent = on ? kind[2] : 'Not offered';
@@ -11394,7 +11587,7 @@ $('memberSvcs').addEventListener('change', (e) => {
   const it = e.target.closest('.svc-it');
   if (!it) return;
   it.classList.toggle('unticked', !e.target.checked);
-  it.querySelector('input[type=number]').disabled = !e.target.checked;
+  for (const n of it.querySelectorAll('input[type=number]')) n.disabled = !e.target.checked;
   svcRefresh(it.closest('.svc'));
 });
 /** Sunday first, the way a rota is written and the way the schema counts. */
@@ -11722,8 +11915,10 @@ function readServices() {
   const num = (v) => (String(v).trim() === '' ? null : Number(v));
   for (const row of $('memberSvcs').querySelectorAll('.svc')) {
     const on = row.querySelector('.switch').getAttribute('aria-checked') === 'true';
-    const raw = row.querySelector('[data-f=price]').value.trim();
-    const v = { on, price: raw === '' ? null : Number(raw) };
+    // Prices are each service's own now (2026-11-04); the kind keeps none,
+    // except a kind with no services on the menu, which keeps what it had.
+    const its = row.querySelectorAll('.svc-it');
+    const v = { on, price: its.length ? null : (row.dataset.price === '' || row.dataset.price == null ? null : Number(row.dataset.price)) };
     const dur = row.querySelector('[data-f=duration]');
     if (dur) v.duration = num(dur.value);
     // A color length saved before it was split into parts is kept until the
@@ -11743,7 +11938,8 @@ function readServices() {
     for (const it of row.querySelectorAll('.svc-it')) {
       out.items[it.dataset.item] = {
         on: it.querySelector('input[type=checkbox]').checked,
-        duration: num(it.querySelector('input[type=number]').value),
+        duration: num(it.querySelector('[data-it=duration]').value),
+        price: num(it.querySelector('[data-it=price]').value),
       };
     }
   }
@@ -11875,6 +12071,7 @@ async function openMember(who) {
     danger.dataset.act = act;
   }
   danger.classList.toggle('hidden', !danger.dataset.act);
+  $('memberResend').classList.toggle('hidden', !(m && !self && admin && m.invited && !m.noLogin));
   openDialog($('memberDlg'));
 }
 
@@ -11898,9 +12095,12 @@ $('memberPic').onclick = openPicDlg;
  * opens the window with the avatars showing.
  */
 let picFor = null;
-function openPicFor(take, src, { upload = false, avatars = false } = {}) {
+function openPicFor(take, src, { upload = false, avatars = false, uploadOnly = false } = {}) {
   picFor = take;
   cropView(false);
+  // Setting up an account offers their own photo only (2026-11-04).
+  $('picAvatars').classList.toggle('hidden', uploadOnly);
+  $('picTitle').textContent = uploadOnly ? 'Your profile photo' : 'Change picture';
   $('picSub').textContent = 'Shown on your profile, and to guests choosing a stylist.';
   $('picNow').innerHTML = `<img src="${esc(src)}" alt="">`;
   $('memberPicDrop').classList.add('hidden');
@@ -11910,7 +12110,11 @@ function openPicFor(take, src, { upload = false, avatars = false } = {}) {
   openDialog($('picDlg'));
   if (upload) $('memberPicFile').click();
 }
-$('picDlg').addEventListener('close', () => { picFor = null; });
+$('picDlg').addEventListener('close', () => {
+  picFor = null;
+  $('picAvatars').classList.remove('hidden');
+  $('picTitle').textContent = 'Change picture';
+});
 // Adding someone with no picture chosen yet: the default follows the name as
 // it is typed, so what the window shows is what is saved (above).
 $('memberForm').elements.name.addEventListener('input', () => {
@@ -12112,34 +12316,145 @@ $('memberDanger').onclick = async () => {
 };
 
 /**
- * Somebody has been added.
+ * Somebody has been invited (2026-11-04). Karen says she'll take it from
+ * here, waving while she says it, and the window lists what she did: the
+ * welcome email, the welcome text, and the setup she leads them through.
  *
- * When the welcome went, that is the whole message: the link is a credential,
- * and putting it on a screen somebody else can read, or into a screenshot,
- * hands that account to whoever sees it. It is only shown when the email did
- * not go -- no provider, a typo in the address -- because then the person who
- * added them has to pass it on themselves, and an invite nobody can deliver is
- * an account nobody can use.
+ * The link is a credential: putting it on a screen somebody else can read,
+ * or into a screenshot, hands that account to whoever sees it. So it is
+ * shown only when neither the email nor the text reached them (no provider,
+ * a refused address, the automation switched off), because then the person
+ * who invited them has to pass it on themselves, and an invite nobody can
+ * deliver is an account nobody can use.
  */
-function showInviteLink(name, invite) {
-  if (!invite) { toast(`${name} has been added.`); return; }
+let inviteTyping = 0;
+function inviteKarenSay(text) {
+  const el = $('inviteSay');
+  $('inviteSayLive').textContent = text;
+  const id = ++inviteTyping;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const box = $('inviteKaren');
+  if (still) { el.textContent = text; return; }
+  box.classList.add('talking');
+  let i = 0;
+  const tick = () => {
+    if (id !== inviteTyping) return;
+    i = Math.min(text.length, i + 1);
+    el.textContent = text.slice(0, i);
+    if (i < text.length) { setTimeout(tick, 38); return; }
+    setTimeout(() => { if (id === inviteTyping) box.classList.remove('talking'); }, 700);
+  };
+  tick();
+}
+function showInviteLink(name, invite, role = '') {
+  if (!invite) { toast(`${name} has been invited.`); return; }
   $('inviteWho').textContent = name;
-  // Texted to their mobile as well as emailed (2026-11-03): Karen leads them
-  // through setting up their account on their phone.
-  const sent = [invite.texted ? 'texted their mobile' : '', invite.emailed ? 'emailed them' : ''].filter(Boolean);
-  const reached = sent.length > 0;
+  const first = String(name || '').trim().split(/\s+/)[0] || 'them';
+  const reached = Boolean(invite.emailed || invite.texted);
+  const item = (state, icon, title, text) => `<li class="${state}"><span class="invdone-ic">${ic(icon)}</span>
+      <span><b>${esc(title)}</b><small>${esc(text)}</small></span>
+      <span class="invdone-st">${state === 'ok' ? ic('check') : state === 'bad' ? ic('x') : ''}</span></li>`;
+  const mail = invite.off ? item('off', 'mail', 'Welcome email', 'Not sent: the Team Member Invitation automation is off.')
+    : invite.emailed ? item('ok', 'mail', 'Welcome email sent', 'From Karen, with their setup link. It is in Email History.')
+      : invite.emailFailed ? item('bad', 'mail', 'Welcome email not delivered', 'The email provider refused it. Check the address.')
+        : item('off', 'mail', 'Welcome email', 'Not sent: email is not connected yet.');
+  const sms = invite.off ? item('off', 'message', 'Welcome text', 'Not sent: the automation is off.')
+    : invite.texted ? item('ok', 'message', 'Welcome text sent', 'From Karen’s number, so they can set up on their phone.')
+      : !invite.hasPhone ? item('off', 'message', 'Welcome text', 'Not sent: no mobile number.')
+        : invite.textFailed ? item('bad', 'message', 'Welcome text not delivered', 'The text provider refused it.')
+          : item('off', 'message', 'Welcome text', 'Not sent: texting is not connected yet.');
+  const setup = item(reached ? 'ok' : 'off', 'user-check', 'Account setup with Karen',
+    `Karen helps ${first} choose a password, then their photo, ${role === 'stylist' ? 'services, prices, hours ' : 'mobile '}and calendar.`);
+  $('inviteSteps').innerHTML = mail + sms + setup;
   $('inviteSent').textContent = reached
-    ? `We have ${sent.join(' and ')} a link to set up their account. Karen walks them through it.`
-    : 'No text or email was sent: texting and email are not connected yet. '
-      + 'Send them this link yourself.';
-
+    ? `Karen has sent ${first} a welcome and is guiding them through setting up their account.`
+    : `Karen could not reach ${first}, so send them this link yourself.`;
   $('inviteLinkRow').hidden = reached;
   $('inviteNote').hidden = reached;
   $('inviteCopy').hidden = reached;
   $('inviteLink').value = reached ? '' : invite.link;
   $('inviteNote').textContent = `The link works once and expires in ${invite.expiresDays} days.`;
+  // Karen, waving while she speaks; still for reduced motion.
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('inviteKarenPic').src = KAREN_PIC;
+  const v = $('inviteKarenVid');
+  if (!still) {
+    if (!v.src) { v.poster = KAREN_PIC; v.src = KAREN_WAVE; }
+    v.currentTime = 0;
+    v.play().catch(() => {});
+  }
+  $('inviteKaren').classList.toggle('still', still);
+  $('inviteSay').textContent = '';
   openDialog($('inviteDlg'));
+  inviteKarenSay(reached ? 'I’ll take it from here!' : 'I couldn’t reach them, so here’s their link.');
 }
+$('inviteDlg').addEventListener('close', () => {
+  inviteTyping++;
+  const v = $('inviteKarenVid');
+  if (v.src) { v.pause(); v.currentTime = 0; }
+});
+
+// ── Inviting somebody (2026-11-04) ────────────────────────────────────────
+function openInviteNew() {
+  const f = $('invNewForm');
+  f.reset();
+  f.elements.role.value = 'stylist';
+  f.elements.role.querySelector('[value=owner]').disabled = !me?.user?.canManageTeam;
+  note($('invNewNote'), '');
+  for (const el of f.querySelectorAll('[aria-invalid]')) el.removeAttribute('aria-invalid');
+  openDialog($('invNewDlg'));
+  setTimeout(() => f.elements.name.focus(), 50);
+}
+$('invNewClose').onclick = () => closeDialog($('invNewDlg'));
+$('invNewCancel').onclick = () => closeDialog($('invNewDlg'));
+$('invNewForm').elements.phone.addEventListener('input', (e) => phoneAsTyped(e));
+$('invNewForm').elements.phone.addEventListener('blur', (e) => { e.target.value = usPhone(e.target.value); });
+$('invNewForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const el = f.elements;
+  for (const x of f.querySelectorAll('[aria-invalid]')) x.removeAttribute('aria-invalid');
+  const name = el.name.value.trim();
+  const phone = usPhone(el.phone.value);
+  const email = el.email.value.trim();
+  const bad = (input, msg) => { input.setAttribute('aria-invalid', 'true'); note($('invNewNote'), msg); input.focus(); };
+  if (!name) return bad(el.name, 'Add their name.');
+  // The welcome text goes to this number, and Karen knows a stylist's texts
+  // by it, so it is asked of everybody invited.
+  if (phone.replace(/\D/g, '').length < 10) return bad(el.phone, 'Add their mobile number, with the area code. Karen texts them the welcome there.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return bad(el.email, 'Add their email address. Karen emails them the welcome there.');
+  const btn = $('invNewSend');
+  btn.disabled = true;
+  btn.classList.add('busy');
+  try {
+    const made = await api('/api/staff/team', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'create', name, phone, email, role: el.role.value, avatar: charAvatar(name) }),
+    });
+    closeDialog($('invNewDlg'));
+    const role = el.role.value;
+    setTimeout(() => showInviteLink(name, made.invite, role), 180);
+    me = { ...me, ...(await api('/api/staff/me').catch(() => ({}))) };
+    if (page === 'settings' && setTab === 'team') await loadTeam();
+  } catch (err) {
+    note($('invNewNote'), err.message || 'That did not send. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('busy');
+  }
+};
+
+$('memberResend').onclick = async () => {
+  const m = memberEdit;
+  if (!m || m === 'me') return;
+  const b = $('memberResend');
+  b.disabled = true;
+  try {
+    const r = await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: m.id, action: 'reinvite' }) });
+    closeDialog($('memberDlg'));
+    setTimeout(() => showInviteLink(m.name, r.invite, m.role), 180);
+  } catch (err) { note($('memberNote'), err.message); } finally { b.disabled = false; }
+};
 
 $('inviteCopy').onclick = async () => {
   try {
@@ -12181,6 +12496,9 @@ $('memberForm').onsubmit = async (e) => {
       // was the one place that assumed every row had been painted.
       const v = services[key] || {};
       if (v.on && v.price != null && !(v.price >= 0)) { note($('memberNote'), `The ${label} price needs to be a number.`); return; }
+      const badPrice = v.on && [...$('memberSvcs').querySelectorAll(`.svc[data-svc="${key}"] [data-it=price]`)]
+        .find((i) => !i.disabled && i.value.trim() !== '' && !i.checkValidity());
+      if (badPrice) { note($('memberNote'), 'A service price is a number of dollars, like 45 or 45.50.'); badPrice.focus(); return; }
       if (v.on && v.duration != null && !(Number.isInteger(v.duration) && v.duration >= 5 && v.duration <= 720)) {
         note($('memberNote'), `The ${label} duration is a number of minutes, from 5 to 720.`); return;
       }
@@ -12299,7 +12617,7 @@ function renderTeam(current, others = [], pending = []) {
     <div class="tm-addrow">
       <span class="tm-addic">${ic('users-plus')}</span>
       <span class="tm-addtx"><b>Add a team member</b>
-        <span>${admin ? 'Give each stylist their own sign in, picture and prices.' : 'The salon’s admin adds team members.'}</span></span>
+        <span>${admin ? 'Karen invites them and guides them through setting up their account.' : 'The salon’s admin adds team members.'}</span></span>
       ${admin ? `<button type="button" class="btn sm" id="teamAdd">${ic('plus')}Add Team Member</button>` : ''}
     </div>
     ${admin && pending.length ? `<div class="tm-pending"><h3>Asking to join</h3>${pending.map((m) => `
@@ -12321,7 +12639,7 @@ function roleControl(m) {
 }
 
 $('team').onclick = async (e) => {
-  if (e.target.closest('#teamAdd')) { openMember(null); return; }
+  if (e.target.closest('#teamAdd')) { openInviteNew(); return; }
   const row = e.target.closest('.tm-row[data-member]');
   if (row) {
     openMember(row.dataset.member === 'me' ? 'me' : teamOthers.find((m) => String(m.id) === row.dataset.member));
@@ -12946,6 +13264,22 @@ const GOOGLE_LOGO = '<svg class="conn-logo" viewBox="0 0 24 24" aria-hidden="tru
   + '<path fill="#FBBC05" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3a10 10 0 0 0 0 9z"/>'
   + '<path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3 7.5l3.4 2.6C7.2 7.7 9.4 5.9 12 5.9z"/></svg>';
 
+/**
+ * The Google Calendar logo (the blue "31" page with its four colours), for
+ * Connect Google Calendar (asked for 2026-11-04). Google's own G (above)
+ * stays for signing in with Google.
+ */
+const GCAL_LOGO = '<svg class="gcal-logo" viewBox="0 0 200 200" aria-hidden="true"><g transform="translate(3.75 3.75)">'
+  + '<path fill="#fff" d="M148.882 43.618l-47.368-5.263-57.895 5.263-5.263 52.632 5.263 52.632 52.632 6.579 52.632-6.579 5.263-53.947z"/>'
+  + '<path fill="#1a73e8" d="M65.211 125.276c-3.934-2.658-6.658-6.539-8.145-11.671l9.132-3.763c.829 3.158 2.276 5.605 4.342 7.342 2.053 1.737 4.553 2.592 7.474 2.592 2.987 0 5.553-.908 7.697-2.724s3.224-4.132 3.224-6.934c0-2.868-1.132-5.211-3.395-7.026s-5.105-2.724-8.5-2.724h-5.276v-9.039H76.5c2.921 0 5.382-.789 7.382-2.368 2-1.579 3-3.737 3-6.487 0-2.447-.895-4.395-2.684-5.855s-4.053-2.197-6.803-2.197c-2.684 0-4.816.711-6.395 2.145s-2.724 3.197-3.447 5.276l-9.039-3.763c1.197-3.395 3.395-6.395 6.618-8.987 3.224-2.592 7.342-3.895 12.342-3.895 3.697 0 7.026.711 9.974 2.145 2.947 1.434 5.263 3.421 6.934 5.947 1.671 2.539 2.5 5.382 2.5 8.539 0 3.224-.776 5.947-2.329 8.184-1.553 2.237-3.461 3.947-5.724 5.145v.539c2.987 1.25 5.421 3.158 7.342 5.724 1.908 2.566 2.868 5.632 2.868 9.211s-.908 6.776-2.724 9.579c-1.816 2.803-4.329 5.013-7.513 6.618-3.197 1.605-6.789 2.421-10.776 2.421-4.618.013-8.881-1.316-12.815-3.974z"/>'
+  + '<path fill="#1a73e8" d="M121.25 79.961l-9.974 7.25-5.013-7.605 17.987-12.974h6.895v61.197h-9.895z"/>'
+  + '<path fill="#ea4335" d="M148.882 196.25l47.368-47.368-23.684-10.526-23.684 10.526-10.526 23.684z"/>'
+  + '<path fill="#34a853" d="M33.092 172.566l10.526 23.684h105.263v-47.368H43.618z"/>'
+  + '<path fill="#4285f4" d="M11.513-3.75C2.789-3.75-4.276 3.316-4.276 12.039v136.842l23.684 10.526 23.684-10.526V43.618h105.263l10.526-23.684L148.882-3.75z"/>'
+  + '<path fill="#188038" d="M-4.276 148.882v31.579c0 8.724 7.066 15.789 15.789 15.789h31.579v-47.368z"/>'
+  + '<path fill="#fbbc04" d="M148.882 43.618v105.263h47.368V43.618l-23.684-10.526z"/>'
+  + '<path fill="#1967d2" d="M196.25 43.618V12.039c0-8.724-7.066-15.789-15.789-15.789h-31.579v47.368z"/></g></svg>';
+
 const CAL_APPS = [
   { key: 'google', name: 'Google Calendar', logo: GOOGLE_LOGO },
   {
@@ -13083,7 +13417,10 @@ function paintTools() {
   } else if (g.connected) {
     state = 'on';
     why = g.account || 'Google Calendar';
-    if (canAct) act = '<button type="button" class="btn quiet sm" data-tool="google-off">Disconnect</button>';
+    // Connected reads as done (2026-11-04): a green button with a tick, and
+    // Disconnect as a quiet link beside it.
+    act = `<span class="btn sm gcal-ok" role="status">${ic('check')}Connected</span>`
+      + (canAct ? '<button type="button" class="linkbtn gcal-off" data-tool="google-off">Disconnect</button>' : '');
   } else if (m && m.noLogin) {
     why = 'A calendar is connected to a sign in. Give them one to connect theirs.';
   } else if (!m) {
@@ -13094,19 +13431,21 @@ function paintTools() {
     why = self
       ? 'Your busy times show on Appt. Book beside the salon calendar.'
       : 'Their busy times show on Appt. Book beside the salon calendar.';
-    act = `<button type="button" class="btn sm gbtn" data-tool="google-open">${logo}Connect Google Calendar</button>`;
+    act = `<button type="button" class="btn sm gbtn" data-tool="google-open">${GCAL_LOGO}Connect Google Calendar</button>`;
   }
   // Connected shows which Google account under the badge (asked for
   // 2026-10-31), not only on hover. A colleague's account is sent only to
   // them and the admin, so for anybody else there is nothing to show.
+  // The account under the name once connected; the button says Connected.
   const badge = state === 'checking' ? '<span class="chip">Checking…</span>'
-    : state === 'on' ? `<span class="gstate"><span class="chip ok">Connected</span>${g.account
-      ? `<small class="gacct" title="${esc(g.account)}">${esc(g.account)}</small>` : ''}</span>`
+    : state === 'on' ? ''
     : '<span class="chip warn">Not connected</span>';
+  void logo;
   $('memberToolsList').innerHTML = `
     <div class="gcard${g.connected ? ' on' : ''}" data-int="google"${why ? ` title="${esc(why)}"` : ''}>
-      <span class="tool-ic">${logo}</span>
-      <div style="min-width:0"><b>Google</b><span class="d">Calendar</span></div>
+      <span class="tool-ic">${GCAL_LOGO}</span>
+      <div style="min-width:0"><b>Google Calendar</b><span class="d">${state === 'on' && g.account
+        ? `<span class="gacct" title="${esc(g.account)}">${esc(g.account)}</span>` : 'Calendar'}</span></div>
       <div class="gacts">${badge}${act}</div>
     </div>
     <div class="gcard soon" data-int="stripe" aria-disabled="true">
@@ -13380,11 +13719,29 @@ async function showInvite(token) {
     return;
   }
 
-  $('inviteLede').textContent = `You have been added to the team at ${who.salon}. `
-    + `Choose a password for ${who.email} and you are in.`;
-  $('inviteForm').querySelector('input[name=password]')
-    .setAttribute('minlength', String(who.minPasswordLength));
+  $('inviteLede').textContent = `You have been invited to the team at ${who.salon}. `
+    + `Choose a password for ${who.email}. Only you will know it.`;
+  $('pwRule').textContent = `At least ${who.minPasswordLength} characters.`;
+  const pwInput = $('inviteForm').querySelector('input[name=password]');
+  pwInput.setAttribute('minlength', String(who.minPasswordLength));
   $('inviteForm').classList.remove('hidden');
+  // Karen, waving hello, and what to do (2026-11-04). She says when the
+  // password is long enough, so nobody presses the button to find out.
+  const first = String(who.name || '').trim().split(/\s+/)[0];
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('pwKaren').classList.remove('hidden');
+  $('pwKarenPic').src = KAREN_PIC;
+  const kv = $('pwKarenVid');
+  if (!still) { kv.poster = KAREN_PIC; kv.src = KAREN_WAVE; kv.play().catch(() => {}); }
+  const say = (t) => { $('pwKarenSay').textContent = t; };
+  say(`Hi${first ? ` ${first}` : ''}! I'm Karen, the assistant at ${who.salon}. Welcome! First, choose a password. Then I'll help you set up your profile.`);
+  pwInput.addEventListener('input', () => {
+    const n = pwInput.value.length;
+    if (!n) return;
+    say(n < who.minPasswordLength
+      ? `Keep going: ${who.minPasswordLength - n} more character${who.minPasswordLength - n === 1 ? '' : 's'}.`
+      : 'That works! Tap Set password and continue, and I\'ll show you the next step.');
+  });
 
   $('inviteForm').onsubmit = async (e) => {
     e.preventDefault();
@@ -13433,6 +13790,8 @@ const OB_STEP_NAMES = {
 };
 const OB_PATH_NAMES = { ...OB_STEP_NAMES, calendar: 'Calendar (optional)' };
 const obIsStylist = () => ob.prof?.role === 'stylist';
+/** A photo of their own, uploaded and cropped: a data: URI, not a drawn default or an avatar file. */
+const obHasPhoto = () => String(ob.avatar || '').startsWith('data:');
 
 /** This browser's copy of About you and the step, keyed by who is signed in. */
 const obKey = () => `ss-ob-${String(me?.user?.email || '').toLowerCase()}`;
@@ -13443,7 +13802,7 @@ function obBackupWrite() {
   try {
     const d = { ...(obBackupRead() || {}), step: ob.steps[ob.step] };
     const f = $('obForm');
-    if (ob.steps[ob.step] === 'details') for (const n of ['name', 'phone', 'title']) if (f.elements[n]) d[n] = f.elements[n].value;
+    if (ob.steps[ob.step] === 'details') for (const n of ['name', 'phone']) if (f.elements[n]) d[n] = f.elements[n].value;
     localStorage.setItem(obKey(), JSON.stringify(d));
   } catch { /* a private window: the server's copy is the one that counts */ }
 }
@@ -13462,7 +13821,7 @@ async function showOnboarding() {
   ob.steps = obIsStylist() ? ['details', 'services', 'hours', 'calendar', 'review'] : ['details', 'calendar', 'review'];
   ob.avatar = ob.prof.avatar || null;
   const kept = obBackupRead();
-  if (kept) for (const k of ['name', 'phone', 'title']) if (!ob.prof[k] && kept[k]) ob.prof[k] = kept[k];
+  if (kept) for (const k of ['name', 'phone']) if (!ob.prof[k] && kept[k]) ob.prof[k] = kept[k];
   // Back where they stopped: the account's step, else this browser's.
   ob.step = Math.max(0, ob.steps.indexOf(ob.prof.onboardingStep || kept?.step));
   ob.furthest = ob.step;
@@ -13520,7 +13879,6 @@ function obMissing() {
   if (!String(p.name || '').trim()) out.push({ step: 'details', msg: 'Add your name, on About you.' });
   if (obIsStylist()) {
     if (String(p.phone || '').replace(/\D/g, '').length < 10) out.push({ step: 'details', msg: 'Add your mobile number, on About you.' });
-    if (!String(p.title || '').trim()) out.push({ step: 'details', msg: 'Add your title, on About you.' });
     if (!obOffers(p.services, p.ownServices)) out.push({ step: 'services', msg: 'Switch on at least one service you do, on Services & Pricing.' });
     if (!(p.hours || []).length) out.push({ step: 'hours', msg: 'Add the hours you are available, on Hours & Availability.' });
   }
@@ -13544,14 +13902,12 @@ function obGuide() {
   const val = (n) => String(f.elements[n]?.value || '').trim();
   if (step === 'details') {
     return [
-      { key: 'pic', label: 'Your picture', opt: true, done: Boolean(ob.avatar), el: f.querySelector('.ob-pic'),
-        tip: 'Upload a photo of yourself and crop it so your face sits in the circle, or choose an avatar. It shows wherever you appear in the app.' },
+      { key: 'pic', label: 'Your photo', opt: true, done: obHasPhoto(), el: f.querySelector('.ob-pic'),
+        tip: 'Upload a photo of yourself and drag it so your face sits in the circle. Clients and the team see it wherever you appear.' },
       { key: 'name', label: 'Your name', done: Boolean(val('name')), el: field('name'),
         tip: 'Your name, the way clients and the team know you.' },
       { key: 'phone', label: 'Your mobile number', opt: !stylist, done: val('phone').replace(/\D/g, '').length >= 10, el: field('phone'),
         tip: stylist ? "Your mobile, with the area code. When you text me from it, I'll know it's you." : "Your mobile, if you'd like to text me. I'll know it's you." },
-      { key: 'title', label: 'Your title', opt: !stylist, done: Boolean(val('title')), el: field('title'),
-        tip: stylist ? 'How guests should see you, like Master Stylist or Colorist. It goes beside your picture on the website.' : 'What you do here, like Front Desk Manager.' },
     ];
   }
   if (step === 'services') {
@@ -13560,12 +13916,14 @@ function obGuide() {
     // Color has no single length (its Start, Break and Finish have defaults),
     // so only a kind with a Duration box can be missing one.
     const missing = (fld) => on.find((r) => { const i = r.querySelector(`[data-f=${fld}]`); return i && !i.value.trim(); });
+    // Prices are per service (2026-11-04): the first offered service still without one.
+    const noPrice = on.flatMap((r) => [...r.querySelectorAll('.svc-it:not(.unticked) [data-it=price]')]).find((i) => !i.value.trim());
     return [
       { key: 'on', label: 'Switch on what you do', done: on.length > 0 || svcOwn.some((x) => x.on), el: $('memberSvcs'),
         tip: "Tap the switch beside each kind of work you do. It opens to its services: untick any you don't do. Something not on the list? Add it as your own service at the bottom." },
-      { key: 'price', label: 'A starting price for each', opt: true, done: on.length > 0 && !missing('price'),
-        el: missing('price')?.querySelector('[data-f=price]').closest('label'),
-        tip: "Your starting price. It goes on your appointments for the salon; clients don't see prices online." },
+      { key: 'price', label: 'A price for each service', opt: true, done: on.length > 0 && !noPrice,
+        el: noPrice?.closest('.svc-it') || null,
+        tip: "Each service you do has its own price, beside its name. It goes on your appointments for the salon; clients don't see prices online." },
       { key: 'minutes', label: 'How long each takes you', opt: true, done: on.length > 0 && !missing('duration'),
         el: missing('duration')?.querySelector('[data-f=duration]').closest('label'),
         tip: "How many minutes it usually takes you. I book your clients for exactly that long. A service's own minutes, below, beat it." },
@@ -13604,10 +13962,10 @@ function obIntro() {
   const step = ob.steps[ob.step];
   if (step === 'details') {
     return `Hi${first ? ` ${first}` : ''}! I'm Karen, the assistant here at ${salon}, and I'll set you up in ${ob.steps.length} quick steps. `
-      + "First, tell me about you. I save as you type, so you can stop and come back any time.";
+      + "First, add a photo of yourself and your mobile number. I save as you type, so you can stop and come back any time.";
   }
   if (step === 'services') {
-    return `Lovely to meet you${first ? `, ${first}` : ''}! Now switch on the work you do, with your starting price and how long it takes. Something not on the list? Add it as your own service at the bottom.`;
+    return `Lovely to meet you${first ? `, ${first}` : ''}! Now switch on the work you do. Each kind opens to its services: give each one you do its own price, and untick any you don't. Something not on the list? Add it as your own service at the bottom.`;
   }
   if (step === 'hours') {
     return "When can guests book you? Switch on the days you work and set your hours. You can change them any time in My Settings, and the owner sees them too.";
@@ -13687,7 +14045,6 @@ function obReviewHtml() {
       ${row('Name', p.name ? esc(p.name) : 'Missing', missing('your name'))}
       ${row('Mobile', p.phone ? esc(showPhone(p.phone)) : (stylist ? 'Missing' : 'Not given'), missing('mobile'))}
       ${row('Role', esc(ROLE_LABEL[p.role] || p.role || ''))}
-      ${row('Title', p.title ? esc(p.title) : (stylist ? 'Missing' : 'Not given'), missing('title'))}
     </dl></div>`);
   if (stylist) {
     const s = p.services || {};
@@ -13697,7 +14054,14 @@ function obReviewHtml() {
       const len = k === 'color' ? (timeTotal(v) || v.duration) : v.duration;
       const list = svcOfKind(k);
       const n = list.filter((x) => s.items?.[x.slug]?.on !== false).length;
-      const bits = [money(v.price) || 'No price yet', len ? `${len} min` : null, list.length ? `${n} of ${list.length} services` : null];
+      // Prices are each service's own (2026-11-04): the range of those offered.
+      const offered = list.filter((x) => s.items?.[x.slug]?.on !== false);
+      const prices = offered.map((x) => s.items?.[x.slug]?.price ?? v.price).filter((x) => x != null && x !== '').map(Number);
+      const range = prices.length ? (Math.min(...prices) === Math.max(...prices) ? money(prices[0])
+        : `${money(Math.min(...prices))} to ${money(Math.max(...prices))}`) : money(v.price);
+      const unpriced = list.length ? offered.length - prices.length : 0;
+      const bits = [range || 'No prices yet', len ? `${len} min` : null, list.length ? `${n} of ${list.length} services` : null,
+        prices.length && unpriced ? `${unpriced} without a price` : null];
       return `<li><b>${esc(label)}</b><span>${esc(bits.filter(Boolean).join(' · '))}</span></li>`;
     });
     const own = (p.ownServices || []).map((x) => `<li><b>${esc(x.name)}</b><span>${esc(
@@ -13716,12 +14080,12 @@ function obReviewHtml() {
       return `<li><b>${esc(label)}</b><span>${esc(list.length ? list.map((h) => `${obClock(h.starts)} – ${obClock(h.ends)}`).join(', ') : 'Closed')}</span></li>`;
     });
     html += sec('hours', 'Hours & Availability', (p.hours || []).length
-      ? `<ul class="ob-rv-l">${days.join('')}<li><b>Lunch break</b><span>${s.lunch !== false ? '30 min between 11 AM and 1 PM' : 'Off'}</span></li></ul>`
+      ? `<ul class="ob-rv-l">${days.join('')}<li><b>Lunch break</b><span>${s.lunch !== false ? 'Flexible: 30 min between 11 AM and 1 PM' : 'Off'}</span></li></ul>`
       : none('No hours yet', true));
   }
   const g = p.google || {};
   html += sec('calendar', 'Calendar', g.connected
-    ? `<span class="ob-rv-none">Connected${g.account ? ` as ${esc(g.account)}` : ''}.</span>`
+    ? `<span class="ob-rv-ok">${ic('check')}Google Calendar connected${g.account ? ` as ${esc(g.account)}` : ''}</span>`
     : none('Not connected. That is fine: you can connect it later in My Settings.'));
   return html;
 }
@@ -13753,27 +14117,27 @@ function obPaint() {
         ${step === 'review' ? '' : '<button type="button" class="ob-later" data-ob-later>Save &amp; continue later</button>'}</div>`;
   $('obTitle').textContent = OB_STEP_NAMES[step];
   if (step === 'details') {
+    // Their own photo, uploaded and cropped (2026-11-04: the avatars were
+    // taken out of setup on request). The circle shows the drawn default
+    // until they upload one.
     const pic = ob.avatar || charAvatar(p.name || p.email || 'new');
     $('obForm').innerHTML = `
-      <div class="ob-pic"><button type="button" class="ob-face" data-ob-pic="avatars" aria-label="Change your picture"><img class="ob-face-img" id="obPic" src="${esc(pic)}" alt=""></button>
-        <div><span class="small muted">Your picture (optional)</span>
+      <div class="ob-pic"><button type="button" class="ob-face" data-ob-pic="upload" aria-label="Upload your photo"><img class="ob-face-img" id="obPic" src="${esc(pic)}" alt=""><span class="ob-face-cam" aria-hidden="true"><svg class="ic"><use href="#i-camera"/></svg></span></button>
+        <div><span class="small muted">Your profile photo (optional)</span>
           <div class="ob-pic-btns">
-            <button type="button" class="btn sm" data-ob-pic="upload"><svg class="ic"><use href="#i-camera"/></svg>Upload a photo</button>
-            <button type="button" class="btn quiet sm" data-ob-pic="avatars"><svg class="ic"><use href="#i-user"/></svg>Choose an avatar</button>
+            <button type="button" class="btn sm" data-ob-pic="upload"><svg class="ic"><use href="#i-camera"/></svg>${obHasPhoto() ? 'Change photo' : 'Upload a photo'}</button>
           </div></div></div>
       <label><span>Your name</span><input name="name" value="${esc(p.name || '')}" autocomplete="name" required maxlength="120"></label>
       <label><span>Mobile number${stylist ? '' : ' (optional)'}</span><input name="phone" type="tel" inputmode="tel" value="${esc(usPhone(p.phone || ''))}" autocomplete="tel" placeholder="(813) 555-0170"></label>
       <label><span>Your role at the salon</span><input value="${esc(ROLE_LABEL[p.role] || p.role || '')}" disabled aria-describedby="obRoleNote">
         <small class="ob-role-note" id="obRoleNote">Set by the salon owner. Ask them if it should be different.</small></label>
-      <label><span>Your title${stylist ? '' : ' (optional)'}</span><input name="title" value="${esc(p.title || '')}" maxlength="80"
-        placeholder="${stylist ? 'e.g. Master Stylist, Colorist' : 'e.g. Front Desk Manager'}"></label>
       ${acts}`;
   } else if (step === 'services') {
     // The same services control as My Settings and the Team window (asked
     // for 2026-11-03): the one #memberSvcs, moved in for this step and back
     // out (obSvcsHome) before the form is drawn again.
     $('obForm').innerHTML = `<div id="obSvcSlot"></div>
-      <p class="ob-hint">Prices are what you charge in the salon. Clients don't see prices online.</p>
+      <p class="ob-hint">Each service has its own price: what you charge in the salon. Clients don't see prices online.</p>
       ${acts}`;
     $('obSvcSlot').appendChild($('memberSvcs'));
     paintServices(p.services || {}, p.ownServices || []);
@@ -13789,9 +14153,17 @@ function obPaint() {
     $('memberLunch').classList.toggle('off', !lunchOn);
     paintHoursState();
   } else if (step === 'calendar') {
+    // The Google Calendar logo, and once connected a green Connected
+    // button with a tick (asked for 2026-11-04), so it reads as done.
     $('obForm').innerHTML = `
-      <p class="ob-hint" id="obCal">${g.connected ? `Connected${g.account ? ` as ${esc(g.account)}` : ''}.` : 'Not connected yet. This step is optional.'}</p>
-      ${g.connected ? '' : '<button type="button" class="btn quiet block" data-ob-google>Connect Google Calendar</button>'}
+      <div class="ob-gcal${g.connected ? ' on' : ''}">
+        <span class="ob-gcal-logo">${GCAL_LOGO}</span>
+        <div class="ob-gcal-t"><b>Google Calendar</b>
+          <span id="obCal">${g.connected ? `Connected${g.account ? ` as ${esc(g.account)}` : ''}. Your bookings go into it.` : 'Not connected yet. This step is optional.'}</span></div>
+        ${g.connected
+          ? `<span class="btn gcal-ok" role="status">${ic('check')}Connected</span>`
+          : `<button type="button" class="btn gbtn" data-ob-google>${GCAL_LOGO}Connect Google Calendar</button>`}
+      </div>
       ${acts}`;
   } else {
     $('obForm').innerHTML = `${obReviewHtml()}${acts}`;
@@ -13825,15 +14197,13 @@ function obPayload(strict) {
   if (step === 'details') {
     const name = f.elements.name.value.trim();
     const phone = f.elements.phone.value.trim();
-    const title = f.elements.title.value.trim();
     const digits = phone.replace(/\D/g, '').length;
     const phoneOk = stylist ? digits >= 10 : digits === 0 || digits >= 10;
     if (strict) {
       if (!name) errs.push({ el: f.elements.name, msg: 'Add your name.' });
       if (!phoneOk) errs.push({ el: f.elements.phone, msg: stylist ? 'Add your mobile number, with the area code.' : 'That number looks short: include the area code.' });
-      if (stylist && !title) errs.push({ el: f.elements.title, msg: 'Add your title, the way guests should see it.' });
     }
-    const body = { title };
+    const body = {};
     if (name) body.name = name;
     if (phoneOk) body.phone = phone;
     // The picture only when it changed: it can be most of a request.
@@ -13844,7 +14214,7 @@ function obPayload(strict) {
   if (step === 'services') {
     for (const i of f.querySelectorAll('#memberSvcs input[type=number]:not(:disabled):not([data-of])')) {
       if (i.value.trim() !== '' && !i.checkValidity()) {
-        errs.push({ el: i, msg: /price/.test(`${i.dataset.f} ${i.dataset.ownF}`) ? 'Prices are numbers of dollars, like 45 or 45.50.' : 'Minutes are a whole number from 5 to 720.' });
+        errs.push({ el: i, msg: /price/.test(`${i.dataset.f} ${i.dataset.it} ${i.dataset.ownF}`) ? 'Prices are numbers of dollars, like 45 or 45.50.' : 'Minutes are a whole number from 5 to 720.' });
         break;
       }
     }
@@ -13891,7 +14261,7 @@ function obMerge(out, body) {
 function obKeep() {
   const f = $('obForm');
   const step = ob.steps[ob.step];
-  if (step === 'details') for (const n of ['name', 'phone', 'title']) ob.prof[n] = f.elements[n].value.trim();
+  if (step === 'details') for (const n of ['name', 'phone']) ob.prof[n] = f.elements[n].value.trim();
   if (step === 'services') {
     ob.prof.services = { ...(ob.prof.services || {}), ...readServices() };
     ob.prof.ownServices = svcOwn.map((x) => ({ ...x }));
@@ -13954,7 +14324,7 @@ function obShowErrs(errs) {
   for (const { el, msg, shown } of errs) {
     if (!el || shown) continue;
     if (el.matches('input, select, textarea')) el.setAttribute('aria-invalid', 'true');
-    const host = el.closest('#obForm > label') || el.closest('.svc') || el.closest('.svc-own') || el.closest('.hr') || el;
+    const host = el.closest('#obForm > label') || el.closest('.svc-it') || el.closest('.svc') || el.closest('.svc-own') || el.closest('.hr') || el;
     host.insertAdjacentHTML('afterend', `<p class="ob-err" role="alert">${esc(msg)}</p>`);
   }
   note($('obNote'), errs[0].msg);
@@ -14060,7 +14430,7 @@ $('obForm').addEventListener('click', (e) => {
   const pic = e.target.closest('[data-ob-pic]');
   if (pic) {
     const src = $('obPic').src;
-    openPicFor(obTakePic, src, { upload: pic.dataset.obPic === 'upload', avatars: pic.dataset.obPic === 'avatars' });
+    openPicFor(obTakePic, src, { upload: true, avatars: false, uploadOnly: true });
     return;
   }
   // The services and hours controls do their own switching; Karen's
@@ -14111,7 +14481,7 @@ $('obForm').addEventListener('blur', (e) => {
 // The field in use: Karen talks about it, and her tip on a phone moves to it.
 $('obForm').addEventListener('focusin', (e) => {
   const f = e.target;
-  const key = f.name || (f.dataset.f === 'price' ? 'price' : f.dataset.f === 'duration' ? 'minutes' : null)
+  const key = f.name || (f.dataset.it === 'price' ? 'price' : f.dataset.f === 'duration' ? 'minutes' : null)
     || (f.type === 'time' ? 'times' : f.closest('#memberHours .switch') ? 'days' : null)
     || (f.closest('.ob-pic') ? 'pic' : f.closest('[data-ob-google]') ? 'google' : null);
   if (!key || key === obFocusKey) return;

@@ -13,7 +13,18 @@ import { DateTime } from 'luxon';
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { assertClientInChair, chairOf, seesAll } from '../../_lib/scope.js';
 import { query } from '../../_lib/db.js';
-import { MESSAGE_KINDS, automationOn, previewMessage, previewStaffEmail } from '../../_lib/email.js';
+import {
+  INVITE_KIND, MESSAGE_KINDS, automationOn, previewInvite, previewMessage, previewStaffEmail,
+} from '../../_lib/email.js';
+import { inviteText } from '../../_lib/sms-notify.js';
+
+/**
+ * Every automation's kinds: the guest messages, then the Team Member
+ * Invitation (2026-11-04), which goes to the team rather than to a client,
+ * so it has no appointment and is not in MESSAGE_KINDS (the queue and the
+ * client's Activity only ever deal in those).
+ */
+const AUTOMATION_KINDS = [...MESSAGE_KINDS, INVITE_KIND];
 import { prettyPhone, smsText } from '../../_lib/karen-sms.js';
 import {
   HttpError, handler, json, readJson, requireEmail, requireString,
@@ -77,7 +88,28 @@ async function sampleAppt(tenant) {
   };
 }
 
+/** The welcome as a new team member gets it, with sample details and a placeholder for the link. */
+async function previewTeamInvite(tenant) {
+  const sample = { name: 'Jamie Sample', email: 'jamie@example.com', expiresDays: 7, invitedBy: null };
+  const out = previewInvite(sample, tenant);
+  const { rows } = await query(
+    "SELECT to_jsonb(tenants) ->> 'karen_phone' AS karen_phone FROM tenants WHERE id = $1::uuid", [tenant.id],
+  );
+  return {
+    kind: INVITE_KIND, to: `${sample.name} <${sample.email}>`, ...out,
+    sms: {
+      from: `Karen from ${tenant.name || 'the salon'}`,
+      number: prettyPhone(rows[0]?.karen_phone),
+      to: sample.name,
+      toPhone: '(813) 555-0142',
+      body: inviteText({ salon: tenant.name || 'the salon', name: sample.name, link: 'https://app.synergysalon.com/invite?t=...', expiresDays: 7 }),
+      connected: Boolean(rows[0]?.karen_phone && process.env.TWILIO_AUTH_TOKEN),
+    },
+  };
+}
+
 async function preview(kind, tenant) {
+  if (kind === INVITE_KIND) return previewTeamInvite(tenant);
   if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such message.');
   const appt = await sampleAppt(tenant);
   const start = DateTime.fromJSDate(appt.starts_at);
@@ -142,6 +174,21 @@ export async function sentMessage(id, tenant) {
       status: r.status === 'failed' ? 'failed' : 'sent', error: r.status === 'failed' ? r.error || null : null,
     };
   }
+  // A team member's welcome (2026-11-04): rebuilt from the facts it was
+  // written from, which the log keeps. The setup link is a credential and
+  // was never kept, so the button carries a placeholder.
+  if (r?.kind === INVITE_KIND) {
+    let kept = {};
+    try { kept = JSON.parse(r.body || '{}'); } catch { /* an unreadable row shows the bare welcome */ }
+    const out = previewInvite({ name: r.to_name || kept.name, email: r.to_email, ...kept }, tenant);
+    return {
+      kind: INVITE_KIND, sentAt: r.sent_at, toName: r.to_name || r.to_email,
+      to: r.to_name ? `${r.to_name} <${r.to_email}>` : r.to_email, ref: null, ...out,
+      subject: r.subject || out.subject,
+      status: r.status === 'failed' ? 'failed' : 'sent', error: r.status === 'failed' ? r.error || null : null,
+      note: 'Their setup link is not kept here, because anyone holding it could set up the account. The button stands in for it.',
+    };
+  }
   if (!r || !MESSAGE_KINDS.includes(r.kind)) throw new HttpError(404, 'No such email.');
   const name = r.to_name || r.to_email;
   const appt = r.ref
@@ -199,7 +246,7 @@ async function automations(tenant) {
 
   const by = new Map(counts.rows.map((r) => [r.kind, r]));
   return {
-    kinds: MESSAGE_KINDS.map((kind) => ({
+    kinds: AUTOMATION_KINDS.map((kind) => ({
       kind,
       on: automationOn(kind, tenant),
       sent: by.get(kind)?.sent ?? 0,
@@ -305,10 +352,10 @@ export async function history(tenant, cursor, { kind = null, q = null } = {}) {
  */
 const SENDS_PAGE = 40;
 export async function automationSends(tenant, kindsParam, cursor) {
-  const kinds = String(kindsParam || '').split(',').map((k) => k.trim()).filter((k) => MESSAGE_KINDS.includes(k));
+  const kinds = String(kindsParam || '').split(',').map((k) => k.trim()).filter((k) => AUTOMATION_KINDS.includes(k));
   if (!kinds.length) throw new HttpError(404, 'No such automation.');
   const before = cursor && !Number.isNaN(Date.parse(cursor)) ? cursor : null;
-  const [emails, texts] = await Promise.all([
+  const [emails, texts, teamTexts] = await Promise.all([
     query(
       `SELECT m.id::text AS id, m.kind, m.to_name AS name, m.to_email AS addr, m.sent_at AS at, m.sent_at::text AS at_text,
               COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status, to_jsonb(m) ->> 'error' AS error,
@@ -331,10 +378,22 @@ export async function automationSends(tenant, kindsParam, cursor) {
         LIMIT $4::int`,
       [tenant.id, kinds, before, SENDS_PAGE + 1],
     ).catch(() => ({ rows: [] })),
+    // Texts to the team (046): the invitation's welcome text.
+    query(
+      `SELECT t.id::text AS id, t.kind, t.to_name AS name, t.phone AS addr, t.created_at AS at, t.created_at::text AS at_text,
+              t.status, t.error, NULL::text AS contact_id
+         FROM team_texts t
+        WHERE t.tenant_id = $1::uuid AND t.kind = ANY($2::text[])
+          AND ($3::timestamptz IS NULL OR t.created_at < $3::timestamptz)
+        ORDER BY t.created_at DESC
+        LIMIT $4::int`,
+      [tenant.id, kinds, before, SENDS_PAGE + 1],
+    ).catch(() => ({ rows: [] })),
   ]);
   const all = [
     ...emails.rows.map((r) => ({ ...r, channel: 'email' })),
     ...texts.rows.map((r) => ({ ...r, channel: 'sms' })),
+    ...teamTexts.rows.map((r) => ({ ...r, channel: 'sms' })),
   ].sort((a, b) => new Date(b.at) - new Date(a.at) || b.at_text.localeCompare(a.at_text));
   const page = all.slice(0, SENDS_PAGE);
   const last = page[page.length - 1];
@@ -507,7 +566,7 @@ export default handler({
     // the caller is a different screen.
     if (body.automation !== undefined) {
       const kind = String(body.automation);
-      if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such automation.');
+      if (!AUTOMATION_KINDS.includes(kind)) throw new HttpError(404, 'No such automation.');
       const on = body.on !== false;
       await query(
         on

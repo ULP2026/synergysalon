@@ -67,6 +67,34 @@ async function mintInvite(req, userId) {
   return `${proto}://${host}${host.startsWith('app.') ? '' : '/staff'}/invite?t=${token}`;
 }
 
+/**
+ * Karen's welcome to somebody invited, by email and by text, and what came
+ * of each for the confirmation window: `emailed`, `texted`, whether the
+ * email was refused (`emailFailed`), and `off` when the owner has switched
+ * the Team Member Invitation automation off. Never throws: the account and
+ * its link exist either way, and the window then shows the link to hand on.
+ */
+export async function deliverInvite(tenant, { id, name, email, phone, link, invitedBy }, deps = {}) {
+  const sendMail = deps.sendInvite || sendInvite;
+  const sendSms = deps.textInvite || textInvite;
+  let emailed = false;
+  let emailFailed = false;
+  let off = false;
+  try {
+    const r = await sendMail({ name, email, link, expiresDays: INVITE_DAYS, invitedBy }, tenant);
+    emailed = !r?.skipped;
+    off = Boolean(r?.off);
+  } catch (err) {
+    emailFailed = true;
+    console.error('invite email failed for', email, err);
+  }
+  const t = await sendSms({ tenant, phone, name, link, expiresDays: INVITE_DAYS, staffUserId: id });
+  return {
+    link, emailed, emailFailed, texted: t.texted === true, textFailed: Boolean(t.failed),
+    hasPhone: String(phone || '').replace(/\D/g, '').length >= 10, off, expiresDays: INVITE_DAYS,
+  };
+}
+
 export default handler({
   async GET(req, res) {
     // The Team list and removals read stylists.removed_at (022); the live
@@ -249,18 +277,13 @@ export default handler({
       // Sending is a courtesy, not the mechanism. No email provider, a typo in
       // the address, a spam folder -- the person adding them still has the
       // link on screen and can hand it over directly.
-      let emailed = false;
-      try {
-        const r = await sendInvite({ name, email, link, expiresDays: INVITE_DAYS }, tenant);
-        emailed = !r?.skipped;
-      } catch (err) {
-        console.error('invite email failed for', email, err);
-      }
-      // And texted to their mobile (2026-11-03), so they can set up on
-      // their phone, with Karen leading them through it.
-      const texted = (await textInvite({ tenant, phone: phoneFrom(body.phone), name, link, expiresDays: INVITE_DAYS })).texted === true;
-
-      return json(res, 201, { ok: true, member: rows[0], invite: { link, emailed, texted, expiresDays: INVITE_DAYS } });
+      // Karen's welcome (the Team Member Invitation automation, 2026-11-04):
+      // an email, kept in Email History, and a text to their mobile, kept for
+      // the automation's Sent History, both leading them to the setup she
+      // walks them through. Switched off in Automations, neither goes and the
+      // owner is handed the link instead.
+      const invite = await deliverInvite(tenant, { id: rows[0].id, name, email, phone: phoneFrom(body.phone), link, invitedBy: user.name });
+      return json(res, 201, { ok: true, member: rows[0], invite });
     }
 
     const id = requireString(body.id, 'Member', { max: 64 });
@@ -316,14 +339,8 @@ export default handler({
           throw new HttpError(409, `${who[0].name} has already set a password.`);
         }
         const link = await mintInvite(req, id);
-        let emailed = false;
-        try {
-          const r = await sendInvite(
-            { name: who[0].name, email: who[0].email, link, expiresDays: INVITE_DAYS }, tenant);
-          emailed = !r?.skipped;
-        } catch (err) { console.error('invite email failed for', who[0].email, err); }
-        const texted = (await textInvite({ tenant, phone: who[0].phone, name: who[0].name, link, expiresDays: INVITE_DAYS })).texted === true;
-        return json(res, 200, { ok: true, invite: { link, emailed, texted, expiresDays: INVITE_DAYS } });
+        const invite = await deliverInvite(tenant, { ...who[0], link, invitedBy: user.name });
+        return json(res, 200, { ok: true, invite });
       }
 
       case 'approve': {
