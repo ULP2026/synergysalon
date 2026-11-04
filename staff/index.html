@@ -183,6 +183,10 @@
   .chip.ok { color: #22673f; border-color: transparent; background: #e1f2e8; }
   .chip.warn { color: #a12a35; border-color: transparent; background: #fbe5e7; }
   .chip.pending { color: #7a5206; border-color: transparent; background: #fdf1d6; }
+  /* Team: Invited is yellow (asked for 2026-11-04); Setting up periwinkle, so the two stages read apart. */
+  .chip.invited { color: #6b5300; border-color: #f2d24b; background: #fff4b8; }
+  .chip.setting-up { color: var(--indigo); border-color: transparent; background: var(--peri-pale); }
+  :root[data-theme="dark"] .chip.invited { color: #ffe27a; border-color: rgba(242, 210, 75, .5); background: rgba(242, 210, 75, .16); }
   .chip .ic { width: 13px; height: 13px; }
   .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 
@@ -1650,6 +1654,37 @@
   .dg-off { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; font-size: var(--fs-sm); color: var(--muted); }
   .dg-demo { margin-bottom: 12px; }
 
+  /* Settings for anyone but the owner (2026-11-04): the team as a roster, greyed. */
+  .tm-row.ro { cursor: default; opacity: .78; filter: saturate(.7); }
+  .tm-row.ro:hover { transform: none; box-shadow: none; }
+  .tm-row.ro.me { opacity: 1; filter: none; }
+  .ro-note { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 8px 12px; border-radius: 10px;
+             background: var(--raise); color: var(--muted); font-size: var(--fs-sm); }
+  .ro-note .ic { width: 16px; height: 16px; flex: none; }
+  /* My services, pricing & hours folds (2026-11-04). */
+  .mw-fold .mw-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 0; border: 0; background: none;
+                      font: inherit; color: inherit; text-align: left; cursor: pointer; }
+  .mw-fold .mw-head > span:first-child { flex: 1; min-width: 0; }
+  .mw-fold .mw-head .asub { display: block; margin: 2px 0 0; }
+  .mw-fold .mw-chev { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: var(--muted);
+                      transition: transform var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .mw-fold .mw-head:hover .mw-chev { background: var(--raise); }
+  .mw-fold.open .mw-chev { transform: rotate(90deg); }
+  .mw-fold .mw-body { display: none; margin-top: 14px; }
+  .mw-fold.open .mw-body { display: block; }
+  /* Cash out (2026-11-04). */
+  .co-form { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: 10px; align-items: end; margin: 4px 0 12px; }
+  .co-form label { margin: 0; }
+  .co-form .btn { gap: 6px; height: 44px; }
+  .co-form .btn .ic { width: 15px; height: 15px; }
+  .co-list { display: grid; gap: 6px; }
+  .co-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px;
+            border: 1px solid var(--line); border-radius: 12px; }
+  .co-what b { display: block; font-size: 1rem; font-variant-numeric: tabular-nums; }
+  .co-what small { display: block; color: var(--muted); font-size: var(--fs-xs); }
+  .co-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .co-acts .btn .ic { width: 14px; height: 14px; }
+  @media (max-width: 560px) { .co-form { grid-template-columns: minmax(0, 1fr); } .co-row { flex-wrap: wrap; } }
   /* Inviting somebody (2026-11-04): four fields and Send Invitation. */
   .invnew { max-width: 460px; }
   .invnew .ad-head { align-items: flex-start; }
@@ -2668,7 +2703,7 @@
 
   /* Services and prices in the team modal: a switch, the kind of work, a price. */
   .svcs { display: grid; gap: 6px; margin-bottom: 14px; }
-  .svc { display: grid; grid-template-columns: 44px minmax(0, 1fr) 104px; align-items: center; gap: 12px;
+  .svc { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 12px;
          padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); }
   .svc b { display: block; font-size: .88rem; font-weight: 600; }
   .svc small { display: block; font-size: .75rem; color: var(--muted); }
@@ -2724,7 +2759,7 @@
     .own-grid .own-name { grid-column: 1 / -1; }
   }
   @media (max-width: 520px) {
-    .svc { grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr); row-gap: 8px; --svc-gap: 8px; }
+    .svc { grid-template-columns: 44px minmax(0, 1fr); row-gap: 8px; --svc-gap: 8px; }
     .svc > div { grid-column: 2 / -1; }
     .svc .price { grid-column: 2; }
     .svc .dur { grid-column: 3; }
@@ -3794,9 +3829,14 @@
                your profile window on request, 2026-11-03). The same controls
                as the Team window's, moved in while this tab is open
                (workTo), so there is one set and one way of saving. -->
-          <section class="acard" id="myWorkCard">
-            <h2 class="ahead"><svg class="ic"><use href="#i-calendar"/></svg>My services, pricing &amp; hours</h2>
-            <p class="asub">What you offer, your prices and times, and when guests can book you.</p>
+          <!-- Starts folded (asked for 2026-11-04): the header opens it. -->
+          <section class="acard mw-fold" id="myWorkCard">
+            <button type="button" class="mw-head" id="myWorkToggle" aria-expanded="false" aria-controls="myWorkBody">
+              <span><h2 class="ahead"><svg class="ic"><use href="#i-calendar"/></svg>My services, pricing &amp; hours</h2>
+              <span class="asub">What you offer, your prices and times, and when guests can book you.</span></span>
+              <span class="mw-chev" aria-hidden="true"><svg class="ic"><use href="#i-right"/></svg></span>
+            </button>
+            <div class="mw-body" id="myWorkBody">
             <!-- Compact (asked for 2026-11-03): services and hours are two tabs
                  of the one card, not one long column. -->
             <div class="seg mw-tabs" id="mwTabs" role="group" aria-label="Show">
@@ -3805,6 +3845,7 @@
             </div>
             <div id="myWorkSlot" data-mw="svc"></div>
             <div class="my-work-acts"><button type="button" class="btn" id="myWorkSave">Save my services &amp; hours</button></div>
+            </div>
           </section>
 
           <section class="acard">
@@ -3856,7 +3897,7 @@
       <div class="acct">
           <section class="acard">
             <h2 class="ahead"><svg class="ic"><use href="#i-shield"/></svg>Team Members</h2>
-            <p class="asub">Your profile and the people who work here. Click your picture to edit it and your prices.</p>
+            <p class="asub" id="teamSub">Your profile and the people who work here. Click your picture to edit it and your prices.</p>
             <div id="team"></div>
           </section>
         </div>
@@ -3906,7 +3947,7 @@
               <button type="button" class="ml-toggle" data-kx="khCard" aria-expanded="false" aria-controls="khContent">
                 <span class="kx-ic" aria-hidden="true"><svg class="ic"><use href="#i-message"/></svg></span>
                 <span class="ml-t"><h2>Chat History</h2>
-                  <p>Every conversation the team has had with Karen, in the app and by text. Only you can see this.</p></span>
+                  <p id="khSub">Every conversation the team has had with Karen, in the app and by text. Only you can see this.</p></span>
               </button>
               <button type="button" class="ml-chev" data-kx="khCard" aria-label="Show the chat history"><svg class="ic"><use href="#i-right"/></svg></button>
             </div>
@@ -3922,7 +3963,7 @@
               <button type="button" class="ml-toggle" data-kx="kcCard" aria-expanded="false" aria-controls="kcContent">
                 <span class="kx-ic" aria-hidden="true"><svg class="ic"><use href="#i-phone"/></svg></span>
                 <span class="ml-t"><h2>Call History</h2>
-                  <p>Every call to Karen's number: who called, when, and whether the salon picked up.</p></span>
+                  <p id="kcSub">Every call to Karen's number: who called, when, and whether the salon picked up.</p></span>
               </button>
               <button type="button" class="ml-chev" data-kx="kcCard" aria-label="Show the call history"><svg class="ic"><use href="#i-right"/></svg></button>
             </div>
@@ -3947,6 +3988,11 @@
                before that). Owners, admins and managers only, as the tab is,
                and on the server; filled by renderFinance(). -->
           <section class="acard hm-fin hidden" id="homeFin" aria-label="Finance"></section>
+
+          <!-- Cash out (asked for 2026-11-04): a stylist asks to be paid out;
+               the owner pays it however the salon pays its team and marks it
+               paid or declined. The app moves no money. renderCashouts(). -->
+          <section class="acard" id="cashCard" aria-labelledby="cashTitle"></section>
 
           <section class="acard sub-card" id="subCard" data-admin aria-labelledby="subTitle">
             <h2 class="ahead" id="subTitle"><svg class="ic"><use href="#i-zap"/></svg>Subscription</h2>
@@ -4155,7 +4201,7 @@
         <div class="mw-svc">
         <!-- Services and prices: four switches, a price beside each one that is on. -->
         <div class="md-sec">Services &amp; pricing</div>
-        <p class="small muted mw-long" style="margin:-6px 0 10px">Turn on each kind of work offered and its usual length. Open a kind to choose exactly which of its services are offered, with each one's own price and how many minutes it takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
+        <p class="small muted mw-long" style="margin:-6px 0 10px">Turn on each kind of work offered. It opens to its services: choose exactly which are offered, with each one's own price and how many minutes it takes. Guests are booked for exactly these times. For color, the Break is processing time, when you are free to take somebody else.</p>
         <div class="svcs" id="memberSvcs"></div>
         <label class="svc-notes" id="memberNotesWrap"><span>Special Instructions When Booking Clients</span>
           <textarea id="memberNotes" rows="3" maxlength="2000"
@@ -4573,7 +4619,7 @@
         <span><b>Just Move the Appointments</b><small>Update the schedule without notifying the clients.</small></span></label>
     </fieldset>
     <div class="dlg-actions">
-      <button type="button" class="btn quiet danger-text hidden" id="reasKeep">Remove anyway, move them later</button>
+      <button type="button" class="btn quiet danger-text hidden" id="reasKeep">Remove anyway, keep their tickets</button>
       <span class="spacer"></span>
       <button class="btn quiet" value="cancel" formnovalidate>Cancel</button>
       <button type="button" class="btn" id="reasOk">Move</button>
@@ -5864,7 +5910,7 @@ function automations() {
         { msg: 'second_visit', title: 'Come back and see us', text: 'The one email that turns a trial into a regular.' },
       ],
     },
-    // The team's own (2026-11-04): Karen welcomes somebody invited to the
+    // The team's own (2026-11-04), listed for the owner only: Karen welcomes somebody invited to the
     // team by email and text, and leads their account setup. Its switch
     // works like the others: off, nothing is sent and the owner is handed
     // the link to pass on themselves.
@@ -5904,29 +5950,36 @@ async function loadAutoStats() {
 }
 
 function renderAutomations() {
-  const all = automations();
+  const all = visibleAutomations();
   $('mktCard').innerHTML = `
     <div class="au-top">
-      <h2>Automations<span class="n">${all.length}</span></h2>
+      <h2>${me?.user?.canManageTeam ? 'Automations' : 'Automations for your clients'}<span class="n">${all.length}</span></h2>
     </div>
     <div class="au-list" id="autoList"></div>`;
   paintAutomationList();
   loadAutoStats().then(paintAutomationList);
 }
+/** The automations this person sees: the team's own invitation is the owner's. */
+function visibleAutomations() {
+  return automations().filter((a) => me?.user?.canManageTeam || a.id !== 'team_invite');
+}
 function paintAutomationList() {
   // All twelve, always: the search box was removed on request (2026-10-22),
   // and they fit on one screen now.
-  const list = automations();
+  const list = visibleAutomations();
   // A row, not a button: it holds three controls now, and a button inside a
   // button is invalid and stops responding to clicks in Safari.
   $('autoList').innerHTML = list.length ? list.map((a) => {
     const s = autoStats[a.id];
     // On or Off in words beside the switch, so the state reads at a glance.
-    const state = s ? `<span class="au-state ${s.on ? 'on' : 'off'}">${s.on ? 'On' : 'Off'}</span>` : '';
+    // A stylist's switch is for their own clients (2026-11-04); one the
+    // owner turned off for the salon reads so, and cannot be turned on here.
+    const salonOff = s && s.salonOn === false && !me?.user?.canManageTeam;
+    const state = s ? `<span class="au-state ${s.on ? 'on' : 'off'}">${salonOff ? 'Off for the salon' : s.on ? 'On' : 'Off'}</span>` : '';
     const sw = s
       ? `<button type="button" class="au-sw" role="switch" data-sw="${a.id}"
-                 aria-checked="${s.on ? 'true' : 'false'}"
-                 aria-label="${esc(a.name)} is ${s.on ? 'on' : 'off'}"></button>`
+                 aria-checked="${s.on ? 'true' : 'false'}"${salonOff ? ' disabled title="The salon owner has turned this off for everyone."' : ''}
+                 aria-label="${esc(a.name)} is ${s.on ? 'on' : 'off'}${me?.user?.canManageTeam ? '' : ' for your clients'}"></button>`
       : '';
     return `
     <div class="au-row">
@@ -5969,7 +6022,9 @@ async function toggleAutomation(sw) {
   try {
     await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify({ automation: kind, on }) });
     if (autoStats[kind]) autoStats[kind].on = on;
-    toast(on ? 'Automation on.' : 'Automation off. Clients stop receiving this.');
+    toast(me?.user?.canManageTeam
+      ? (on ? 'Automation on.' : 'Automation off. Clients stop receiving this.')
+      : (on ? 'On for your clients.' : 'Off for your clients. They stop receiving this.'));
   } catch (err) {
     sw.setAttribute('aria-checked', String(!on));
     toast(err.message || 'Could not change that.', 'bad');
@@ -6055,7 +6110,7 @@ function renderMailHistory() {
     <div class="ml-top">
       <button type="button" class="ml-toggle" data-ml-toggle aria-expanded="${open}" aria-controls="mlContent">
         <span class="ml-t"><h2>Email History</h2>
-          <p>Every email the automations have sent, newest first, team invitations included.</p></span>
+          <p>${me?.user?.canManageTeam ? 'Every email the automations have sent, newest first, team invitations included.' : 'Every email sent to your clients, newest first.'}</p></span>
       </button>
       <span class="ml-info">
         <button type="button" aria-label="How a sent email is shown" aria-expanded="false" data-ml-info>${ic('info')}</button>
@@ -6151,17 +6206,102 @@ function finRange(key) {
 }
 /** Cents as dollars with cents, for Finance. */
 const finMoney = (cents) => `$${(cents / 100).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/**
+ * Cash out (asked for 2026-11-04). A stylist asks to be paid out: an amount
+ * and a note, and their requests with where each one is. The owner sees
+ * everyone's and marks each paid or declined once settled however the salon
+ * pays its team; the app moves no money (business.js, cashouts).
+ */
+async function renderCashouts() {
+  const host = $('cashCard');
+  const owner = Boolean(me?.user?.canManageTeam);
+  host.innerHTML = `<h2 class="ahead" id="cashTitle"><svg class="ic"><use href="#i-send"/></svg>${owner ? 'Cash-out requests' : 'Cash out'}</h2>
+    <p class="asub">${owner ? 'What the team has asked to be paid. Pay it the way the salon pays its team, then mark it paid.'
+      : 'Ask the salon to pay you out. The owner is told straight away and marks it paid once it is done.'}</p>
+    ${owner ? '' : `<form class="co-form" id="coForm" novalidate>
+      <label class="co-amt"><span>Amount</span><input name="amount" type="number" min="1" step="0.01" inputmode="decimal" placeholder="0.00" required></label>
+      <label class="co-note"><span>Note <small>(optional)</small></span><input name="note" maxlength="300" placeholder="e.g. tips for this week"></label>
+      <button class="btn" type="submit">${ic('send')}Request cash out</button>
+    </form><p class="note hidden" id="coNote" role="status"></p>`}
+    <div id="coList">${skeleton(1)}</div>`;
+  if (!owner) {
+    $('coForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const amount = Number(f.elements.amount.value);
+      if (!(amount > 0)) { note($('coNote'), 'Type the amount in dollars, like 250 or 250.50.'); f.elements.amount.focus(); return; }
+      const b = f.querySelector('button');
+      b.disabled = true;
+      try {
+        await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify({ cashout: { amount, note: f.elements.note.value } }) });
+        f.reset();
+        note($('coNote'), `Sent! The owner has your request for ${finMoney(Math.round(amount * 100))}.`, 'good');
+        paintCashouts();
+      } catch (err) { note($('coNote'), err.message); } finally { b.disabled = false; }
+    };
+  }
+  paintCashouts();
+}
+async function paintCashouts() {
+  const list = $('coList');
+  let d;
+  try { d = await api('/api/staff/business?cashouts=1'); } catch (err) {
+    list.innerHTML = `<p class="muted small">${esc(err.message)}</p>`;
+    return;
+  }
+  if (!d.requests.length) {
+    list.innerHTML = `<p class="muted small co-empty">${d.canDecide ? 'No requests yet.' : 'You have not asked for a cash out yet.'}</p>`;
+    return;
+  }
+  const STATUS = { requested: ['pending', 'Requested'], paid: ['ok', 'Paid'], declined: ['warn', 'Declined'] };
+  list.innerHTML = `<div class="co-list">${d.requests.map((r) => {
+    const [cls, label] = STATUS[r.status] || ['', r.status];
+    const when = fmtWhen(r.at, { month: 'short', day: 'numeric', year: 'numeric' });
+    return `<div class="co-row">
+      <span class="co-what"><b>${esc(finMoney(r.amountCents))}</b><small>${esc([d.canDecide ? r.name : '', when, r.note].filter(Boolean).join(' · '))}</small></span>
+      <span class="co-acts">${d.canDecide && r.status === 'requested'
+        ? `<button type="button" class="btn sm" data-co="${esc(r.id)}" data-st="paid">${ic('check')}Mark paid</button>
+           <button type="button" class="btn quiet sm" data-co="${esc(r.id)}" data-st="declined">Decline</button>`
+        : `<span class="chip ${cls}" title="${esc(r.decidedBy ? `${label} by ${r.decidedBy}` : label)}">${esc(label)}</span>`}</span>
+    </div>`;
+  }).join('')}</div>`;
+}
+$('cashCard').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-co]');
+  if (!b) return;
+  if (b.dataset.st === 'declined' && !confirm('Decline this cash-out request?')) return;
+  b.disabled = true;
+  try {
+    await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify({ cashoutId: b.dataset.co, status: b.dataset.st }) });
+    toast(b.dataset.st === 'paid' ? 'Marked paid.' : 'Declined.');
+    paintCashouts();
+  } catch (err) { toast(err.message, 'bad'); b.disabled = false; }
+});
+
+// My services, pricing & hours: folded each time My Settings opens (asked
+// for 2026-11-04), opened from its header.
+function setMyWorkOpen(open) {
+  $('myWorkCard').classList.toggle('open', open);
+  $('myWorkToggle').setAttribute('aria-expanded', String(open));
+}
+$('myWorkToggle').onclick = () => setMyWorkOpen(!$('myWorkCard').classList.contains('open'));
+
 async function renderFinance() {
   // On Money, above Subscription, since 2026-11-03 (Home before that), for
   // owners, admins and managers only; anybody else never sees the card (and
   // the server answers them 403 anyway).
   const host = $('homeFin');
-  host.classList.toggle('hidden', !me?.user?.canAdmin);
-  if (!me?.user?.canAdmin) { host.innerHTML = ''; return; }
+  // Everybody since 2026-11-04: owners, admins and managers see the salon's;
+  // anyone else their own income (the server scopes it to their chair).
+  const own = !me?.user?.canAdmin;
+  host.classList.remove('hidden');
+  $('subCard').classList.toggle('hidden', !me?.user?.canManageTeam);
+  renderCashouts();
   const periods = [['month', 'This month'], ['last', 'Last month'], ['30', 'Last 30 days'], ['year', 'This year']];
   host.innerHTML = `
-    <h2 class="ahead"><svg class="ic"><use href="#i-dashboard"/></svg>Finance</h2>
-    <p class="asub">What visits were worth, by stylist.</p>
+    <h2 class="ahead"><svg class="ic"><use href="#i-dashboard"/></svg>${own ? 'My income' : 'Finance'}</h2>
+    <p class="asub">${own ? 'What your visits were worth, and what is booked ahead.' : 'What visits were worth, by stylist.'}</p>
     <div class="seg wrapseg fin-seg" id="finSeg" role="group" aria-label="Period">
       ${periods.map(([k, l]) => `<button type="button" data-fin="${k}" aria-pressed="${finPeriod === k}">${l}</button>`).join('')}
     </div>
@@ -6185,7 +6325,7 @@ async function renderFinance() {
         ${tile('Average visit', avg ? finMoney(avg) : '–', 'priced visits only')}
         ${tile('Booked ahead', finMoney(t.aheadCents), `${t.aheadVisits} still to come${t.aheadUnpriced ? `, ${t.aheadUnpriced} with no price` : ' in this period'}`)}
       </div>
-      ${f.stylists.length ? `
+      ${f.stylists.length && !f.own ? `
       <div class="fin-head"><span>Stylist</span><span>Visits</span><span>Earned</span><span>Booked ahead</span></div>
       <div class="fin-list">${f.stylists.map((s) => `
         <div class="fin-row">
@@ -6194,7 +6334,7 @@ async function renderFinance() {
           <span class="fin-v" data-l="Visits">${s.visits}</span>
           <span class="fin-v strong" data-l="Earned">${esc(finMoney(s.earnedCents))}${s.unpriced ? `<small>${s.unpriced} unpriced</small>` : ''}</span>
           <span class="fin-v" data-l="Booked ahead">${esc(finMoney(s.aheadCents))}${s.aheadUnpriced ? `<small>${s.aheadUnpriced} unpriced</small>` : ''}</span>
-        </div>`).join('')}</div>` : '<div class="au-empty">No visits in this period.</div>'}
+        </div>`).join('')}</div>` : f.own && f.stylists.length ? '' : '<div class="au-empty">No visits in this period.</div>'}
       <p class="fin-note">${ic('info')}<span>From each visit’s price as booked, or its service’s price. The app doesn’t record payments yet, so this is what visits were worth, not money received. Cancelled visits and no-shows are left out${t.unpriced + t.aheadUnpriced ? `; ${t.unpriced + t.aheadUnpriced} visit${t.unpriced + t.aheadUnpriced === 1 ? ' has' : 's have'} no price yet and count as $0` : ''}.</span></p>`;
   } catch (err) {
     $('finBody').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load Finance', text: err.message });
@@ -6480,11 +6620,11 @@ function go(name, { push = true } = {}) {
   name = PAGE_ALIASES[name] || name;
   // Team Settings is a tab of Settings now; its old address, the approvals
   // tile on Home and the calendar dialog's Connect all land there.
-  if (name === 'account' && me?.user?.canManageTeam) { setTab = 'team'; name = 'settings'; }
+  if (name === 'account') { setTab = 'team'; name = 'settings'; }
   // Salon settings are the owner's (2026-11-03): Automations, Email History,
   // the Team and the salon's calendars open My Settings for anyone else,
   // however the address was reached.
-  if (['automation', 'history', 'account', 'calendars', 'calendarSettings'].includes(name) && me && !me.user?.canManageTeam) {
+  if (['calendars', 'calendarSettings'].includes(name) && me && !me.user?.canManageTeam) {
     setTab = 'me'; name = 'settings';
   }
   const p = PAGES[name];
@@ -7347,8 +7487,11 @@ function renderDiary(d) {
   // bookings with nobody share an "Unassigned" column, a lane per overlap.
   const byStylist = new Map((me?.stylists || []).map((x) => [x.slug, x]));
   const extra = new Map();
+  // No column for anybody without a calendar, or removed from the team
+  // (asked for 2026-11-04): the server leaves their visits off the book
+  // too, so only a lunch or block of theirs could have made one.
   for (const x of [...live, ...blocks]) {
-    if (!x.stylistSlug || owned(x.stylistSlug) || extra.has(x.stylistSlug)) continue;
+    if (!x.stylistSlug || owned(x.stylistSlug) || extra.has(x.stylistSlug) || !x.ref) continue;
     const st = byStylist.get(x.stylistSlug);
     extra.set(x.stylistSlug, { slug: x.stylistSlug, name: st?.name || x.stylist || x.stylistSlug, photo: st?.photo || null,
       removed: Boolean(x.stylistRemoved) });
@@ -11360,7 +11503,7 @@ function svcDefaultMins(row, svc) {
   if (row.dataset.svc === 'color') {
     return (HIGHLIGHTISH.test(svc.name) ? parts('highlights') : parts('color')) || svc.durationMin || null;
   }
-  return num('[data-f=duration]') || svc.durationMin || null;
+  return svc.durationMin || null;
 }
 
 /** The items' placeholders and the "n of m" count follow what is typed and ticked. */
@@ -11384,11 +11527,9 @@ function paintServices(services = {}, own = []) {
   $('memberSvcs').innerHTML = SERVICE_KINDS.map(([key, label, hint]) => {
     const v = services[key] || {};
     const list = svcOfKind(key);
-    const length = key === 'color'
-      ? `<span class="svc-f dur tot-f" aria-hidden="true"><span>Total</span><input type="text" data-f="total" tabindex="-1" readonly
-          data-legacy="${v.duration ?? ''}" value="${esc(minsLabel(timeTotal(v) || v.duration || 0).replace('–', ''))}" placeholder="–" disabled></span>`
-      : `<label class="svc-f dur"><span>Duration</span><input type="number" min="5" max="720" step="5" inputmode="numeric" placeholder="60"
-        data-f="duration" aria-label="${esc(label)} duration in minutes" value="${v.duration ?? ''}" ${v.on ? '' : 'disabled'}></label>`;
+    // No length on the kind itself (asked for 2026-11-04): each service has
+    // its own minutes, below. A length saved on the kind before is carried
+    // into each of its services that has none, so nothing typed is lost.
     const timing = key === 'color' ? `<div class="svc-time">
           ${timeRow('color', 'Color', v, v.on)}
           ${timeRow('highlights', 'Highlights', v.highlights || {}, v.on)}
@@ -11402,28 +11543,28 @@ function paintServices(services = {}, own = []) {
       const it = items[x.slug] || {};
       const ticked = it.on !== false;
       const price = it.price ?? v.price;
+      const mins = it.duration ?? (key === 'color' ? null : v.duration);
       return `<div class="svc-it${ticked ? '' : ' unticked'}" data-item="${esc(x.slug)}">
           <label class="svc-tick"><input type="checkbox" ${ticked ? 'checked' : ''} ${v.on ? '' : 'disabled'}
             aria-label="${esc(x.name)} offered"><span>${esc(x.name)}</span></label>
           <label class="svc-f price svc-it-price"><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
             data-it="price" aria-label="${esc(x.name)} price" value="${price != null && price !== '' ? Number(price).toFixed(2) : ''}" ${v.on && ticked ? '' : 'disabled'}></label>
           <label class="svc-f dur svc-it-dur"><input type="number" min="5" max="720" step="5" inputmode="numeric"
-            data-it="duration" aria-label="${esc(x.name)} duration in minutes" value="${it.duration ?? ''}" ${v.on && ticked ? '' : 'disabled'}></label>
+            data-it="duration" aria-label="${esc(x.name)} duration in minutes" value="${mins ?? ''}" ${v.on && ticked ? '' : 'disabled'}></label>
         </div>`;
     }).join('');
     const body = `<div class="svc-fold"><div class="svc-bd" id="svcb-${key}"${v.on ? '' : ' inert'}>${timing}
         ${list.length ? `<div class="svc-list">
           <div class="svc-it-h"><span>Service</span><span>Price</span><span>Minutes</span></div>${rows}
-          <p class="hint">Each service has its own price. Untick a service this person does not do. Leave Minutes empty to use ${key === 'color' ? 'the color timing above' : 'the Duration above'}, or the salon's usual time.</p>
+          <p class="hint">Each service has its own price. Untick a service this person does not do. Leave Minutes empty to use ${key === 'color' ? 'the color timing above' : "the salon's usual time"}.</p>
         </div>` : '<p class="hint">No services of this kind on the menu yet.</p>'}
       </div></div>`;
     // A kind that is on opens to its services; one that is off is one line.
-    return `<div class="svc ${v.on ? 'open' : 'off'}" data-svc="${key}" data-price="${v.price ?? ''}">
+    return `<div class="svc ${v.on ? 'open' : 'off'}" data-svc="${key}" data-price="${v.price ?? ''}" data-dur="${v.duration ?? ''}">
       <button type="button" class="switch" role="switch" aria-checked="${Boolean(v.on)}" aria-label="${esc(label)} offered"><span></span></button>
       <button type="button" class="svc-exp" aria-expanded="${Boolean(v.on)}" aria-controls="svcb-${key}">
         <span class="svc-nm"><b>${esc(label)}</b><small>${esc(v.on ? hint : 'Not offered')}</small><small class="svc-count"></small></span>
         <span class="svc-chev" aria-hidden="true">${ic('right')}</span></button>
-      ${length}
       ${body}
     </div>`;
   }).join('');
@@ -11607,7 +11748,8 @@ $('memberSvcs').oninput = (e) => {
   const p = Object.fromEntries([...row.querySelectorAll('input')].map((i) => [i.dataset.t.split('.')[1], i.value]));
   row.querySelector('.tot').textContent = minsLabel(timeTotal(p));
   if (group === 'color') {
-    e.target.closest('.svc').querySelector('[data-f=total]').value = timeTotal(p) ? minsLabel(timeTotal(p)) : '';
+    const tot = e.target.closest('.svc').querySelector('[data-f=total]');
+    if (tot) tot.value = timeTotal(p) ? minsLabel(timeTotal(p)) : '';
   }
 };
 /** Open or close one kind's list. */
@@ -11993,12 +12135,12 @@ function readServices() {
     // except a kind with no services on the menu, which keeps what it had.
     const its = row.querySelectorAll('.svc-it');
     const v = { on, price: its.length ? null : (row.dataset.price === '' || row.dataset.price == null ? null : Number(row.dataset.price)) };
-    const dur = row.querySelector('[data-f=duration]');
-    if (dur) v.duration = num(dur.value);
-    // A color length saved before it was split into parts is kept until the
-    // parts are typed, rather than wiped by the first save.
-    const legacy = row.querySelector('[data-f=total]')?.dataset.legacy;
-    if (legacy) v.duration = num(legacy);
+    // Lengths are each service's own (2026-11-04); the kind keeps one only
+    // where nothing replaced it: Color's length saved before its parts (the
+    // server reckons it from the parts once typed), or a kind with no
+    // services on the menu.
+    const kept = row.dataset.dur === '' || row.dataset.dur == null ? null : num(row.dataset.dur);
+    v.duration = row.dataset.svc === 'color' || !its.length ? kept : null;
     // Color: Start, Break and Finish for color, and again for highlights.
     for (const tr of row.querySelectorAll('.svc-time .tr')) {
       const p = {};
@@ -12506,12 +12648,12 @@ $('reasKeep').onclick = async () => {
   const r = reas;
   if (!r?.removeId) return;
   if (!confirm(`Remove ${r.name} and leave their ${r.upcoming.length} appointment${r.upcoming.length === 1 ? '' : 's'} where ${r.upcoming.length === 1 ? 'it is' : 'they are'}?\n\n`
-    + 'They stay on Appt. Book in a column marked "Removed from team", with a button there to move them later. '
-    + 'Until then nobody is in that chair for those clients.')) return;
+    + 'They leave Appt. Book with them. Each one stays on its client\'s profile, as a ticket, '
+    + 'to rebook with somebody else from there.')) return;
   try {
     await api('/api/staff/team', { method: 'POST', body: JSON.stringify({ id: r.removeId, action: 'delete', keepAppointments: true }) });
     closeDialog($('reasDlg'));
-    toast(`${r.name} is removed. Their appointments are on Appt. Book to move.`);
+    toast(`${r.name} is removed. Their appointments stay on their clients' profiles.`);
     if (page === 'settings') await loadTeam();
   } catch (err) { note($('reasNote'), err.message); }
 };
@@ -12828,15 +12970,31 @@ function memberRow(m, self) {
     <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""><span class="pen">${ic('edit')}</span></span>
     <span class="tm-who"><span class="tm-line"><b>${esc(m.name)}</b><span class="chip role">${esc(role)}</span>${self ? '<i class="tm-you">You</i>' : ''}${m.invited ? (m.inviteExpired
         ? '<span class="chip warn" title="Their invite link ran out before they used it. Open them and press Resend Invitation for a fresh one.">Invite expired</span>'
-        : '<span class="chip" title="Their invite has not been used yet.">Invited</span>')
-        : m.onboarding ? `<span class="chip pending" title="${esc(`They chose a password and are still setting up their account${setupStepName(m.onboardingStep) ? `, on ${setupStepName(m.onboardingStep)}` : ''}. The app opens for them once they finish.`)}">Setting up</span>` : ''}</span>
+        : '<span class="chip invited" title="Their invite has not been used yet.">Invited</span>')
+        : m.onboarding ? `<span class="chip setting-up" title="${esc(`They chose a password and are still setting up their account${setupStepName(m.onboardingStep) ? `, on ${setupStepName(m.onboardingStep)}` : ''}. The app opens for them once they finish.`)}">Setting up</span>` : ''}</span>
       <span class="tm-phone">${m.phone ? esc(usPhone(m.phone)) : m.role === 'stylist' && !m.noLogin
         ? '<span class="warn-text">Mobile number needed</span>' : '<span class="muted">No phone number</span>'}</span></span>
     <span class="tm-badges">${cal}</span>
   </button>`;
 }
 
+/**
+ * The team as anyone but the owner sees it (asked for 2026-11-04): who is
+ * on it, their picture and their role, greyed and not clickable. Nothing
+ * they have connected, no phone or email (the server sends none).
+ */
+function renderRoster(members) {
+  const rows = members.map((m) => `<div class="tm-row ro${m.you ? ' me' : ''}" aria-disabled="true">
+      <span class="tm-pic"><img src="${esc(personPhoto(m))}" alt=""></span>
+      <span class="tm-who"><span class="tm-line"><b>${esc(m.name)}</b><span class="chip role">${esc(ROLE_LABEL[m.role] || m.role || 'Team')}</span>${m.you ? '<i class="tm-you">You</i>' : ''}</span></span>
+    </div>`).join('');
+  $('teamSub').textContent = 'Who works at the salon, and their role.';
+  $('team').innerHTML = `<p class="ro-note">${ic('eye')}<span>The salon's team, for you to see. Only the owner changes it.</span></p>
+    <div class="tm-list">${rows || '<p class="muted small">Nobody else on the team yet.</p>'}</div>`;
+}
+
 function renderTeam(current, others = [], pending = []) {
+  $('teamSub').textContent = 'Your profile and the people who work here. Click your picture to edit it and your prices.';
   teamCurrent = current;
   teamOthers = others;
   const admin = me?.user?.canManageTeam;
@@ -12913,6 +13071,7 @@ async function loadTeam() {
       ? [...t.members.filter((m) => m.id !== t.you.id && m.status !== 'pending'),
         ...(t.standalone ?? [])]
       : [];
+    if (t?.roster) { renderRoster(t.members); return; }
     renderTeam({ ...p, status: 'active' }, others, pending);
     // A member added, renamed or made a Stylist is a new Clients filter.
     refreshTeamFilter();
@@ -13050,15 +13209,16 @@ function showSetting(name) {
   // 2026-11-02; the key is still payment); an old link to either lands there.
   if (name === 'payroll' || name === 'billing' || name === 'money') name = 'payment';
   if (!SET_TABS.includes(name)) name = 'salon';
-  // Typed or bookmarked, a salon setting opens My Settings for anyone but
-  // the owner (2026-11-03).
-  if (name !== 'me' && !me?.user?.canManageTeam) name = 'me';
+  // The salon's profile is the owner's: typed or bookmarked, it opens My
+  // Settings for anyone else (2026-11-04; every tab but My Settings did,
+  // from 2026-11-03).
+  if (name === 'salon' && !me?.user?.canManageTeam) name = 'me';
   setTab = name;
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
   }
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
-  if (name === 'me') { paintDarkSwitch(); loadMyWork(); }
+  if (name === 'me') { paintDarkSwitch(); setMyWorkOpen(false); loadMyWork(); }
   if (name === 'salon') { loadBusiness(); loadReplyTo(); }
   if (name === 'team') loadAccount();
   if (name === 'karen') loadKarenSettings();
@@ -13161,7 +13321,6 @@ function callOutcome(c) {
   }
 }
 async function loadKarenCalls() {
-  if (!me?.user?.canManageTeam) return;
   $('kcList').innerHTML = skeleton(2);
   let calls = [];
   try { ({ calls } = await api('/api/staff/karen?calls=1')); } catch (err) {
@@ -13196,8 +13355,14 @@ $('kcList').onclick = (e) => {
 const khWhen = (iso) => fmtWhen(iso, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 async function loadKarenHistory() {
   const sec = $('kaHistory');
-  sec.classList.toggle('hidden', !me?.user?.canManageTeam);
-  if (!me?.user?.canManageTeam) return;
+  // Everybody since 2026-11-04, read-only: the owner every conversation and
+  // call; anyone else their own chats with Karen and their own clients' calls.
+  sec.classList.remove('hidden');
+  const owner = Boolean(me?.user?.canManageTeam);
+  $('khSub').textContent = owner ? 'Every conversation the team has had with Karen, in the app and by text. Only you can see this.'
+    : 'Your own conversations with Karen, in the app and by text.';
+  $('kcSub').textContent = owner ? "Every call to Karen's number: who called, when, and whether the salon picked up."
+    : "Calls to Karen's number from your clients: who, when, and whether the salon picked up.";
   $('khPeople').innerHTML = skeleton(3);
   let people = [];
   try { ({ people } = await api('/api/staff/karen?history=people')); } catch (err) {
@@ -14179,9 +14344,10 @@ function obGuide() {
   if (step === 'services') {
     const rows = [...f.querySelectorAll('#memberSvcs .svc')];
     const on = rows.filter((r) => r.querySelector('.switch').getAttribute('aria-checked') === 'true');
-    // Color has no single length (its Start, Break and Finish have defaults),
-    // so only a kind with a Duration box can be missing one.
-    const missing = (fld) => on.find((r) => { const i = r.querySelector(`[data-f=${fld}]`); return i && !i.value.trim(); });
+    // Minutes are each service's own (2026-11-04): one offered with none
+    // typed and no usual time to fall back on is missing them.
+    const noMins = on.flatMap((r) => [...r.querySelectorAll('.svc-it:not(.unticked) [data-it=duration]')])
+      .find((i) => !i.value.trim() && (!i.placeholder || i.placeholder === '–'));
     // Prices are per service (2026-11-04): the first offered service still without one.
     const noPrice = on.flatMap((r) => [...r.querySelectorAll('.svc-it:not(.unticked) [data-it=price]')]).find((i) => !i.value.trim());
     return [
@@ -14190,9 +14356,9 @@ function obGuide() {
       { key: 'price', label: 'A price for each service', opt: true, done: on.length > 0 && !noPrice,
         el: noPrice?.closest('.svc-it') || null,
         tip: "Each service you do has its own price, beside its name. It goes on your appointments for the salon; clients don't see prices online." },
-      { key: 'minutes', label: 'How long each takes you', opt: true, done: on.length > 0 && !missing('duration'),
-        el: missing('duration')?.querySelector('[data-f=duration]').closest('label'),
-        tip: "How many minutes it usually takes you. I book your clients for exactly that long. A service's own minutes, below, beat it." },
+      { key: 'minutes', label: 'How long each takes you', opt: true, done: on.length > 0 && !noMins,
+        el: noMins?.closest('.svc-it') || null,
+        tip: "How many minutes each service takes you, beside its price. I book your clients for exactly that long." },
     ];
   }
   if (step === 'hours') {
@@ -14318,7 +14484,11 @@ function obReviewHtml() {
     const money = (v) => (v == null || v === '' ? null : `$${Number(v).toFixed(2)}`);
     const kinds = SERVICE_KINDS.filter(([k]) => s[k]?.on).map(([k, label]) => {
       const v = s[k];
-      const len = k === 'color' ? (timeTotal(v) || v.duration) : v.duration;
+      // Minutes are each service's own (2026-11-04): their range.
+      const mins = svcOfKind(k).filter((x) => s.items?.[x.slug]?.on !== false)
+        .map((x) => s.items?.[x.slug]?.duration ?? x.durationMin).filter((x) => Number(x) > 0).map(Number);
+      const len = mins.length ? (Math.min(...mins) === Math.max(...mins) ? `${mins[0]}` : `${Math.min(...mins)} to ${Math.max(...mins)}`)
+        : (k === 'color' ? (timeTotal(v) || v.duration) : null);
       const list = svcOfKind(k);
       const n = list.filter((x) => s.items?.[x.slug]?.on !== false).length;
       // Prices are each service's own (2026-11-04): the range of those offered.
@@ -14761,7 +14931,7 @@ $('obForm').addEventListener('blur', (e) => {
 // The field in use: Karen talks about it, and her tip on a phone moves to it.
 $('obForm').addEventListener('focusin', (e) => {
   const f = e.target;
-  const key = f.name || (f.dataset.it === 'price' ? 'price' : f.dataset.f === 'duration' ? 'minutes' : null)
+  const key = f.name || (f.dataset.it === 'price' ? 'price' : f.dataset.it === 'duration' ? 'minutes' : null)
     || (f.type === 'time' ? 'times' : f.closest('#memberHours .switch') ? 'days' : null)
     || (f.closest('.ob-pic') ? 'pic' : f.closest('[data-ob-google]') ? 'google' : null);
   if (!key || key === obFocusKey) return;
@@ -14859,10 +15029,14 @@ async function start(landing) {
   // Anyone but the owner has My Settings only (2026-11-03): Salon, Team,
   // Automations, Money and Karen AI are the salon's settings, and the
   // server refuses them too. With one tab left, the tab bar goes.
+  // Since 2026-11-04 everybody has the tabs; anyone but the owner has no
+  // Salon tab, and sees Team, Automations, Money and Karen AI as their own
+  // share of them (read-only where it is the salon's).
   for (const b of document.querySelectorAll('#setSeg button')) {
-    b.classList.toggle('hidden', !me.user.canManageTeam && b.dataset.set !== 'me');
+    b.classList.toggle('hidden', !me.user.canManageTeam && b.dataset.set === 'salon');
   }
-  $('setSeg').classList.toggle('hidden', !me.user.canManageTeam);
+  $('setSeg').classList.remove('hidden');
+  document.body.classList.toggle('not-owner', !me.user.canManageTeam);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;
   $('pendingBadge').classList.toggle('hidden', !me.pendingApprovals);
 

@@ -1640,6 +1640,56 @@ made that way are real: name them ZZ and remove them.
   your place ... she'll take you back to <step>"; signing in lands there
   through `onboarding_step` as before. A link replaced by Resend is still
   dead. Covered in `tests/team-resend.integration.test.js`.
+- **The round of 2026-11-04 afternoon** (asked for):
+  - **Appt. Book shows only team members on the team with a calendar.**
+    diary.js reads `shown` per visit (stylist not `removed_at`, linked to a
+    login, `GOOGLE_CONNECTED_SQL` true) and returns only those, Day, Month
+    and counts alike, after placing the flexible lunch from every booking.
+    The rows are untouched: tickets stay on each client's profile. The
+    console no longer makes "Not connected" or "Removed from team" columns;
+    the remove window's "Remove anyway, keep their tickets" says so. This
+    hides the four stylists without a sign-in (Dina, Micah, Tami, Kim) from
+    the book until they have a login with a calendar.
+  - **Invited** is a yellow chip (`.chip.invited`), Setting up periwinkle.
+  - **Karen's emails carry Karen and the wordmark**: `karenImages` in
+    email.js, from the salon's own site (`/assets/karen/karen-email.png`, a
+    192px PNG already cut to a circle with her ring, because Outlook ignores
+    border-radius and not every client shows webp; and the console's
+    wordmark `7c1e4b2a…png`), beside the greeting in a table. The team's
+    emails use the wordmark rather than `tenants.logo`, whose live address
+    drew a broken picture. Left out with no `https` site (tests).
+  - **No length on a kind of service**: each service has its own minutes
+    beside its price. A kind's old Duration is carried into each of its
+    services with none (`mins`), the row keeps it in `data-dur`, and it is
+    saved only for Color (the server reckons Color from its parts) or a kind
+    with no services on the menu.
+  - **Add client**: a duplicate is the same name (trimmed, any case) with the
+    same email or phone; a different name sharing one is added. The old rule
+    refused "Marian Test" for sharing Fulano Detal's email, and a stylist
+    could not even see Fulano. Editing follows the same rule.
+  - **Stylists in Settings** (anyone but `canManageTeam`): the tab bar shows
+    My Settings, Team, Automations, Money and Karen AI; Salon is the owner's
+    (`showSetting`, `go()`; calendars stay the owner's). **Team** is a
+    roster (`GET /api/staff/team` answers `{roster: true}` with name, role
+    and picture only; `renderRoster`, greyed, not clickable). **Automations**:
+    each switch is their own, for their own clients (`staff_users.
+    automations_off`, migration 048, also in ensure-schema; `PATCH
+    /business {automation, on}` writes theirs; `sendMessage` skips a visit
+    whose stylist turned it off, `stylistOptedOut`, so queued sends obey
+    it); one the salon turned off reads "Off for the salon" and is
+    disabled; the team's own invitation is not listed; Sent History and
+    Email History are their own clients only (`mineSql`: a visit in their
+    chair, or with no visit a client in their book). **Money**: My income,
+    Finance scoped to their chair (`own: true`); **Cash out**: an amount and
+    a note (`cashout_requests`, 048; `PATCH {cashout}`; the salon's inbox is
+    emailed, `sendCashoutNotice`); the owner sees Cash-out requests in
+    Money with Mark paid or Decline (`PATCH {cashoutId, status}`, owner
+    only). The app moves no money. Subscription stays the owner's. **Karen
+    AI**: read-only, her number, their own Chat History (`history=people`
+    cut to themselves, another's refused) and their clients' calls
+    (`karenCalls({chair, userId})`). `tests/stylist-settings.integration.test.js`.
+  - **My services, pricing & hours** is folded each time My Settings opens
+    (`setMyWorkOpen(false)`), opened from its header.
 - **A removed stylist's clients are handed on, never stranded** (asked
   for 2026-11-04, after a removed "Luis Lara" still held booked clients).
   Removing keeps the chair (switched off, `removed_at`), so appointments

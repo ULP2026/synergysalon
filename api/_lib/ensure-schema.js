@@ -289,6 +289,20 @@ const STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS team_texts_by_kind ON team_texts (tenant_id, kind, created_at DESC)',
   // 047: the used invite link, kept until setup is finished, to resume it.
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS setup_hash text',
+  // 048: a stylist's own automation switches, and cash-out requests.
+  "ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS automations_off text[] NOT NULL DEFAULT '{}'",
+  `CREATE TABLE IF NOT EXISTS cashout_requests (
+     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     tenant_id     uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+     staff_user_id uuid REFERENCES staff_users(id) ON DELETE SET NULL,
+     staff_name    text NOT NULL,
+     amount_cents  int NOT NULL CHECK (amount_cents > 0),
+     note          text,
+     status        text NOT NULL DEFAULT 'requested' CHECK (status IN ('requested', 'paid', 'declined')),
+     decided_by    uuid REFERENCES staff_users(id) ON DELETE SET NULL,
+     decided_at    timestamptz,
+     created_at    timestamptz NOT NULL DEFAULT now())`,
+  'CREATE INDEX IF NOT EXISTS cashout_requests_by_salon ON cashout_requests (tenant_id, created_at DESC)',
 ];
 
 let done = null;

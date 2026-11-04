@@ -138,7 +138,7 @@ const TINT = '#E6E8F7';
 const MUTED = '#6E6E85';
 const PAPER = '#F4F5FA';
 
-function layout({ heading, intro, rows, action, secondary, where, change, steps, footnote }, shop) {
+function layout({ heading, intro, rows, action, secondary, where, change, steps, footnote, avatar, logo }, shop) {
   const cells = rows
     .map(([label, value]) => `
       <tr>
@@ -194,9 +194,13 @@ function layout({ heading, intro, rows, action, secondary, where, change, steps,
   // The wordmark, linked to the salon's own site. Width and height are set as
   // attributes as well as in the style, because Outlook ignores the style and
   // would otherwise draw it at its full 363px.
-  const mark = shop.logo
+  // `logo` in the content wins: the team's emails carry the app's own
+  // wordmark, which is always there (2026-11-04: a salon's uploaded logo
+  // address had gone missing and drew a broken picture).
+  const markSrc = logo || shop.logo;
+  const mark = markSrc
     ? `<p style="margin:0 0 24px;">
-         <a href="${shop.site}"><img src="${shop.logo}" alt="${escapeHtml(shop.name)}"
+         <a href="${shop.site}"><img src="${markSrc}" alt="${escapeHtml(shop.name)}"
             width="150" height="38" style="width:150px;height:auto;border:0;display:block;"></a>
        </p>`
     : `<p style="margin:0 0 24px;font-size:17px;font-weight:700;color:${INK};letter-spacing:.01em;">
@@ -212,7 +216,17 @@ function layout({ heading, intro, rows, action, secondary, where, change, steps,
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="background:#ffffff;border:1px solid ${TINT};border-radius:16px;padding:32px 28px;">
       ${mark}
-      <h1 style="margin:0 0 8px;font-size:22px;line-height:1.3;color:${INK};">${escapeHtml(heading)}</h1>
+      ${avatar
+    // Whoever is writing, beside the greeting (Karen, in the team's emails).
+    // A table, because Outlook ignores flexbox; the picture is already a
+    // circle, because Outlook ignores border-radius too.
+    ? `<table role="presentation" style="border-collapse:collapse;margin:0 0 8px;"><tr>
+         <td style="padding:0 14px 0 0;vertical-align:middle;"><img src="${avatar.src}" alt="${escapeHtml(avatar.alt || '')}"
+            width="64" height="64" style="width:64px;height:64px;border:0;display:block;border-radius:50%;"></td>
+         <td style="vertical-align:middle;"><h1 style="margin:0;font-size:22px;line-height:1.3;color:${INK};">${escapeHtml(heading)}</h1>
+           ${avatar.caption ? `<p style="margin:2px 0 0;color:${MUTED};font-size:13px;">${escapeHtml(avatar.caption)}</p>` : ''}</td>
+       </tr></table>`
+    : `<h1 style="margin:0 0 8px;font-size:22px;line-height:1.3;color:${INK};">${escapeHtml(heading)}</h1>`}
       <p style="margin:0 0 24px;color:#4A4A57;font-size:15px;line-height:1.55;white-space:pre-line;">${escapeHtml(intro)}</p>
       <table style="border-collapse:collapse;">${cells}</table>
       ${button}
@@ -461,6 +475,23 @@ function appUrlFor(link, appUrl) {
   } catch { return 'https://app.synergysalon.com'; }
 }
 
+/**
+ * Karen's picture and the wordmark for the team's emails (asked for
+ * 2026-11-04), from the salon's own site: hosted files, because Gmail drops
+ * an <img> with a data: source. A PNG cut to a circle with her ring, since
+ * not every mail app shows webp or rounds corners. Left out when the salon
+ * has no web address to serve them from (a test, a preview).
+ */
+const KAREN_EMAIL_PIC = '/assets/karen/karen-email.png';
+const WORDMARK = '/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png';
+function karenImages(shop) {
+  if (!/^https?:\/\//i.test(shop.site || '')) return {};
+  return {
+    logo: `${shop.site}${WORDMARK}`,
+    avatar: { src: `${shop.site}${KAREN_EMAIL_PIC}`, alt: 'Karen', caption: `Karen · ${shop.name}'s assistant` },
+  };
+}
+
 /** Which message and kind: the first welcome, or a reminder (`stage` invite or finish). */
 function inviteMessage(args, shop) {
   const app = appUrlFor(args.link, args.appUrl);
@@ -468,7 +499,7 @@ function inviteMessage(args, shop) {
   const { subject, content } = reminder
     ? reminderContent({ ...args, appUrl: app }, shop)
     : welcomeContent({ ...args, appUrl: app }, shop);
-  return { kind: reminder ? INVITE_REMINDER_KIND : INVITE_KIND, app, subject, content };
+  return { kind: reminder ? INVITE_REMINDER_KIND : INVITE_KIND, app, subject, content: { ...content, ...karenImages(shop) } };
 }
 
 /** The welcome (or a reminder, with `stage`) as it will be sent, for a preview or a test. */
@@ -540,6 +571,24 @@ export function sendContactNotice({ name, email, phone, message, consent }, tena
       ['Texts', consent ? 'Agreed to appointment texts' : 'Did not agree to texts'],
       ['Message', message],
     ],
+  });
+}
+
+/**
+ * A stylist asked to be paid out (2026-11-04): to the salon's inbox (the
+ * reply-to set in Settings, else the salon's email), so the owner knows to
+ * look in Settings, Money. The app moves no money.
+ */
+export function sendCashoutNotice({ name, amountCents, note, appUrl }, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const to = shop.replyTo;
+  if (!to) return Promise.resolve({ skipped: true });
+  const amount = '$' + (amountCents / 100).toFixed(2);
+  return send(shop, to, `Cash-out request: ${name}, ${amount}`, {
+    heading: `${name} asked to be paid out`,
+    intro: `${name} sent a cash-out request from the app. Pay it the way the salon pays its team, then mark it paid in Settings, Money, so they can see it is done.`,
+    rows: [['Stylist', name], ['Amount', amount], ...(note ? [['Note', note]] : [])],
+    action: appUrl ? { label: 'Open Settings, Money', href: appUrl } : undefined,
   });
 }
 
@@ -870,9 +919,34 @@ async function record(kind, appt, tenant, { subject = null, status = 'sent', err
   }
 }
 
+/**
+ * Whether the stylist of this visit switched the automation off for their
+ * own clients (048, asked for 2026-11-04). The salon's switch still decides
+ * first; this only takes away. Read by the appointment, so queued messages
+ * (scheduled.js) obey it too. A database without the column, or a visit with
+ * no stylist login, reads as on.
+ */
+async function stylistOptedOut(kind, appt) {
+  if (!appt?.id) return false;
+  try {
+    const { rows } = await query(
+      `SELECT $2::text IN (SELECT jsonb_array_elements_text(COALESCE(to_jsonb(u) -> 'automations_off', '[]'::jsonb))) AS off
+         FROM appointments a
+         JOIN stylists s ON s.id = a.stylist_id
+         JOIN staff_users u ON u.id = s.staff_user_id
+        WHERE a.id = $1::uuid`,
+      [appt.id, kind],
+    );
+    return rows[0]?.off === true;
+  } catch {
+    return false;
+  }
+}
+
 async function sendMessage(kind, appt, tenant, extra) {
   const shop = shopFrom(tenant);
   if (!automationOn(kind, tenant)) return { skipped: true, off: true };
+  if (await stylistOptedOut(kind, appt)) return { skipped: true, off: true, stylistOff: true };
   // The text of the same kind, to a client who agreed to texts (sms-notify.js).
   // First, and never throwing, so a guest with no email still gets it and a
   // refused email does not stop it.

@@ -24,7 +24,8 @@
  * listed here; this records which number it is, so the team can see it and
  * so an incoming text finds its salon.
  */
-import { assertSameOrigin, requireStaff, requireTeamAdmin } from '../../_lib/auth.js';
+import { assertSameOrigin, canManageTeam, requireStaff, requireTeamAdmin } from '../../_lib/auth.js';
+import { chairOf } from '../../_lib/scope.js';
 import { hasColumn, query } from '../../_lib/db.js';
 import { HttpError, handler, json, readJson } from '../../_lib/http.js';
 import { karenAi } from '../../_lib/karen-ai.js';
@@ -56,24 +57,28 @@ async function settings(req, tenantId) {
 export default handler({
   async GET(req, res) {
     const url = new URL(req.url, 'http://x');
-    // Call History (2026-11-02): the admin only, as the Chat History is.
+    // Settings, Karen AI for everybody (2026-11-04), read-only for anyone
+    // but the owner: her number and picture; Chat History of their own
+    // chats with her; Call History of calls from their own clients (scope.js).
+    const user = await requireStaff(req);
+    const owner = canManageTeam(user);
     if (url.searchParams.has('calls')) {
-      const admin = await requireTeamAdmin(req);
-      return json(res, 200, { calls: await karenCalls(admin.tenant_id) });
+      return json(res, 200, {
+        calls: await karenCalls(user.tenant_id, { chair: await chairOf(user), userId: user.id }),
+      });
     }
     const who = url.searchParams.get('history');
     if (who) {
-      // Message History is the owner's: the admin, the app's one rule
-      // (canManageTeam). A stylist cannot read a colleague's chats, or the
-      // list of who has been talking to her.
-      const admin = await requireTeamAdmin(req);
-      return json(res, 200, who === 'people'
-        ? { people: await karenPeople(admin.tenant_id) }
-        : { messages: await karenThread(admin.tenant_id, who) });
+      // A stylist reads only their own conversation, never a colleague's,
+      // nor the list of who else has been talking to her.
+      if (who === 'people') {
+        const people = await karenPeople(user.tenant_id);
+        return json(res, 200, { people: owner ? people : people.filter((p) => String(p.id) === String(user.id)) });
+      }
+      if (!owner && String(who) !== String(user.id)) throw new HttpError(404, 'No such conversation.');
+      return json(res, 200, { messages: await karenThread(user.tenant_id, who) });
     }
-    // Settings, Karen AI is Salon Settings: the owner's only (2026-11-03).
-    const user = await requireTeamAdmin(req);
-    return json(res, 200, await settings(req, user.tenant_id));
+    return json(res, 200, { ...(await settings(req, user.tenant_id)), readOnly: !owner, ...(owner ? {} : { webhooks: null }) });
   },
 
   async POST(req, res) {

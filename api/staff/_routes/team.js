@@ -205,8 +205,38 @@ export default handler({
     const admin = canManageTeam(user);
     // The Team is Salon Settings: the owner's only (2026-11-03). Everyone
     // else keeps their own account in My Settings (/api/staff/profile).
-    if (!admin) throw new HttpError(403, 'Only the salon owner can see the team.');
     const tenant = await tenantForUser(user);
+    // Anyone else sees the roster (asked for 2026-11-04): who is on the team,
+    // their picture and their role. Nothing they have connected, no phone,
+    // email, services, hours or invite state; read-only in the console.
+    if (!admin) {
+      const { rows: people } = await query(
+        `SELECT u.id, u.name, u.role, u.avatar, to_jsonb(s) ->> 'photo' AS photo, s.slug AS stylist_slug
+           FROM staff_users u
+           LEFT JOIN stylists s ON s.staff_user_id = u.id
+          WHERE u.tenant_id = $1 AND u.status = 'active' AND u.active
+          ORDER BY u.name`,
+        [tenant.id],
+      );
+      const solo = (await listStandalone({ query }, tenant.id)).filter((st) => st.bookable);
+      return json(res, 200, {
+        you: { id: user.id, role: user.role, canManageTeam: false },
+        roster: true,
+        pending: 0,
+        standalone: [],
+        members: [
+          ...people.map((r) => ({
+            id: r.id, name: r.name, role: r.role, avatar: r.avatar,
+            photo: r.photo || (r.stylist_slug ? stylistPhoto(tenant.slug, r.stylist_slug) : null),
+            status: 'active', you: r.id === user.id,
+          })),
+          ...solo.map((st) => ({
+            id: st.id, name: st.name, role: 'stylist', avatar: null,
+            photo: stylistPhoto(tenant.slug, st.stylistSlug), status: 'active', noLogin: true,
+          })),
+        ],
+      });
+    }
 
     const { rows } = await query(
       // username and pricing through to_jsonb, so the team still lists on a

@@ -11,12 +11,13 @@
 import { DateTime } from 'luxon';
 
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
-import { assertClientInChair, chairOf, seesAll } from '../../_lib/scope.js';
+import { assertClientInChair, chairOf, clientInChairSql, seesAll } from '../../_lib/scope.js';
 import { query } from '../../_lib/db.js';
 import {
   INVITE_KIND, INVITE_REMINDER_KIND, MESSAGE_KINDS, automationOn, previewInvite, previewMessage, previewStaffEmail,
 } from '../../_lib/email.js';
 import { inviteText } from '../../_lib/sms-notify.js';
+import { sendCashoutNotice } from '../../_lib/email.js';
 
 /**
  * Every automation's kinds: the guest messages, then the Team Member
@@ -240,7 +241,19 @@ export async function sentMessage(id, tenant) {
  * zeroes when that migration has not run yet, because this is a number on a
  * screen and not worth taking Marketing down over.
  */
-async function automations(tenant) {
+async function automations(tenant, user = null) {
+  // Anyone but the owner sees each automation as it is for their own
+  // clients (2026-11-04): on only when the salon has it on and they have not
+  // switched it off for themselves (048). The team's own automation is not
+  // theirs to see.
+  const owner = !user || seesAll(user);
+  let mine = [];
+  if (!owner) {
+    const { rows } = await query(
+      "SELECT COALESCE(to_jsonb(u) -> 'automations_off', '[]'::jsonb) AS off FROM staff_users u WHERE id = $1::uuid", [user.id],
+    ).catch(() => ({ rows: [] }));
+    mine = Array.isArray(rows[0]?.off) ? rows[0].off : [];
+  }
   const counts = await query(
     `SELECT kind, count(*)::int AS sent, max(sent_at) AS last_sent
        FROM message_sends
@@ -252,11 +265,13 @@ async function automations(tenant) {
 
   const by = new Map(counts.rows.map((r) => [r.kind, r]));
   return {
-    kinds: AUTOMATION_KINDS.map((kind) => ({
+    kinds: (owner ? AUTOMATION_KINDS : MESSAGE_KINDS).map((kind) => ({
       kind,
-      on: automationOn(kind, tenant),
-      sent: by.get(kind)?.sent ?? 0,
-      lastSent: by.get(kind)?.last_sent ?? null,
+      on: automationOn(kind, tenant) && !mine.includes(kind),
+      salonOn: automationOn(kind, tenant),
+      mineOff: mine.includes(kind),
+      sent: owner ? (by.get(kind)?.sent ?? 0) : null,
+      lastSent: owner ? (by.get(kind)?.last_sent ?? null) : null,
     })),
   };
 }
@@ -305,7 +320,7 @@ async function recipients(kind, tenant) {
  * JavaScript Date would round it to the millisecond and lose rows.
  */
 const HISTORY_PAGE = 50;
-export async function history(tenant, cursor, { kind = null, q = null } = {}) {
+export async function history(tenant, cursor, { kind = null, q = null, chair = null, userId = null } = {}) {
   const [at, id] = String(cursor || '').split('|');
   const after = at && id && !Number.isNaN(Date.parse(at)) && /^[0-9a-f-]{36}$/i.test(id);
   // The Email history module's filters (2026-10-23): one kind of message,
@@ -317,14 +332,17 @@ export async function history(tenant, cursor, { kind = null, q = null } = {}) {
             COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status
        FROM message_sends m
        LEFT JOIN appointments a ON a.id = m.appointment_id
+       LEFT JOIN contacts c ON c.id = COALESCE((to_jsonb(m) ->> 'contact_id')::uuid, a.contact_id)
       WHERE m.tenant_id = $1
+        AND ${mineSql('m', 'a', 'c', '$7', '$8')}
+        AND ($7::uuid[] IS NULL OR m.kind NOT IN ('team_invite', 'team_invite_reminder'))
         AND ($2::timestamptz IS NULL OR (m.sent_at, m.id) < ($2::timestamptz, $3::uuid))
         AND ($5::text IS NULL OR m.kind = $5::text)
         AND ($6::text = '' OR m.to_name ILIKE '%' || $6::text || '%' OR m.to_email ILIKE '%' || $6::text || '%')
       ORDER BY m.sent_at DESC, m.id DESC
       LIMIT $4::int`,
     [tenant.id, after ? at : null, after ? id : null, HISTORY_PAGE + 1,
-      kind ? String(kind).slice(0, 40) : null, search],
+      kind ? String(kind).slice(0, 40) : null, search, chair ? chair.ids : null, userId],
   ).catch(() => ({ rows: [] }));
   const page = rows.slice(0, HISTORY_PAGE);
   const last = page[page.length - 1];
@@ -357,8 +375,18 @@ export async function history(tenant, cursor, { kind = null, q = null } = {}) {
  * client_texts exists there are simply no texts.
  */
 const SENDS_PAGE = 40;
-export async function automationSends(tenant, kindsParam, cursor) {
-  const kinds = String(kindsParam || '').split(',').map((k) => k.trim()).filter((k) => AUTOMATION_KINDS.includes(k));
+
+/**
+ * SQL for "this message is about one of my clients" (2026-11-04, scope.js):
+ * a visit in their chair, or, with no visit, a client in their book. $chair
+ * is the chair's ids (NULL: the owner, everything) and $user their id.
+ */
+const mineSql = (m, a, c, chair, user) => `(${chair}::uuid[] IS NULL
+  OR (${a}.id IS NOT NULL AND ${a}.stylist_id = ANY(${chair}::uuid[]))
+  OR (${a}.id IS NULL AND ${c}.id IS NOT NULL AND ${clientInChairSql(c, chair, user)}))`;
+export async function automationSends(tenant, kindsParam, cursor, { chair = null, userId = null } = {}) {
+  const kinds = String(kindsParam || '').split(',').map((k) => k.trim())
+    .filter((k) => (chair ? MESSAGE_KINDS : AUTOMATION_KINDS).includes(k));
   if (!kinds.length) throw new HttpError(404, 'No such automation.');
   const before = cursor && !Number.isNaN(Date.parse(cursor)) ? cursor : null;
   const [emails, texts, teamTexts] = await Promise.all([
@@ -367,11 +395,14 @@ export async function automationSends(tenant, kindsParam, cursor) {
               COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status, to_jsonb(m) ->> 'error' AS error,
               to_jsonb(m) ->> 'contact_id' AS contact_id
          FROM message_sends m
+         LEFT JOIN appointments a ON a.id = m.appointment_id
+         LEFT JOIN contacts c ON c.id = COALESCE((to_jsonb(m) ->> 'contact_id')::uuid, a.contact_id)
         WHERE m.tenant_id = $1::uuid AND m.kind = ANY($2::text[])
+          AND ${mineSql('m', 'a', 'c', '$5', '$6')}
           AND ($3::timestamptz IS NULL OR m.sent_at < $3::timestamptz)
         ORDER BY m.sent_at DESC
         LIMIT $4::int`,
-      [tenant.id, kinds, before, SENDS_PAGE + 1],
+      [tenant.id, kinds, before, SENDS_PAGE + 1, chair ? chair.ids : null, userId],
     ).catch(() => ({ rows: [] })),
     query(
       `SELECT t.id::text AS id, t.kind, c.name, t.phone AS addr, t.created_at AS at, t.created_at::text AS at_text,
@@ -379,10 +410,11 @@ export async function automationSends(tenant, kindsParam, cursor) {
          FROM client_texts t
          LEFT JOIN contacts c ON c.id = t.contact_id
         WHERE t.tenant_id = $1::uuid AND t.kind = ANY($2::text[]) AND t.direction = 'out'
+          AND ($5::uuid[] IS NULL OR (c.id IS NOT NULL AND ${clientInChairSql('c', '$5', '$6')}))
           AND ($3::timestamptz IS NULL OR t.created_at < $3::timestamptz)
         ORDER BY t.created_at DESC
         LIMIT $4::int`,
-      [tenant.id, kinds, before, SENDS_PAGE + 1],
+      [tenant.id, kinds, before, SENDS_PAGE + 1, chair ? chair.ids : null, userId],
     ).catch(() => ({ rows: [] })),
     // Texts to the team (046): the invitation's welcome text.
     query(
@@ -390,10 +422,11 @@ export async function automationSends(tenant, kindsParam, cursor) {
               t.status, t.error, NULL::text AS contact_id
          FROM team_texts t
         WHERE t.tenant_id = $1::uuid AND t.kind = ANY($2::text[])
+          AND $5::boolean
           AND ($3::timestamptz IS NULL OR t.created_at < $3::timestamptz)
         ORDER BY t.created_at DESC
         LIMIT $4::int`,
-      [tenant.id, kinds, before, SENDS_PAGE + 1],
+      [tenant.id, kinds, before, SENDS_PAGE + 1, !chair],
     ).catch(() => ({ rows: [] })),
   ]);
   const all = [
@@ -434,7 +467,7 @@ export async function automationSends(tenant, kindsParam, cursor) {
  * Owners, admins and managers only: what each stylist brings in is not for
  * the whole team. The period defaults to this month on the salon's clock.
  */
-export async function finance(tenant, fromParam, toParam, now = new Date()) {
+export async function finance(tenant, fromParam, toParam, now = new Date(), chairIds = null) {
   const zone = tenant.timezone || 'America/New_York';
   const today = DateTime.fromJSDate(now).setZone(zone);
   const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
@@ -460,9 +493,11 @@ export async function finance(tenant, fromParam, toParam, now = new Date()) {
        JOIN services v ON v.id = a.service_id
       WHERE a.tenant_id = $1 AND a.starts_at >= $2::timestamptz AND a.starts_at <= $3::timestamptz
         AND a.status::text NOT IN ('cancelled', 'no_show')
+        -- A stylist's own chair only, for their own Money (2026-11-04).
+        AND ($5::uuid[] IS NULL OR a.stylist_id = ANY($5::uuid[]))
       GROUP BY s.id, s.name
       ORDER BY earned DESC, s.name`,
-    [tenant.id, from.toISO(), to.toISO(), now.toISOString()],
+    [tenant.id, from.toISO(), to.toISO(), now.toISOString(), chairIds],
   );
   const stylists = rows.map((r) => ({
     name: r.name,
@@ -485,6 +520,55 @@ export async function finance(tenant, fromParam, toParam, now = new Date()) {
   };
 }
 
+/**
+ * Cash-out requests (048, asked for 2026-11-04): a stylist asks to be paid
+ * out; the owner pays it however the salon pays its team and marks it paid
+ * or declined. The app moves no money. The owner sees everyone's, anybody
+ * else their own.
+ */
+export async function cashouts(tenant, user) {
+  const owner = seesAll(user);
+  const { rows } = await query(
+    `SELECT r.id, r.staff_user_id, r.staff_name, r.amount_cents, r.note, r.status, r.created_at, r.decided_at,
+            d.name AS decided_by_name
+       FROM cashout_requests r LEFT JOIN staff_users d ON d.id = r.decided_by
+      WHERE r.tenant_id = $1::uuid AND ($2::uuid IS NULL OR r.staff_user_id = $2::uuid)
+      ORDER BY (r.status = 'requested') DESC, r.created_at DESC
+      LIMIT 100`,
+    [tenant.id, owner ? null : user.id],
+  ).catch((err) => { if (err.code === '42P01') return { rows: [] }; throw err; });
+  return {
+    canDecide: owner,
+    requests: rows.map((r) => ({
+      id: r.id, name: r.staff_name, mine: String(r.staff_user_id) === String(user.id),
+      amountCents: r.amount_cents, note: r.note || '', status: r.status, at: r.created_at,
+      decidedAt: r.decided_at, decidedBy: r.decided_by_name || null,
+    })),
+  };
+}
+
+async function requestCashout(req, tenant, user, body) {
+  const amount = Math.round(Number(body.amount) * 100);
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 10000000) {
+    throw new HttpError(400, 'Type the amount in dollars, like 250 or 250.50.');
+  }
+  const note = String(body.note || '').trim().slice(0, 300);
+  const { rows } = await query(
+    `INSERT INTO cashout_requests (tenant_id, staff_user_id, staff_name, amount_cents, note)
+     VALUES ($1::uuid, $2::uuid, $3::text, $4::int, NULLIF($5::text, '')) RETURNING id`,
+    [tenant.id, user.id, user.name || user.email, amount, note],
+  );
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
+  const appUrl = host ? `https://${host}${host.startsWith('app.') ? '' : '/staff'}/settings` : null;
+  // Told by email; the request is in Money either way.
+  try {
+    await sendCashoutNotice({ name: user.name || user.email, amountCents: amount, note, appUrl }, tenant);
+  } catch (err) {
+    console.error('cash-out notice failed', err.message);
+  }
+  return { id: rows[0].id };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
@@ -498,9 +582,15 @@ export default handler({
     // Everything here but one sent email is Salon Settings or the whole
     // salon's (2026-11-03): the salon's profile, the automations and their
     // previews and sends, the email log and Finance. The owner's only.
-    if (!q.has('sent') && !seesAll(user)) {
+    // Since 2026-11-04 anyone sees their own share of the automations,
+    // their sends, their Money and their cash-outs (scoped below); the
+    // salon's profile stays the owner's.
+    const ownView = ['sent', 'automations', 'sends', 'history', 'finance', 'cashouts'].some((k) => q.has(k));
+    if (!ownView && !seesAll(user)) {
       throw new HttpError(403, 'Only the salon owner can see the salon settings.');
     }
+    const chair = await chairOf(user);
+    const scope = { chair, userId: user.id };
     // One sent email opens for anyone whose client it was sent to (their
     // client's Activity links it); nobody else's.
     if (q.has('sent') && !seesAll(user)) {
@@ -514,16 +604,18 @@ export default handler({
       await assertClientInChair(user, rows[0].contact_id, await chairOf(user));
     }
     if (q.has('sent')) return json(res, 200, await sentMessage(q.get('sent'), tenant));
-    if (q.has('automations')) return json(res, 200, await automations(tenant));
-    if (q.has('sends')) return json(res, 200, await automationSends(tenant, q.get('sends'), q.get('before')));
+    if (q.has('automations')) return json(res, 200, await automations(tenant, user));
+    if (q.has('sends')) return json(res, 200, await automationSends(tenant, q.get('sends'), q.get('before'), scope));
     if (q.has('history')) {
-      return json(res, 200, await history(tenant, q.get('before'), { kind: q.get('kind'), q: q.get('q') }));
+      return json(res, 200, await history(tenant, q.get('before'), { kind: q.get('kind'), q: q.get('q'), ...scope }));
     }
+    if (q.has('cashouts')) return json(res, 200, await cashouts(tenant, user));
     if (q.has('finance')) {
-      if (!CAN_EDIT.includes(user.role)) {
-        throw new HttpError(403, 'Only owners, admins and managers can see Finance.');
-      }
-      return json(res, 200, await finance(tenant, q.get('from'), q.get('to')));
+      // Owners, admins and managers see the salon's; anybody else their own
+      // chair's (2026-11-04). Somebody with no chair has nothing to show.
+      const salon = CAN_EDIT.includes(user.role) || seesAll(user);
+      const ids = salon ? null : (chair ? chair.ids : []);
+      return json(res, 200, { ...(await finance(tenant, q.get('from'), q.get('to'), new Date(), ids)), own: !salon });
     }
     const who = q.get('recipients');
     if (who) return json(res, 200, await recipients(who, tenant));
@@ -561,11 +653,45 @@ export default handler({
 
   async PATCH(req, res) {
     assertSameOrigin(req);
+    const anyone = await requireStaff(req);
+    const tenantOf = await tenantForUser(anyone);
+    const sent = await readJson(req);
+    // A stylist's own switch for their own clients (048, 2026-11-04). The
+    // salon's switch stays the owner's, below.
+    if (sent.automation !== undefined && !seesAll(anyone)) {
+      const kind = String(sent.automation);
+      if (!MESSAGE_KINDS.includes(kind)) throw new HttpError(404, 'No such automation.');
+      const on = sent.on !== false;
+      await query(
+        on
+          ? 'UPDATE staff_users SET automations_off = array_remove(automations_off, $2::text) WHERE id = $1::uuid'
+          : `UPDATE staff_users SET automations_off = (
+               SELECT array_agg(DISTINCT k) FROM unnest(automations_off || $2::text) AS k) WHERE id = $1::uuid`,
+        [anyone.id, kind],
+      );
+      return json(res, 200, { automation: kind, on, mine: true });
+    }
+    // Asking to be paid out, anyone with a login; deciding, the owner.
+    if (sent.cashout !== undefined) {
+      return json(res, 201, await requestCashout(req, tenantOf, anyone, sent.cashout || {}));
+    }
+    if (sent.cashoutId !== undefined) {
+      if (!seesAll(anyone)) throw new HttpError(403, 'Only the salon owner can settle a cash-out request.');
+      const status = sent.status === 'paid' || sent.status === 'declined' ? sent.status : null;
+      if (!status) throw new HttpError(400, 'Mark it paid or declined.');
+      const { rowCount } = await query(
+        `UPDATE cashout_requests SET status = $3::text, decided_by = $4::uuid, decided_at = now()
+          WHERE id::text = $1::text AND tenant_id = $2::uuid AND status = 'requested'`,
+        [String(sent.cashoutId), tenantOf.id, status, anyone.id],
+      );
+      if (!rowCount) throw new HttpError(409, 'That request was already settled.');
+      return json(res, 200, { ok: true, status });
+    }
     const user = await requireStaff(req, CAN_EDIT);
     // Salon Settings are changed by the owner only (2026-11-03).
     if (!seesAll(user)) throw new HttpError(403, 'Only the salon owner can change the salon settings.');
-    const tenant = await tenantForUser(user);
-    const body = await readJson(req);
+    const tenant = tenantOf;
+    const body = sent;
 
     // Switching an automation on or off, from Marketing. Its own branch and
     // its own reply, because it has nothing to do with the shop's address and
