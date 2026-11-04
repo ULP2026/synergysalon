@@ -1600,6 +1600,10 @@ made that way are real: name them ZZ and remove them.
   its title. **Google Calendar** has its own logo (`GCAL_LOGO`; Google's G
   stays for signing in) on the tools card and the onboarding step; once
   connected the button is green with a tick and "Connected" (`.gcal-ok`),
+  The onboarding step shows the logo once, on the card (not on the button
+  too), with "What it does" and "How to connect" in three short lines each
+  (including tapping Continue past Google's unverified-app screen), one
+  main Connect button, and Skip for now as the quiet way on (`.ob-skip`);
   the account in green under the name, and Disconnect a quiet link.
   `tests/team-invite.integration.test.js` drives the invite through the
   real handler with stand-ins for Resend and Twilio.
