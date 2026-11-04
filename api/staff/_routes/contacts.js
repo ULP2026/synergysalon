@@ -807,17 +807,22 @@ export default handler({
     }
 
     const contact = await transaction(async (client) => {
-      // Someone who rings twice should not become two people. Matched on
-      // either identifier, because the front desk often has only one.
+      // Someone who rings twice should not become two people: the same name
+      // with the same email or phone is the same client. A different name
+      // sharing an email or phone is somebody else (a family's one address,
+      // a parent's mobile), and is added (2026-11-04: "Marian Test" was
+      // refused because "Fulano Detal" had her email, and a stylist could
+      // not even see Fulano to use instead).
       const { rows: dup } = await client.query(
         `SELECT id, name FROM contacts
           WHERE tenant_id = $1
+            AND lower(btrim(name)) = lower(btrim($4::text))
             AND (($2 <> '' AND lower(email) = $2) OR ($3 <> '' AND phone = $3))
           LIMIT 1`,
-        [tenant.id, email, phone],
+        [tenant.id, email, phone, name],
       );
       if (dup[0]) {
-        throw new HttpError(409, `${dup[0].name} is already in your clients.`, 'DUPLICATE');
+        throw new HttpError(409, `${dup[0].name} is already a client, with the same details. Search Clients for them.`, 'DUPLICATE');
       }
 
       const { rows } = await client.query(
@@ -878,12 +883,13 @@ export default handler({
       const { rows: dup } = await client.query(
         `SELECT name FROM contacts
           WHERE tenant_id = $1 AND id <> $2
+            AND lower(btrim(name)) = lower(btrim($5::text))
             AND (($3 <> '' AND lower(email) = $3) OR ($4 <> '' AND phone = $4))
           LIMIT 1`,
-        [tenant.id, id, email, phone],
+        [tenant.id, id, email, phone, name],
       );
       if (dup[0]) {
-        throw new HttpError(409, `Those details already belong to ${dup[0].name}.`, 'DUPLICATE');
+        throw new HttpError(409, `${dup[0].name} is already a client with those details.`, 'DUPLICATE');
       }
       // As it was, for the Admin history of what changed.
       const { rows: before } = await client.query(

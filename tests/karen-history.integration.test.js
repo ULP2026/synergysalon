@@ -77,11 +77,13 @@ test('the team\'s messages with Karen are kept by person, in order', { skip }, a
   }
 });
 
-test('only the admin can read Message History', () => {
+test('Message History: the admin reads everyone\'s, anybody else only their own', () => {
   const src = readFileSync(new URL('../api/staff/_routes/karen.js', import.meta.url), 'utf8');
   const get = src.slice(src.indexOf('async GET('), src.indexOf('async POST('));
-  // The history is read behind the admin check, before anything else.
-  assert.ok(get.indexOf('requireTeamAdmin(req)') > -1 && get.indexOf('requireTeamAdmin(req)') < get.indexOf('karenPeople('));
+  // Since 2026-11-04 a stylist sees Karen AI read-only: the list of people is
+  // cut to themselves, and another person's conversation is refused.
+  assert.match(get, /people\.filter\(\(p\) => String\(p\.id\) === String\(user\.id\)\)/);
+  assert.match(get, /if \(!owner && String\(who\) !== String\(user\.id\)\) throw new HttpError\(404/);
   // Writing is always as the person signed in.
   assert.match(src, /logKaren\(user\.tenant_id, user, 'app', body\.log\)/);
 });

@@ -13,6 +13,7 @@
  * ensure-schema) nothing is kept.
  */
 import { query } from './db.js';
+import { clientInChairSql } from './scope.js';
 
 const quiet = (err) => { if (err.code !== '42P01') console.error('karen-calls failed', err.message); };
 
@@ -46,7 +47,7 @@ export async function logCallEnd(tenantId, { sid, status, duration }, db = null)
 }
 
 /** The latest calls, newest first, for Call History (the admin only: karen.js checks). */
-export async function karenCalls(tenantId, { limit = 200 } = {}, db = null) {
+export async function karenCalls(tenantId, { limit = 200, chair = null, userId = null } = {}, db = null) {
   const q = db ? db.query.bind(db) : query;
   try {
     const { rows } = await q(
@@ -57,9 +58,13 @@ export async function karenCalls(tenantId, { limit = 200 } = {}, db = null) {
          LEFT JOIN staff_users u ON u.id = k.staff_id
          LEFT JOIN contacts c ON c.id = k.contact_id
         WHERE k.tenant_id = $1::uuid
+          -- Anyone but the owner: their own calls and their own clients'
+          -- (2026-11-04, scope.js).
+          AND ($3::uuid[] IS NULL OR k.staff_id = $4::uuid
+               OR (c.id IS NOT NULL AND ${clientInChairSql('c', '$3', '$4')}))
         ORDER BY k.created_at DESC, k.id DESC
         LIMIT $2::int`,
-      [tenantId, Math.min(500, Math.max(1, limit))],
+      [tenantId, Math.min(500, Math.max(1, limit)), chair ? chair.ids : null, userId],
     );
     return rows.map((r) => ({
       id: String(r.id),

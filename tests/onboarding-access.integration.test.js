@@ -77,6 +77,11 @@ test('a new stylist sets up their account first, then sees only their own chair'
     )).rows[0].id;
     const ninaChair = await chair('zz-ob-nina', 'ZZ OB Nina', nina.id);
     const otherChair = await chair('zz-ob-other', 'ZZ OB Other', other.id);
+    // Both with a calendar connected: Appt. Book shows only those (2026-11-04).
+    await db.query(
+      "UPDATE staff_users SET google_ics = 'https://calendar.google.com/calendar/ical/x/private-a/basic.ics' WHERE id = ANY($1::uuid[])",
+      [[nina.id, other.id]],
+    );
     const { rows: [svc] } = await db.query("SELECT id FROM services WHERE tenant_id = $1 ORDER BY sort_order LIMIT 1", [t.id]);
     const day = DateTime.now().setZone(t.timezone).plus({ days: 2 }).startOf('day');
     const book = async (ref, stylistId, name, hour) => {
@@ -155,7 +160,15 @@ test('a new stylist sets up their account first, then sees only their own chair'
     assert.equal(still.status, 'booked');
 
     // Salon settings are the owner's: the team, the salon profile, Karen.
-    assert.equal((await call(team, n, 'GET', '/api/staff/team')).status, 403, 'the team is the owner\'s');
+    // The team as a roster since 2026-11-04: names, pictures and roles, and
+    // nothing they have connected, nor anybody's phone or email.
+    const roster = await call(team, n, 'GET', '/api/staff/team');
+    assert.equal(roster.status, 200);
+    assert.equal(roster.body.roster, true);
+    assert.ok(roster.body.members.some((m) => m.name === 'ZZ OB Other'));
+    for (const m of roster.body.members) {
+      for (const k of ['phone', 'email', 'google', 'services', 'hours', 'invited']) assert.equal(m[k], undefined, `roster leaves out ${k}`);
+    }
     assert.equal((await call(business, n, 'GET', '/api/staff/business')).status, 403, 'the salon profile is the owner\'s');
     assert.equal((await call(business, n, 'PATCH', '/api/staff/business', { name: 'ZZ no' })).status, 403);
     // Their own services, prices and hours are theirs to set, in My Settings.
@@ -171,7 +184,10 @@ test('a new stylist sets up their account first, then sees only their own chair'
     const homeView = await call(home, n, 'GET', '/api/staff/home');
     assert.deepEqual(homeView.body.upcoming.map((a) => a.guestName), ['ZZ OB Nina Client']);
 
-    assert.equal((await call(business, n, 'GET', '/api/staff/business?history=1')).status, 403, 'the email log is the owner\'s');
+    // Their own clients' emails only (2026-11-04).
+    const mineLog = await call(business, n, 'GET', '/api/staff/business?history=1');
+    assert.equal(mineLog.status, 200);
+    assert.ok(mineLog.body.sends.every((x) => !/ZZ OB Other Client/.test(x.name || '')), 'no other chair\'s clients');
     assert.equal((await call(business, o, 'GET', '/api/staff/business?history=1')).status, 200);
   } finally {
     await cleanup(db);

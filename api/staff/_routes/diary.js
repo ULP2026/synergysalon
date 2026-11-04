@@ -35,6 +35,7 @@ import { icsBusyBetween, openLink } from '../../_lib/google-ics.js';
 import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
+import { GOOGLE_CONNECTED_SQL } from '../../_lib/google-busy.js';
 import { salonWeek } from '../../_lib/salon-hours.js';
 import { chairIds, chairOf } from '../../_lib/scope.js';
 import { tenantForUser } from '../../_lib/tenant.js';
@@ -88,11 +89,21 @@ export default handler({
               -- Their chair was removed from the team (022): the column says
               -- so, and offers to move what is still to come (2026-11-04).
               (to_jsonb(s) ->> 'removed_at') IS NOT NULL AS stylist_removed,
+              -- Appt. Book shows only team members still on the team with a
+              -- calendar connected (asked for 2026-11-04): somebody removed,
+              -- or with no calendar, has no column, and their visits are left
+              -- off the book, Day and Month and the counts alike. Read here
+              -- and filtered after the lunch is placed, which must still see
+              -- every booking. The rows are kept, so their tickets stay on
+              -- each client's profile.
+              ((to_jsonb(s) ->> 'removed_at') IS NULL AND su.id IS NOT NULL
+                AND ${GOOGLE_CONNECTED_SQL.replaceAll('to_jsonb(u)', 'to_jsonb(su)')}) AS shown,
               ${visitNameSql()} AS service_name,
               b.name AS booked_by_name,
               ct.id AS contact_id
          FROM appointments a
          JOIN stylists s ON s.id = a.stylist_id
+         LEFT JOIN staff_users su ON su.id = s.staff_user_id
          JOIN services v ON v.id = a.service_id
          LEFT JOIN staff_users b ON b.id = a.booked_by
          LEFT JOIN contacts ct ON ct.id = a.contact_id
@@ -132,6 +143,7 @@ export default handler({
         stylist: r.stylist_name,
         stylistSlug: r.stylist_slug,
         stylistRemoved: Boolean(r.stylist_removed),
+        shown: r.shown === true,
         guestName: r.guest_name,
         guestEmail: r.guest_email,
         guestPhone: r.guest_phone,
@@ -286,6 +298,11 @@ export default handler({
 
     const week = await salonWeek({ query }, tenant.id).catch(() => null);
 
+    // Only what Appt. Book shows (2026-11-04): see `shown` above. The lunch
+    // above was placed with every booking, as availability places it.
+    const onBook = appointments.filter((a) => a.shown);
+    for (const a of onBook) delete a.shown;
+
     return json(res, 200, {
       date,
       blocks,
@@ -308,9 +325,9 @@ export default handler({
       heading: month
         ? month.toFormat('LLLL yyyy')
         : day.toFormat('cccc d LLLL yyyy'),
-      booked: appointments.filter((a) => a.status !== 'cancelled').length,
-      arriving: appointments.filter((a) => a.status === 'booked' && !a.checkedInAt).length,
-      appointments,
+      booked: onBook.filter((a) => a.status !== 'cancelled').length,
+      arriving: onBook.filter((a) => a.status === 'booked' && !a.checkedInAt).length,
+      appointments: onBook,
     });
   },
 
