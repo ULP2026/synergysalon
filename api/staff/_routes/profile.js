@@ -536,6 +536,10 @@ export default handler({
       if (await hasColumn('staff_users', 'onboarding_step')) {
         await query('UPDATE staff_users SET onboarding_step = NULL WHERE id = $1', [user.id]);
       }
+      // Finished: the invite link has nothing left to bring them back to (047).
+      if (await hasColumn('staff_users', 'setup_hash')) {
+        await query('UPDATE staff_users SET setup_hash = NULL WHERE id = $1', [user.id]);
+      }
     }
     const { id, ...out } = rows[0];
     // Their own services as saved, when they sent some: new ones have slugs

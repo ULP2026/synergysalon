@@ -13950,6 +13950,31 @@ async function showInvite(token) {
     return;
   }
 
+  // The same link again, after the password was chosen and before setup is
+  // finished (2026-11-04): back to their step, never back to the start.
+  // Still signed in on this device: straight into setup, where the saved
+  // step opens. Otherwise: sign in with their email filled in. The link
+  // itself never signs anybody in.
+  if (who.resume) {
+    history.replaceState(null, '', HOME_PATH);
+    let mine = false;
+    try {
+      const r = await fetch('/api/staff/me', { credentials: 'same-origin' });
+      const d = r.ok ? await r.json() : null;
+      mine = Boolean(d?.user?.email) && d.user.email.toLowerCase() === String(who.email).toLowerCase();
+    } catch { /* treated as signed out */ }
+    $('invite').classList.add('hidden');
+    if (mine) return start('home');
+    const first = String(who.name || '').trim().split(/\s+/)[0];
+    const step = setupStepName(who.step);
+    showLogin(`Welcome back${first ? `, ${first}` : ''}! Karen kept your place. Sign in with the password you chose`
+      + ` and she'll take you back to ${step || 'where you left off'}.`, 'good');
+    const f = $('loginForm');
+    f.elements.email.value = who.email || '';
+    f.elements.password.focus();
+    return;
+  }
+
   $('inviteLede').textContent = `You have been invited to the team at ${who.salon}. `
     + `Choose a password for ${who.email}. Only you will know it.`;
   $('pwRule').textContent = `At least ${who.minPasswordLength} characters.`;

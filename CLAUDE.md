@@ -1623,6 +1623,19 @@ made that way are real: name them ZZ and remove them.
   (`inviteExpired`), and Setting up says the step on hover. A dead link
   says it may have been replaced or already used, and offers Sign in
   (`INVITE_DEAD`). `tests/team-resend.integration.test.js`.
+- **The invite link remembers their progress** (asked for 2026-11-04).
+  Choosing the password used to spend the link, so clicking it again
+  halfway through setup said it had expired. Now its hash moves to
+  `staff_users.setup_hash` (migration 047, also in ensure-schema) and
+  `GET /api/staff/invite?t=` answers `{resume: true, step}` for it until
+  setup is finished (`onboarded_at`, which clears it). It grants nothing:
+  POST refuses it (`INVITE_RESUME`) and it never makes a session, because
+  the link sits in email and texts. The page (`showInvite`) then opens
+  setup straight at the saved step when this device is still signed in as
+  them, else the sign-in page with their email filled in and "Karen kept
+  your place ... she'll take you back to <step>"; signing in lands there
+  through `onboarding_step` as before. A link replaced by Resend is still
+  dead. Covered in `tests/team-resend.integration.test.js`.
 - **A removed stylist's clients are handed on, never stranded** (asked
   for 2026-11-04, after a removed "Luis Lara" still held booked clients).
   Removing keeps the chair (switched off, `removed_at`), so appointments
