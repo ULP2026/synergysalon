@@ -262,6 +262,7 @@ export default handler({
               (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL AS google_connected,
               to_jsonb(u) ->> 'google_connected_at' AS google_connected_at,
               to_jsonb(u) ->> 'google_ics' AS google_ics,
+              to_jsonb(u) ->> 'google_problem' AS google_problem,
               a.name AS approved_by_name,
               s.name AS stylist_name, s.slug AS stylist_slug, s.title AS stylist_title,
               -- Bookable is not a column anyone sets: it is whether this person

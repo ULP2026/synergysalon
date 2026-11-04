@@ -359,6 +359,7 @@ export default handler({
               to_jsonb(u) ->> 'google_email' AS google_email,
               to_jsonb(u) ->> 'google_connected_at' AS google_connected_at,
               to_jsonb(u) ->> 'google_ics' AS google_ics,
+              to_jsonb(u) ->> 'google_problem' AS google_problem,
               to_jsonb(u) ->> 'onboarding_step' AS onboarding_step
          FROM staff_users u WHERE id = $1`,
       [user.id],

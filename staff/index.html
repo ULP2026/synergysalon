@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Synergy Salon · Staff</title>
+<title>Synergy Salon</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
 <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="/apple-touch-icon.png">
@@ -1341,7 +1341,7 @@
 
   /* The ticket. */
   /* The details scroll; the header and the actions stay in view. */
-  dialog.tkt { max-width: 560px; max-height: calc(100dvh - 32px); }
+  dialog.tkt { max-width: 560px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
   dialog.tkt[open] { display: flex; flex-direction: column; }
   .tkt-body { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -6px 14px; padding: 0 6px; }
   .tkt-sec { margin: 0 0 14px; }
@@ -2079,7 +2079,7 @@
   .tk-x:focus-visible, .tk-add:focus-visible, .tk-link:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
   /* New appointment: one question at a time, each answer a card. */
   dialog.bw { max-width: 600px; padding: 0; overflow: hidden; }
-  dialog.bw[open] { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); }
+  dialog.bw[open] { display: flex; flex-direction: column; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
   .bw form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .bw-head { padding: 14px 22px 0; background: var(--peri-pale); border-bottom: 1px solid rgba(85, 96, 166, .16); }
   .bw-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; }
@@ -2205,7 +2205,7 @@
   .md-head .links { display: flex; gap: 12px; font-size: var(--fs-sm); }
   .md-head .links button { border: 0; background: none; padding: 0; font: inherit; color: var(--link); cursor: pointer; font-weight: 600; }
   .md-head .links button.rm { color: var(--muted); font-weight: 500; }
-  .md-body { padding: 20px 24px 6px; max-height: calc(100dvh - 260px); overflow-y: auto; }
+  .md-body { padding: 20px 24px 6px; max-height: calc(100vh - 260px); max-height: calc(100dvh - 260px); overflow-y: auto; }
   .md-body .at { position: relative; }
   .md-body .at::before { content: "@"; position: absolute; left: 12px; top: 10px; color: var(--faint); }
   .md-body .at input { padding-left: 28px; }
@@ -2393,9 +2393,9 @@
   .au-head h2 { margin: 0 0 2px !important; font-size: 1.1rem; }
   .au-head p { margin: 0; font-size: var(--fs-sm); color: rgba(255, 255, 255, .78); }
   .au-head .grow { flex: 1; min-width: 0; }
-  .au-body { padding: 20px 24px 8px; max-height: calc(100dvh - 220px); overflow-y: auto; }
+  .au-body { padding: 20px 24px 8px; max-height: calc(100vh - 220px); max-height: calc(100dvh - 220px); overflow-y: auto; }
   /* The flow, the view-only line and the Sent History scroll together. */
-  .au-scroll { max-height: calc(100dvh - 150px); overflow-y: auto; overscroll-behavior: contain; }
+  .au-scroll { max-height: calc(100vh - 150px); max-height: calc(100dvh - 150px); overflow-y: auto; overscroll-behavior: contain; }
   .au-scroll .au-body { max-height: none; overflow: visible; }
   .au-hist { margin: 0 24px 22px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
   @media (max-width: 640px) { .au-hist { margin: 0 16px 18px; } }
@@ -3270,6 +3270,7 @@
   /* Connected: green, with a tick, and nothing to press (2026-11-04). */
   .btn.gcal-ok { gap: 6px; background: #1f9d5a; color: #fff; box-shadow: 0 6px 16px -10px rgba(31, 157, 90, .9); cursor: default; }
   .btn.gcal-ok:hover { opacity: 1; }
+  .gcard .gprob { grid-column: 1 / -1; margin: 6px 0 0; font-size: var(--fs-xs); line-height: 1.45; color: var(--warn); }
   .btn.gcal-ok .ic { width: 15px; height: 15px; stroke-width: 2.6; }
   .gcard.on { border-color: rgba(31, 157, 90, .45); }
   .gcard .linkbtn.gcal-off { border: 0; background: none; padding: 0; font: inherit; font-size: var(--fs-xs); color: var(--muted);
@@ -6654,7 +6655,8 @@ function go(name, { push = true } = {}) {
   // Leaving Home ends customizing without saving, as Cancel would.
   if (name !== 'home' && homeEditing) { homeLayout = JSON.parse(homeBefore || '[]'); homeEditing = false; }
   if (p.action) $('primaryLbl').textContent = p.action;
-  document.title = `${p.title} · Synergy Salon`;
+  // Only the salon's name in the tab, whatever the page (asked for 2026-11-04).
+  document.title = 'Synergy Salon';
   hideMenu();
   p.load();
 }
@@ -12962,7 +12964,10 @@ function memberRow(m, self) {
   const stat = (on, what, title = '') => `<span class="tm-stat ${on ? 'ok' : 'off'}"${title ? ` title="${esc(title)}"` : ''}>`
     + `<span class="st-top">${ic(on ? 'check' : 'ban')}${on ? 'Connected' : 'Disconnected'}</span>`
     + `<span class="st-lbl">${what}</span></span>`;
-  const cal = stat(Boolean(m.google && m.google.connected), 'Calendar')
+  const calBad = Boolean(m.google && m.google.problem);
+  const cal = (calBad
+    ? `<span class="tm-stat off" title="Their Google account has no Google Calendar yet. Open their window to fix it."><span class="st-top">${ic('ban')}Needs attention</span><span class="st-lbl">Calendar</span></span>`
+    : stat(Boolean(m.google && m.google.connected), 'Calendar'))
     + stat(false, 'Payroll', 'Payroll is paid through Stripe, coming soon.');
   const role = m.noLogin ? 'Stylist' : (ROLE_LABEL[m.role] || m.role);
   return `<button type="button" class="tm-row${self ? ' me' : ''}${m.status === 'disabled' ? ' off' : ''}" data-member="${self ? 'me' : esc(m.id)}"
@@ -13810,6 +13815,14 @@ function paintTools() {
     // Not known yet. Offering Connect here was how somebody already connected
     // got asked to connect again while their status was on its way.
     state = 'checking';
+  } else if (g.connected && g.problem === 'no_calendar') {
+    // Signed in, but the Google account has no Google Calendar (2026-11-04,
+    // Dina): Google refuses every read and every booking copy, and no online
+    // times are offered. Said here, with the way out, not as "Connected".
+    state = 'problem';
+    why = `${g.account || 'This Google account'} has no Google Calendar yet. Open calendar.google.com with it once, then reload, or reconnect with the account you use for your calendar.`;
+    act = canAct ? `<button type="button" class="btn sm gbtn" data-tool="google-open">${GCAL_LOGO}Reconnect</button>`
+      + '<button type="button" class="linkbtn gcal-off" data-tool="google-off">Disconnect</button>' : '';
   } else if (g.connected) {
     state = 'on';
     why = g.account || 'Google Calendar';
@@ -13835,6 +13848,7 @@ function paintTools() {
   // The account under the name once connected; the button says Connected.
   const badge = state === 'checking' ? '<span class="chip">Checking…</span>'
     : state === 'on' ? ''
+    : state === 'problem' ? '<span class="chip warn">Needs attention</span>'
     : '<span class="chip warn">Not connected</span>';
   void logo;
   $('memberToolsList').innerHTML = `
@@ -13843,6 +13857,7 @@ function paintTools() {
       <div style="min-width:0"><b>Google Calendar</b><span class="d">${state === 'on' && g.account
         ? `<span class="gacct" title="${esc(g.account)}">${esc(g.account)}</span>` : 'Calendar'}</span></div>
       <div class="gacts">${badge}${act}</div>
+      ${state === 'problem' ? `<p class="gprob">${esc(why)}</p>` : ''}
     </div>
     <div class="gcard soon" data-int="stripe" aria-disabled="true">
       <span class="tool-ic">${STRIPE_LOGO}</span>

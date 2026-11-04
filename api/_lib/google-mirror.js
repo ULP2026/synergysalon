@@ -13,6 +13,7 @@
  * needs pushing when it has no copy yet, or changed after its copy did.
  */
 import { query } from './db.js';
+import { chairLoginJoin } from './google-busy.js';
 import { googleConfigured, pushEvent } from './google.js';
 import { visitNameSql } from './visit.js';
 
@@ -30,9 +31,9 @@ export async function mirrorToGoogle({ limit = 20, tenantId = null } = {}) {
        JOIN stylists s ON s.id = a.stylist_id
        JOIN services v ON v.id = a.service_id
        JOIN tenants t ON t.id = a.tenant_id
-       JOIN staff_users u ON u.id = s.staff_user_id
+       ${chairLoginJoin('s', 'u')}
        LEFT JOIN google_events g ON g.appointment_id = a.id AND g.staff_user_id = u.id
-      WHERE (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL
+      WHERE u.id IS NOT NULL AND (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL
         AND ($1::uuid IS NULL OR a.tenant_id = $1::uuid)
         AND a.starts_at > now() - interval '1 day'
         AND ((g.event_id IS NULL AND a.status::text <> 'cancelled')

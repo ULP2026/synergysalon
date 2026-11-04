@@ -16,7 +16,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { canManageTeam, currentUser } from '../_lib/auth.js';
 import { query } from '../_lib/db.js';
-import { consentUrl, exchangeCode, googleConfigured, SALON_CALENDAR_SCOPE, salonCalendarFor } from '../_lib/google.js';
+import { checkCalendarAccount, consentUrl, exchangeCode, googleConfigured, SALON_CALENDAR_SCOPE, salonCalendarFor } from '../_lib/google.js';
 import { canStoreSecrets, encryptSecret } from '../_lib/secrets.js';
 
 /**
@@ -146,13 +146,26 @@ export default async function handler(req, res) {
       } catch { /* the address is a nicety, not the connection */ }
     }
 
+    // A Google account with no Google Calendar signs in fine and then
+    // refuses every read and every booking copy (Dina, 2026-11-04: 403
+    // notACalendarUser on every load of Appt. Book). Checked before the
+    // connection is kept, so nobody is shown as Connected with a calendar
+    // that cannot be read, and told what to do instead.
+    const problem = await checkCalendarAccount(tokens.access_token);
+    if (problem === 'no_calendar') {
+      return closePage(res, false, `${email || 'This Google account'} does not have Google Calendar set up yet. `
+        + 'Open calendar.google.com with that account once (Google sets the calendar up then), and connect again. '
+        + 'Or connect the Google account you already use for your calendar.');
+    }
+
     await query(
       `UPDATE staff_users
           SET google_email = $2,
               google_refresh_token = $3,
               google_access_token = $4,
               google_expires_at = now() + make_interval(secs => $5::int),
-              google_connected_at = now()
+              google_connected_at = now(),
+              google_problem = NULL
         WHERE id = $1`,
       [userId, email, encryptSecret(tokens.refresh_token),
         encryptSecret(tokens.access_token), Number(tokens.expires_in || 3600)],
