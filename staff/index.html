@@ -3241,25 +3241,17 @@
                              text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
   .gcard .linkbtn.gcal-off:hover { color: var(--warn); }
   .gcard .gacct { color: #1f9d5a; font-weight: 600; }
-  .ob-gcal { display: grid; gap: 16px; margin: 0 0 18px; padding: 18px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); }
+  .ob-gcal { display: grid; gap: 18px; margin: 0 0 18px; padding: 24px 18px 18px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); }
   .ob-gcal.on { border-color: rgba(31, 157, 90, .5); background: color-mix(in srgb, #1f9d5a 7%, var(--card)); }
-  .ob-gcal-top { display: flex; align-items: center; gap: 14px; }
-  .ob-gcal-logo { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
-  .ob-gcal-logo svg { width: 34px; height: 34px; }
+  .ob-gcal-top { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+  .ob-gcal-p { text-align: center; }
+  .ob-gcal .btn.gcal-ok { justify-self: center; width: auto; }
+  .ob-gcal-logo { display: grid; place-items: center; flex: none; width: 64px; height: 64px; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
+  .ob-gcal-logo svg { width: 42px; height: 42px; }
   .ob-gcal-t b { display: block; font-size: 1rem; }
   .ob-gcal-t span { display: block; font-size: var(--fs-sm); color: var(--muted); }
   .ob-gcal.on .ob-gcal-t span { color: #1f9d5a; font-weight: 600; }
   .ob-gcal-p { margin: 0; font-size: var(--fs-sm); color: var(--ink); line-height: 1.5; }
-  .ob-gcal-sec h3 { margin: 0 0 8px; font-size: .72rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-  .ob-gcal-why, .ob-gcal-how { margin: 0; padding: 0; display: grid; gap: 8px; font-size: var(--fs-sm); line-height: 1.45; color: var(--ink); }
-  .ob-gcal-why { list-style: none; }
-  .ob-gcal-why li { display: flex; gap: 8px; align-items: flex-start; }
-  .ob-gcal-why .ic { flex: none; width: 16px; height: 16px; margin-top: 2px; color: #1f9d5a; stroke-width: 2.6; }
-  .ob-gcal-how { list-style: none; counter-reset: gch; }
-  .ob-gcal-how li { counter-increment: gch; display: flex; gap: 10px; align-items: flex-start; }
-  .ob-gcal-why li > span, .ob-gcal-how li > span { min-width: 0; flex: 1; }
-  .ob-gcal-how li::before { content: counter(gch); flex: none; display: grid; place-items: center; width: 20px; height: 20px; margin-top: 0;
-                            border-radius: 50%; background: var(--peri-pale); color: var(--periwinkle); font-size: .72rem; font-weight: 700; }
   .ob-gcal > .btn { justify-content: center; width: 100%; }
   /* Skip for now is the quiet way on while the calendar is not connected. */
   .ob-acts .btn.ob-skip { background: var(--card); color: var(--ink); border: 1px solid var(--line-2); box-shadow: none; }
@@ -14430,8 +14422,10 @@ function obPaint() {
     $('memberLunch').classList.toggle('off', !lunchOn);
     paintHoursState();
   } else if (step === 'calendar') {
-    // One Google Calendar logo, on the card (2026-11-04: the button carried
-    // a second). What connecting does and how, in a few short lines; once
+    // One Google Calendar logo, centred on the card with its name and
+    // status over the button (2026-11-04: the button carried a second
+    // logo, and the "What it does" and "How to connect" lists were taken
+    // off on request). Once
     // connected, a green Connected button with a tick, so it reads as done.
     // While it is not connected, Skip for now is the quiet way on, so
     // Connect is the one main action on the page.
@@ -14444,18 +14438,6 @@ function obPaint() {
         </div>
         ${g.connected ? `<p class="ob-gcal-p">Your salon bookings now go into your Google Calendar, and guests can't book you when you're busy.</p>
           <span class="btn gcal-ok" role="status">${ic('check')}Connected</span>` : `
-        <div class="ob-gcal-sec"><h3>What it does</h3>
-          <ul class="ob-gcal-why">
-            <li>${ic('check')}<span>Your salon bookings appear in your Google Calendar automatically.</span></li>
-            <li>${ic('check')}<span>Guests can't book you at times you're already busy.</span></li>
-            <li>${ic('check')}<span>Only your busy times are read, never what your events say.</span></li>
-          </ul></div>
-        <div class="ob-gcal-sec"><h3>How to connect</h3>
-          <ol class="ob-gcal-how">
-            <li><span>Tap <b>Connect Google Calendar</b> below.</span></li>
-            <li><span>Choose the Google account you use for your calendar.</span></li>
-            <li><span>If Google says it hasn't verified this app, tap <b>Continue</b>, then <b>Allow</b>.</span></li>
-          </ol></div>
         <button type="button" class="btn ob-gcal-go" data-ob-google>Connect Google Calendar</button>`}
       </div>
       ${acts}`;
