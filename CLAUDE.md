@@ -1599,6 +1599,26 @@ made that way are real: name them ZZ and remove them.
   the account in green under the name, and Disconnect a quiet link.
   `tests/team-invite.integration.test.js` drives the invite through the
   real handler with stand-ins for Resend and Twilio.
+- **A removed stylist's clients are handed on, never stranded** (asked
+  for 2026-11-04, after a removed "Luis Lara" still held booked clients).
+  Removing keeps the chair (switched off, `removed_at`), so appointments
+  never lose their stylist; what was missing was a decision about the ones
+  still to come. Now `delete` on `/api/staff/team` is refused with code
+  `HAS_APPOINTMENTS` and the list (`guardUpcoming`) while the person has
+  booked visits that have not started, until the owner gives `reassignTo`
+  (a stylist's slug) or `keepAppointments: true`. `reassignChair` moves
+  each visit to that stylist at its own time through `moveAppointment`,
+  the desk's move (service offered, hours, the no-overlap constraint;
+  `notify` as the move window's choice); one that cannot move stays put
+  and comes back with why, and then nobody is removed
+  (`REASSIGN_INCOMPLETE`). Past visits stay with whoever did them. The
+  console asks in `#reasDlg` (`openReassign`), pre-choosing a stylist of
+  the same name (the same person re-added). A chair already removed shows
+  on Appt. Book as "Removed from team" (`stylistRemoved` from diary.js)
+  with **Move appointments** for the owner (`action: 'reassign'`, and
+  `'upcoming'` to list them). HttpError can carry `extra` into its reply,
+  and the console's `api()` keeps `code` and `data` on the error.
+  `tests/reassign.integration.test.js`.
 
 ## Small screens
 

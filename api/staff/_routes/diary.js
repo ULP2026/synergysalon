@@ -85,6 +85,9 @@ export default handler({
                 WHERE n.contact_id = a.contact_id AND n.status = 'booked'
                   AND n.starts_at > a.starts_at) AS next_starts_at,
               s.slug AS stylist_slug, s.name AS stylist_name,
+              -- Their chair was removed from the team (022): the column says
+              -- so, and offers to move what is still to come (2026-11-04).
+              (to_jsonb(s) ->> 'removed_at') IS NOT NULL AS stylist_removed,
               ${visitNameSql()} AS service_name,
               b.name AS booked_by_name,
               ct.id AS contact_id
@@ -128,6 +131,7 @@ export default handler({
         service: r.service_name,
         stylist: r.stylist_name,
         stylistSlug: r.stylist_slug,
+        stylistRemoved: Boolean(r.stylist_removed),
         guestName: r.guest_name,
         guestEmail: r.guest_email,
         guestPhone: r.guest_phone,
