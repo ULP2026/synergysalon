@@ -70,6 +70,7 @@ async function mine(userId) {
             u.calendar_last_fetch, u.calendar_fetches, u.calendar_last_agent,
             u.google_email, u.google_connected_at,
             to_jsonb(u) ->> 'google_ics' AS google_ics,
+            to_jsonb(u) ->> 'google_problem' AS google_problem,
             s.id AS stylist_id, s.name AS stylist_name,
             count(a.id) FILTER (
               WHERE a.status = 'booked' AND a.starts_at >= now()
@@ -100,6 +101,9 @@ export function googleStatus(row) {
     via: signedIn ? 'google' : link ? 'link' : null,
     account: row.google_email || link?.account || null,
     since: row.google_connected_at,
+    // Why it cannot be read, when Google said so (google.js). Only for a
+    // sign-in: a pasted address has nothing to set up.
+    problem: signedIn ? (row.google_problem || null) : null,
   };
 }
 

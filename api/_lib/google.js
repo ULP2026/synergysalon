@@ -160,6 +160,39 @@ export async function disconnectGoogle(userId) {
       WHERE id = $1`,
     [userId],
   );
+  await noteProblem(userId, null);
+}
+
+
+/**
+ * What Google's refusal means, when it is one we can explain. A Google
+ * account that has never opened Google Calendar (often one made from a
+ * work or non-Gmail address) signs in fine, then answers every calendar
+ * call with 403 notACalendarUser: there is no calendar to read or write.
+ */
+export function calendarProblem(err) {
+  return /notACalendarUser/.test(String(err?.message || '')) ? 'no_calendar' : null;
+}
+
+/** Record (or clear) why this person's Google account cannot be read. */
+async function noteProblem(userId, problem) {
+  await query(
+    'UPDATE staff_users SET google_problem = $2::text WHERE id = $1::uuid AND google_problem IS DISTINCT FROM $2::text',
+    [userId, problem],
+  ).catch(() => {});
+}
+
+/**
+ * Whether a fresh token can reach a calendar at all, before the connection
+ * is kept. Returns null when it can, else the problem.
+ */
+export async function checkCalendarAccount(token) {
+  try {
+    await call(token, `/calendars/primary/events?${new URLSearchParams({ maxResults: '1', timeMin: new Date().toISOString(), fields: 'items(id)' })}`);
+    return null;
+  } catch (err) {
+    return calendarProblem(err) || 'unreadable';
+  }
 }
 
 async function call(token, path, { method = 'GET', body } = {}) {
@@ -364,7 +397,15 @@ export async function busyBetween(userId, fromIso, toIso, { titles = false } = {
     maxResults: '250',
     fields: titles ? 'items(id,status,transparency,start,end,summary,visibility)' : 'items(id,status,transparency,start,end)',
   });
-  const data = await call(token, `/calendars/primary/events?${p}`);
+  let data;
+  try {
+    data = await call(token, `/calendars/primary/events?${p}`);
+  } catch (err) {
+    const problem = calendarProblem(err);
+    if (problem) await noteProblem(userId, problem);
+    throw err;
+  }
+  await noteProblem(userId, null);
   // Copies of salon bookings written to the main calendar (before the salon
   // had its own, or where it could not) are the diary itself, already
   // counted from this database. Read back as Google busy time they blocked a

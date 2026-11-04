@@ -289,6 +289,8 @@ const STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS team_texts_by_kind ON team_texts (tenant_id, kind, created_at DESC)',
   // 047: the used invite link, kept until setup is finished, to resume it.
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS setup_hash text',
+  // 049: why a connected Google account cannot be read (no_calendar).
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS google_problem text',
   // 048: a stylist's own automation switches, and cash-out requests.
   "ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS automations_off text[] NOT NULL DEFAULT '{}'",
   `CREATE TABLE IF NOT EXISTS cashout_requests (

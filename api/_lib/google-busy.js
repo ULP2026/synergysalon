@@ -46,6 +46,32 @@ export function googleOptional(tenant) {
  * The desk still books anyone, and the salon's current stylists are let
  * through without one (googleOptional).
  */
+/**
+ * Whose login a chair belongs to, as a condition on a stylists row `s` and
+ * a staff_users row `u`. The chair's own link (staff_user_id), or, for a
+ * chair with no login, the active login with the same first name when no
+ * other chair without a login shares it and that login has no chair of its
+ * own (2026-11-04). Dina is the reason: she signs in as Owner (owners get no
+ * chair, or her services would vanish), connected her Google Calendar to that
+ * login, and is booked in the separate "Dina Lara" chair the website links
+ * to. Without this her Google busy time never reached her chair, her
+ * bookings were never copied to her Google Calendar, her column on Appt.
+ * Book could not book with her, and her chair's visits were left off it.
+ */
+export const chairLoginSql = (s = 's', u = 'u') => `(${u}.id = ${s}.staff_user_id OR (
+      ${s}.staff_user_id IS NULL AND ${s}.active AND (to_jsonb(${s}) ->> 'removed_at') IS NULL
+      AND ${u}.tenant_id = ${s}.tenant_id AND ${u}.status = 'active'
+      AND lower(split_part(btrim(${u}.name), ' ', 1)) = lower(split_part(btrim(${s}.name), ' ', 1))
+      AND NOT EXISTS (SELECT 1 FROM stylists x WHERE x.staff_user_id = ${u}.id AND x.active)
+      AND NOT EXISTS (SELECT 1 FROM stylists y WHERE y.tenant_id = ${s}.tenant_id AND y.id <> ${s}.id
+                        AND y.staff_user_id IS NULL AND y.active
+                        AND lower(split_part(btrim(y.name), ' ', 1)) = lower(split_part(btrim(${s}.name), ' ', 1)))))`;
+
+/** The login a chair belongs to (see chairLoginSql), as a LATERAL join aliased `alias`. */
+export const chairLoginJoin = (s = 's', alias = 'u') => `LEFT JOIN LATERAL (
+      SELECT cu.* FROM staff_users cu WHERE ${chairLoginSql(s, 'cu')}
+       ORDER BY (cu.id = ${s}.staff_user_id) DESC NULLS LAST LIMIT 1) ${alias} ON true`;
+
 export const GOOGLE_CONNECTED_SQL = `((to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL
              OR (to_jsonb(u) ->> 'google_ics') IS NOT NULL)`;
 
@@ -61,8 +87,8 @@ export async function googleBusyFor(client, stylistIds, fromIso, toIso, zone) {
     `SELECT s.id AS stylist_id, u.id AS staff_user_id,
             (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL AS signed_in,
             to_jsonb(u) ->> 'google_ics' AS google_ics
-       FROM stylists s JOIN staff_users u ON u.id = s.staff_user_id
-      WHERE s.id = ANY($1::uuid[]) AND ${GOOGLE_CONNECTED_SQL}`,
+       FROM stylists s ${chairLoginJoin('s', 'u')}
+      WHERE s.id = ANY($1::uuid[]) AND u.id IS NOT NULL AND ${GOOGLE_CONNECTED_SQL}`,
     [stylistIds],
   ).catch(() => ({ rows: [] }));
 

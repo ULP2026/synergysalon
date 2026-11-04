@@ -1690,6 +1690,41 @@ made that way are real: name them ZZ and remove them.
     (`karenCalls({chair, userId})`). `tests/stylist-settings.integration.test.js`.
   - **My services, pricing & hours** is folded each time My Settings opens
     (`setMyWorkOpen(false)`), opened from its header.
+- **Dina's calendar, the tab title and phones** (asked for 2026-11-04).
+  - **Why Dina's calendar failed**: her Owner login's Google account had
+    never set up Google Calendar, so every read answered 403
+    `notACalendarUser` ("The user must be signed up for Google Calendar"),
+    seen in production logs on every load of Appt. Book, while the app
+    showed her as Connected. Now: the OAuth callback checks a fresh token
+    can read a calendar (`checkCalendarAccount`) and refuses one that
+    cannot, saying to open calendar.google.com once with that account or
+    connect the one they use; a read that fails that way is recorded in
+    `staff_users.google_problem` (migration 049, also in ensure-schema;
+    `noteProblem` in google.js, cleared by the next read that works, by
+    reconnecting and by disconnecting), and `googleStatus` carries it as
+    `problem`, so the tools card reads "Needs attention" with Reconnect and
+    the Team list's Calendar box says the same. Her Appt. Book column says
+    what is wrong instead of "Google did not answer". **Her existing
+    connection heals by itself** once she opens calendar.google.com with
+    that Google account; otherwise she reconnects with the right account.
+  - **A login and its chair without a login** (`chairLoginSql`,
+    `chairLoginJoin` in google-busy.js): a chair with no `staff_user_id`
+    belongs to the active login with the same first name, when that login
+    has no chair of its own and no other chair without a login shares the
+    name. Dina again: Owner logins get no chair (her services would vanish),
+    and her bookable chair is the separate "Dina Lara". Used by Appt. Book
+    (her column's `stylistSlug`, so clicking it books with her chair, and
+    `shown`, so that chair's visits are on the book), online availability's
+    Google busy time (google-busy.js), the Google copies of bookings
+    (google-mirror.js) and blocks. `tests/chair-login.integration.test.js`.
+  - **The tab title is "Synergy Salon" on every page** (public pages, the
+    bundles' templates as well as their static heads, join, shop, the
+    manage page and the console, whose `go()` no longer adds the page
+    name). A new export brings the old titles back: re-apply.
+  - Popups that cap their height with `100dvh` have a `100vh` line first,
+    for older iPhone Safari, which drops the whole declaration otherwise.
+    Every page and popup was checked at 360, 390 and 768px with nothing
+    running off the screen.
 - **A removed stylist's clients are handed on, never stranded** (asked
   for 2026-11-04, after a removed "Luis Lara" still held booked clients).
   Removing keeps the chair (switched off, `removed_at`), so appointments

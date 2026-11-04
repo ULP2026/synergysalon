@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Book an appointment</title>
+<title>Synergy Salon</title>
 <meta name="description" content="Book an appointment online.">
 <!-- Each shop's page is its own thing; nothing here should be indexed under
      one shared URL until a shop has a domain of its own. -->
@@ -412,7 +412,7 @@
     .then(function (d) {
       state.shop = d;
       state.services = d.services || [];
-      document.title = 'Book · ' + d.salon.name;
+      document.title = d.salon.name;
       $('shopName').textContent = d.salon.name;
       $('shopSub').textContent = state.services.length
         ? 'Book online in under a minute' : '';

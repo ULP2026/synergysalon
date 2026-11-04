@@ -29,13 +29,13 @@ import { DateTime } from 'luxon';
 import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import {
-  busyBetween, dropBlock, googleConfigured, pushBlock,
+  busyBetween, calendarProblem, dropBlock, googleConfigured, pushBlock,
 } from '../../_lib/google.js';
 import { icsBusyBetween, openLink } from '../../_lib/google-ics.js';
 import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
-import { GOOGLE_CONNECTED_SQL } from '../../_lib/google-busy.js';
+import { chairLoginJoin, chairLoginSql, GOOGLE_CONNECTED_SQL } from '../../_lib/google-busy.js';
 import { salonWeek } from '../../_lib/salon-hours.js';
 import { chairIds, chairOf } from '../../_lib/scope.js';
 import { tenantForUser } from '../../_lib/tenant.js';
@@ -103,7 +103,7 @@ export default handler({
               ct.id AS contact_id
          FROM appointments a
          JOIN stylists s ON s.id = a.stylist_id
-         LEFT JOIN staff_users su ON su.id = s.staff_user_id
+         ${chairLoginJoin('s', 'su')}
          JOIN services v ON v.id = a.service_id
          LEFT JOIN staff_users b ON b.id = a.booked_by
          LEFT JOIN contacts ct ON ct.id = a.contact_id
@@ -258,7 +258,11 @@ export default handler({
                 to_jsonb(u) ->> 'google_ics' AS google_ics,
                 s.slug AS stylist_slug, to_jsonb(s) ->> 'photo' AS photo
            FROM staff_users u
-           LEFT JOIN stylists s ON s.staff_user_id = u.id
+           -- Their chair, or the chair without a login that is theirs
+           -- (chairLoginSql): Dina's Owner login and her "Dina Lara" chair.
+           LEFT JOIN LATERAL (
+             SELECT cs.* FROM stylists cs WHERE ${chairLoginSql('cs', 'u')}
+              ORDER BY (cs.staff_user_id = u.id) DESC NULLS LAST LIMIT 1) s ON true
           WHERE u.tenant_id = $1::uuid AND u.status = 'active'
             AND ((to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL
                  OR (to_jsonb(u) ->> 'google_ics') IS NOT NULL)
@@ -290,7 +294,13 @@ export default handler({
           else col.busy = busy;
         } catch (err) {
           console.error('google busy failed', u.id, err.message);
-          col.error = 'Google did not answer. Try again in a moment.';
+          // Said plainly when Google says why (2026-11-04): an account with
+          // no Google Calendar is not a moment's outage, and "try again"
+          // left the salon retrying for days.
+          col.error = calendarProblem(err) === 'no_calendar'
+            ? `${u.id === user.id || canManageTeam(user) ? (u.google_email || 'This Google account') : 'Their Google account'} has no Google Calendar yet. `
+              + 'Open calendar.google.com with it once, or reconnect with the account used for the calendar. No online times are offered until then.'
+            : 'Google did not answer. Try again in a moment.';
         }
         return col;
       }));
@@ -368,7 +378,7 @@ export default handler({
     // the answer does not wait for Google (waitUntil finishes the copy).
     if (googleConfigured()) waitUntil((async () => {
       const { rows: who } = await query(
-        `SELECT u.id FROM stylists s JOIN staff_users u ON u.id = s.staff_user_id
+        `SELECT u.id FROM stylists s ${chairLoginJoin('s', 'u')}
           WHERE s.tenant_id = $1::uuid AND s.slug = $2::text
             AND (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL`,
         [tenant.id, slug],
