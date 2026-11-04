@@ -104,6 +104,17 @@ test('Resend Invitation sends Karen\'s reminder for where they are', { skip }, a
     const set = await call(invite, 'POST', { body: { t: tokenOf(r.body.invite.link), password: 'zz-resend-password-1' } });
     assert.equal(set.status, 200);
     await query("UPDATE staff_users SET onboarding_step = 'hours' WHERE id = $1", [id]);
+    // The same link again resumes (2026-11-04): who it is for and their step,
+    // and it can neither set the password again nor sign anybody in.
+    const usedTok = tokenOf(r.body.invite.link);
+    const again = await call(invite, 'GET', { url: `/api/staff/invite?t=${usedTok}` });
+    assert.equal(again.status, 200);
+    assert.equal(again.body.resume, true);
+    assert.equal(again.body.step, 'hours');
+    assert.equal(again.body.email, 'zz-resend-nina@example.com');
+    const twice = await call(invite, 'POST', { body: { t: usedTok, password: 'zz-another-password-2' } });
+    assert.equal(twice.status, 409);
+    assert.equal(twice.body.code, 'INVITE_RESUME');
     r = await call(team, 'POST', { cookie, body: { id, action: 'reinvite' } });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.equal(r.body.invite.stage, 'finish');
@@ -117,8 +128,9 @@ test('Resend Invitation sends Karen\'s reminder for where they are', { skip }, a
     const { rows: [still] } = await query('SELECT invite_hash FROM staff_users WHERE id = $1', [id]);
     assert.equal(still.invite_hash, null);
 
-    // 3. Finished: nothing to resend.
+    // 3. Finished: nothing to resend, and the link has nothing to resume.
     await query('UPDATE staff_users SET onboarded_at = now() WHERE id = $1', [id]);
+    assert.equal((await call(invite, 'GET', { url: `/api/staff/invite?t=${usedTok}` })).status, 410);
     r = await call(team, 'POST', { cookie, body: { id, action: 'reinvite' } });
     assert.equal(r.status, 409);
     assert.match(r.body.error, /finished setting up/);

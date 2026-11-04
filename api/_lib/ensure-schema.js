@@ -287,6 +287,8 @@ const STATEMENTS = [
      error         text,
      created_at    timestamptz NOT NULL DEFAULT now())`,
   'CREATE INDEX IF NOT EXISTS team_texts_by_kind ON team_texts (tenant_id, kind, created_at DESC)',
+  // 047: the used invite link, kept until setup is finished, to resume it.
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS setup_hash text',
 ];
 
 let done = null;
