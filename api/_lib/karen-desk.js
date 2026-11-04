@@ -467,7 +467,7 @@ export async function deskReply(ctx, client, db = null) {
               AND ($2::timestamptz IS NULL OR m.sent_at >= $2::timestamptz)
               AND ($3::timestamptz IS NULL OR m.sent_at <= $3::timestamptz)
               AND ($4::text IS NULL OR m.kind = $4::text)
-              AND ($5::uuid IS NULL OR (m.kind <> 'team_invite' AND (a.contact_id = $5::uuid
+              AND ($5::uuid IS NULL OR (m.kind NOT IN ('team_invite', 'team_invite_reminder') AND (a.contact_id = $5::uuid
                    OR lower(m.to_email) = (SELECT lower(email) FROM contacts WHERE id = $5::uuid))))
             ORDER BY m.sent_at DESC LIMIT 50`,
           [tenant.id, from, to, kind, cid],

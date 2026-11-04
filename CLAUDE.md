@@ -1603,6 +1603,26 @@ made that way are real: name them ZZ and remove them.
   the account in green under the name, and Disconnect a quiet link.
   `tests/team-invite.integration.test.js` drives the invite through the
   real handler with stand-ins for Resend and Twilio.
+- **Resend Invitation follows where they are** (asked for 2026-11-04).
+  It used to send the first welcome again word for word, and refused
+  anybody who had chosen a password but not finished, who then had no way
+  to be reminded. `reinvite` in team.js now reads their state: a link never
+  used (or run out) gets Karen's reminder with a fresh link (`stage:
+  'invite'`; minting it ends the old one); a password chosen with setup
+  unfinished gets Karen's "you're almost there" reminder (`stage:
+  'finish'`) with the app's address and the step they stopped at
+  (`onboarding_step`, `SETUP_STEP_NAMES`), never a link that sets a
+  password; finished is refused, nothing to resend. Both are
+  `reminderContent` in email.js and `inviteText({stage})`, from the same
+  sender as the welcome, logged as `team_invite_reminder` (Email History,
+  and the Team Member Invitation automation's new Reminder Message step
+  and its Sent History) under the same switch. The button shows for
+  Invited and Setting up; the window says "Invitation resent to" or
+  "Reminder sent to", Karen saying "I'll give them a friendly nudge!".
+  The Team list reads **Invite expired** once an unused link runs out
+  (`inviteExpired`), and Setting up says the step on hover. A dead link
+  says it may have been replaced or already used, and offers Sign in
+  (`INVITE_DEAD`). `tests/team-resend.integration.test.js`.
 - **A removed stylist's clients are handed on, never stranded** (asked
   for 2026-11-04, after a removed "Luis Lara" still held booked clients).
   Removing keeps the chair (switched off, `removed_at`), so appointments
