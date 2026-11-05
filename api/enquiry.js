@@ -69,6 +69,7 @@ const SERVICE_BY_LABEL = {
   "mask treatment": "mask-treatment",
   "ai scalp analysis": "ai-scalp-analysis",
   "blowout": "blowouts",
+  "shampoo blowout": "shampoo-blowout",
   "special occasion updo": "special-event",
   "bridal styling": "special-event",
   "updos": "special-event",
