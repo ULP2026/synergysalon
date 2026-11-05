@@ -3755,13 +3755,15 @@
     <!-- The salon's logo, a chip of its own left of the menu (asked for
          2026-10-26; it sat on the right for an hour first): inside the pill it
          read as a menu item. Phones leave it out so the menu fits. -->
-    <a class="grn-logo glass-strong" id="navLogo" href="/staff" data-page="home" aria-label="Synergy Salon, go to Home">
+    <a class="grn-logo glass-strong" id="navLogo" href="/staff" data-page="home" aria-label="Synergy Salon, go to Dashboard">
       <span class="grn-mark" aria-hidden="true"></span>
     </a>
     <nav class="grn-pill glass-strong" id="grnPill" aria-label="Main">
       <span class="grn-ring" id="grnRing" aria-hidden="true"><span class="grn-ring-fill"></span></span>
-      <a class="grn-item" href="/staff" data-page="home" title="Home">
-        <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Home</span></a>
+      <!-- "Dashboard" since 2026-11-05 (asked for; it was Home). The page
+           keeps its key, home, and its address, /staff. -->
+      <a class="grn-item" href="/staff" data-page="home" title="Dashboard">
+        <svg class="grn-ic"><use href="#l-layout-dashboard"/></svg><span class="lbl">Dashboard</span></a>
       <a class="grn-item" href="/staff/appointments" data-page="appointments" title="Appt. Book">
         <svg class="grn-ic"><use href="#l-calendar"/></svg><span class="lbl">Appt. Book</span></a>
       <a class="grn-item" href="/staff/clients" data-page="clients" title="Clients">
@@ -3793,7 +3795,7 @@
       <!-- Your own headshot beside Home's greeting (asked for 2026-10-31). -->
       <img class="page-face" id="pageFace" alt="" hidden>
       <div class="titles">
-        <h1 id="pageTitle">Home</h1>
+        <h1 id="pageTitle">Dashboard</h1>
         <p class="sub" id="pageSub"></p>
       </div>
       <button class="btn primary" id="primaryBtn">
@@ -3804,8 +3806,8 @@
     <!-- Home -->
     <section class="view" id="view-home">
       <!-- Shown while the admin is arranging Home. -->
-      <div class="hm-bar hidden" id="hmBar" role="toolbar" aria-label="Customize Home">
-        <div class="hm-bar-t"><b>Customizing Home</b><span>Changes apply to everyone on the team once saved.</span></div>
+      <div class="hm-bar hidden" id="hmBar" role="toolbar" aria-label="Customize Dashboard">
+        <div class="hm-bar-t"><b>Customizing Dashboard</b><span>Changes apply to everyone on the team once saved.</span></div>
         <div class="hm-bar-a">
           <button type="button" class="btn quiet sm" id="hmAdd"><svg class="ic"><use href="#i-plus"/></svg>Add widget</button>
           <button type="button" class="btn quiet sm" id="hmReset">Reset</button>
@@ -4869,9 +4871,9 @@ const LANG = (() => { try { return localStorage.getItem('ss-lang') === 'es' ? 'e
 const LOCALE = LANG === 'es' ? 'es-US' : 'en-US';
 const I18N_ES = {
   // The menu and the pages
-  'Home': 'Inicio', 'Appt. Book': 'Agenda', 'Clients': 'Clientes', 'Settings': 'Configuración',
+  'Dashboard': 'Panel', 'Home': 'Inicio', 'Appt. Book': 'Agenda', 'Clients': 'Clientes', 'Settings': 'Configuración',
   'Call Karen': 'Llamar a Karen', 'Call Karen, the booking assistant': 'Llamar a Karen, la asistente de citas',
-  'Synergy Salon, go to Home': 'Synergy Salon, ir a Inicio',
+  'Synergy Salon, go to Dashboard': 'Synergy Salon, ir al Panel',
   'Check people in and keep the day on track.': 'Registra la llegada de los clientes y lleva el día al día.',
   'Everyone who has booked or asked about a visit.': 'Todos los que han reservado o preguntado por una visita.',
   'Your salon, your team and how the app looks.': 'Tu salón, tu equipo y el aspecto de la app.',
@@ -4884,7 +4886,7 @@ const I18N_ES = {
   'My Appts. Today': 'Mis citas de hoy', 'My Appt. Today': 'Mi cita de hoy',
   'Clients Served': 'Clientes atendidos', 'Client Served': 'Cliente atendido',
   'Coming up': 'Próximas citas', 'See all appointments': 'Ver todas las citas', 'First visit': 'Primera visita',
-  'Customize': 'Personalizar', 'Customize Home': 'Personalizar Inicio', 'Customizing Home': 'Personalizando Inicio',
+  'Customize': 'Personalizar', 'Customize Dashboard': 'Personalizar Panel', 'Customizing Dashboard': 'Personalizando Panel',
   'Add widget': 'Agregar widget', 'Add a widget': 'Agregar un widget', 'Reset': 'Restablecer',
   'Booked ahead': 'Reservado por adelantado', 'Appointments on each of the next 14 days.': 'Citas en cada uno de los próximos 14 días.',
   'Services, last 30 days': 'Servicios, últimos 30 días', 'Appointments by kind of service.': 'Citas por tipo de servicio.',
@@ -5346,7 +5348,7 @@ function charAvatar(seed) {
 function paintLogo() {
   const a = $('navLogo');
   const logo = me?.salon?.logo;
-  a.setAttribute('aria-label', `${me?.salon?.name || 'Synergy Salon'}, go to Home`);
+  a.setAttribute('aria-label', `${me?.salon?.name || 'Synergy Salon'}, go to Dashboard`);
   a.innerHTML = logo
     ? `<img src="${esc(logo)}" alt="">`
     : '<span class="grn-mark" aria-hidden="true"></span>';
@@ -5821,7 +5823,7 @@ const HOME_PATH = BASE || '/';
 const PAGES = {
   // No primary button on Home: booking starts from Appt. Book.
   home: {
-    path: HOME_PATH, title: 'Home', action: null,
+    path: HOME_PATH, title: 'Dashboard', action: null,
     load: () => { loadHome(); },
   },
   appointments: {
@@ -6963,7 +6965,7 @@ function renderHome() {
   $('hmBar').classList.toggle('hidden', !homeEditing);
   if (!homeLayout.length) {
     $('hmGrid').innerHTML = `<div class="card w-full">${emptyState({
-      icon: 'dashboard', title: 'Home is empty',
+      icon: 'dashboard', title: 'Dashboard is empty',
       text: homeEditing ? 'Add a widget to start.' : 'Nothing has been added here yet.',
     })}</div>`;
     return;
@@ -7264,7 +7266,7 @@ $('hmAdd').onclick = () => {
     return `<div class="hmadd-row">
       <span style="min-width:0"><b>${esc(w.title)}</b><span class="d">${esc(w.about)}</span>
         <span class="hmadd-v">${w.views.map((v) => esc(VIEW_LABEL[v])).join(' · ')}</span></span>
-      ${on ? '<span class="chip">On Home</span>' : `<button type="button" class="btn quiet sm" data-add="${esc(id)}">Add</button>`}
+      ${on ? '<span class="chip">On Dashboard</span>' : `<button type="button" class="btn quiet sm" data-add="${esc(id)}">Add</button>`}
     </div>`;
   }).join('');
   openDialog($('hmAddDlg'));
