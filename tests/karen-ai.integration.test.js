@@ -13,7 +13,7 @@ import test from 'node:test';
 import { DateTime } from 'luxon';
 import pg from 'pg';
 
-import { DEFAULT_TZ } from '../api/_lib/config.js';
+import { DEFAULT_TZ, ONLINE_BOOKING } from '../api/_lib/config.js';
 import { karenReply } from '../api/_lib/karen-sms.js';
 import { tenantForUser } from '../api/_lib/tenant.js';
 import { makeBookable } from './bookable.js';
@@ -97,7 +97,8 @@ test('Karen on Claude proposes, and only a yes changes the book', { skip }, asyn
     assert.match(shown, /Texting: ZZ Smart Client, a client/);
     assert.match(shown, /1\. Women's Cut with Dina on /, 'their own appointment, numbered');
     assert.doesNotMatch(shown, /\$\d/, 'no prices reach the model');
-    assert.match(shown, /Booking new appointments by text: NOT open yet/);
+    // Booking by text follows the website's switch (ONLINE_BOOKING).
+    assert.match(shown, ONLINE_BOOKING ? /Booking new appointments by text: open\./ : /Booking new appointments by text: NOT open yet/);
     assert.equal((await status()).status, 'booked');
     assert.equal(new Date((await status()).starts_at).getTime(), start.toMillis(), 'proposing changes nothing');
 

@@ -12,7 +12,7 @@ import test from 'node:test';
 import { DateTime } from 'luxon';
 import pg from 'pg';
 
-import { DEFAULT_TZ } from '../api/_lib/config.js';
+import { DEFAULT_TZ, ONLINE_BOOKING } from '../api/_lib/config.js';
 import { karenReply, phoneKey, twilioSignatureOk } from '../api/_lib/karen-sms.js';
 import { tenantForUser } from '../api/_lib/tenant.js';
 import { makeBookable } from './bookable.js';
@@ -137,10 +137,11 @@ test('Karen greets people by name, reads a stylist\'s day, and cancels and moves
     assert.match(await karenReply(tenant, CLIENT_PHONE, 'cancel the color', client), /^Cancel your Single Process Color with Dina/);
     assert.match(await karenReply(tenant, CLIENT_PHONE, 'no', client), /stays as it is/);
 
-    // Somebody the salon does not know, asking to book while online booking is paused.
+    // Somebody the salon does not know, asking to book: offered the cuts while
+    // online booking is on, told to call while it is paused (ONLINE_BOOKING).
     const stranger = await karenReply(tenant, '+18135550199', 'Can I book a haircut?', client);
     assert.match(stranger, /^Hi! I'm Karen, the assistant at /);
-    assert.match(stranger, /Booking by text opens soon/);
+    assert.match(stranger, ONLINE_BOOKING ? /Which one\?\n1\. / : /Booking by text opens soon/);
   } finally {
     await client.query('ROLLBACK');
     await client.end();

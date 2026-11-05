@@ -32,7 +32,9 @@ export const DEFAULT_TZ = 'America/New_York';
  * a guest through the whole survey before refusing them, or lets a cached
  * page through.
  */
-export const ONLINE_BOOKING = false;
+// Back on 2026-11-06 (asked for: "make it live the booking in website"),
+// with the pause block removed from all nine pages in the same commit.
+export const ONLINE_BOOKING = true;
 
 /**
  * Whether clients see a booking's price: in their confirmation and the other

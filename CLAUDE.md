@@ -2182,33 +2182,25 @@ must stay that way: anything committed here is served publicly.
   with the first real bookings, which is how the 30 September problem started.
 
 
-- **Online booking is paused, and the reason has changed.** It is no longer
-  about hours: those are owned and editable now. It is that the salon has no
-  bookable stylist. All four `stylists` rows are deactivated and tied to no
-  login, and neither RJ nor Luis has a service switched on, so `loadStylists`
-  raises a 404 for every service. Add somebody through Team with services and
-  hours first; unpausing before that shows guests an error.
-  Every "Book" link currently opens an "Online appointments are coming soon,
-  please call" notice, and `ONLINE_BOOKING = false` in `api/_lib/config.js`
-  makes the server refuse online bookings too (leads are still saved as
-  contacts; staff bookings are unaffected). The full booking popup is still in
-  every page, untouched, behind the notice, and commit `ae6b0ab` on main
-  is the site exactly as it was before the pause.
-  To restore: delete the block between `ss-booking-paused:start` and
-  `ss-booking-paused:end` in the static head of **all nine** pages --
-  `index.html`, the four service pages, **`hair-salon-riverview.html`, and
-  the three made from it on 2026-11-02: `hair-salon-brandon.html`,
-  `hair-salon-fishhawk.html` and `scalp-analysis-valrico.html`** -- and set
-  `ONLINE_BOOKING` back to `true`. This said "the four service
-  pages" until 2026-10-15, which is five files; Riverview was added after the
-  pause was written and carries the block too. Following the old list would
-  have left the geo landing page, the one with thirteen Book CTAs on it,
-  still saying "coming soon" after booking went live everywhere else.
-  Check with `grep -l ss-booking-paused *.html` rather than trusting a count. Do it only once at
-  least one person is bookable and their hours are right.
-  `ONLINE_BOOKING` being a hardcoded constant does not belong in a product
-  sold to more than one salon; it wants to become "this tenant has a bookable
-  stylist".
+- **Online booking is live again (2026-11-06, asked for).** The
+  `ss-booking-paused` block is gone from all nine pages and
+  `ONLINE_BOOKING = true`, so every "Book" opens the real survey and the
+  server takes online bookings (and Karen books clients by text, which
+  follows the same flag). The only bookable stylist is Dina Lara
+  (`dina-lara-2`: services on, Google connected), on the hours the app has
+  for her, **Wednesday 10-5 and Thursday 10-7**, kept on request although
+  Envision shows her working Thursday, Friday and Saturday. Envision still
+  holds the salon's diary: Dina's Nov 12-20 and Dec 1-17 are copied in (see
+  the memory note on the Envision import), and Thursdays not yet copied are
+  blocked in `time_off` with the reason "Not yet copied from Envision"
+  (Nov 26, Dec 24 and 31 all day; Dec 3 and 10 2:00-2:30; Dec 17
+  2:00-3:30). Remove each block once that day is imported. Anything booked
+  in Envision after the import is unknown here and can double-book.
+  To pause again: `git show ae6b0ab` has the block as it was; put it back in
+  the static head of every page that has a Book link (`grep -l
+  ss-booking-paused` before this commit lists them) and set the flag false.
+  `ONLINE_BOOKING` being a hardcoded constant still wants to become "this
+  tenant has a bookable stylist".
 
 - **Go-live checklist for online booking** (the code is done and tested
   against a local Postgres; nothing below is code):
