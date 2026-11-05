@@ -143,7 +143,7 @@ test('a stylist sees only their own chair by text and can cancel only in it', { 
     const dina = await makeBookable(client, tenant.id, 'dina');
     const micah = await makeBookable(client, tenant.id, 'micah');
     const { rows: [svc] } = await client.query(
-      "SELECT id, duration_min FROM services WHERE tenant_id = $1 AND slug = 'haircuts'", [tenant.id],
+      "SELECT id, duration_min FROM services WHERE tenant_id = $1 AND slug = 'womens-cut'", [tenant.id],
     );
     const { rows: [u] } = await client.query(
       `INSERT INTO staff_users (tenant_id, name, email, role, phone, password_hash)
@@ -176,17 +176,17 @@ test('a stylist sees only their own chair by text and can cancel only in it', { 
       const facts = params.system[1].text;
       assert.match(facts, /a stylist, who may book new appointments for clients into their own chair and move or cancel only the appointments in their own chair/);
       assert.doesNotMatch(facts, /ZZ Other Client/, "another stylist's client is not listed");
-      const mineAt = Number((facts.match(/(\d+)\. ZZ Maria Mine: Haircuts? with Dina/) || [])[1]);
+      const mineAt = Number((facts.match(/(\d+)\. ZZ Maria Mine: Women's Cut with Dina/) || [])[1]);
       assert.ok(mineAt, 'their own client is listed');
       return n === 1 ? use('propose_cancel', { appointment: mineAt }) : say("Cancel ZZ's haircut on Friday? Reply YES to confirm.");
     });
     const ask = await karenReply(tenant, '813-555-0181', 'please cancel Maria on friday', client, { ai: claude });
     assert.match(ask, /Reply YES to confirm/);
     const { rows: [thread] } = await client.query("SELECT state FROM karen_threads WHERE phone = '8135550181'");
-    assert.match(thread.state.pending.summary, /^cancel ZZ's Haircuts? with Dina/);
+    assert.match(thread.state.pending.summary, /^cancel ZZ's Women's Cut with Dina/);
 
     const done = await karenReply(tenant, '813-555-0181', 'yes', client, { ai: fakeClaude(() => { throw new Error('a yes is not for the model'); }) });
-    assert.match(done, /^Done: ZZ Maria Mine's Haircuts? with Dina .* is cancelled\. The client gets the usual notice/);
+    assert.match(done, /^Done: ZZ Maria Mine's Women's Cut with Dina .* is cancelled\. The client gets the usual notice/);
     const { rows: [a] } = await client.query("SELECT status FROM appointments WHERE ref = 'ZZCHR1'");
     assert.equal(a.status, 'cancelled');
     const { rows: [note] } = await client.query('SELECT notes FROM contacts WHERE id = $1', [mine]);
@@ -231,17 +231,17 @@ test('a stylist books a new appointment for a client by text, as the front desk 
     let offered = null;
     const seen = {};
     const claude = fakeClaude((params, n) => {
-      if (n === 1) return use('find_times', { service: 'haircuts', stylist: 'dina' });
+      if (n === 1) return use('find_times', { service: 'womens-cut', stylist: 'dina' });
       if (n === 2) {
         const r = lastResult(params);
         assert.ok(r.times?.length, 'free times for the team');
         offered = r.times[0].start;
         // A client who is not on file: Karen is told to ask for a phone or email.
-        return use('propose_booking', { service: 'haircuts', stylist: 'dina', start: offered, name: 'ZZ Brand New' }, 'tu_b1');
+        return use('propose_booking', { service: 'womens-cut', stylist: 'dina', start: offered, name: 'ZZ Brand New' }, 'tu_b1');
       }
       if (n === 3) {
         seen.first = lastResult(params);
-        return use('propose_booking', { service: 'haircuts', stylist: 'dina', start: offered, name: 'ZZ Brand New', client_phone: '813-555-0144' }, 'tu_b2');
+        return use('propose_booking', { service: 'womens-cut', stylist: 'dina', start: offered, name: 'ZZ Brand New', client_phone: '813-555-0144' }, 'tu_b2');
       }
       seen.second = lastResult(params);
       return say('Book ZZ for a haircut with Dina? Reply YES to confirm.');
@@ -253,7 +253,7 @@ test('a stylist books a new appointment for a client by text, as the front desk 
     assert.equal(seen.second.is_error, false);
 
     const done = await karenReply(tenant, '8135550183', 'yes', client, { ai: fakeClaude(() => { throw new Error('a yes is not for the model'); }) });
-    assert.match(done, /^All set: ZZ's Haircuts? with Dina is booked for /);
+    assert.match(done, /^All set: ZZ's Women's Cut with Dina is booked for /);
     const { rows: [a] } = await client.query(
       `SELECT a.channel, a.booked_by, a.status, c.name, c.phone FROM appointments a JOIN contacts c ON c.id = a.contact_id
         WHERE a.guest_name = 'ZZ Brand New'`,

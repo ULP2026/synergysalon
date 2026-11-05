@@ -581,6 +581,52 @@
   .toolbar .summary { margin-left: auto; color: var(--muted); font-size: var(--fs-sm); display: flex; flex-direction: column;
                       align-items: flex-end; text-align: right; line-height: 1.35; min-width: 0; }
   .toolbar .summary b { color: var(--ink); font-weight: 600; }
+  /* Appt. Book's bar (2026-11-05): the date on the left, the view on the right. */
+  .toolbar.dv-bar { align-items: flex-start; justify-content: space-between; gap: 12px 16px; flex-wrap: nowrap; }
+  .dv-left { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .dv-nav { display: flex; align-items: center; gap: 8px; }
+  .dv-today { height: 42px; padding: 0 18px; font-size: .95rem; }
+  .dv-pick { position: relative; display: inline-grid; }
+  /* The real date input sits under the calendar button, invisible, so a tap
+     on a phone opens the system picker even where showPicker() is missing. */
+  .dv-pick input[type=date] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none;
+                              border: 0; padding: 0; margin: 0; }
+  .dv-when { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-left: 2px; }
+  .dv-when b { font-size: var(--fs-md); font-weight: 650; color: var(--ink); line-height: 1.25; }
+  .toolbar .dv-when .summary { display: block; margin: 0; font-size: var(--fs-sm); color: var(--muted); line-height: 1.35; text-align: left; }
+  .dv-seg { flex: none; margin-top: 3px; }
+  @media (max-width: 560px) {
+    .toolbar.dv-bar { flex-wrap: wrap; }
+    .dv-left { width: 100%; }
+    .dv-seg { width: 100%; margin-top: 0; }
+    .dv-seg button { flex: 1; }
+  }
+  /* The Week view: seven days side by side, a list each; stacked on a phone. */
+  .wk-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); flex: 1; min-height: 0;
+             border-top: 1px solid var(--line); }
+  .wk-grid .cal-cell { min-height: 320px; padding: 8px 6px 10px; gap: 5px; }
+  .wk-grid .cal-cell:nth-child(7n) { border-right: 0; }
+  .wk-grid .cal-cell .cal-n.wk-n { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; height: auto;
+          min-width: 0; align-self: stretch; margin: 0 0 4px; padding: 2px 0 8px; border: 0; border-bottom: 1px solid var(--hair);
+          border-radius: 0; background: none; box-shadow: none; color: var(--ink); text-decoration: none; }
+  .wk-grid .wk-n span { font-size: var(--fs-xs); font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+  .wk-grid .wk-n b { display: grid; place-items: center; min-width: 30px; height: 30px; border-radius: 999px; font-size: var(--fs-md); font-weight: 650; }
+  .wk-grid .wk-n:hover b { background: var(--peri-pale); color: var(--indigo); }
+  .wk-grid .cal-cell.today .wk-n b { background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 3px rgba(85, 96, 166, .14); }
+  .wk-grid .cal-ev.wk-ev { white-space: normal; padding: 6px 8px; border-radius: 8px; }
+  .wk-ev i, .wk-ev b, .wk-ev span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: normal; }
+  .wk-ev i { font-size: .7rem; opacity: .85; font-weight: 600; }
+  .wk-ev span { opacity: .82; font-size: .72rem; }
+  .wk-list { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .wk-free { margin-top: 2px; font-size: var(--fs-xs); color: var(--faint); text-align: center; }
+  .cal-cell.past:not(.today) .wk-n b { color: var(--muted); }
+  @media (max-width: 860px) {
+    .wk-grid { grid-template-columns: minmax(0, 1fr); }
+    .wk-grid .cal-cell { min-height: 0; border-right: 0; display: grid; grid-template-columns: 64px minmax(0, 1fr);
+                         align-items: start; gap: 6px 10px; padding: 10px 4px; }
+    .wk-grid .cal-cell .cal-n.wk-n { border-bottom: 0; padding: 2px 0 0; margin: 0; }
+    .wk-free { text-align: left; margin: 6px 0 0; }
+  }
   .search { position: relative; }
   .search .ic { position: absolute; left: 12px; top: 11px; color: var(--faint); pointer-events: none; }
   .search input { padding-left: 40px; }
@@ -1190,6 +1236,8 @@
   .px-tag-done { height: 26px; padding: 0 10px; font-size: var(--fs-xs); }
   @media (max-width: 720px) { .px-tagbtn { width: 32px; height: 32px; } .px-tag .px-tag-x { width: 26px; height: 26px; } }
   .px-head .acts { margin: 0; gap: 8px; }
+  .px-help { gap: 8px; padding-left: 6px; }
+  .px-help img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px var(--peri-soft); }
   .px-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 38fr) minmax(0, 62fr); }
   /* Bottom padding so the last line (Delete client) is not flush with the
      window's edge once the column scrolls. */
@@ -1397,7 +1445,11 @@
     .px-compose { margin: 16px -18px 0; padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 0px)); }
     .px-left { border-right: 0; border-bottom: 1px solid var(--hair); }
     .px-head { flex-wrap: wrap; padding: 18px; }
-    .px-head .acts { width: 100%; }
+    .px-head .acts { width: 100%; flex-wrap: wrap; }
+    /* Need Help? on a row of its own under Book and close (2026-11-05):
+       the three side by side ran off a 390px phone. */
+    .px-head .acts #pxBook { flex: 1 1 auto; }
+    .px-head .acts .px-help { order: 3; flex: 1 1 100%; }
     .px-stats { gap: 6px; }
     .px-stats div { padding: 10px; min-width: 0; }
     .tl li { grid-template-columns: 38px minmax(0, 1fr); }
@@ -1720,19 +1772,63 @@
   .mw-fold.open .mw-chev { transform: rotate(90deg); }
   .mw-fold .mw-body { display: none; margin-top: 14px; }
   .mw-fold.open .mw-body { display: block; }
-  /* Cash out (2026-11-04). */
-  .co-form { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: 10px; align-items: end; margin: 4px 0 12px; }
-  .co-form label { margin: 0; }
-  .co-form .btn { gap: 6px; height: 44px; }
-  .co-form .btn .ic { width: 15px; height: 15px; }
+  /* Payroll (2026-11-05): the balance, Cash Out, the payouts. */
+  .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+             clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .pr-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+            padding: 18px 20px; margin: 6px 0 14px; border: 1px solid var(--line); border-radius: 16px;
+            background: linear-gradient(135deg, color-mix(in srgb, var(--ok) 9%, var(--card)), var(--card) 70%); }
+  .pr-bal { min-width: 0; }
+  .pr-amt { display: block; font-size: clamp(2rem, 6vw, 2.6rem); font-weight: 700; line-height: 1.05; letter-spacing: -.02em;
+            font-variant-numeric: tabular-nums; color: var(--ink); }
+  .pr-lbl { display: block; margin-top: 4px; font-size: var(--fs-xs); color: var(--muted); font-weight: 500; }
+  .pr-held { display: block; margin-top: 2px; font-size: var(--fs-xs); color: var(--muted); }
+  .pr-go { height: 50px; padding: 0 28px; font-size: 1.02rem; font-weight: 600; box-shadow: var(--cta-shadow), var(--cta-glow, none); }
+  .pr-go .ic { width: 20px; height: 20px; }
+  .pr-stripe { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; font-size: var(--fs-sm); color: var(--muted); }
+  .pr-stripe .chip { flex: none; }
+  .pr-stripe button.linkish { padding: 0; border: 0; background: none; color: var(--link); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .pr-h { margin: 18px 0 8px; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
   .co-list { display: grid; gap: 6px; }
   .co-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px;
             border: 1px solid var(--line); border-radius: 12px; }
+  .co-what { min-width: 0; }
   .co-what b { display: block; font-size: 1rem; font-variant-numeric: tabular-nums; }
-  .co-what small { display: block; color: var(--muted); font-size: var(--fs-xs); }
+  .co-what small { display: block; color: var(--muted); font-size: var(--fs-xs); overflow-wrap: anywhere; }
   .co-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   .co-acts .btn .ic { width: 14px; height: 14px; }
-  @media (max-width: 560px) { .co-form { grid-template-columns: minmax(0, 1fr); } .co-row { flex-wrap: wrap; } }
+  @media (max-width: 560px) {
+    .pr-top { flex-direction: column; align-items: stretch; text-align: center; padding: 18px 16px; }
+    .pr-go { width: 100%; }
+    .co-row { flex-wrap: wrap; }
+  }
+  /* The two cash-out windows. */
+  .prd { width: min(420px, calc(100vw - 32px)); padding: 0; border-radius: 22px; }
+  .prd-in { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 30px 24px 22px; }
+  .prd-x { position: absolute; top: 10px; right: 10px; }
+  .prd-ic { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; margin-bottom: 10px;
+            background: color-mix(in srgb, var(--ok) 14%, var(--card)); color: var(--ok); }
+  .prd-ic .ic { width: 28px; height: 28px; }
+  .prd h2 { margin: 0 0 6px; font-size: var(--fs-lg); }
+  .prd-amt { margin: 4px 0 0; font-size: 2.6rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .prd-lbl { margin: 4px 0 0; font-size: var(--fs-xs); color: var(--muted); font-weight: 500; }
+  .prd-to, .prd-sub { margin: 12px 0 0; font-size: var(--fs-sm); color: var(--muted); max-width: 32ch; }
+  .prd .note { margin: 12px 0 0; width: 100%; text-align: left; }
+  .prd-cta { width: 100%; height: 52px; margin-top: 20px; font-size: 1.05rem; font-weight: 600; }
+  .prd-alt { margin-top: 12px; padding: 6px 10px; border: 0; border-radius: 8px; background: none; color: var(--link);
+             font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .prd-alt:hover { color: var(--ink); }
+  .prd-alt:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .prd-field { position: relative; width: 100%; margin: 16px 0 0; }
+  .prd-cur { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 1.6rem; font-weight: 600; color: var(--muted); pointer-events: none; }
+  .prd-field input { height: 64px; padding-left: 40px; font-size: 1.9rem; font-weight: 700; text-align: left; font-variant-numeric: tabular-nums; }
+  #cashPartRange { width: 100%; margin: 16px 0 0; accent-color: var(--ok); }
+  .prd-quick { display: flex; gap: 8px; margin-top: 12px; width: 100%; }
+  .prd-quick button { flex: 1; height: 36px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--card);
+                      color: var(--ink); font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; }
+  .prd-quick button:hover { background: var(--peri-pale); }
+  .prd-quick button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .pr-burst { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 2147483000; display: none; }
   /* Inviting somebody (2026-11-04): four fields and Send Invitation. */
   .invnew { max-width: 460px; }
   .invnew .ad-head { align-items: flex-start; }
@@ -2354,7 +2450,7 @@
   .au-sw:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .au-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; border: 0; background: none;
              font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0; }
-  /* Automation in Settings: Email History is a second card under the list. */
+  /* Email History: a second card on Karen AI (2026-11-05; on Automation before). */
   #mailCard { margin-top: 16px; }
   /* Email History, its own module in Marketing. */
   .ml-filters { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 12px; }
@@ -3576,6 +3672,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></symbol>
   <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M16 3v4M8 3v4M3.5 10h17"/></symbol>
+  <symbol id="i-dollar" viewBox="0 0 24 24"><path d="M12 2.5v19M16.5 6.5c-.8-1.3-2.5-2-4.5-2-2.6 0-4.5 1.3-4.5 3.4 0 4.9 9.5 2.4 9.5 7.7 0 2.1-2 3.6-4.9 3.6-2.2 0-4-.8-5-2.4"/></symbol>
   <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></symbol>
   <symbol id="i-calendar-plus" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M16 3v4M8 3v4M3.5 10h17M12 13v5M9.5 15.5h5"/></symbol>
   <symbol id="i-contacts" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M15.5 4.6a3.5 3.5 0 0 1 0 6.8M17.8 14.8c1.9.8 3.1 2.6 3.7 5.2"/></symbol>
@@ -3826,17 +3923,32 @@
       <!-- Shown while the shop has no calendars at all. -->
       <div id="needCal" class="hidden"></div>
       <div class="card fill" id="diaryCard">
-        <div class="toolbar">
-          <button class="iconbtn lg" id="prevDay" aria-label="Previous"><svg class="ic"><use href="#i-left"/></svg></button>
-          <input type="date" id="dayPicker" aria-label="Day">
-          <strong id="monthLabel" class="hidden" style="font-size:var(--fs-md);min-width:11ch"></strong>
-          <button class="iconbtn lg" id="nextDay" aria-label="Next"><svg class="ic"><use href="#i-right"/></svg></button>
-          <button class="btn quiet" id="todayBtn">Today</button>
-          <div class="seg" id="viewSeg" role="group" aria-label="Calendar view">
+        <!-- The date on the left, the view on the right (asked for
+             2026-11-05, after the layout in the salon's reference): Today,
+             back, forward and a calendar that opens the date picker, then the
+             date written out and the count under them; Day, Week and Month on
+             the right. paintWhen() writes the two lines for every view. -->
+        <div class="toolbar dv-bar">
+          <div class="dv-left">
+            <div class="dv-nav">
+              <button class="btn quiet sm dv-today" id="todayBtn">Today</button>
+              <button class="iconbtn lg" id="prevDay" aria-label="Previous day"><svg class="ic"><use href="#i-left"/></svg></button>
+              <button class="iconbtn lg" id="nextDay" aria-label="Next day"><svg class="ic"><use href="#i-right"/></svg></button>
+              <span class="dv-pick">
+                <button type="button" class="iconbtn lg" id="pickDay" aria-label="Choose a date"><svg class="ic"><use href="#i-calendar"/></svg></button>
+                <input type="date" id="dayPicker" aria-label="Choose a date" tabindex="-1">
+              </span>
+            </div>
+            <div class="dv-when" aria-live="polite">
+              <b id="dvTitle"></b>
+              <span class="summary" id="dayHeading"></span>
+            </div>
+          </div>
+          <div class="seg dv-seg" id="viewSeg" role="group" aria-label="Calendar view">
             <button type="button" data-view="day" aria-pressed="true">Day</button>
+            <button type="button" data-view="week" aria-pressed="false">Week</button>
             <button type="button" data-view="month" aria-pressed="false">Month</button>
           </div>
-          <span class="summary" id="dayHeading"></span>
         </div>
         <!-- Kept for renderCalBar(), which stays hidden: the shop's calendars
              are on /staff/calendars, and one list is enough. -->
@@ -3982,21 +4094,23 @@
         </div>
       </div>
 
-      <!-- Automation: the automations, then Email History under them on the
-           same page. It was "Marketing", with the two as switches, until it
-           was renamed and combined on request (2026-10-30); its key is still
+      <!-- Automation: the automations. It was "Marketing", with Email History
+           beside it, until it was renamed (2026-10-30); its key is still
            `marketing`. It was its own item in the top menu until 2026-10-24.
-           /marketing/automation and /marketing/history both open it, the
-           second scrolled to the history. -->
+           Email History moved to Karen AI on 2026-11-05; /marketing/history
+           opens it there. -->
       <div class="setpane hidden" id="set-marketing">
         <div class="card" id="mktCard"></div>
-        <div class="card" id="mailCard"></div>
       </div>
 
       <!-- Karen AI (asked for 2026-10-22): the number clients call or text to
            reach her, and what she does there. Everybody reads it; the admin
            sets it. -->
-      <div class="card setpane hidden" id="set-karen">
+      <!-- Karen AI holds Email History too since 2026-11-05 (moved on request
+           from Automations): the emails, Chat History and Call History are
+           all "what was said to whom" in one place. -->
+      <div class="setpane hidden" id="set-karen">
+      <div class="card">
         <div class="card-head" style="margin-bottom:4px"><h2>Karen AI</h2></div>
         <section class="ka-sec">
           <h3>Phone Number Settings</h3>
@@ -4050,6 +4164,8 @@
           </div>
         </section>
       </div>
+      <div class="card" id="mailCard"></div>
+      </div>
 
       <!-- Payment (2026-10-30): what was the Payroll tab, renamed, with
            Billing moved here from Salon. Owners, admins and managers only.
@@ -4068,10 +4184,12 @@
                and on the server; filled by renderFinance(). -->
           <section class="acard hm-fin hidden" id="homeFin" aria-label="Finance"></section>
 
-          <!-- Cash out (asked for 2026-11-04): a stylist asks to be paid out;
-               the owner pays it however the salon pays its team and marks it
-               paid or declined. The app moves no money. renderCashouts(). -->
-          <section class="acard" id="cashCard" aria-labelledby="cashTitle"></section>
+          <!-- Payroll (2026-11-05; "Cash out" from 2026-11-04, renamed on
+               request, and the separate "Payroll · Coming soon" card that sat
+               under Subscription taken off as a duplicate): the balance of
+               earned income, Cash Out, and every payout. Paid by Stripe
+               Connect (payroll.js); renderPayroll(). -->
+          <section class="acard pr-card" id="cashCard" aria-labelledby="cashTitle"></section>
 
           <section class="acard sub-card" id="subCard" data-admin aria-labelledby="subTitle">
             <h2 class="ahead" id="subTitle"><svg class="ic"><use href="#i-zap"/></svg>Subscription</h2>
@@ -4087,12 +4205,8 @@
             <p class="small muted" style="margin:10px 0 0">Nothing is charged today. Activating opens once card payments are connected.</p>
           </section>
 
-          <!-- No Billing card (taken off on request, 2026-11-03): it said the
-               same as Subscription, which is where the plan is paid. -->
-          <section class="acard">
-            <h2 class="ahead"><svg class="ic"><use href="#i-user-check"/></svg>Payroll</h2>
-            <div style="margin-top:12px"><span class="chip">Coming soon</span></div>
-          </section>
+          <!-- No Billing card (taken off on request, 2026-11-03), and no
+               Payroll card here since 2026-11-05: Payroll is the card above. -->
       </div>
       </div>
     </section>
@@ -4786,6 +4900,40 @@
   <div class="au-body" id="msgBody"></div>
 </dialog>
 
+<!-- Cash out (asked for 2026-11-05): the whole balance with Cash Me Out,
+     or Partial Cashout for an amount of their own. Paid by Stripe; the
+     confetti waits for the server's verified answer. renderPayroll(). -->
+<dialog id="cashDlg" class="prd" aria-labelledby="cashDlgTitle">
+  <div class="prd-in">
+    <button type="button" class="iconbtn prd-x" data-pr-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    <span class="prd-ic" aria-hidden="true"><svg class="ic"><use href="#i-dollar"/></svg></span>
+    <h2 id="cashDlgTitle">Cash out</h2>
+    <p class="prd-amt" id="cashDlgAmt">$0.00</p>
+    <p class="prd-lbl">Earned Income</p>
+    <p class="prd-to" id="cashDlgTo"></p>
+    <p class="note hidden" id="cashDlgNote" role="alert"></p>
+    <button type="button" class="btn prd-cta" id="cashMeOut">Cash Me Out</button>
+    <button type="button" class="prd-alt" id="cashPartial">Partial Cashout</button>
+  </div>
+</dialog>
+<dialog id="cashPartDlg" class="prd" aria-labelledby="cashPartTitle">
+  <form class="prd-in" id="cashPartForm" novalidate>
+    <button type="button" class="iconbtn prd-x" data-pr-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+    <span class="prd-ic" aria-hidden="true"><svg class="ic"><use href="#i-dollar"/></svg></span>
+    <h2 id="cashPartTitle">Partial Cashout</h2>
+    <p class="prd-sub" id="cashPartMax">How much would you like to cash out?</p>
+    <label class="prd-field"><span class="sr-only">Amount in dollars</span>
+      <span class="prd-cur" aria-hidden="true">$</span>
+      <input id="cashPartAmt" type="number" inputmode="decimal" min="1" step="0.01" placeholder="0.00" required></label>
+    <input id="cashPartRange" type="range" min="1" step="1" aria-label="Adjust the amount">
+    <div class="prd-quick" id="cashPartQuick" role="group" aria-label="Quick amounts"></div>
+    <p class="note hidden" id="cashPartNote" role="alert"></p>
+    <button type="submit" class="btn prd-cta" id="cashPartGo">Cash Me Out</button>
+    <button type="button" class="prd-alt" data-pr-back>Back</button>
+  </form>
+</dialog>
+<canvas id="cashBurst" class="pr-burst" aria-hidden="true"></canvas>
+
 <dialog id="personDlg" class="xl" aria-labelledby="pxName">
   <header class="px-head">
     <!-- Their stylist's headshot on the corner of their circle (asked for
@@ -4797,6 +4945,8 @@
       <div class="chips" id="pxChips"></div>
     </div>
     <div class="acts">
+      <!-- Karen, from the client's own window (asked for 2026-11-05). -->
+      <button type="button" class="btn quiet px-help" id="pxHelp" title="Ask Karen about this client"><img id="pxHelpPic" src="/assets/karen/karen-still.webp" alt="" aria-hidden="true">Need Help?</button>
       <button type="button" class="btn" id="pxBook"><svg class="ic"><use href="#i-calendar-plus"/></svg>Book appointment</button>
       <button type="button" class="iconbtn lg" id="pxClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
     </div>
@@ -4897,6 +5047,14 @@ const I18N_ES = {
   'Earned': 'Ganado', 'No visits in this period.': 'No hay visitas en este periodo.',
   // Appt. Book
   'Today': 'Hoy', 'Day': 'Día', 'Month': 'Mes', 'Previous': 'Anterior', 'Next': 'Siguiente',
+  // 2026-11-05: Appt. Book's Week, Payroll and Need Help?.
+  'Week': 'Semana', 'Previous day': 'Día anterior', 'Next day': 'Día siguiente', 'Previous week': 'Semana anterior',
+  'Next week': 'Semana siguiente', 'Previous month': 'Mes anterior', 'Next month': 'Mes siguiente', 'Choose a date': 'Elegir una fecha',
+  'No appointments': 'Sin citas', 'Closed': 'Cerrado', 'Earned Income': 'Ingresos ganados',
+  'Cash Out': 'Cobrar', 'Cash out': 'Cobrar', 'Cash Me Out': '¡Págame!', 'Partial Cashout': 'Cobro parcial',
+  'Your payouts': 'Tus pagos', 'Team payouts': 'Pagos del equipo', 'Stripe connected': 'Stripe conectado',
+  'Connect Stripe': 'Conectar Stripe', 'Finish setup': 'Terminar configuración', 'View in Stripe': 'Ver en Stripe',
+  'Need Help?': '¿Necesitas ayuda?', 'Paid': 'Pagado',
   'I’m right here if you need help! Just click my menu to chat with me.': '¡Aquí estoy si necesitas ayuda! Solo haz clic en mi menú para chatear conmigo.',
   'Team member': 'Miembro del equipo', 'Not connected': 'No conectado', 'Unassigned': 'Sin asignar', 'No stylist yet': 'Sin estilista aún',
   'Busy': 'Ocupado', 'Lunch': 'Almuerzo', 'Block': 'Bloqueo', 'Block · Not bookable': 'Bloqueo · No reservable',
@@ -5863,17 +6021,18 @@ const PAGES = {
   automation: {
     path: `${BASE}/marketing/automation`, title: 'Settings', group: 'settings', view: 'settings',
     sub: 'What happens on its own, before and after a client books.',
-    load: () => { showSetting('marketing'); renderAutomations(); renderMailHistory(); },
+    load: () => { showSetting('marketing'); renderAutomations(); },
   },
-  // Email History, with its search and filter by message, is the second card
-  // on Automation (2026-10-30); its old address opens the page scrolled to it.
+  // Email History, with its search and filter by message, is on Karen AI
+  // since 2026-11-05 (the second card on Automation from 2026-10-30); its
+  // old address opens Karen AI scrolled to it.
   history: {
     path: `${BASE}/marketing/history`, title: 'Settings', group: 'settings', view: 'settings',
-    sub: 'What happens on its own, before and after a client books.',
+    sub: 'Karen, and every email, chat and call.',
     load: () => {
       // The history's own address opens the section it points at.
       try { localStorage.setItem('ss-mail-open', '1'); } catch { /* still shown, just not remembered */ }
-      showSetting('marketing'); renderAutomations(); renderMailHistory();
+      showSetting('karen');
       requestAnimationFrame(() => $('mailCard').scrollIntoView({ block: 'start' }));
     },
   },
@@ -6288,66 +6447,250 @@ function finRange(key) {
 const finMoney = (cents) => `$${(cents / 100).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /**
- * Cash out (asked for 2026-11-04). A stylist asks to be paid out: an amount
- * and a note, and their requests with where each one is. The owner sees
- * everyone's and marks each paid or declined once settled however the salon
- * pays its team; the app moves no money (business.js, cashouts).
+ * Payroll (asked for 2026-11-05; it was "Cash out", a request the owner
+ * marked paid, from 2026-11-04). The balance of earned income with a $ and
+ * "Earned Income" under it, a Cash Out button opening the cash-out window
+ * (Cash Me Out for the whole balance, Partial Cashout for an amount of
+ * their own, also Cash Me Out), and every payout. The money moves by
+ * Stripe Connect from the salon's balance to the person's own Stripe
+ * account (payroll.js): the server checks the balance, sends the transfer
+ * and reads it back before it answers, and the dollar confetti waits for
+ * that verified answer. Nothing here decides an amount the server has not.
  */
-async function renderCashouts() {
+let payroll = null;
+let payrollBusy = false;
+const PR_STATUS = {
+  paid: ['ok', 'Paid'], processing: ['pending', 'Processing'], failed: ['warn', 'Failed'],
+  requested: ['pending', 'Requested'], declined: ['warn', 'Declined'],
+};
+
+async function renderPayroll() {
   const host = $('cashCard');
-  const owner = Boolean(me?.user?.canManageTeam);
-  host.innerHTML = `<h2 class="ahead" id="cashTitle"><svg class="ic"><use href="#i-send"/></svg>${owner ? 'Cash-out requests' : 'Cash out'}</h2>
-    <p class="asub">${owner ? 'What the team has asked to be paid. Pay it the way the salon pays its team, then mark it paid.'
-      : 'Ask the salon to pay you out. The owner is told straight away and marks it paid once it is done.'}</p>
-    ${owner ? '' : `<form class="co-form" id="coForm" novalidate>
-      <label class="co-amt"><span>Amount</span><input name="amount" type="number" min="1" step="0.01" inputmode="decimal" placeholder="0.00" required></label>
-      <label class="co-note"><span>Note <small>(optional)</small></span><input name="note" maxlength="300" placeholder="e.g. tips for this week"></label>
-      <button class="btn" type="submit">${ic('send')}Request cash out</button>
-    </form><p class="note hidden" id="coNote" role="status"></p>`}
-    <div id="coList">${skeleton(1)}</div>`;
-  if (!owner) {
-    $('coForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const f = e.target;
-      const amount = Number(f.elements.amount.value);
-      if (!(amount > 0)) { note($('coNote'), 'Type the amount in dollars, like 250 or 250.50.'); f.elements.amount.focus(); return; }
-      const b = f.querySelector('button');
-      b.disabled = true;
-      try {
-        await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify({ cashout: { amount, note: f.elements.note.value } }) });
-        f.reset();
-        note($('coNote'), `Sent! The owner has your request for ${finMoney(Math.round(amount * 100))}.`, 'good');
-        paintCashouts();
-      } catch (err) { note($('coNote'), err.message); } finally { b.disabled = false; }
-    };
-  }
-  paintCashouts();
-}
-async function paintCashouts() {
-  const list = $('coList');
-  let d;
-  try { d = await api('/api/staff/business?cashouts=1'); } catch (err) {
-    list.innerHTML = `<p class="muted small">${esc(err.message)}</p>`;
+  if (!payroll) host.innerHTML = `<h2 class="ahead" id="cashTitle">${ic('dollar')}Payroll</h2>${skeleton(2)}`;
+  try {
+    payroll = await api('/api/staff/payroll');
+  } catch (err) {
+    if (err.message === 'signed out') return;
+    host.innerHTML = `<h2 class="ahead" id="cashTitle">${ic('dollar')}Payroll</h2><p class="muted small">${esc(err.message)}</p>`;
     return;
   }
-  if (!d.requests.length) {
-    list.innerHTML = `<p class="muted small co-empty">${d.canDecide ? 'No requests yet.' : 'You have not asked for a cash out yet.'}</p>`;
-    return;
-  }
-  const STATUS = { requested: ['pending', 'Requested'], paid: ['ok', 'Paid'], declined: ['warn', 'Declined'] };
-  list.innerHTML = `<div class="co-list">${d.requests.map((r) => {
-    const [cls, label] = STATUS[r.status] || ['', r.status];
-    const when = fmtWhen(r.at, { month: 'short', day: 'numeric', year: 'numeric' });
-    return `<div class="co-row">
-      <span class="co-what"><b>${esc(finMoney(r.amountCents))}</b><small>${esc([d.canDecide ? r.name : '', when, r.note].filter(Boolean).join(' · '))}</small></span>
-      <span class="co-acts">${d.canDecide && r.status === 'requested'
-        ? `<button type="button" class="btn sm" data-co="${esc(r.id)}" data-st="paid">${ic('check')}Mark paid</button>
-           <button type="button" class="btn quiet sm" data-co="${esc(r.id)}" data-st="declined">Decline</button>`
-        : `<span class="chip ${cls}" title="${esc(r.decidedBy ? `${label} by ${r.decidedBy}` : label)}">${esc(label)}</span>`}</span>
-    </div>`;
-  }).join('')}</div>`;
+  paintPayroll();
 }
+
+function prRow(r, withName) {
+  const [cls, label] = PR_STATUS[r.status] || ['', r.status];
+  const when = fmtWhen(r.at, { month: 'short', day: 'numeric', year: 'numeric' });
+  const what = [withName ? r.name : '', when, r.via === 'stripe' ? 'Stripe' : '', r.status === 'failed' ? r.error : ''].filter(Boolean).join(' · ');
+  const decide = payroll.canDecide && r.status === 'requested';
+  return `<div class="co-row">
+    <span class="co-what"><b>${esc(finMoney(r.amountCents))}</b><small>${esc(what)}</small></span>
+    <span class="co-acts">${decide
+      ? `<button type="button" class="btn sm" data-co="${esc(r.id)}" data-st="paid">${ic('check')}Mark paid</button>
+         <button type="button" class="btn quiet sm" data-co="${esc(r.id)}" data-st="declined">Decline</button>`
+      : `<span class="chip ${cls}">${esc(label)}</span>`}</span>
+  </div>`;
+}
+
+function paintPayroll() {
+  const host = $('cashCard');
+  const p = payroll;
+  const b = p.balance;
+  const st = p.stripe || {};
+  // Someone with no chair (the owner, the front desk) earns nothing here;
+  // the owner sees the team's payouts instead.
+  const earns = b.hasChair || b.earnedCents > 0 || p.history.length > 0;
+  const stripeLine = !st.configured
+    ? '<span class="chip">Not switched on</span><span>Stripe payouts are not switched on for the salon yet.</span>'
+    : st.ready
+      ? `<span class="chip ok">Stripe connected</span><span>${esc(st.bank ? `Paid to ${st.bank}` : 'Paid to your bank through Stripe')}</span>
+         <button type="button" class="linkish" data-pr="dashboard">View in Stripe</button>`
+      : st.connected
+        ? '<span class="chip warn">Needs attention</span><span>Stripe needs a few more details before it can pay you.</span><button type="button" class="linkish" data-pr="connect">Finish setup</button>'
+        : '<span class="chip">Not connected</span><span>Connect Stripe so your cash outs reach your bank.</span><button type="button" class="linkish" data-pr="connect">Connect Stripe</button>';
+  host.innerHTML = `<h2 class="ahead" id="cashTitle">${ic('dollar')}Payroll</h2>
+    ${earns ? `
+    <div class="pr-top">
+      <div class="pr-bal">
+        <span class="pr-amt" id="prAmt">${esc(finMoney(b.availableCents))}</span>
+        <span class="pr-lbl">Earned Income</span>
+        ${b.pendingCents ? `<span class="pr-held">${esc(finMoney(b.pendingCents))} on its way</span>` : ''}
+      </div>
+      <button type="button" class="btn pr-go" id="prCashOut">${ic('dollar')}Cash Out</button>
+    </div>
+    <p class="pr-stripe">${stripeLine}</p>
+    <h3 class="pr-h">Your payouts</h3>
+    ${p.history.length ? `<div class="co-list">${p.history.map((r) => prRow(r, false)).join('')}</div>`
+      : '<p class="muted small co-empty">No payouts yet. Your cash outs will show here.</p>'}`
+    : `<p class="asub">${p.canDecide ? 'What the team has been paid out, through Stripe.' : 'Payroll is for team members with a chair.'}</p>
+       ${p.canDecide && !st.configured ? '<p class="pr-stripe"><span class="chip">Not switched on</span><span>Add the salon’s Stripe secret key in Vercel (STRIPE_SECRET_KEY) to switch payouts on.</span></p>' : ''}`}
+    ${p.team ? `<h3 class="pr-h">Team payouts</h3>${p.team.length
+      ? `<div class="co-list">${p.team.map((r) => prRow(r, true)).join('')}</div>`
+      : '<p class="muted small co-empty">Nobody has cashed out yet.</p>'}` : ''}`;
+}
+
+/** The cash-out window, with what the server says can be paid now. */
+function openCashOut() {
+  const p = payroll;
+  if (!p) return;
+  const b = p.balance;
+  const st = p.stripe || {};
+  $('cashDlgAmt').textContent = finMoney(b.availableCents);
+  const go = $('cashMeOut');
+  const part = $('cashPartial');
+  note($('cashDlgNote'), '');
+  $('cashDlgNote').classList.add('hidden');
+  go.classList.remove('busy');
+  part.hidden = false;
+  if (!st.configured) {
+    $('cashDlgTo').textContent = 'Stripe payouts are not switched on for the salon yet. Ask the owner to connect the salon’s Stripe account.';
+    go.textContent = 'Cash Me Out'; go.disabled = true; go.dataset.do = ''; part.hidden = true;
+  } else if (!st.ready) {
+    $('cashDlgTo').textContent = st.connected
+      ? 'Stripe needs a few more details from you before it can pay you.'
+      : 'Connect your Stripe account first, so the money has somewhere to go. It takes about five minutes.';
+    go.textContent = st.connected ? 'Finish Stripe setup' : 'Connect Stripe';
+    go.disabled = false; go.dataset.do = 'connect'; part.hidden = true;
+  } else {
+    $('cashDlgTo').textContent = st.bank ? `Paid to ${st.bank} through Stripe.` : 'Paid to your bank through Stripe.';
+    go.textContent = 'Cash Me Out';
+    go.dataset.do = 'all';
+    go.disabled = b.availableCents < 100;
+    part.hidden = b.availableCents < 200;
+    if (b.availableCents < 100) $('cashDlgTo').textContent = 'There is nothing to cash out yet. Earned income shows here after each visit.';
+  }
+  openDialog($('cashDlg'));
+}
+
+function openPartial() {
+  const max = payroll.balance.availableCents;
+  const dollars = Math.floor(max / 100);
+  const amt = $('cashPartAmt');
+  const range = $('cashPartRange');
+  amt.max = (max / 100).toFixed(2);
+  range.max = String(Math.max(1, dollars));
+  const start = Math.max(1, Math.round(dollars / 2));
+  amt.value = String(start);
+  range.value = String(start);
+  $('cashPartMax').textContent = `Up to ${finMoney(max)} is ready to cash out.`;
+  $('cashPartQuick').innerHTML = [25, 50, 75].map((pc) => `<button type="button" data-pc="${pc}">${pc}%</button>`).join('')
+    + '<button type="button" data-pc="100">All</button>';
+  note($('cashPartNote'), '');
+  $('cashPartNote').classList.add('hidden');
+  $('cashPartGo').classList.remove('busy');
+  $('cashPartGo').disabled = false;
+  closeDialog($('cashDlg'));
+  openDialog($('cashPartDlg'));
+  setTimeout(() => { amt.focus({ preventScroll: true }); amt.select(); }, 60);
+}
+
+/** Send it, and celebrate only on the server's verified answer. */
+async function cashOut(amount, btn, noteEl) {
+  if (payrollBusy) return;
+  payrollBusy = true;
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.classList.add('busy');
+  btn.textContent = 'Sending to Stripe…';
+  try {
+    const r = await api('/api/staff/payroll', {
+      method: 'POST', body: JSON.stringify(amount == null ? { action: 'cashout' } : { action: 'cashout', amount }),
+    });
+    if (!r?.ok || !r.verified || !r.transferId) throw new Error('Stripe did not confirm the payout, so it was not marked paid.');
+    closeDialog($('cashDlg'));
+    closeDialog($('cashPartDlg'));
+    dollarBurst();
+    toast(`${finMoney(r.amountCents)} is on its way to your bank!`, 'good');
+    renderPayroll();
+  } catch (err) {
+    if (err.message === 'signed out') return;
+    note(noteEl, err.message);
+    noteEl.classList.remove('hidden');
+    renderPayroll();
+  } finally {
+    payrollBusy = false;
+    btn.classList.remove('busy');
+    btn.textContent = label;
+    btn.disabled = false;
+  }
+}
+
+async function payrollLink(action, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const { url } = await api('/api/staff/payroll', { method: 'POST', body: JSON.stringify({ action }) });
+    if (action === 'dashboard') window.open(url, '_blank', 'noopener');
+    else location.assign(url);
+  } catch (err) {
+    if (err.message !== 'signed out') toast(err.message, 'bad');
+  } finally { if (btn) btn.disabled = false; }
+}
+
+/**
+ * Dollar confetti (asked for 2026-11-05): green bills and gold dollar signs
+ * falling for about two and a half seconds, over everything, catching
+ * nothing. None for reduced motion: the toast says it.
+ */
+function dollarBurst() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = $('cashBurst');
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const W = innerWidth; const H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.display = 'block';
+  const g = cv.getContext('2d');
+  g.scale(dpr, dpr);
+  const n = Math.min(140, Math.round(W / 6));
+  const bits = Array.from({ length: n }, (_, i) => ({
+    x: W / 2 + (Math.random() - 0.5) * 80,
+    y: H * 0.42,
+    vx: (Math.random() - 0.5) * (W / 55),
+    vy: -(Math.random() * 13 + 7),
+    r: Math.random() * Math.PI,
+    vr: (Math.random() - 0.5) * 0.3,
+    s: Math.random() * 0.6 + 0.7,
+    kind: i % 3, // 0, 1: a bill; 2: a $ sign
+    wob: Math.random() * Math.PI * 2,
+  }));
+  const t0 = performance.now();
+  const step = (now) => {
+    const t = now - t0;
+    g.clearRect(0, 0, W, H);
+    for (const b of bits) {
+      b.vy += 0.32; b.vx *= 0.99; b.vy = Math.min(b.vy, 5.5);
+      b.x += b.vx + Math.sin((t / 260) + b.wob) * 0.8; b.y += b.vy; b.r += b.vr;
+      g.save();
+      g.globalAlpha = t > 2100 ? Math.max(0, 1 - (t - 2100) / 500) : 1;
+      g.translate(b.x, b.y);
+      g.rotate(b.r);
+      g.scale(b.s, b.s);
+      if (b.kind === 2) {
+        g.font = '700 26px system-ui, sans-serif';
+        g.fillStyle = '#d9a514';
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('$', 0, 0);
+      } else {
+        g.scale(1, Math.abs(Math.cos(t / 180 + b.wob)) * 0.7 + 0.3);
+        g.fillStyle = '#2f9e5b';
+        g.fillRect(-15, -8, 30, 16);
+        g.strokeStyle = '#1d7442'; g.lineWidth = 1.5;
+        g.strokeRect(-12.5, -5.5, 25, 11);
+        g.fillStyle = '#d6f5df';
+        g.font = '700 10px system-ui, sans-serif';
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('$', 0, 0.5);
+      }
+      g.restore();
+    }
+    if (t < 2600) requestAnimationFrame(step);
+    else { g.clearRect(0, 0, W, H); cv.style.display = 'none'; }
+  };
+  requestAnimationFrame(step);
+}
+
 $('cashCard').addEventListener('click', async (e) => {
+  if (e.target.closest('#prCashOut')) { openCashOut(); return; }
+  const link = e.target.closest('[data-pr]');
+  if (link) { payrollLink(link.dataset.pr, link); return; }
   const b = e.target.closest('[data-co]');
   if (!b) return;
   if (b.dataset.st === 'declined' && !confirm('Decline this cash-out request?')) return;
@@ -6355,9 +6698,42 @@ $('cashCard').addEventListener('click', async (e) => {
   try {
     await api('/api/staff/business', { method: 'PATCH', body: JSON.stringify({ cashoutId: b.dataset.co, status: b.dataset.st }) });
     toast(b.dataset.st === 'paid' ? 'Marked paid.' : 'Declined.');
-    paintCashouts();
+    renderPayroll();
   } catch (err) { toast(err.message, 'bad'); b.disabled = false; }
 });
+$('cashMeOut').onclick = () => {
+  const go = $('cashMeOut');
+  if (go.dataset.do === 'connect') { payrollLink('connect', go); return; }
+  if (go.dataset.do === 'all') cashOut(null, go, $('cashDlgNote'));
+};
+$('cashPartial').onclick = openPartial;
+for (const x of document.querySelectorAll('[data-pr-close]')) x.onclick = () => closeDialog(x.closest('dialog'));
+document.querySelector('[data-pr-back]').onclick = () => { closeDialog($('cashPartDlg')); openCashOut(); };
+$('cashPartRange').oninput = (e) => { $('cashPartAmt').value = e.target.value; };
+$('cashPartAmt').oninput = (e) => {
+  const v = Number(e.target.value);
+  if (Number.isFinite(v)) $('cashPartRange').value = String(Math.round(v));
+};
+$('cashPartQuick').onclick = (e) => {
+  const b = e.target.closest('[data-pc]');
+  if (!b) return;
+  const max = payroll.balance.availableCents;
+  const cents = b.dataset.pc === '100' ? max : Math.floor((max * Number(b.dataset.pc)) / 100);
+  $('cashPartAmt').value = (cents / 100).toFixed(2);
+  $('cashPartRange').value = String(Math.round(cents / 100));
+};
+$('cashPartForm').onsubmit = (e) => {
+  e.preventDefault();
+  const max = payroll.balance.availableCents;
+  const v = Number($('cashPartAmt').value);
+  const cents = Math.round(v * 100);
+  const n = $('cashPartNote');
+  const say = (m) => { note(n, m); n.classList.remove('hidden'); $('cashPartAmt').focus(); };
+  if (!(cents > 0)) { say('Type the amount in dollars, like 50 or 50.25.'); return; }
+  if (cents < 100) { say('The smallest cash out is $1.00.'); return; }
+  if (cents > max) { say(`That is more than your balance of ${finMoney(max)}.`); return; }
+  cashOut((cents / 100).toFixed(2), $('cashPartGo'), n);
+};
 
 // My services, pricing & hours: folded each time My Settings opens (asked
 // for 2026-11-04), opened from its header.
@@ -6377,7 +6753,7 @@ async function renderFinance() {
   const own = !me?.user?.canAdmin;
   host.classList.remove('hidden');
   $('subCard').classList.toggle('hidden', !me?.user?.canManageTeam);
-  renderCashouts();
+  renderPayroll();
   const periods = [['month', 'This month'], ['last', 'Last month'], ['30', 'Last 30 days'], ['year', 'This year']];
   host.innerHTML = `
     <h2 class="ahead"><svg class="ic"><use href="#i-dashboard"/></svg>${own ? 'My income' : 'Finance'}</h2>
@@ -7432,8 +7808,9 @@ function renderDiary(d) {
   diaryData = d;
   // Two short lines on the right of the toolbar's row (2026-11-03), the
   // date over the count, in the space that used to sit empty.
-  $('dayHeading').innerHTML = `<b>${esc(String(d.heading || '').replace(/^([A-Za-z]+) /, '$1, '))}</b>`
-    + `<span>${d.booked} appointment${d.booked === 1 ? '' : 's'}${d.arriving ? ` · ${d.arriving} still to arrive` : ''}</span>`;
+  // On the left under Today and the arrows since 2026-11-05: the date
+  // written out ("Thursday, 5 November 2026") over the count.
+  paintWhen(longDate(d.date) || d.heading, `${apptCount(d.booked)}${d.arriving ? ` · ${d.arriving} still to arrive` : ''}`);
 
   const live = d.appointments.filter((a) => a.status !== 'cancelled');
   const cancelled = d.appointments.filter((a) => a.status === 'cancelled');
@@ -8195,6 +8572,7 @@ $('calOpts').onclick = (e) => {
  * it was, until the new one replaces it.
  */
 function refreshDiary({ quiet = true } = {}) {
+  if (calView === 'week') return loadWeek(calWeek || weekOf(day), { quiet });
   return calView === 'month' ? loadMonth(calMonth, { quiet }) : loadDay(day, { quiet, force: true });
 }
 
@@ -8465,6 +8843,7 @@ async function loadDay(date, { quiet = false, force = false } = {}) {
   const seq = ++daySeq;
   day = date;
   $('dayPicker').value = date;
+  if (!quiet) paintWhen(longDate(date), '');
   const keep = quiet ? { top: $('dgWrap')?.scrollTop, left: $('dgWrap')?.scrollLeft } : null;
   if (!quiet) {
     $('dayHeading').textContent = '';
@@ -8502,7 +8881,25 @@ async function loadDay(date, { quiet = false, force = false } = {}) {
 // the shape of the weeks ahead.
 // Remembered per browser, so Back from a calendar's settings (or a reload)
 // lands on the view that was open, not always on the day.
-let calView = (() => { try { return localStorage.getItem('ss-cal-view') === 'month' ? 'month' : 'day'; } catch { return 'day'; } })();
+let calView = (() => {
+  try { const v = localStorage.getItem('ss-cal-view'); return v === 'month' || v === 'week' ? v : 'day'; } catch { return 'day'; }
+})();
+let calWeek = '';           // the Sunday the Week view starts on, YYYY-MM-DD
+
+/** "Thursday, 5 November 2026": the date as the salon's reference writes it. */
+function longDate(iso) {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return '';
+  const wd = d.toLocaleDateString(LOCALE, { weekday: 'long' });
+  const mo = d.toLocaleDateString(LOCALE, { month: 'long' });
+  return `${wd}, ${d.getDate()} ${mo} ${d.getFullYear()}`;
+}
+/** The two lines on the left of Appt. Book's bar, the same for every view. */
+function paintWhen(title, count) {
+  $('dvTitle').textContent = title || '';
+  $('dayHeading').textContent = count || '';
+}
+const apptCount = (n) => `${n} appointment${n === 1 ? '' : 's'}`;
 // True while the shop has no calendar: the diary is drawn, empty.
 let noCals = false;
 let calMonth = '';          // YYYY-MM
@@ -8530,8 +8927,7 @@ const PER_CELL = 3;        // then "+N more", so one busy day cannot push the gr
 function renderMonth(d) {
   monthData = d;
   document.querySelector('.main').style.removeProperty('--diary-w');
-  $('monthLabel').textContent = d.heading;
-  $('dayHeading').textContent = `${d.booked} appointment${d.booked === 1 ? '' : 's'} this month`;
+  paintWhen(d.heading, `${apptCount(d.booked)} this month`);
 
   const byDate = new Map();
   for (const a of d.appointments) {
@@ -8736,18 +9132,104 @@ $('calendar').onclick = (e) => {
   if (cell) openBooking(null, { date: cell.dataset.add });
 };
 
+// ── the Week view (asked for 2026-11-05) ─────────────────────────────────
+//
+// Seven days, Sunday first as the month is, each a list of its
+// appointments in time order. Built from the month's own data (one or two
+// months, when the week crosses into the next), so it says exactly what the
+// month says; the cells are the month's cells, so clicking, opening a day
+// and dragging an appointment to another day all work as they do there.
+
+/** The Sunday on or before a date. */
+function weekOf(iso) {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() - d.getDay());
+  return isoOf(d);
+}
+
+/** "2 – 8 November 2026", or "30 November – 6 December 2026" across a month. */
+function weekLabel(start) {
+  const a = new Date(`${start}T12:00:00`);
+  const b = new Date(a); b.setDate(a.getDate() + 6);
+  const mo = (x) => x.toLocaleDateString(LOCALE, { month: 'long' });
+  if (a.getFullYear() !== b.getFullYear()) return `${a.getDate()} ${mo(a)} ${a.getFullYear()} – ${b.getDate()} ${mo(b)} ${b.getFullYear()}`;
+  if (a.getMonth() !== b.getMonth()) return `${a.getDate()} ${mo(a)} – ${b.getDate()} ${mo(b)} ${b.getFullYear()}`;
+  return `${a.getDate()} – ${b.getDate()} ${mo(b)} ${b.getFullYear()}`;
+}
+
+let weekSeq = 0;
+async function loadWeek(start, { quiet = false } = {}) {
+  const seq = ++weekSeq;
+  calWeek = start;
+  // The day the arrows and Day view come back to: kept if it is in this
+  // week, else today if it is, else the Sunday.
+  const t = salonToday();
+  if (!(day >= start && day <= addDays(start, 6))) day = t >= start && t <= addDays(start, 6) ? t : start;
+  $('dayPicker').value = day;
+  if (!quiet) {
+    paintWhen(weekLabel(start), '');
+    $('calendar').innerHTML = skeleton(6);
+  }
+  const end = addDays(start, 6);
+  const months = [...new Set([monthOf(start), monthOf(end)])];
+  try {
+    const got = await Promise.all(months.map((m) => api(`/api/staff/diary?month=${encodeURIComponent(m)}`)));
+    if (seq !== weekSeq) return;
+    const appointments = noCals ? [] : got.flatMap((g) => g.appointments).filter((a) => a.date >= start && a.date <= end);
+    renderWeek({ ...got[0], appointments, start });
+  } catch (err) {
+    if (quiet || seq !== weekSeq || err.message === 'signed out') return;
+    $('calendar').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this week', text: err.message });
+  }
+}
+
+function renderWeek(d) {
+  // The month's handlers (open, drag, drop) read monthData.
+  monthData = d;
+  document.querySelector('.main').style.removeProperty('--diary-w');
+  const booked = d.appointments.filter((a) => a.status !== 'cancelled').length;
+  paintWhen(weekLabel(d.start), `${apptCount(booked)} this week`);
+  const byDate = new Map();
+  for (const a of [...d.appointments].sort((x, y) => String(x.startsAt).localeCompare(String(y.startsAt)))) {
+    if (!byDate.has(a.date)) byDate.set(a.date, []);
+    byDate.get(a.date).push(a);
+  }
+  const chip = (a) => {
+    const off = a.status === 'cancelled';
+    const mv = canMove(a) ? ' cal-mv' : '';
+    const title = `${a.time} · ${a.guestName} · ${a.service} with ${a.stylist}${off ? ' (cancelled)' : ''}`;
+    return `<button class="cal-ev wk-ev ${off ? 'off' : ''}${mv}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
+              title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><i>${esc(a.time)}</i><b>${esc(a.guestName)}</b><span>${esc(a.service)}${a.stylist ? ` · ${esc(a.stylist)}` : ''}</span></button>`;
+  };
+  const days = Array.from({ length: 7 }, (_, i) => addDays(d.start, i));
+  $('calendar').innerHTML = `<div class="cal wk"><div class="wk-grid">${days.map((iso) => {
+    const dt = new Date(`${iso}T12:00:00`);
+    const list = byDate.get(iso) || [];
+    const shut = Array.isArray(d.salonWeek) && d.salonWeek[dt.getDay()] === null;
+    return `<div class="cal-cell ${iso === d.today ? 'today' : ''} ${iso < d.today ? 'past' : ''} ${shut ? 'shut' : ''}" data-add="${iso}"
+        title="Click to add an appointment on ${esc(dayLabel(iso))}">
+      <button type="button" class="cal-n wk-n" data-day="${iso}" title="Open this day"><span>${esc(DOW[dt.getDay()])}</span><b>${dt.getDate()}</b></button>
+      <div class="wk-list">${list.length ? list.map(chip).join('') : `<span class="wk-free">${shut ? 'Closed' : 'No appointments'}</span>`}</div>
+    </div>`;
+  }).join('')}</div></div>
+  <p class="cal-hint">Click any day to add an appointment. Click the date to see that day by stylist. Drag an appointment to another day to move it.</p>`;
+}
+
 function setView(next, date) {
   calView = next;
   try { localStorage.setItem('ss-cal-view', next); } catch { /* private mode: this tab still remembers */ }
-  const month = next === 'month';
+  const grid = next !== 'day';
   for (const b of $('viewSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.view === next));
   }
-  $('calendar').classList.toggle('hidden', !month);
-  $('diary').classList.toggle('hidden', month);
-  $('dayPicker').classList.toggle('hidden', month);
-  $('monthLabel').classList.toggle('hidden', !month);
-  return month ? loadMonth(calMonth || monthOf(date || day || salonToday())) : loadDay(date || day || salonToday());
+  const unit = { day: 'day', week: 'week', month: 'month' }[next];
+  $('prevDay').setAttribute('aria-label', `Previous ${unit}`);
+  $('nextDay').setAttribute('aria-label', `Next ${unit}`);
+  $('calendar').classList.toggle('hidden', !grid);
+  $('diary').classList.toggle('hidden', grid);
+  if (next === 'month') return loadMonth(date ? monthOf(date) : (calMonth || monthOf(day || salonToday())));
+  if (next === 'week') return loadWeek(weekOf(date || day || salonToday()));
+  return loadDay(date || day || salonToday());
 }
 
 $('viewSeg').onclick = (e) => {
@@ -8755,13 +9237,38 @@ $('viewSeg').onclick = (e) => {
   if (b && b.dataset.view !== calView) setView(b.dataset.view);
 };
 
-$('prevDay').onclick = () => (calView === 'month'
-  ? loadMonth(shiftMonth(calMonth, -1)) : loadDay(addDays(day, -1)));
-$('nextDay').onclick = () => (calView === 'month'
-  ? loadMonth(shiftMonth(calMonth, 1)) : loadDay(addDays(day, 1)));
-$('todayBtn').onclick = () => (calView === 'month'
-  ? loadMonth(monthOf(salonToday())) : loadDay(salonToday()));
-$('dayPicker').onchange = (e) => e.target.value && loadDay(e.target.value);
+function stepView(n) {
+  if (calView === 'month') return loadMonth(shiftMonth(calMonth, n));
+  if (calView === 'week') return loadWeek(addDays(calWeek || weekOf(day), 7 * n));
+  return loadDay(addDays(day, n));
+}
+$('prevDay').onclick = () => stepView(-1);
+$('nextDay').onclick = () => stepView(1);
+$('todayBtn').onclick = () => {
+  const t = salonToday();
+  if (calView === 'month') return loadMonth(monthOf(t));
+  if (calView === 'week') return loadWeek(weekOf(t));
+  return loadDay(t);
+};
+// The calendar button opens the browser's own date picker (showPicker where
+// the browser has it; elsewhere the invisible input under the button takes
+// the tap), and a date picked opens in whichever view is showing.
+$('pickDay').onclick = () => {
+  const inp = $('dayPicker');
+  inp.value = day || salonToday();
+  try { if (inp.showPicker) { inp.showPicker(); return; } } catch { /* not allowed here: fall through */ }
+  inp.style.pointerEvents = 'auto';
+  inp.focus();
+  inp.click();
+  setTimeout(() => { inp.style.pointerEvents = ''; }, 400);
+};
+$('dayPicker').onchange = (e) => {
+  const v = e.target.value;
+  if (!v) return;
+  if (calView === 'month') { day = v; loadMonth(monthOf(v)); return; }
+  if (calView === 'week') { day = v; loadWeek(weekOf(v)); return; }
+  loadDay(v);
+};
 
 // ───────────────────────────── clients ─────────────────────────────
 
@@ -9518,6 +10025,48 @@ function bookFromPerson() {
   closePerson(); setTimeout(() => openBooking(c), 170);
 }
 $('pxBook').onclick = bookFromPerson;
+
+/**
+ * "Need Help?" on a client's window (asked for 2026-11-05): Karen's chat,
+ * already knowing whose profile is open, so "when is her next visit?" or
+ * "send her a reminder" needs no name. The client rides along as the
+ * conversation's first exchange (what her AI reads for follow-ups) and as
+ * the contact a booking is made for. The profile stays open under her.
+ */
+function openKarenForClient() {
+  const c = currentPerson();
+  if (!c) return;
+  // A fresh conversation, as kStart() starts one, but with this hello
+  // instead of the general one (two hellos read as a glitch).
+  karenRun += 1;
+  karenAiLog = [];
+  karenPending = null;
+  karenQueue = Promise.resolve();
+  karenAsk = null;
+  kReset();
+  const first = String(c.name || '').trim().split(/\s+/)[0] || 'them';
+  karen.contact = c.id;
+  karen.name = c.name;
+  karen.phone = c.phone || '';
+  karen.email = c.email || '';
+  const facts = [c.name, c.phone ? showPhone(c.phone) : '', c.email || ''].filter(Boolean).join(', ');
+  karenAiLog.push(
+    { role: 'user', text: `I have the client profile of ${facts} open. Questions below are about this client unless I say otherwise.` },
+    { role: 'assistant', text: `Got it, I have ${c.name}'s profile in front of me.` },
+  );
+  $('karenLog').innerHTML = '';
+  $('karenChips').innerHTML = '';
+  kSay(`<p>${kPick(['Hi!', 'Hey there!', 'Hola!'])} I've got <b>${esc(c.name)}</b>'s profile open. What can I help you with?</p>`);
+  const ask = (text) => { $('karenText').value = text; $('karenForm').requestSubmit(); };
+  kAsk([
+    { label: `Book ${first} an appointment`, solid: true, run: kBook },
+    { label: `When is ${first}'s next appointment?`, run: () => ask(`When is ${c.name}'s next appointment?`) },
+    { label: `Send ${first} a reminder`, run: () => ask(`Send ${c.name} a reminder email for their next appointment`) },
+  ], null, `Ask me anything about ${first}.`, 'menu');
+  openDialog($('karenDlg'));
+  setTimeout(() => $('karenText').focus({ preventScroll: true }), 60);
+}
+$('pxHelp').onclick = openKarenForClient;
 $('pxLeft').onclick = (e) => {
   const edit = e.target.closest('[data-px-edit]');
   if (edit) {
@@ -13056,7 +13605,7 @@ function memberRow(m, self) {
   const cal = (calBad
     ? `<span class="tm-stat off" title="Their Google account has no Google Calendar yet. Open their window to fix it."><span class="st-top">${ic('ban')}Needs attention</span><span class="st-lbl">Calendar</span></span>`
     : stat(Boolean(m.google && m.google.connected), 'Calendar'))
-    + stat(false, 'Payroll', 'Payroll is paid through Stripe, coming soon.');
+    + stat(Boolean(m.payroll), 'Payroll', m.payroll ? 'Stripe is connected for their cash outs.' : 'They connect Stripe from Settings, Money, Payroll.');
   const role = m.noLogin ? 'Stylist' : (ROLE_LABEL[m.role] || m.role);
   return `<button type="button" class="tm-row${self ? ' me' : ''}${m.status === 'disabled' ? ' off' : ''}" data-member="${self ? 'me' : esc(m.id)}"
       aria-label="${esc(self ? 'Edit your profile and prices' : `Open ${m.name}`)}">
@@ -13323,7 +13872,7 @@ function showSetting(name) {
   if (name === 'me') { paintDarkSwitch(); setMyWorkOpen(false); loadMyWork(); }
   if (name === 'salon') { loadBusiness(); loadReplyTo(); }
   if (name === 'team') loadAccount();
-  if (name === 'karen') loadKarenSettings();
+  if (name === 'karen') { loadKarenSettings(); renderMailHistory(); }
   if (name === 'payment') renderFinance();
 }
 /** Which sides of a sideways tab row have more tabs past them: the fade in the CSS. */
@@ -13340,7 +13889,8 @@ $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
   if (!b) return;
   const k = b.dataset.set;
-  if (k === 'marketing') { if (page !== 'automation' && page !== 'history') go('automation'); return; }
+  if (k === 'marketing') { if (page !== 'automation') go('automation'); return; }
+  if (k === 'karen' && page === 'history') { showSetting('karen'); return; }
   if (page !== 'settings') { setTab = k; go('settings'); return; }
   if (k !== setTab) showSetting(k);
 };
@@ -13966,10 +14516,10 @@ function paintTools() {
       <div class="gacts">${badge}${act}</div>
       ${state === 'problem' ? `<p class="gprob">${esc(why)}</p>` : ''}
     </div>
-    <div class="gcard soon" data-int="stripe" aria-disabled="true">
+    <div class="gcard soon" data-int="stripe" title="Stripe pays cash outs to your bank. Connect it from Settings, Money, Payroll.">
       <span class="tool-ic">${STRIPE_LOGO}</span>
       <div style="min-width:0"><b>Stripe</b><span class="d">Payroll</span></div>
-      <span class="chip soon-chip">Coming Soon</span>
+      <span class="chip soon-chip">In Money</span>
     </div>`;
 }
 
@@ -15217,7 +15767,14 @@ async function start(landing) {
   contactList = [];
   // A fresh sign-in lands on the Dashboard; a reload stays where it was.
   const target = landing || pageFromUrl();
+  // Back from Stripe's own setup pages (payroll.js sends them to
+  // /settings?tab=money&stripe=return, or =refresh when its link ran out):
+  // Payroll on Money, and a fresh setup link if the old one expired.
+  const fromStripe = new URLSearchParams(location.search).get('stripe');
+  if (fromStripe && target === 'settings') setTab = 'payment';
   go(target, { push: false });
+  if (fromStripe === 'return') toast('Welcome back! Checking your Stripe account…');
+  if (fromStripe === 'refresh') setTimeout(() => payrollLink('connect'), 400);
   document.fonts?.ready.then(() => moveRing(true));
   let flyHome = false;
   try { flyHome = sessionStorage.getItem('ss-karen-home') === '1'; } catch { /* private window */ }

@@ -28,6 +28,7 @@ import karen from './_routes/karen.js';
 import karenSms from './_routes/karen-sms.js';
 import logout from './_routes/logout.js';
 import me from './_routes/me.js';
+import payroll from './_routes/payroll.js';
 import profile from './_routes/profile.js';
 import requestAccess from './_routes/request-access.js';
 import team from './_routes/team.js';
@@ -50,6 +51,7 @@ const ROUTES = {
   'karen-voice': karenSms,
   logout,
   me,
+  payroll,
   profile,
   'request-access': requestAccess,
   team,

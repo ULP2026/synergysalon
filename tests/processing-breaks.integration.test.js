@@ -95,7 +95,7 @@ test("a color's Break is bookable with its stylist; its Start and Finish are not
     assert.ok(!offered.has(at(11, 45).toMillis()), '11:45 is the Finish');
     assert.ok(!offered.has(at(12).toMillis()), '12:00 is the Finish');
     // A haircut (60 and 10) is longer than the Break, so it is not offered in it.
-    assert.ok(!(await slotsFor(c, tenant, day, 'haircuts')).has(at(11).toMillis()));
+    assert.ok(!(await slotsFor(c, tenant, day, 'womens-cut')).has(at(11).toMillis()));
 
     // The database agrees: the trim in the Break is accepted...
     const trim = await book(c, tenant, 'bang-trim', at(11, 15), 'ZZ Trim');
@@ -155,7 +155,7 @@ test("bookings are as long as the stylist says the work takes, alone and togethe
     const at = (h, m = 0) => day.set({ hour: h, minute: m });
 
     // Her own Cuts figure, not the table's 60.
-    const cut = await book(c, tenant, 'haircuts', at(9), 'ZZ Cut');
+    const cut = await book(c, tenant, 'womens-cut', at(9), 'ZZ Cut');
     assert.equal(cut.duration_min, 30);
     // Single process color: her Color 30 and 30, and a 45-minute break, not
     // the 30 she typed. A processing break is floored at the salon's 45
@@ -168,7 +168,7 @@ test("bookings are as long as the stylist says the work takes, alone and togethe
     // A cut then a balayage, one appointment: 30, the cut's 10-minute
     // clean-down, then 165, the processing 30 + 10 + 60 = 100 minutes in.
     await c.query('DELETE FROM appointments WHERE ref = ANY($1)', [[cut.ref, single.ref]]);
-    const both = await book(c, tenant, 'haircuts', at(9), 'ZZ Both', { extraServiceSlugs: ['balayage'] });
+    const both = await book(c, tenant, 'womens-cut', at(9), 'ZZ Both', { extraServiceSlugs: ['balayage'] });
     assert.equal(both.duration_min, 30 + 10 + 165);
     assert.deepEqual(both.breaks, [[100, 45]]);
     // Its Break is open: 10:40 to 11:25 holds a bang trim, which is a Cut,

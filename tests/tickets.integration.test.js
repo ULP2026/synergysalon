@@ -45,8 +45,8 @@ async function setup(c) {
   await makeBookable(c, tenant.id, 'dina');
   // The seed prices nothing; these are the test's own, rolled back with it.
   await c.query(
-    `UPDATE services SET price_cents = CASE slug WHEN 'haircuts' THEN 6500 ELSE 5500 END
-      WHERE tenant_id = $1 AND slug IN ('haircuts', 'blowouts')`,
+    `UPDATE services SET price_cents = CASE slug WHEN 'womens-cut' THEN 6500 ELSE 5500 END
+      WHERE tenant_id = $1 AND slug IN ('womens-cut', 'blowouts')`,
     [tenant.id],
   );
   // Nothing of Dina's own timing, so each line is the service table's length.
@@ -67,7 +67,7 @@ test('a visit of several services is one ticket, itemized, the same from the dia
     const start = tuesday(tenant.timezone).set({ hour: 10 });
 
     const booked = await createBooking(c, tenant, {
-      serviceSlug: 'haircuts', extraServiceSlugs: ['blowouts'], stylistSlug: 'dina',
+      serviceSlug: 'womens-cut', extraServiceSlugs: ['blowouts'], stylistSlug: 'dina',
       start: start.toISO(), guestName: 'ZZ Ticket Client', guestPhone: '8135550177',
       channel: 'staff', minLeadMin: 0, contactId,
     });
@@ -77,11 +77,11 @@ test('a visit of several services is one ticket, itemized, the same from the dia
     const t = await ticketFor(tenant, booked.ref, c);
     assert.equal(t.itemized, true);
     assert.deepEqual(t.lines.map((l) => [l.name, l.priceCents, l.durationMin]), [
-      ['Haircut', 6500, 60],
+      ["Women's Cut", 6500, 60],
       ['Blowout & Styling', 5500, 45],
     ]);
     assert.equal(t.lines.reduce((sum, l) => sum + l.priceCents, 0), t.totalCents);
-    assert.equal(t.service, 'Haircut + Blowout & Styling');
+    assert.equal(t.service, "Women's Cut + Blowout & Styling");
     assert.equal(t.contactId, contactId);
     assert.equal(t.stylistSlug, 'dina');
     assert.equal(t.time, '10:00 AM');
@@ -121,13 +121,13 @@ test('a visit booked before itemizing shows its total, not a guessed split', { s
               tstzrange($3::timestamptz, $3::timestamptz + make_interval(mins => 115), '[)'),
               'ZZ Ticket Client', '8135550177', 'staff', 'tok-ZZTKOLD'
          FROM stylists s, services v
-        WHERE s.tenant_id = $1 AND s.slug = 'dina' AND v.tenant_id = $1 AND v.slug = 'haircuts'
+        WHERE s.tenant_id = $1 AND s.slug = 'dina' AND v.tenant_id = $1 AND v.slug = 'womens-cut'
        RETURNING ref`,
       [tenant.id, contactId, start.toISO()],
     );
     const t = await ticketFor(tenant, rows[0].ref, c);
     assert.equal(t.itemized, false);
-    assert.deepEqual(t.lines, [{ name: 'Haircut', priceCents: null, durationMin: null }]);
+    assert.deepEqual(t.lines, [{ name: "Women's Cut", priceCents: null, durationMin: null }]);
     assert.equal(t.totalCents, 12000);
     assert.equal(await ticketFor(tenant, 'ZZNOSUCH', c), null);
     // What lets a database without migration 031 book as before.
@@ -161,7 +161,7 @@ test('Choose your stylist lists every stylist record, and keeps one who has left
        SELECT $1, 'ZZTKLEFT', $2, v.id, $3, $4, 60, 0,
               tstzrange($4::timestamptz, $4::timestamptz + make_interval(mins => 60), '[)'),
               'ZZ Ticket Client', '8135550177', 'staff', 'tok-ZZTKLEFT', 'completed'
-         FROM services v WHERE v.tenant_id = $1 AND v.slug = 'haircuts'`,
+         FROM services v WHERE v.tenant_id = $1 AND v.slug = 'womens-cut'`,
       [tenant.id, gone[0].id, contactId, past.toISO()],
     );
     // Switched off and never booked: a placeholder, not a stylist anyone had.

@@ -53,7 +53,7 @@ function addAppointment(client, contactId, { ref, start, status = 'booked', ghl 
             'ZZ Delete Me', 'zz-delete@example.com', $4, $5::appointment_status, $6
        FROM tenants t
        JOIN stylists s ON s.tenant_id = t.id AND s.slug = 'dina'
-       JOIN services v ON v.tenant_id = t.id AND v.slug = 'haircuts'
+       JOIN services v ON v.tenant_id = t.id AND v.slug = 'womens-cut'
       WHERE t.slug = 'synergy'
      RETURNING id`,
     [ref, contactId, start.toISO(), `tok-${ref}`, status, ghl],

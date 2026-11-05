@@ -81,7 +81,7 @@ async function setup(db) {
   while (day.weekday !== 2) day = day.plus({ days: 1 });
   const stylistSlug = await anyBookable(db, t.id);
   const a = await transaction((c) => createBooking(c, { ...t, slug: 'synergy' }, {
-    serviceSlug: 'haircuts', stylistSlug, start: day.set({ hour: 10 }).toISO(),
+    serviceSlug: 'womens-cut', stylistSlug, start: day.set({ hour: 10 }).toISO(),
     guestName: 'ZZ Guest', guestPhone: '8135550100', channel: 'staff', minLeadMin: 0,
   }));
   return { tenant: t, userId: u, appt: { ...a, service_name: 'Haircut', salon_name: t.name } };
