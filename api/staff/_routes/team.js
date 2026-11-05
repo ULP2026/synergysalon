@@ -263,6 +263,8 @@ export default handler({
               to_jsonb(u) ->> 'google_connected_at' AS google_connected_at,
               to_jsonb(u) ->> 'google_ics' AS google_ics,
               to_jsonb(u) ->> 'google_problem' AS google_problem,
+              -- 050: whether they have a Stripe account for payroll (never its id).
+              (to_jsonb(u) ->> 'stripe_account_id') IS NOT NULL AS stripe_connected,
               a.name AS approved_by_name,
               s.name AS stylist_name, s.slug AS stylist_slug, s.title AS stylist_title,
               -- Bookable is not a column anyone sets: it is whether this person
@@ -324,6 +326,8 @@ export default handler({
         // Connect your tools: whether their Google Calendar is linked, and as
         // whom. Never the tokens.
         google: googleStatus(r),
+        // Payroll: whether they have connected Stripe from Money (2026-11-05).
+        payroll: Boolean(r.stripe_connected),
         title: r.stylist_title || '',
         requestedAt: r.requested_at,
         approvedAt: r.approved_at,

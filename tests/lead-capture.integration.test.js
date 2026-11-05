@@ -47,7 +47,7 @@ function tuesday(zone) {
 }
 
 const book = (c, tenant, start, who) => createBooking(c, tenant, {
-  serviceSlug: 'haircuts', stylistSlug: 'tami', start: start.toISO(),
+  serviceSlug: 'womens-cut', stylistSlug: 'tami', start: start.toISO(),
   channel: 'online', minLeadMin: 0, ...who,
 });
 

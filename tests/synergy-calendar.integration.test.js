@@ -94,23 +94,23 @@ test('a new stylist with no Google Calendar is not offered online; the desk stil
     const ten = day.set({ hour: 10 });
     await newStylist(c, tenant);
     const online = () => availableSlots(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'zz-new', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
+      serviceSlug: 'womens-cut', stylistSlug: 'zz-new', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
     });
 
     // The salon's rule: nobody added to the app is shown to guests until
     // their Google Calendar is connected, however services and hours are set.
     await assert.rejects(online(), (err) => err.status === 404);
     await assert.rejects(createBooking(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'zz-new', start: ten.toISO(),
+      serviceSlug: 'womens-cut', stylistSlug: 'zz-new', start: ten.toISO(),
       guestName: 'ZZ Website', guestEmail: 'zz@example.com', channel: 'online',
     }), (err) => err.status === 404);
     const anyone = await availableSlots(c, tenant, {
-      serviceSlug: 'haircuts', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
+      serviceSlug: 'womens-cut', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
     });
     assert.ok(!anyone.stylists.some((s) => s.slug === 'zz-new'), 'not among "first available" either');
     // The desk is not limited by it.
     const desk = await availableSlots(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'zz-new', fromDate: day.toISODate(), toDate: day.toISODate(),
+      serviceSlug: 'womens-cut', stylistSlug: 'zz-new', fromDate: day.toISODate(), toDate: day.toISODate(),
     });
     assert.ok(hasAt(desk.days, ten), 'the desk sees their own hours');
 
@@ -134,21 +134,21 @@ test('the salon\'s four stylists are booked from the Synergy Calendar alone unti
     const day = tuesday(tenant.timezone);
     const ten = day.set({ hour: 10 });
     const online = () => availableSlots(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'micah', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
+      serviceSlug: 'womens-cut', stylistSlug: 'micah', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
     });
 
     // Offered from the hours stored here, with no Google anywhere.
     assert.ok(hasAt((await online()).days, ten), '10:00 is offered from Micah\'s own hours');
 
     const web = await createBooking(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'micah', start: ten.toISO(),
+      serviceSlug: 'womens-cut', stylistSlug: 'micah', start: ten.toISO(),
       guestName: 'ZZ Website', guestEmail: 'zz@example.com', channel: 'online',
     });
     assert.equal(web.stylist_slug, 'micah');
 
     // The desk now cannot sell the same hour: one calendar for both.
     await assert.rejects(createBooking(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'micah', start: ten.toISO(),
+      serviceSlug: 'womens-cut', stylistSlug: 'micah', start: ten.toISO(),
       guestName: 'ZZ Desk', guestPhone: '8135550100', channel: 'staff', minLeadMin: 0,
     }), (err) => err.status === 409);
 
@@ -180,7 +180,7 @@ test('Google busy time is taken out for guests; the desk can still book over it'
     }]);
 
     const ask = (google) => availableSlots(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'tami', fromDate: day.toISODate(), toDate: day.toISODate(), google,
+      serviceSlug: 'womens-cut', stylistSlug: 'tami', fromDate: day.toISODate(), toDate: day.toISODate(), google,
     });
     const guest = await ask(true);
     assert.ok(!hasAt(guest.days, day.set({ hour: 10 })), 'busy in Google at 10');
@@ -191,11 +191,11 @@ test('Google busy time is taken out for guests; the desk can still book over it'
     assert.ok(hasAt(desk.days, day.set({ hour: 10 })), 'the desk sees the Synergy Calendar as it is');
 
     await assert.rejects(createBooking(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'tami', start: day.set({ hour: 10 }).toISO(),
+      serviceSlug: 'womens-cut', stylistSlug: 'tami', start: day.set({ hour: 10 }).toISO(),
       guestName: 'ZZ Website', guestPhone: '8135550100', guestEmail: 'zz@example.com', channel: 'online',
     }), (err) => err.status === 409);
     const byDesk = await createBooking(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'tami', start: day.set({ hour: 10 }).toISO(),
+      serviceSlug: 'womens-cut', stylistSlug: 'tami', start: day.set({ hour: 10 }).toISO(),
       guestName: 'ZZ Desk', guestPhone: '8135550100', channel: 'staff', minLeadMin: 0,
     });
     assert.ok(byDesk.ref);
@@ -222,7 +222,7 @@ test('several services are one appointment, long enough for all of them', { skip
     // Cut (60 + 10 clean-down) then blowout (45 + 10): 115 minutes of the
     // guest's time, the last clean-down after, no price while either is unpriced.
     const ask = (extra, stylist = 'dina', length = null) => availableSlots(c, tenant, {
-      serviceSlug: 'haircuts', extraServiceSlugs: extra, stylistSlug: stylist, length,
+      serviceSlug: 'womens-cut', extraServiceSlugs: extra, stylistSlug: stylist, length,
       fromDate: day.toISODate(), toDate: day.toISODate(),
     });
     const both = await ask(['blowouts']);
@@ -238,7 +238,7 @@ test('several services are one appointment, long enough for all of them', { skip
     await linkLogin(c, tenant, 'dina', { ics: 'https://calendar.google.com/calendar/ical/zz/private-x/basic.ics' });
     setGoogleReaderForTests(async () => []);
     const appt = await createBooking(c, tenant, {
-      serviceSlug: 'haircuts', extraServiceSlugs: ['blowouts'], stylistSlug: 'dina',
+      serviceSlug: 'womens-cut', extraServiceSlugs: ['blowouts'], stylistSlug: 'dina',
       start: day.set({ hour: 13 }).toISO(), guestName: 'ZZ Two services', guestPhone: '8135550100', guestEmail: 'zz@example.com', channel: 'online',
     });
     assert.equal(appt.duration_min, 115);
@@ -316,7 +316,7 @@ test('a booking and its cancellation reach the stylist\'s Google Calendar', { sk
 
     await c.query('BEGIN');
     const appt = await createBooking(c, tenant, {
-      serviceSlug: 'haircuts', stylistSlug: 'dina', start: day.set({ hour: 11 }).toISO(),
+      serviceSlug: 'womens-cut', stylistSlug: 'dina', start: day.set({ hour: 11 }).toISO(),
       guestName: 'ZZ Mirror', guestPhone: '8135550100', guestEmail: 'zz@example.com', channel: 'online',
     });
     await c.query('COMMIT');

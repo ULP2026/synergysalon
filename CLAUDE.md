@@ -1763,6 +1763,62 @@ made that way are real: name them ZZ and remove them.
   and the console's `api()` keeps `code` and `data` on the error.
   `tests/reassign.integration.test.js`.
 
+- **The round of 2026-11-05** (asked for):
+  - **Payroll is real, through Stripe Connect.** Money's "Cash out" card is
+    now **Payroll** (`#cashCard`, `renderPayroll()`), and the separate
+    "Payroll · Coming soon" card is gone. It shows the balance of earned
+    income with a $ ("Earned Income" under it) and a **Cash Out** button:
+    a window with **Cash Me Out** (the whole balance) and **Partial
+    Cashout** (a second window, amount typed, slid or 25/50/75%/All, also
+    Cash Me Out). `api/staff/_routes/payroll.js` (`/api/staff/payroll`,
+    through the staff router, no new function) and `api/_lib/stripe.js`
+    (plain REST, no SDK). The balance (`balanceOf`) is the booked value of
+    the person's kept visits that have started, in their chair, less every
+    cash out paid, processing or still a manual request. A cash out locks
+    the person's row, checks the balance and writes the row as
+    `processing` before Stripe is called (two taps cannot spend it twice),
+    sends a transfer to the account **stored on their login** (never one
+    the browser names) with the row's id as the idempotency key and
+    `transfer_group`, reads the transfer back and marks it `paid` only if
+    amount, currency and destination match; a Stripe refusal is `failed`
+    and the money returns to the balance; a lost answer stays `processing`
+    and `settleStuck` looks it up by group (never re-sends) when Payroll
+    next opens. The dollar confetti (`dollarBurst`, none for reduced
+    motion) waits for that verified reply. Each stylist connects their own
+    Stripe Express account from the window (`action: 'connect'`, Stripe's
+    own onboarding; it returns to `/settings?tab=money&stripe=return`).
+    Migration 050 (also in ensure-schema): `staff_users.stripe_account_id`,
+    `cashout_requests.stripe_transfer_id` and `error`, and the states
+    `processing` and `failed`. **Needs `STRIPE_SECRET_KEY` in Vercel and
+    Connect switched on in the salon's Stripe account**; until then Payroll
+    says payouts are not switched on and nothing can be cashed out. The
+    salon's Stripe balance must hold the money or Stripe refuses
+    (`balance_insufficient`, said plainly). The balance is 100% of the
+    booked price: if the salon pays a commission, that rule belongs in
+    `balanceOf`. Old manual requests still show, and the owner can still
+    mark them paid. `tests/payroll.integration.test.js` runs every path
+    against a stand-in Stripe, the race included.
+  - **Email History is on Karen AI** (`#mailCard` under Chat and Call
+    History); `/marketing/history` opens it there. Automations is the list
+    only.
+  - **Need Help?** on a client's window (`#pxHelp`, Karen's picture) opens
+    her chat already holding that client (`openKarenForClient`: the
+    contact for a booking, and a first exchange naming them for her AI),
+    with Book, next appointment and reminder chips.
+  - **Appt. Book's bar**: Today, back, forward and a calendar button (the
+    browser's date picker, `#pickDay` over a hidden `#dayPicker`) on the
+    left, the date written out ("Thursday, 5 November 2026", `longDate`)
+    and the count under them (`paintWhen`); **Day, Week, Month** on the
+    right. **Week** is new (`loadWeek`, `renderWeek`): Sunday to Saturday
+    from the month's own data (two months when it crosses), the month's
+    cells and chips, so open, add and drag to another day work as there;
+    one row per day on a phone.
+  - **No "Haircut"**: the generic service is switched off (migration 051,
+    also in ensure-schema), so Cuts is Women's, Men's, Teen, Kids' and the
+    Bang Trim, as the website survey already had it; the pages' service
+    lists and JSON-LD dropped it too. The integration tests book Women's
+    Cut where they booked Haircut.
+
 ## Small screens
 
 Checked on 2026-10-22 at 375, 390, 768 and 1440px against the real console

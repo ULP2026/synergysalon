@@ -305,6 +305,25 @@ const STATEMENTS = [
      decided_at    timestamptz,
      created_at    timestamptz NOT NULL DEFAULT now())`,
   'CREATE INDEX IF NOT EXISTS cashout_requests_by_salon ON cashout_requests (tenant_id, created_at DESC)',
+  // 050: payroll through Stripe Connect: the stylist's connected account,
+  // and a cash out's transfer, its reason when it failed, and the two new
+  // states. The check is swapped only while it lacks 'processing', so a warm
+  // start does not take the table's lock every time.
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS stripe_account_id text',
+  'ALTER TABLE cashout_requests ADD COLUMN IF NOT EXISTS stripe_transfer_id text',
+  'ALTER TABLE cashout_requests ADD COLUMN IF NOT EXISTS error text',
+  // 051: the generic "Haircut" off the menu; Cuts is Women's, Men's, Teen,
+  // Kids' and the Bang Trim, as the website's survey has it.
+  "UPDATE services SET active = false WHERE slug = 'haircuts' AND active",
+  `DO $$ BEGIN
+     IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                     WHERE conname = 'cashout_requests_status_check'
+                       AND pg_get_constraintdef(oid) LIKE '%processing%') THEN
+       ALTER TABLE cashout_requests DROP CONSTRAINT IF EXISTS cashout_requests_status_check;
+       ALTER TABLE cashout_requests ADD CONSTRAINT cashout_requests_status_check
+         CHECK (status IN ('requested', 'processing', 'paid', 'failed', 'declined'));
+     END IF;
+   END $$`,
 ];
 
 let done = null;

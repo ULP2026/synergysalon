@@ -50,7 +50,7 @@ test('Karen greets people by name, reads a stylist\'s day, and cancels and moves
     const tenant = await tenantForUser({ tenant_id: t.id });
     const stylistId = await makeBookable(client, tenant.id, 'dina');
     const { rows: [svc] } = await client.query(
-      "SELECT id, slug, duration_min FROM services WHERE tenant_id = $1 AND slug = 'haircuts'", [tenant.id],
+      "SELECT id, slug, duration_min FROM services WHERE tenant_id = $1 AND slug = 'womens-cut'", [tenant.id],
     );
 
     // A stylist with a login and a phone, whose chair is Dina's.
@@ -84,14 +84,14 @@ test('Karen greets people by name, reads a stylist\'s day, and cancels and moves
     const day = await karenReply(tenant, STYLIST_PHONE, "What's on my schedule tomorrow?", client);
     assert.match(day, /^Hi ZZ!/);
     assert.match(day, /Tomorrow you have 1 appointment/);
-    assert.match(day, /2:00 PM ZZ C\., Haircut/);
+    assert.match(day, /2:00 PM ZZ C\., Women's Cut/);
     // The first reply of a conversation says how to stop and get help; later ones do not.
     assert.match(day, /Reply STOP to opt out, HELP for help\.$/);
 
     // The client: recognised by name, and her one appointment cancelled
     // only after she says yes.
     const ask = await karenReply(tenant, '+18135550188', 'I need to cancel', client);
-    assert.match(ask, /^Hi ZZ! Cancel your Haircuts? with Dina/);
+    assert.match(ask, /^Hi ZZ! Cancel your Women's Cut with Dina/);
     const kept = await karenReply(tenant, CLIENT_PHONE, 'no', client);
     assert.match(kept, /stays as it is/);
     assert.doesNotMatch(kept, /^Hi/, 'the greeting is once a conversation');
@@ -113,7 +113,7 @@ test('Karen greets people by name, reads a stylist\'s day, and cancels and moves
     const offers = await karenReply(tenant, CLIENT_PHONE, 'can I reschedule?', client);
     assert.match(offers, /Here are the next openings:\n1\. /);
     const moved = await karenReply(tenant, CLIENT_PHONE, '1', client);
-    assert.match(moved, /All set! Your Haircuts? with Dina is now/);
+    assert.match(moved, /All set! Your Women's Cut with Dina is now/);
     const { rows: [now] } = await client.query("SELECT starts_at, status FROM appointments WHERE ref = 'ZZKAR2'");
     assert.equal(now.status, 'booked');
     assert.notEqual(new Date(now.starts_at).getTime(), later.toMillis());

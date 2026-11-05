@@ -46,7 +46,7 @@ function insert(client, { ref, stylist = 'dina', start = START, minutes = 60 }) 
             'Test Guest', 'test@example.com', $5
        FROM tenants t
        JOIN stylists s ON s.tenant_id = t.id AND s.slug = $2
-       JOIN services v ON v.tenant_id = t.id AND v.slug = 'haircuts'
+       JOIN services v ON v.tenant_id = t.id AND v.slug = 'womens-cut'
       WHERE t.slug = 'synergy'
      RETURNING id`,
     [ref, stylist, start.toISO(), minutes, `tok-${ref}`],

@@ -52,7 +52,7 @@ test('Karen in the app reads clients, their history, the calendar and the email 
     const tenant = await tenantForUser({ tenant_id: t.id });
     const stylistId = await makeBookable(client, tenant.id, 'dina');
     const { rows: [svc] } = await client.query(
-      "SELECT id, duration_min FROM services WHERE tenant_id = $1 AND slug = 'haircuts'", [tenant.id],
+      "SELECT id, duration_min FROM services WHERE tenant_id = $1 AND slug = 'womens-cut'", [tenant.id],
     );
     const { rows: [c] } = await client.query(
       `INSERT INTO contacts (tenant_id, name, email, phone, source, status, notes, created_at)

@@ -57,7 +57,7 @@ test('Karen on Claude proposes, and only a yes changes the book', { skip }, asyn
     const tenant = await tenantForUser({ tenant_id: t.id });
     const stylistId = await makeBookable(client, tenant.id, 'dina');
     const { rows: [svc] } = await client.query(
-      "SELECT id, duration_min FROM services WHERE tenant_id = $1 AND slug = 'haircuts'", [tenant.id],
+      "SELECT id, duration_min FROM services WHERE tenant_id = $1 AND slug = 'womens-cut'", [tenant.id],
     );
     const { rows: [c] } = await client.query(
       `INSERT INTO contacts (tenant_id, name, email, phone, status)
@@ -95,7 +95,7 @@ test('Karen on Claude proposes, and only a yes changes the book', { skip }, asyn
     // The day's facts, apart from the fixed rules (which name the $40 scalp analysis).
     const shown = mover.calls[0].system[1].text;
     assert.match(shown, /Texting: ZZ Smart Client, a client/);
-    assert.match(shown, /1\. Haircuts? with Dina on /, 'their own appointment, numbered');
+    assert.match(shown, /1\. Women's Cut with Dina on /, 'their own appointment, numbered');
     assert.doesNotMatch(shown, /\$\d/, 'no prices reach the model');
     assert.match(shown, /Booking new appointments by text: NOT open yet/);
     assert.equal((await status()).status, 'booked');
@@ -104,7 +104,7 @@ test('Karen on Claude proposes, and only a yes changes the book', { skip }, asyn
     // 2. A plain yes is carried out here, without asking the model.
     const never = fakeClaude(() => { throw new Error('a plain yes must not reach the model'); });
     const done = await karenReply(tenant, CLIENT_PHONE, 'Yes please!', client, { ai: never });
-    assert.match(done, /^All set! Your Haircuts? with Dina is now /);
+    assert.match(done, /^All set! Your Women's Cut with Dina is now /);
     assert.doesNotMatch(done, /Reply STOP/, 'once a conversation');
     assert.equal(new Date((await status()).starts_at).getTime(), new Date(offered).getTime());
     const { rows: [note] } = await client.query('SELECT notes FROM contacts WHERE id = $1', [c.id]);
