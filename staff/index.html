@@ -1355,6 +1355,23 @@
 
   .cstylists .clabel { flex: none; margin-right: 4px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .04em;
                        text-transform: uppercase; color: var(--muted); }
+  /* The stylists in a row of their own (2026-11-05), so on a phone the
+     label sits above them and the row has the whole width: beside the
+     label, one and a half stylists fitted and the rest were out of sight. */
+  .cstylists { overflow: visible; }
+  .cstylists .cst-row { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 2px 1px; }
+  .cstylists .cst-row::-webkit-scrollbar { display: none; }
+  @media (max-width: 640px) {
+    .cstylists { flex-wrap: wrap; row-gap: 8px; }
+    .cstylists .clabel { flex-basis: 100%; margin: 0; }
+    .cstylists .cst-row { flex-basis: 100%; }
+    .cst-row[data-more="r"] { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+                              mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
+    .cst-row[data-more="l"] { -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px);
+                              mask-image: linear-gradient(90deg, transparent, #000 32px); }
+    .cst-row[data-more="l r"] { -webkit-mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+                                mask-image: linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+  }
 
   /* The ticket. */
   /* The details scroll; the header and the actions stay in view. */
@@ -1629,6 +1646,20 @@
   .dg-head.dg-group { gap: 12px; }
   /* The first person's column starts with a firmer edge, against the hours. */
   .dg-tfirst { border-left: 2px solid var(--line) !important; }
+  /* Phones (2026-11-05): columns narrow enough for two stylists side by
+     side, a narrower clock, and each heading stacked (picture over name)
+     so the name has the column's width. A column used to be 180px, so a
+     phone showed one stylist and a sliver of the next. !important because
+     a busy day sets the width on the grid itself. */
+  @media (max-width: 640px) {
+    .dg { --dg-axis: 46px; --dg-col: minmax(118px, 1fr) !important; --dg-min: 118px !important; }
+    .dg-axis span { right: 6px; font-size: .68rem; }
+    .dg-head { flex-direction: column; justify-content: center; gap: 4px; padding: 8px 6px; text-align: center; }
+    .dg-head > div { max-width: 100%; }
+    .dg-head .avatar, .dg-head img.avatar, .dg-head .dg-hic { width: 30px; height: 30px; }
+    .dg-head b { font-size: .82rem; }
+    .dg-head span.sub { font-size: .68rem; }
+  }
   .dg-teamwait p { position: sticky; top: 72px; margin: 24px 16px; font-size: var(--fs-xs); color: var(--muted); line-height: 1.5; }
   .dg-head .dg-hic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none;
                      background: var(--peri-pale); color: var(--indigo); }
@@ -8785,10 +8816,19 @@ function fillStylistFilter() {
   if (contactStylist && !list.some((t) => t.slug === contactStylist)) contactStylist = '';
   // The owner's only (2026-11-03): anyone else sees only their own clients.
   box.classList.toggle('hidden', !list.length || !me?.user?.canManageTeam);
-  box.innerHTML = '<span class="clabel" id="contactStylistLbl">Choose your stylist</span>'
+  box.innerHTML = '<span class="clabel" id="contactStylistLbl">Choose your stylist</span><div class="cst-row">'
     + `<button type="button" data-member="" aria-pressed="${contactStylist === ''}">All</button>`
     + list.map((t) => `<button type="button" data-member="${esc(t.slug)}" title="${esc(t.name)}"
-      aria-pressed="${t.slug === contactStylist}"><img class="sav" src="${esc(personPhoto(t))}" alt="">${esc(t.name)}</button>`).join('');
+      aria-pressed="${t.slug === contactStylist}"><img class="sav" src="${esc(personPhoto(t))}" alt="">${esc(t.name)}</button>`).join('')
+    + '</div>';
+  // The one chosen in view, and a fade on the side with more (segEdges).
+  const row = box.querySelector('.cst-row');
+  const on = row.querySelector('[aria-pressed="true"]');
+  if (on && row.scrollWidth > row.clientWidth) {
+    row.scrollLeft += on.getBoundingClientRect().left + on.offsetWidth / 2 - row.getBoundingClientRect().left - row.clientWidth / 2;
+  }
+  row.addEventListener('scroll', () => segEdges(row), { passive: true });
+  requestAnimationFrame(() => segEdges(row));
 }
 
 // The lead-stage filters (All, New, Contacted, Booked, Client, Lost) were
