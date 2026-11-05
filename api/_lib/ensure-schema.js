@@ -315,14 +315,16 @@ const STATEMENTS = [
   // 051: the generic "Haircut" off the menu; Cuts is Women's, Men's, Teen,
   // Kids' and the Bang Trim, as the website's survey has it.
   "UPDATE services SET active = false WHERE slug = 'haircuts' AND active",
-  // 052: the service menu of 2026-11-05 (Teen Cut, Highlights & Foils, Color
+  // 052: the service menu of 2026-11-05 (Bond Repair named K18/Olaplex
+  // Treatment since 2026-11-06, 054: this line renamed it on every cold
+  // start, so it carries the new name). (Teen Cut, Highlights & Foils, Color
   // & Cut and Bridal off; Partial and Full Highlights, Condition and Mask
   // Treatment in; Updos and Consultation renamed). Idempotent: the updates
   // match nothing the second time and the inserts skip existing slugs.
   `UPDATE services SET active = false
  WHERE owner_staff_id IS NULL AND active
    AND slug IN ('teen-cut', 'highlights-and-foils', 'color-and-cut', 'bridal-styling')`,
-  `UPDATE services SET name = 'Bond Repair: Olaplex & K18', blurb = 'Rebuild what damage broke'
+  `UPDATE services SET name = 'K18/Olaplex Treatment', blurb = 'Rebuild what damage broke'
  WHERE owner_staff_id IS NULL AND slug = 'bond-repair'`,
   `UPDATE services SET name = 'Updos', blurb = 'Weddings, bridal parties, prom and special events'
  WHERE owner_staff_id IS NULL AND slug = 'special-event'`,

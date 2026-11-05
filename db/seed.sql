@@ -28,7 +28,7 @@ FROM tenants t, (VALUES
   ('highlights-and-foils',          'Highlights & Foils',          'color',      'Partial, full and Biolage highlights',          150, 15, NULL,          false,  20),
   ('corrective-color',              'Corrective Color',            'color',      'We fix what other salons and boxes got wrong',   240, 15, NULL,          true,   30),
   ('keratin-and-brazilian-blowout', 'Keratin & Brazilian Blowout', 'treatments', 'Florida humidity does not get a say',           150, 15, NULL,          false,  40),
-  ('bond-repair',                   'Bond Repair: Olaplex & K18',  'treatments', 'Rebuild what damage broke',                      45, 10, NULL,          false,  50),
+  ('bond-repair',                   'K18/Olaplex Treatment',       'treatments', 'Rebuild what damage broke',                      45, 10, NULL,          false,  50),
   ('ai-scalp-analysis',             'AI Scalp Analysis',           'treatments', 'See what is happening at the root',              30, 10, 4000,          false,  60),
   ('haircuts',                      'Haircut',                     'cuts',       'Women, men, teens, kids and bangs',              60, 10, NULL,          false,  70),
   ('blowouts',                      'Blowout & Styling',           'styling',    'Walk out camera-ready',                          45, 10, NULL,          false,  80),

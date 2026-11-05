@@ -1924,6 +1924,12 @@ made that way are real: name them ZZ and remove them.
   Styling). The website survey's Styling choices, both label maps and the
   pages' service lists and JSON-LD have it too.
 
+- **K18/Olaplex Treatment** (asked for 2026-11-06) is Bond Repair's name
+  now (migration 054; slug `bond-repair` kept, so bookings, prices and
+  stylists stay). ensure-schema's 052 line, which renamed it on every cold
+  start, carries the new name. The survey, both label maps, the pages'
+  menus, the Treatments page's heading and the service lists say it too.
+
 ## Small screens
 
 Checked on 2026-10-22 at 375, 390, 768 and 1440px against the real console

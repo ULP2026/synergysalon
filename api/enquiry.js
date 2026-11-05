@@ -65,6 +65,7 @@ const SERVICE_BY_LABEL = {
   "olaplex bond repair": "bond-repair",
   "k18 treatment": "bond-repair",
   "bond repair: olaplex & k18": "bond-repair",
+  "k18/olaplex treatment": "bond-repair",
   "condition treatment": "condition-treatment",
   "mask treatment": "mask-treatment",
   "ai scalp analysis": "ai-scalp-analysis",
