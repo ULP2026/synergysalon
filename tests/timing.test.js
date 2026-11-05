@@ -171,3 +171,12 @@ test('Partial Highlights has its own figures; Full Highlights times every other 
   assert.equal(ownPrice(withPartial, partial), 9500);
   assert.equal(ownPrice({ ...withPartial, items: { 'partial-highlights': { price: 110 } } }, partial), 11000);
 });
+
+test('the Color price is the price of any color service with none of its own', () => {
+  const details = { color: { on: true, price: 80, highlights: {} }, items: { balayage: { price: 150 } } };
+  assert.equal(ownPrice(details, single), 8000);
+  assert.equal(ownPrice(details, svc('full-highlights', 'Full Highlights', 'color', 150)), 8000);
+  assert.equal(ownPrice(details, svc('partial-highlights', 'Partial Highlights', 'color', 120)), 8000);
+  assert.equal(ownPrice(details, balayage), 15000, 'its own price wins');
+  assert.equal(ownPrice({ color: { on: true } }, single), null, 'never invented');
+});

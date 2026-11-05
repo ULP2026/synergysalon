@@ -1905,6 +1905,19 @@ made that way are real: name them ZZ and remove them.
   `tests/agency-login.integration.test.js` drives it, and refuses to run
   where that login already exists.
 
+- **Later still on 2026-11-05**: Available Hours' week total is its own
+  row under Lunch break (`.wh-sum`, `#whTotal`, `#whDays`), no longer by
+  the heading or on My Settings' tab. The Color row has a **Price**
+  (`data-kp="color"`, saved as `color.price`): every Color service without
+  its own price shows it as its hint (`data-inherit`, updated as it is
+  typed) and is booked at it (`ownPrice`: Partial and Full Highlights fall
+  back to it too); the onboarding check counts such a hinted price as a
+  price. Service names in the lists wrap rather than being cut, and My
+  Settings puts two services to a row only from 440px each, so nothing is
+  truncated at 1024px. Checked at 1440, 1024, 768, 390 and 360px in My
+  Settings and the Team window for clipped text, overlaps and anything
+  outside the card.
+
 ## Small screens
 
 Checked on 2026-10-22 at 375, 390, 768 and 1440px against the real console
