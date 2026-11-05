@@ -2853,6 +2853,7 @@
   .mw-tabs { margin: 2px 0 12px; }
   #myWorkSlot[data-mw="svc"] .mw-hrs, #myWorkSlot[data-mw="hrs"] .mw-svc { display: none; }
   #myWorkSlot .md-sec, #myWorkSlot .mw-long { display: none; }
+  body.agency #myWorkCard { display: none; }
   #myWorkSlot .wh-note { margin: 0 0 8px; }
   #myWorkSlot .svcs { gap: 4px; margin-bottom: 10px; }
   #myWorkSlot .svc { padding-top: 7px; padding-bottom: 7px; --svc-gap: 8px; gap: 8px 12px; }
@@ -16061,6 +16062,9 @@ async function start(landing) {
   }
   $('boot').classList.add('hidden');
   $('login').classList.add('hidden');
+  // The agency's backend login takes no appointments (isAgency), so it has
+  // no services, prices or hours of its own to set.
+  document.body.classList.toggle('agency', Boolean(me.user?.agency));
   // Somebody new completes their account before the app opens.
   if (me.user.onboarding) { showOnboarding(); return; }
   $('onboard').classList.add('hidden');

@@ -26,7 +26,7 @@
 import { waitUntil } from '@vercel/functions';
 import { DateTime } from 'luxon';
 
-import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
+import { assertSameOrigin, canManageTeam, notAgencySql, requireStaff } from '../../_lib/auth.js';
 import { query } from '../../_lib/db.js';
 import {
   busyBetween, calendarProblem, dropBlock, googleConfigured, pushBlock,
@@ -268,6 +268,8 @@ export default handler({
                  OR (to_jsonb(u) ->> 'google_ics') IS NOT NULL)
             -- Only their own column for anyone but the owner.
             AND ($2::boolean OR u.id = $3::uuid)
+            -- The agency's logins take no appointments, so have no column.
+            AND ${notAgencySql('u')}
           ORDER BY u.name`,
         [tenant.id, !chair, user.id],
       ).catch(() => ({ rows: [] }));

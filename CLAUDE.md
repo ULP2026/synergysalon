@@ -1892,6 +1892,19 @@ made that way are real: name them ZZ and remove them.
   pages), and the pages' service lists and JSON-LD. A new export brings the
   old lists back: re-apply with this list.
 
+- **The agency's login is backend-only** (asked for 2026-11-06: "we want
+  to work on the backend, we don't want to be on the team"). A login whose
+  email is in `TEAM_ADMIN_EMAILS` (`isAgency` in `auth.js`, today
+  support@unclelouieproductions.com) keeps every admin right
+  (`canManageTeam`), but `notAgencySql` leaves it out of the Team list and
+  roster (it still sees itself), the Clients stylist filters (`/me`'s
+  team), Appt. Book's columns and Karen's team roster; it never sees the
+  setup screens; `syncStylist` never gives it a bookable chair, whatever is
+  switched on; and its My Settings has no services, prices or hours card
+  (`me.user.agency`, `body.agency`). Give it the Admin role.
+  `tests/agency-login.integration.test.js` drives it, and refuses to run
+  where that login already exists.
+
 ## Small screens
 
 Checked on 2026-10-22 at 375, 390, 768 and 1440px against the real console

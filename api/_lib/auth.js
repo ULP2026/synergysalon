@@ -148,6 +148,27 @@ export function canManageTeam(user) {
     || TEAM_ADMIN_EMAILS.includes(String(user.email || '').trim().toLowerCase());
 }
 
+/**
+ * The agency's own logins (TEAM_ADMIN_EMAILS): admins of the app who work
+ * on it from behind, and are not on the salon's team (asked for
+ * 2026-11-06). They see and change everything an admin does, but no team
+ * list, stylist filter, Appt. Book column or Karen roster shows them to
+ * anybody else, they never skip into the setup screens, and they are never
+ * bookable (syncStylist).
+ */
+export function isAgency(user) {
+  return TEAM_ADMIN_EMAILS.includes(String(user?.email || '').trim().toLowerCase());
+}
+
+/**
+ * SQL for "this login is not the agency's", on a staff_users alias. The
+ * addresses are the code's own constant, never input, and quoted anyway.
+ */
+export function notAgencySql(alias) {
+  const list = TEAM_ADMIN_EMAILS.map((e) => `'${String(e).replace(/'/g, "''")}'`).join(', ');
+  return list ? `lower(trim(${alias}.email)) NOT IN (${list})` : 'true';
+}
+
 /** requireStaff, and then canManageTeam. */
 export async function requireTeamAdmin(req) {
   const user = await requireStaff(req);

@@ -27,6 +27,7 @@ import { DateTime } from 'luxon';
 
 import { contactDetail } from '../staff/_routes/contacts.js';
 import { availableSlots } from './availability.js';
+import { notAgencySql } from './auth.js';
 import { CLIENT_PRICES, ONLINE_BOOKING } from './config.js';
 import { pool, query } from './db.js';
 import { GOOGLE_CONNECTED_SQL } from './google-busy.js';
@@ -260,6 +261,7 @@ export async function deskReply(ctx, client, db = null) {
       const { rows: others } = mine ? { rows: [] } : await q(
         `SELECT u.name, u.role, u.status FROM staff_users u
           WHERE u.tenant_id = $1::uuid AND NOT EXISTS (SELECT 1 FROM stylists s WHERE s.staff_user_id = u.id)
+            AND ${notAgencySql('u')}
           ORDER BY u.name`,
         [tenant.id],
       );

@@ -18,6 +18,7 @@
  * Retiring somebody deactivates that row rather than deleting it. Appointments
  * point at it, and a past booking has to keep saying who did the work.
  */
+import { isAgency } from './auth.js';
 import { HttpError } from './http.js';
 
 /** The four switches in the team dialog are the four service categories. */
@@ -130,9 +131,12 @@ async function serviceIdsFor(client, tenantId, kinds, items = {}, ownerId = null
 export async function syncStylist(client, tenantId, user, { services, hours, title } = {}) {
   const kinds = SERVICE_KINDS.filter((k) => services?.[k]?.on);
   const ids = await serviceIdsFor(client, tenantId, kinds, services?.items, user.id);
+  // The agency's logins are never bookable (isAgency), whatever is switched
+  // on; read from the row, since not every caller passes the email.
+  const { rows: [who] } = await client.query('SELECT email FROM staff_users WHERE id = $1::uuid', [user.id]);
   // A kind switched on, or a service of their own that is on: either puts
   // them on the booking page.
-  const takesAppointments = kinds.length > 0 || ids.length > 0;
+  const takesAppointments = !isAgency(who) && (kinds.length > 0 || ids.length > 0);
 
   const { rows: found } = await client.query(
     'SELECT id, slug, active FROM stylists WHERE tenant_id = $1 AND staff_user_id = $2',

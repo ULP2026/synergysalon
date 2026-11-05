@@ -15,7 +15,7 @@
  * non-admin's copy.
  */
 import {
-  assertSameOrigin, canManageTeam, requireStaff, requireTeamAdmin, TEAM_ADMIN_ROLES,
+  assertSameOrigin, canManageTeam, notAgencySql, requireStaff, requireTeamAdmin, TEAM_ADMIN_ROLES,
 } from '../../_lib/auth.js';
 import { randomBytes, createHash } from 'node:crypto';
 
@@ -215,8 +215,9 @@ export default handler({
            FROM staff_users u
            LEFT JOIN stylists s ON s.staff_user_id = u.id
           WHERE u.tenant_id = $1 AND u.status = 'active' AND u.active
+            AND (${notAgencySql('u')} OR u.id = $2::uuid)
           ORDER BY u.name`,
-        [tenant.id],
+        [tenant.id, user.id],
       );
       const solo = (await listStandalone({ query }, tenant.id)).filter((st) => st.bookable);
       return json(res, 200, {
@@ -280,8 +281,10 @@ export default handler({
          LEFT JOIN staff_users a ON a.id = u.approved_by
          LEFT JOIN stylists s ON s.staff_user_id = u.id
         WHERE u.tenant_id = $1
+          -- The agency's logins are not on the team (isAgency); each sees itself.
+          AND (${notAgencySql('u')} OR u.id = $2::uuid)
         ORDER BY (u.status = 'pending') DESC, u.requested_at, u.name`,
-      [tenant.id],
+      [tenant.id, user.id],
     );
 
     // Stylists who take appointments but never sign in. They are on the same

@@ -5,7 +5,7 @@
  * the login form or the diary without a round trip that loses the URL someone
  * was trying to reach.
  */
-import { canManageTeam, needsOnboarding, requireStaff } from '../../_lib/auth.js';
+import { canManageTeam, isAgency, needsOnboarding, notAgencySql, requireStaff } from '../../_lib/auth.js';
 import { REMINDER_LEAD_HOURS } from '../../_lib/config.js';
 import { query } from '../../_lib/db.js';
 import { googleConfigured } from '../../_lib/google.js';
@@ -83,6 +83,8 @@ export default handler({
            LEFT JOIN stylists s ON s.staff_user_id = u.id
           WHERE u.tenant_id = $1 AND u.status = 'active'
             AND ($2::boolean OR u.id = $3::uuid)
+            -- The agency's logins are nobody's stylist filter (isAgency).
+            AND (${notAgencySql('u')} OR u.id = $3::uuid)
           ORDER BY u.name`,
         [tenant.id, canManage, user.id],
       ),
@@ -91,6 +93,8 @@ export default handler({
     return json(res, 200, {
       user: {
         name: user.name, email: user.email, role: user.role, canAdmin, canManageTeam: canManage,
+        // The agency's backend login: an admin, not on the team, never booked.
+        agency: isAgency(user),
         // Still to complete their account (2026-11-03): the console shows only
         // the setup screen, and every other endpoint refuses them (auth.js).
         onboarding: needsOnboarding(user),
