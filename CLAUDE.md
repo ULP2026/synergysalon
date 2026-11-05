@@ -577,7 +577,7 @@ made that way are real: name them ZZ and remove them.
   linked client (`karen.contact`) and closes the ticket. A "Karen · Step n
   of 4" strip that sat on the ticket was removed on request the same day.
   Karen's picture is the first frame of the salon's own clip of her waving
-  (2026-10-30, from karen.mp4: `assets/karen/karen-still.webp`, `KAREN_PIC`,
+  (2026-10-30, from karen.mp4: `assets/karen/karen-still-v2.webp` since 2026-11-05, `KAREN_PIC`,
   and `karen-wave.mp4`, `KAREN_WAVE`, 256px, 11.5s, played forward then
   backward so the loop never jumps, 180 KB), not a stylist's avatar. The
   header button is still and waves only while a mouse is on it or it has
@@ -1813,6 +1813,20 @@ made that way are real: name them ZZ and remove them.
     from the month's own data (two months when it crosses), the month's
     cells and chips, so open, add and drag to another day work as there;
     one row per day on a phone.
+  - **Later on 2026-11-05**: the calendar button opens the console's own
+    picker (`#dpPop`, `openDayPop`/`paintDayPop`, laid out as the salon's
+    Google Flights reference: the chosen date in a field on top with Today,
+    this month and the next side by side, Sunday first, arrows at the
+    sides, Done at the foot; one month under 640px; arrow keys, Enter,
+    Escape, double click). `#dayPicker` is now a hidden input that only
+    holds the day. Day/Week/Month is a dropdown (`#viewSel`), no longer
+    three buttons. **Karen wears a black coat and a purple shirt**: only
+    the clothes were recoloured, frame by frame, in the still, the waving
+    clip and the email picture (shading kept, face, hair, hand and the
+    276-frame loop untouched). They are new files, `karen-still-v2.webp`,
+    `karen-wave-v2.mp4`, `karen-email-v2.png`, because `/assets/` is cached
+    as immutable for a year and the old names would have kept the orange
+    coat in browsers; `karen-email.png` stays for emails already sent.
   - **No "Haircut"**: the generic service is switched off (migration 051,
     also in ensure-schema), so Cuts is Women's, Men's, Teen, Kids' and the
     Bang Trim, as the website survey already had it; the pages' service

@@ -587,19 +587,69 @@
   .dv-nav { display: flex; align-items: center; gap: 8px; }
   .dv-today { height: 42px; padding: 0 18px; font-size: .95rem; }
   .dv-pick { position: relative; display: inline-grid; }
-  /* The real date input sits under the calendar button, invisible, so a tap
-     on a phone opens the system picker even where showPicker() is missing. */
-  .dv-pick input[type=date] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none;
-                              border: 0; padding: 0; margin: 0; }
+  #pickDay[aria-expanded="true"] { background: var(--peri-pale); color: var(--indigo); border-color: var(--periwinkle); }
   .dv-when { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-left: 2px; }
   .dv-when b { font-size: var(--fs-md); font-weight: 650; color: var(--ink); line-height: 1.25; }
   .toolbar .dv-when .summary { display: block; margin: 0; font-size: var(--fs-sm); color: var(--muted); line-height: 1.35; text-align: left; }
-  .dv-seg { flex: none; margin-top: 3px; }
+  /* The view dropdown, a field like the others, on the right. */
+  .dv-view { position: relative; flex: none; display: block; margin: 0; }
+  .dv-view select { appearance: none; -webkit-appearance: none; width: 140px; height: 42px; margin: 0; padding: 0 40px 0 16px;
+                    border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); color: var(--ink);
+                    font: inherit; font-size: .95rem; font-weight: 500; cursor: pointer;
+                    transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .dv-view select:hover { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); background: var(--peri-pale); }
+  .dv-view select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .dv-view .ic { position: absolute; right: 14px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%);
+                 color: var(--muted); pointer-events: none; }
   @media (max-width: 560px) {
     .toolbar.dv-bar { flex-wrap: wrap; }
     .dv-left { width: 100%; }
-    .dv-seg { width: 100%; margin-top: 0; }
-    .dv-seg button { flex: 1; }
+    .dv-view, .dv-view select { width: 100%; }
+  }
+  /* The date picker: two months side by side under the calendar button. */
+  .dp { position: fixed; z-index: 900; width: 640px; max-width: calc(100vw - 32px); background: var(--card); color: var(--ink);
+        border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 18px 50px -12px rgba(30, 31, 92, .28), 0 2px 8px rgba(30, 31, 92, .08); }
+  .dp-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .dp-field { display: inline-flex; align-items: center; gap: 10px; min-width: 0; height: 42px; padding: 0 14px;
+              border: 2px solid var(--periwinkle); border-radius: 10px; font-size: var(--fs-sm); }
+  .dp-field .ic { width: 18px; height: 18px; color: var(--periwinkle); flex: none; }
+  .dp-field b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dp-reset { border: 0; background: none; padding: 6px 8px; border-radius: 8px; color: var(--link); font: inherit; font-size: var(--fs-sm);
+              font-weight: 500; cursor: pointer; }
+  .dp-reset:hover { background: var(--peri-pale); }
+  .dp-body { position: relative; padding: 16px 44px 8px; }
+  .dp-months { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+  .dp-m h3 { margin: 0 0 12px; text-align: center; font-size: 1rem; font-weight: 500; color: var(--ink); }
+  .dp-g { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 2px; text-align: center; }
+  .dp-g .dp-w { font-size: var(--fs-xs); font-weight: 600; color: var(--muted); padding: 4px 0 8px; }
+  .dp-d { justify-self: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; color: var(--ink);
+          font: inherit; font-size: var(--fs-sm); font-weight: 500; cursor: pointer; font-variant-numeric: tabular-nums;
+          transition: background-color var(--t) var(--ease), color var(--t) var(--ease); }
+  .dp-d:hover { background: var(--peri-pale); color: var(--indigo); }
+  .dp-d.past { color: var(--faint); font-weight: 400; }
+  .dp-d.today { box-shadow: inset 0 0 0 1.5px var(--periwinkle); }
+  .dp-d[aria-pressed="true"] { background: var(--periwinkle); color: #fff; box-shadow: none; }
+  .dp-d:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .dp-arrow { position: absolute; top: 14px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+              border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer;
+              box-shadow: 0 2px 6px rgba(30, 31, 92, .12); }
+  .dp-arrow:hover { background: var(--peri-pale); color: var(--indigo); }
+  .dp-arrow .ic { width: 18px; height: 18px; }
+  .dp-arrow.prev { left: 8px; }
+  .dp-arrow.next { right: 8px; }
+  .dp-foot { display: flex; justify-content: flex-end; padding: 10px 18px 16px; border-top: 1px solid var(--line); }
+  .dp-done { height: 38px; padding: 0 26px; border: 0; border-radius: 999px; background: var(--periwinkle); color: #fff;
+             font: inherit; font-weight: 600; cursor: pointer; }
+  .dp-done:hover { opacity: .9; }
+  .dp-done:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  @media (max-width: 640px) {
+    .dp-months { grid-template-columns: minmax(0, 1fr); }
+    .dp-months .dp-m + .dp-m { display: none; }
+    .dp-body { padding: 14px 44px 6px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .dp:not(.hidden) { animation: dpIn .16s var(--ease) both; }
+    @keyframes dpIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
   }
   /* The Week view: seven days side by side, a list each; stacked on a phone. */
   .wk-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); flex: 1; min-height: 0;
@@ -3935,8 +3985,9 @@
               <button class="iconbtn lg" id="prevDay" aria-label="Previous day"><svg class="ic"><use href="#i-left"/></svg></button>
               <button class="iconbtn lg" id="nextDay" aria-label="Next day"><svg class="ic"><use href="#i-right"/></svg></button>
               <span class="dv-pick">
-                <button type="button" class="iconbtn lg" id="pickDay" aria-label="Choose a date"><svg class="ic"><use href="#i-calendar"/></svg></button>
-                <input type="date" id="dayPicker" aria-label="Choose a date" tabindex="-1">
+                <button type="button" class="iconbtn lg" id="pickDay" aria-label="Choose a date" aria-haspopup="dialog" aria-expanded="false" aria-controls="dpPop"><svg class="ic"><use href="#i-calendar"/></svg></button>
+                <!-- Holds the day for the code that reads it; the picker is #dpPop. -->
+                <input type="hidden" id="dayPicker">
               </span>
             </div>
             <div class="dv-when" aria-live="polite">
@@ -3944,11 +3995,16 @@
               <span class="summary" id="dayHeading"></span>
             </div>
           </div>
-          <div class="seg dv-seg" id="viewSeg" role="group" aria-label="Calendar view">
-            <button type="button" data-view="day" aria-pressed="true">Day</button>
-            <button type="button" data-view="week" aria-pressed="false">Week</button>
-            <button type="button" data-view="month" aria-pressed="false">Month</button>
-          </div>
+          <!-- A dropdown since 2026-11-05 (asked for; it was three buttons). -->
+          <label class="dv-view">
+            <span class="sr-only">Calendar view</span>
+            <select id="viewSel">
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+            </select>
+            <svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>
+          </label>
         </div>
         <!-- Kept for renderCalBar(), which stays hidden: the shop's calendars
              are on /staff/calendars, and one list is enough. -->
@@ -4934,6 +4990,24 @@
 </dialog>
 <canvas id="cashBurst" class="pr-burst" aria-hidden="true"></canvas>
 
+<!-- Appt. Book's date picker (asked for 2026-11-05, after the salon's
+     reference, a two-month calendar as Google Flights draws it): the chosen
+     date on top with Today, this month and the next side by side with
+     arrows to step, Sunday first, and Done. One month on a phone.
+     openDayPop(), paintDayPop(). -->
+<div id="dpPop" class="dp hidden" role="dialog" aria-modal="false" aria-label="Choose a date">
+  <div class="dp-top">
+    <span class="dp-field"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg><b id="dpChosen"></b></span>
+    <button type="button" class="dp-reset" id="dpToday">Today</button>
+  </div>
+  <div class="dp-body">
+    <button type="button" class="dp-arrow prev" id="dpPrev" aria-label="Previous month"><svg class="ic"><use href="#i-left"/></svg></button>
+    <div class="dp-months" id="dpMonths"></div>
+    <button type="button" class="dp-arrow next" id="dpNext" aria-label="Next month"><svg class="ic"><use href="#i-right"/></svg></button>
+  </div>
+  <div class="dp-foot"><button type="button" class="dp-done" id="dpDone">Done</button></div>
+</div>
+
 <dialog id="personDlg" class="xl" aria-labelledby="pxName">
   <header class="px-head">
     <!-- Their stylist's headshot on the corner of their circle (asked for
@@ -4946,7 +5020,7 @@
     </div>
     <div class="acts">
       <!-- Karen, from the client's own window (asked for 2026-11-05). -->
-      <button type="button" class="btn quiet px-help" id="pxHelp" title="Ask Karen about this client"><img id="pxHelpPic" src="/assets/karen/karen-still.webp" alt="" aria-hidden="true">Need Help?</button>
+      <button type="button" class="btn quiet px-help" id="pxHelp" title="Ask Karen about this client"><img id="pxHelpPic" src="/assets/karen/karen-still-v2.webp" alt="" aria-hidden="true">Need Help?</button>
       <button type="button" class="btn" id="pxBook"><svg class="ic"><use href="#i-calendar-plus"/></svg>Book appointment</button>
       <button type="button" class="iconbtn lg" id="pxClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
     </div>
@@ -9219,9 +9293,7 @@ function setView(next, date) {
   calView = next;
   try { localStorage.setItem('ss-cal-view', next); } catch { /* private mode: this tab still remembers */ }
   const grid = next !== 'day';
-  for (const b of $('viewSeg').querySelectorAll('button')) {
-    b.setAttribute('aria-pressed', String(b.dataset.view === next));
-  }
+  $('viewSel').value = next;
   const unit = { day: 'day', week: 'week', month: 'month' }[next];
   $('prevDay').setAttribute('aria-label', `Previous ${unit}`);
   $('nextDay').setAttribute('aria-label', `Next ${unit}`);
@@ -9232,10 +9304,7 @@ function setView(next, date) {
   return loadDay(date || day || salonToday());
 }
 
-$('viewSeg').onclick = (e) => {
-  const b = e.target.closest('button[data-view]');
-  if (b && b.dataset.view !== calView) setView(b.dataset.view);
-};
+$('viewSel').onchange = (e) => { if (e.target.value !== calView) setView(e.target.value); };
 
 function stepView(n) {
   if (calView === 'month') return loadMonth(shiftMonth(calMonth, n));
@@ -9250,25 +9319,104 @@ $('todayBtn').onclick = () => {
   if (calView === 'week') return loadWeek(weekOf(t));
   return loadDay(t);
 };
-// The calendar button opens the browser's own date picker (showPicker where
-// the browser has it; elsewhere the invisible input under the button takes
-// the tap), and a date picked opens in whichever view is showing.
-$('pickDay').onclick = () => {
-  const inp = $('dayPicker');
-  inp.value = day || salonToday();
-  try { if (inp.showPicker) { inp.showPicker(); return; } } catch { /* not allowed here: fall through */ }
-  inp.style.pointerEvents = 'auto';
-  inp.focus();
-  inp.click();
-  setTimeout(() => { inp.style.pointerEvents = ''; }, 400);
-};
-$('dayPicker').onchange = (e) => {
-  const v = e.target.value;
+// The calendar button opens the date picker (asked for 2026-11-05, laid
+// out as the salon's reference: two months side by side, Sunday first, the
+// chosen date on top, Done at the foot; one month on a phone). A day picked
+// is held until Done, which opens it in whichever view is showing.
+const dp = { first: '', pick: '' };     // the left month (YYYY-MM), the day picked
+function dpMonthHtml(ym, today) {
+  const [y, m] = ym.split('-').map(Number);
+  const first = new Date(y, m - 1, 1, 12);
+  const days = new Date(y, m, 0, 12).getDate();
+  const title = first.toLocaleDateString(LOCALE, { month: 'long', year: 'numeric' });
+  const cells = [];
+  for (let i = 0; i < first.getDay(); i += 1) cells.push('<span></span>');
+  for (let n = 1; n <= days; n += 1) {
+    const iso = `${ym}-${String(n).padStart(2, '0')}`;
+    const cls = [iso < today ? 'past' : '', iso === today ? 'today' : ''].filter(Boolean).join(' ');
+    cells.push(`<button type="button" class="dp-d ${cls}" data-dp="${iso}" aria-pressed="${iso === dp.pick}"
+      aria-label="${esc(longDate(iso))}">${n}</button>`);
+  }
+  return `<div class="dp-m"><h3>${esc(title)}</h3><div class="dp-g">
+    ${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((w) => `<span class="dp-w" aria-hidden="true">${w}</span>`).join('')}
+    ${cells.join('')}</div></div>`;
+}
+function paintDayPop() {
+  const today = salonToday();
+  $('dpChosen').textContent = longDate(dp.pick);
+  $('dpMonths').innerHTML = dpMonthHtml(dp.first, today) + dpMonthHtml(shiftMonth(dp.first, 1), today);
+}
+function placeDayPop() {
+  const pop = $('dpPop');
+  const r = $('pickDay').getBoundingClientRect();
+  const w = pop.offsetWidth;
+  const left = Math.max(16, Math.min(r.left, innerWidth - w - 16));
+  pop.style.left = `${left}px`;
+  pop.style.top = `${Math.min(r.bottom + 8, Math.max(16, innerHeight - pop.offsetHeight - 16))}px`;
+}
+function openDayPop() {
+  dp.pick = day || salonToday();
+  dp.first = monthOf(dp.pick);
+  paintDayPop();
+  $('dpPop').classList.remove('hidden');
+  $('pickDay').setAttribute('aria-expanded', 'true');
+  placeDayPop();
+  ($('dpMonths').querySelector('[aria-pressed="true"]') || $('dpDone')).focus({ preventScroll: true });
+}
+function closeDayPop(focus = true) {
+  if ($('dpPop').classList.contains('hidden')) return;
+  $('dpPop').classList.add('hidden');
+  $('pickDay').setAttribute('aria-expanded', 'false');
+  if (focus) $('pickDay').focus({ preventScroll: true });
+}
+function applyDay(v) {
   if (!v) return;
+  $('dayPicker').value = v;
   if (calView === 'month') { day = v; loadMonth(monthOf(v)); return; }
   if (calView === 'week') { day = v; loadWeek(weekOf(v)); return; }
   loadDay(v);
+}
+$('pickDay').onclick = (e) => {
+  e.stopPropagation();
+  if ($('dpPop').classList.contains('hidden')) openDayPop(); else closeDayPop();
 };
+$('dpMonths').onclick = (e) => {
+  const b = e.target.closest('[data-dp]');
+  if (!b) return;
+  dp.pick = b.dataset.dp;
+  paintDayPop();
+  $('dpMonths').querySelector(`[data-dp="${dp.pick}"]`)?.focus({ preventScroll: true });
+};
+// A double click is a pick and Done in one.
+$('dpMonths').ondblclick = (e) => {
+  const b = e.target.closest('[data-dp]');
+  if (b) { closeDayPop(); applyDay(b.dataset.dp); }
+};
+$('dpPrev').onclick = () => { dp.first = shiftMonth(dp.first, -1); paintDayPop(); };
+$('dpNext').onclick = () => { dp.first = shiftMonth(dp.first, 1); paintDayPop(); };
+$('dpToday').onclick = () => { dp.pick = salonToday(); dp.first = monthOf(dp.pick); paintDayPop(); };
+$('dpDone').onclick = () => { closeDayPop(); applyDay(dp.pick); };
+// Arrow keys move the pick a day or a week; Enter is Done; Escape closes.
+$('dpPop').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { e.preventDefault(); closeDayPop(); return; }
+  const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+  if (step && e.target.closest('[data-dp]')) {
+    e.preventDefault();
+    dp.pick = addDays(dp.pick, step);
+    const ym = monthOf(dp.pick);
+    if (ym < dp.first) dp.first = ym;
+    if (ym > shiftMonth(dp.first, 1)) dp.first = shiftMonth(ym, -1);
+    paintDayPop();
+    $('dpMonths').querySelector(`[data-dp="${dp.pick}"]`)?.focus({ preventScroll: true });
+  }
+  if (e.key === 'Enter' && e.target.closest('[data-dp]')) { e.preventDefault(); $('dpDone').click(); }
+});
+document.addEventListener('pointerdown', (e) => {
+  if ($('dpPop').classList.contains('hidden')) return;
+  if (!e.target.closest('#dpPop, #pickDay')) closeDayPop(false);
+});
+addEventListener('resize', () => { if (!$('dpPop').classList.contains('hidden')) placeDayPop(); });
+addEventListener('scroll', () => { if (!$('dpPop').classList.contains('hidden')) placeDayPop(); }, { passive: true });
 
 // ───────────────────────────── clients ─────────────────────────────
 
@@ -10887,8 +11035,8 @@ $('bookForm').onsubmit = async (e) => {
 // was a drawn robot in the console's periwinkle and pink (2026-10-22).
 // Her picture is the first frame of her wave (2026-10-30), so the still and
 // the moving Karen are the same person in the same place.
-const KAREN_PIC = '/assets/karen/karen-still.webp';
-const KAREN_WAVE = '/assets/karen/karen-wave.mp4';
+const KAREN_PIC = '/assets/karen/karen-still-v2.webp';
+const KAREN_WAVE = '/assets/karen/karen-wave-v2.mp4';
 const KAREN_KINDS = {
   color: /colou?r|balayage|highlight|foil|toner|gloss|dye/,
   treatments: /treatment|keratin|olaplex|k18|bond|scalp|brazilian/,

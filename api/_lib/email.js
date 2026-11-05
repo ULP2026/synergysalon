@@ -485,7 +485,7 @@ function appUrlFor(link, appUrl) {
  * not every mail app shows webp or rounds corners. Left out when the salon
  * has no web address to serve them from (a test, a preview).
  */
-const KAREN_EMAIL_PIC = '/assets/karen/karen-email.png';
+const KAREN_EMAIL_PIC = '/assets/karen/karen-email-v2.png';
 
 /** A stored number as the salon writes it, (813) 555-0199; anything else as it is. */
 function usPhoneText(raw) {
