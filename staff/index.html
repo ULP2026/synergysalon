@@ -1263,11 +1263,10 @@
   .px-head h2 { margin: 0; font-size: 1.4rem; letter-spacing: -.015em; overflow-wrap: anywhere; }
   .px-head .chips { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
   /* Status and tags in the header, edited there (2026-11-03). */
-  .px-head .px-status { position: relative; cursor: pointer; background: var(--card); font-weight: 600; color: var(--indigo); margin: 0; padding-right: 7px; }
+  .px-head .px-status { position: relative; cursor: pointer; background: var(--card); font-weight: 600; color: var(--indigo); margin: 0; }
   .px-head .px-status select { appearance: none; -webkit-appearance: none; border: 0; background: none; padding: 0 2px 0 0; margin: 0;
                                height: auto; width: auto; min-width: 0; field-sizing: content; font: inherit; color: inherit; cursor: pointer; box-shadow: none; }
   .px-head .px-status select:focus { outline: none; box-shadow: none; }
-  .px-head .px-status .ic { width: 11px; height: 11px; pointer-events: none; }
   .px-head .px-status:hover { border-color: var(--periwinkle); }
   .px-head .px-status:focus-within, .px-tagbtn:focus-visible, .px-tag button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .px-tags { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -1806,7 +1805,6 @@
 
   /* Settings for anyone but the owner (2026-11-04): the team as a roster, greyed. */
   .tm-row.ro { cursor: default; opacity: .78; filter: saturate(.7); }
-  .tm-row.ro:hover { transform: none; box-shadow: none; }
   .tm-row.ro.me { opacity: 1; filter: none; }
   .ro-note { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 8px 12px; border-radius: 10px;
              background: var(--raise); color: var(--muted); font-size: var(--fs-sm); }
@@ -1854,6 +1852,30 @@
   }
   /* The two cash-out windows. */
   .prd { width: min(420px, calc(100vw - 32px)); padding: 0; border-radius: 22px; }
+  #cashDlg { width: min(500px, calc(100vw - 32px)); }
+  /* The cash-out summary: totals, then one line per completed service. */
+  .prd-sum { width: 100%; margin-top: 18px; text-align: left; }
+  .prd-sum:empty { display: none; }
+  .ps-tot { border: 1px solid var(--line); border-radius: 14px; padding: 4px 14px; background: var(--raise); }
+  .ps-tot div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: var(--fs-sm); color: var(--muted); }
+  .ps-tot div + div { border-top: 1px solid var(--line); }
+  .ps-tot b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ps-tot .ps-net, .ps-tot .ps-net b { color: var(--ink); font-weight: 700; }
+  .ps-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 16px 0 6px; }
+  .ps-h h3 { margin: 0; font-size: var(--fs-sm); font-weight: 600; }
+  .ps-h span { font-size: var(--fs-xs); color: var(--muted); }
+  .ps-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: 14px; }
+  .ps-row { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 12px; font-size: var(--fs-sm); }
+  .ps-row + .ps-row { border-top: 1px solid var(--line); }
+  .ps-row time { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
+  .ps-row span { min-width: 0; }
+  .ps-row span b { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ps-row span small { display: block; color: var(--muted); font-size: var(--fs-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ps-row > b { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .ps-row > b.none { font-weight: 400; color: var(--faint); font-size: var(--fs-xs); }
+  .ps-foot { margin: 8px 2px 0; font-size: var(--fs-xs); color: var(--muted); line-height: 1.45; }
+  .ps-empty { padding: 16px 12px; font-size: var(--fs-sm); color: var(--muted); text-align: center; }
+  @media (max-width: 420px) { .ps-row { grid-template-columns: 70px minmax(0, 1fr) auto; gap: 8px; padding: 9px 10px; } }
   .prd-in { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 30px 24px 22px; }
   .prd-x { position: absolute; top: 10px; right: 10px; }
   .prd-ic { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; margin-bottom: 10px;
@@ -2500,14 +2522,14 @@
   .au-sw:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .au-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; border: 0; background: none;
              font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0; }
-  /* Email History: a second card on Karen AI (2026-11-05; on Automation before). */
-  #mailCard { margin-top: 16px; }
+  /* Email History: the third box under Chat and Call History on Karen AI (2026-11-05). */
   /* Email History, its own module in Marketing. */
   .ml-filters { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 12px; }
   .ml-filters .search { flex: 1 1 220px; }
   .ml-filters .search input { height: 38px; font-size: var(--fs-sm); }
   .ml-filters .search .ic { top: 10px; width: 18px; height: 18px; }
   .ml-filters select { flex: 0 1 260px; height: 38px; font-size: var(--fs-sm); }
+  @media (max-width: 520px) { .ml-filters select { flex: 1 1 100%; } }
   /* Finance. */
   .fin-seg { margin: 4px 0 14px; }
   .fin-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
@@ -2561,21 +2583,7 @@
   #mailCard.open .ml-chev { transform: rotate(180deg); }
   .ml-content { margin-top: 14px; }
   #mailCard:not(.open) .ml-content { display: none; }
-  .ml-list { display: grid; gap: 6px; max-width: 760px; }
-  button.ml-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto 16px; gap: 12px; align-items: center; width: 100%;
-                  padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink);
-                  font-family: inherit; font-size: var(--fs-sm); text-align: left; cursor: pointer;
-                  transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease); }
-  button.ml-row:hover { background: var(--raise); border-color: var(--line-2); }
-  button.ml-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .ml-row .au-ic { width: 26px; height: 26px; border-radius: 8px; }
-  .ml-row .au-ic .ic { width: 14px; height: 14px; }
-  .ml-row .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ml-row .who b { font-weight: 600; }
-  .ml-row .who span:not(.chip) { color: var(--muted); }
-  .ml-row .when { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
-  .ml-row .go { color: var(--faint); display: grid; place-items: center; }
-  .ml-row .go .ic { width: 16px; height: 16px; }
+  button.kc-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .ml-info { position: relative; flex: none; }
   .ml-info > button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%;
                       background: none; color: var(--faint); cursor: pointer; transition: color var(--t) var(--ease), background-color var(--t) var(--ease); }
@@ -2589,8 +2597,6 @@
   .ml-info:hover .ml-tip, .ml-info:focus-within .ml-tip, .ml-info.open .ml-tip { opacity: 1; visibility: visible; transform: none; }
   .ml-more { display: flex; justify-content: center; max-width: 760px; padding-top: 12px; }
   @media (max-width: 760px) {
-    button.ml-row { grid-template-columns: minmax(0, 1fr) auto; }
-    .ml-row .au-ic, .ml-row .go { display: none; }
     .ml-tip { width: min(260px, calc(100vw - 56px)); }
   }
   .au-row .go { display: grid; color: var(--faint); transition: transform var(--t) var(--ease), color var(--t) var(--ease); }
@@ -2888,9 +2894,7 @@
             padding: 11px 14px; border-radius: 12px; border: 1px solid transparent; background: transparent;
             font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%;
             transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease); }
-  .tm-row:hover { background: var(--raise); }
   .tm-row.me { background: #f1f2fb; border-color: #d9dcf1; }
-  .tm-row.me:hover { border-color: var(--line-2); }
   .tm-pic { position: relative; width: 40px; height: 40px; }
   .tm-pic img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block; background: var(--peri-pale); }
   .tm-pic .pen { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%;
@@ -3252,14 +3256,14 @@
             padding: 10px 12px; border-radius: 12px; border: 1px solid transparent; background: transparent; width: 100%;
             font: inherit; color: inherit; text-align: left; cursor: pointer;
             transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
-  .tm-row:hover { background: var(--raise); border-color: var(--line); box-shadow: 0 6px 16px -12px rgba(30, 31, 92, .45); transform: translateY(-1px); }
+  /* No hover effect on a team member (asked for 2026-11-05): the row stays
+     still under the pointer; a click still opens their window. */
   .tm-row.me { background: #f1f2fb; border-color: #d9dcf1; }
-  .tm-row.me:hover { border-color: var(--line-2); }
   .tm-row.off { opacity: .6; }
   .tm-pic, .tm-pic img { width: 44px; height: 44px; }
   .tm-pic img { border-radius: 50%; object-fit: cover; background: var(--peri-pale); }
   .tm-pic .pen { opacity: 0; transition: opacity var(--t) var(--ease); }
-  .tm-row:hover .pen, .tm-row.me .pen { opacity: 1; }
+  .tm-row.me .pen { opacity: 1; }
   .tm-who b { font-size: .92rem; }
   .tm-who i { font-style: normal; font-weight: 500; font-size: .78rem; color: var(--muted); }
   .tm-who i.tm-you { margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
@@ -4218,9 +4222,11 @@
             </div>
             <div class="kx-content" id="kcContent"><div class="kc-list" id="kcList" role="list" aria-label="Calls to Karen"></div></div>
           </div>
+          <!-- Email History, laid out as the two above (asked for
+               2026-11-05): the same box, mark, header and one-line rows. -->
+          <div class="kx" id="mailCard"></div>
         </section>
       </div>
-      <div class="card" id="mailCard"></div>
       </div>
 
       <!-- Payment (2026-10-30): what was the Payroll tab, renamed, with
@@ -4966,6 +4972,10 @@
     <h2 id="cashDlgTitle">Cash out</h2>
     <p class="prd-amt" id="cashDlgAmt">$0.00</p>
     <p class="prd-lbl">Earned Income</p>
+    <!-- What the balance is made of (asked for 2026-11-05): the totals, then
+         every completed service with its date and what it earned, all from
+         the server's own count (earningsOf in payroll.js). -->
+    <div class="prd-sum" id="cashDlgSum"></div>
     <p class="prd-to" id="cashDlgTo"></p>
     <p class="note hidden" id="cashDlgNote" role="alert"></p>
     <button type="button" class="btn prd-cta" id="cashMeOut">Cash Me Out</button>
@@ -5126,6 +5136,8 @@ const I18N_ES = {
   'Next week': 'Semana siguiente', 'Previous month': 'Mes anterior', 'Next month': 'Mes siguiente', 'Choose a date': 'Elegir una fecha',
   'No appointments': 'Sin citas', 'Closed': 'Cerrado', 'Earned Income': 'Ingresos ganados',
   'Cash Out': 'Cobrar', 'Cash out': 'Cobrar', 'Cash Me Out': '¡Págame!', 'Partial Cashout': 'Cobro parcial',
+  'Completed services': 'Servicios completados', 'Ready to cash out': 'Listo para cobrar', 'Already paid out': 'Ya pagado',
+  'On its way to your bank': 'En camino a tu banco', 'No price': 'Sin precio',
   'Your payouts': 'Tus pagos', 'Team payouts': 'Pagos del equipo', 'Stripe connected': 'Stripe conectado',
   'Connect Stripe': 'Conectar Stripe', 'Finish setup': 'Terminar configuración', 'View in Stripe': 'Ver en Stripe',
   'Need Help?': '¿Necesitas ayuda?', 'Paid': 'Pagado',
@@ -6422,6 +6434,7 @@ function renderMailHistory() {
   $('mailCard').innerHTML = `
     <div class="ml-top">
       <button type="button" class="ml-toggle" data-ml-toggle aria-expanded="${open}" aria-controls="mlContent">
+        <span class="kx-ic" aria-hidden="true">${ic('mail')}</span>
         <span class="ml-t"><h2>Email History</h2>
           <p>${me?.user?.canManageTeam ? 'Every email the automations have sent, newest first, team invitations included.' : 'Every email sent to your clients, newest first.'}</p></span>
       </button>
@@ -6480,21 +6493,23 @@ function paintMailLog(note) {
   const row = (s) => {
     const a = names[s.kind];
     const what = a ? a.name : 'Email';
+    // One row a send, as Call History has one row a call.
+    const when = fmtWhen(s.sentAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     return `
-      <button type="button" class="ml-row" data-sent="${esc(s.id)}" aria-label="Open the ${esc(what)} sent to ${esc(s.name)}" title="${esc(s.email)}">
-        <span class="au-ic">${ic(a ? a.icon : 'mail')}</span>
-        <span class="who"><b>${esc(s.name)}</b> <span>· ${esc(what)}</span>${s.status === 'failed' ? ' <span class="chip warn tl-st">Failed</span>' : ''}</span>
-        <span class="when">${esc(fmtWhen(s.sentAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span>
-        <span class="go">${ic('right')}</span>
+      <button type="button" class="kc-row" role="listitem" data-sent="${esc(s.id)}" aria-label="Open the ${esc(what)} sent to ${esc(s.name)}">
+        <span class="kc-ic" aria-hidden="true">${ic(a ? a.icon : 'mail')}</span>
+        <span style="min-width:0"><b>${esc(s.name)}</b><small>${esc([what, s.email].filter(Boolean).join(' · '))}</small></span>
+        <span class="kc-r">${s.status === 'failed' ? '<span class="chip warn">Failed</span>' : ''}
+          <time datetime="${esc(s.sentAt)}" title="${esc(when)}">${esc(when)}</time></span>
       </button>`;
   };
   const filtered = mailLog.q || mailLog.kind;
   list.innerHTML = note && !mailLog.rows.length
-    ? `<div class="au-empty">${esc(note)}</div>`
+    ? `<p class="kh-empty">${esc(note)}</p>`
     : mailLog.rows.length
-      ? `<div class="ml-list">${mailLog.rows.map(row).join('')}</div>
+      ? `<div class="kc-list" role="list" aria-label="Emails sent">${mailLog.rows.map(row).join('')}</div>
          ${mailLog.next ? '<div class="ml-more"><button type="button" class="btn quiet sm" data-ml-more>Show more</button></div>' : ''}`
-      : `<div class="au-empty">${filtered ? 'No email matches that.' : 'No emails sent yet. They appear here as the automations send them.'}</div>`;
+      : `<p class="kh-empty">${filtered ? 'No email matches that.' : 'No emails sent yet. They appear here as the automations send them.'}</p>`;
 }
 
 /**
@@ -6602,6 +6617,38 @@ function paintPayroll() {
       : '<p class="muted small co-empty">Nobody has cashed out yet.</p>'}` : ''}`;
 }
 
+/**
+ * What the balance is made of, for the cash-out window: earned from every
+ * completed service, less what is paid out and on its way, and then each
+ * service with its date, client and earnings. Every figure is the server's
+ * (balanceOf and earningsOf share one rule); nothing is added up here.
+ */
+function cashSummary(b, e) {
+  if (!e) return '';
+  const n = e.count;
+  const line = (label, cents, cls = '') => `<div class="${cls}"><span>${esc(label)}</span><b>${esc(cents)}</b></div>`;
+  const tot = `<div class="ps-tot">
+    ${line(`Earned from ${n} completed service${n === 1 ? '' : 's'}`, finMoney(b.earnedCents))}
+    ${b.paidCents ? line('Already paid out', `− ${finMoney(b.paidCents)}`) : ''}
+    ${b.pendingCents ? line('On its way to your bank', `− ${finMoney(b.pendingCents)}`) : ''}
+    ${line('Ready to cash out', finMoney(b.availableCents), 'ps-net')}
+  </div>`;
+  const row = (r) => `<div class="ps-row" role="listitem">
+      <time datetime="${esc(r.at)}">${esc(fmtWhen(r.at, { month: 'short', day: 'numeric', year: 'numeric' }))}</time>
+      <span><b>${esc(r.service)}</b><small>${esc(r.client)}</small></span>
+      ${r.cents == null ? '<b class="none">No price</b>' : `<b>${esc(finMoney(r.cents))}</b>`}
+    </div>`;
+  const foot = [
+    e.unpriced ? `${e.unpriced} visit${e.unpriced === 1 ? ' has' : 's have'} no price, so ${e.unpriced === 1 ? 'it adds' : 'they add'} nothing to your earnings.` : '',
+    e.rows.length < n ? `Showing the newest ${e.rows.length.toLocaleString()} of ${n.toLocaleString()}; the totals count all of them.` : '',
+  ].filter(Boolean).join(' ');
+  return `${tot}
+    <div class="ps-h"><h3>Completed services</h3>${n ? `<span>${esc(finMoney(e.totalCents))} in all</span>` : ''}</div>
+    ${n ? `<div class="ps-list" role="list" aria-label="Completed services and what each earned">${e.rows.map(row).join('')}</div>`
+      : '<div class="ps-list"><p class="ps-empty">No completed services yet. Each one shows here after the visit.</p></div>'}
+    ${foot ? `<p class="ps-foot">${esc(foot)}</p>` : ''}`;
+}
+
 /** The cash-out window, with what the server says can be paid now. */
 function openCashOut() {
   const p = payroll;
@@ -6609,6 +6656,7 @@ function openCashOut() {
   const b = p.balance;
   const st = p.stripe || {};
   $('cashDlgAmt').textContent = finMoney(b.availableCents);
+  $('cashDlgSum').innerHTML = cashSummary(b, p.earnings);
   const go = $('cashMeOut');
   const part = $('cashPartial');
   note($('cashDlgNote'), '');
@@ -9733,9 +9781,12 @@ function headerChips(c) {
   const tags = Array.isArray(c.tags) ? c.tags : [];
   // A native list, styled as the chip: it opens above the profile window,
   // which the app's own pop-up menu cannot (the window is in the top layer).
+  // No arrow beside it (asked for 2026-11-05): it sat outside the list,
+  // so pressing it did nothing and it read as a collapse that never
+  // collapsed. The chip itself opens the list.
   const status = `<label class="chip px-status" title="Change status"><span class="sr">Status</span>
       <select data-px-status aria-label="Status">${Object.entries(STATUS_LABEL).map(([k, v]) =>
-        `<option value="${k}" ${k === c.status ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>${ic('down')}</label>`;
+        `<option value="${k}" ${k === c.status ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>`;
   if (c.tags == null) return [status, c.cardOnFile ? cardChip() : ''].join(' ');
   if (pxTagEdit) {
     return `${status}${c.cardOnFile ? ` ${cardChip()}` : ''}

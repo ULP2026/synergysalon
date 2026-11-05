@@ -1832,6 +1832,29 @@ made that way are real: name them ZZ and remove them.
     Bang Trim, as the website survey already had it; the pages' service
     lists and JSON-LD dropped it too. The integration tests book Women's
     Cut where they booked Haircut.
+  - **Later the same day** (asked for):
+    - (Appt. Book's Day/Week/Month dropdown was asked for in the same
+      round; it is `#viewSel` from #110, above, not a second one.)
+    - **Email History is laid out as Chat and Call History**: `#mailCard`
+      is a third `.kx` box inside `#kaHistory` on the Karen AI card (it was
+      a card of its own under it), with the envelope mark, the same header,
+      and one row a send in Call History's `kc-row` (name, kind and address,
+      time on the right, Failed when refused). Search and the kind filter
+      are kept.
+    - **No hover on a team member**: the Team list's rows no longer lift,
+      shade or show the pencil under the pointer; a click still opens them.
+    - **The Cash Out window says what the balance is made of**: earned from
+      N completed services, less already paid out and on its way, equals
+      ready to cash out; then every service behind it, newest first, with
+      its date, what it was (each line of a visit of several services),
+      the client and what it earned ("No price" for an unpriced one, which
+      adds nothing and is said under the list). `earningsOf` in
+      `payroll.js` (on `GET /api/staff/payroll` as `earnings`) and
+      `balanceOf` share one clause (`EARNED_FROM`), so the list cannot add
+      up to anything but the balance; the newest 1,000 are listed and the
+      totals count all. The payroll test checks the two agree.
+    - **The client window's status chip has no arrow**: it sat outside the
+      native list, so pressing it did nothing. The chip still opens the list.
 
 ## Small screens
 

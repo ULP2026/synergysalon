@@ -1,7 +1,8 @@
 /**
  * GET  /api/staff/payroll: the signed-in person's Payroll: their earned
- *      income still to be paid (the balance), their Stripe account's state,
- *      and their cash outs. The owner also gets the team's cash outs.
+ *      income still to be paid (the balance), every visit it was earned
+ *      from (`earnings`), their Stripe account's state, and their cash outs.
+ *      The owner also gets the team's cash outs.
  * POST /api/staff/payroll {action: 'connect'}: a Stripe onboarding link for
  *      their own Express account (made on the first connect).
  * POST /api/staff/payroll {action: 'dashboard'}: a link into it.
@@ -43,16 +44,25 @@ import { tenantForUser } from '../../_lib/tenant.js';
 const MIN_CENTS = 100;            // $1: below that a bank transfer is not worth making
 const MAX_CENTS = 5000000;        // $50,000 in one go; a typo guard, not a policy
 
+/**
+ * The visits that count as earned, as one clause for both the balance and
+ * the list in the cash-out window (asked for 2026-11-05), so the list can
+ * never add up to something other than the balance. $1 tenant, $2 the
+ * chair's stylist ids.
+ */
+const EARNED_FROM = `FROM appointments a JOIN services v ON v.id = a.service_id
+      WHERE a.tenant_id = $1::uuid AND a.stylist_id = ANY($2::uuid[])
+        AND a.starts_at < now() AND a.status::text NOT IN ('cancelled', 'no_show')`;
+const EARNED_CENTS = 'COALESCE(a.price_cents, v.price_cents)';
+const EARNINGS_SHOWN = 1000;      // the newest; the totals always count every one
+
 /** Earned, less what is paid out or on its way. `db` may be a transaction's client. */
 export async function balanceOf(user, db = null) {
   const q = db ? db.query.bind(db) : query;
   const chair = await chairOf(user, db);
   const ids = chair ? chair.ids : [];
   const earned = ids.length ? (await q(
-    `SELECT COALESCE(sum(COALESCE(a.price_cents, v.price_cents)), 0)::bigint AS cents
-       FROM appointments a JOIN services v ON v.id = a.service_id
-      WHERE a.tenant_id = $1::uuid AND a.stylist_id = ANY($2::uuid[])
-        AND a.starts_at < now() AND a.status::text NOT IN ('cancelled', 'no_show')`,
+    `SELECT COALESCE(sum(${EARNED_CENTS}), 0)::bigint AS cents ${EARNED_FROM}`,
     [user.tenant_id, ids],
   )).rows[0].cents : 0;
   const { rows } = await q(
@@ -70,6 +80,49 @@ export async function balanceOf(user, db = null) {
     paidCents,
     pendingCents,
     availableCents: Math.max(0, earnedCents - paidCents - pendingCents),
+  };
+}
+
+/**
+ * Every visit behind the earned figure, newest first: when, what, for whom
+ * and what it earned. A visit with no price is listed and earns nothing,
+ * as the balance counts it; it is never given a guessed price.
+ */
+export async function earningsOf(user) {
+  const chair = await chairOf(user);
+  const ids = chair ? chair.ids : [];
+  if (!ids.length) return { count: 0, unpriced: 0, totalCents: 0, rows: [] };
+  const [{ rows: [t] }, { rows }] = await Promise.all([
+    query(
+      `SELECT count(*)::int AS count, count(*) FILTER (WHERE ${EARNED_CENTS} IS NULL)::int AS unpriced,
+              COALESCE(sum(${EARNED_CENTS}), 0)::bigint AS cents ${EARNED_FROM}`,
+      [user.tenant_id, ids],
+    ),
+    query(
+      `SELECT a.id, a.ref, a.starts_at, a.guest_name, v.name AS service,
+              to_jsonb(a) -> 'services' AS lines, ${EARNED_CENTS} AS cents
+         ${EARNED_FROM}
+        ORDER BY a.starts_at DESC, a.id
+        LIMIT ${EARNINGS_SHOWN}`,
+      [user.tenant_id, ids],
+    ),
+  ]);
+  return {
+    count: t.count,
+    unpriced: t.unpriced,
+    totalCents: Number(t.cents),
+    rows: rows.map((r) => {
+      // A visit of several services keeps each line as booked (031).
+      const names = Array.isArray(r.lines) ? r.lines.map((x) => x && x.name).filter(Boolean) : [];
+      return {
+        id: r.id,
+        ref: r.ref,
+        at: r.starts_at,
+        client: r.guest_name,
+        service: names.length ? names.join(' + ') : r.service,
+        cents: r.cents == null ? null : Number(r.cents),
+      };
+    }),
   };
 }
 
@@ -251,10 +304,14 @@ export default handler({
     const user = await requireStaff(req);
     await settleStuck(user);
     const { acct } = await storedAccount(user);
-    const [balance, stripe, mine] = await Promise.all([balanceOf(user), stripeOf(acct), history(user, false)]);
+    const [balance, stripe, mine, earnings] = await Promise.all([
+      balanceOf(user), stripeOf(acct), history(user, false), earningsOf(user),
+    ]);
     const owner = seesAll(user);
     return json(res, 200, {
       balance,
+      // What the earned income is made of, for the cash-out window.
+      earnings,
       stripe,
       history: mine,
       // The owner sees the team's payouts too, and settles the manual

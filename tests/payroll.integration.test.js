@@ -136,6 +136,13 @@ test('payroll: the balance, Stripe connect, Cash Me Out, Partial Cashout and eve
     let r = await call(n, 'GET');
     assert.equal(r.status, 200);
     assert.equal(r.body.balance.availableCents, 12550, 'two past kept visits: $80 + $45.50');
+    // The cash-out window's list is exactly those two, newest first, and adds up to the balance.
+    const e = r.body.earnings;
+    assert.deepEqual(e.rows.map((x) => [x.ref, x.cents, x.client]), [['ZZPR2', 4550, 'ZZ PR Client'], ['ZZPR1', 8000, 'ZZ PR Client']]);
+    assert.equal(e.count, 2);
+    assert.equal(e.totalCents, r.body.balance.earnedCents);
+    assert.equal(e.rows.reduce((s, x) => s + x.cents, 0), e.totalCents);
+    assert.ok(e.rows.every((x) => x.service && x.at), 'each line says what and when');
     assert.equal(r.body.stripe.configured, true);
     assert.equal(r.body.stripe.connected, false);
 
