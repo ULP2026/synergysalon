@@ -37,3 +37,10 @@ test("a color timed on its own keeps the kind's processing break when it still f
   assert.deepEqual(ownTiming({ ...details, items: { 'single-process': { duration: 60 } } }, color),
     { durationMin: 60, breaks: [] }, 'too short for the break: none');
 });
+
+test('Partial Highlights is kept with its own Start, Break and Finish', async () => {
+  const { servicesFrom: from } = await import('../api/staff/_routes/profile.js');
+  const out = from({ color: { on: true, start: 40, finish: 30, partial: { start: 30, break: 30, finish: 20 }, highlights: { start: 60, finish: 50 } } });
+  assert.deepEqual(out.color.partial, { start: 30, break: 30, finish: 20, duration: 80 });
+  assert.equal(out.color.highlights.duration, 110);
+});

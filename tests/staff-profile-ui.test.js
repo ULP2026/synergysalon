@@ -40,7 +40,7 @@ test('the Salon Profile has no About and no standing Save button', () => {
 });
 
 test('the team window says Available Hours and Special Instructions When Booking Clients', () => {
-  assert.ok(html.includes('<div class="md-sec">Available Hours</div>'));
+  assert.ok(html.includes('<div class="md-sec wh-sec">Available Hours <span class="wh-total" id="whTotal" data-no-i18n></span></div>'));
   assert.ok(html.includes('Special Instructions When Booking Clients'));
   assert.ok(!html.includes('Notes / Special Instructions for Clients'));
 });

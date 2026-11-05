@@ -294,13 +294,16 @@ export function servicesFrom(value) {
     let duration = minutesFrom(v.duration, 5, 720, 'A duration');
     if (k === 'color') {
       const color = partsFrom(v, 'Color');
-      const highlights = partsFrom(v.highlights, 'Highlights');
+      const highlights = partsFrom(v.highlights, 'Full highlights');
+      // Partial Highlights, its own three parts (2026-11-05).
+      const partial = partsFrom(v.partial, 'Partial highlights');
       // The three parts are the length; a total typed beside them is not a
       // second opinion.
       duration = total(color) ?? duration;
       out[k] = {
         on, price, duration, ...color,
         highlights: { ...highlights, duration: total(highlights) },
+        partial: { ...partial, duration: total(partial) },
       };
     } else {
       out[k] = { on, price, duration };

@@ -1856,6 +1856,42 @@ made that way are real: name them ZZ and remove them.
     - **The client window's status chip has no arrow**: it sat outside the
       native list, so pressing it did nothing. The chip still opens the list.
 
+- **The service menu, 2026-11-05 (evening)** (asked for). Migration 052
+  (also in ensure-schema): **Cuts** lose Teen Cut; **Treatments** gain
+  Condition Treatment and Mask Treatment, and Bond Repair is one service,
+  "Bond Repair: Olaplex & K18" (the survey's separate Olaplex and K18
+  choices are one now); **Color** loses Highlights & Foils and Color & Cut
+  and gains **Partial Highlights** and **Full Highlights**, keeping
+  Balayage, Single Process Color, Biolage Highlights, Gloss or Toner and
+  Corrective Color; **Styling**: Bridal Styling is off and Special Event &
+  Updo is renamed **Updos** (slug `special-event` kept), Extensions is
+  renamed **Consultation** (slug `extensions` kept). Switched off, never
+  deleted. New services were linked once to everyone who offers their kind
+  (guarded so a stylist's untick is not undone on the next cold start).
+  **Color's three fields** above its services: Color, Partial Highlights,
+  Full Highlights, each Start, Break, Finish and its total under one header
+  (`timeRow`, `.tr-h`). Full Highlights is the set that was "Highlights"
+  (still `color.highlights`); Partial is new (`color.partial`,
+  `servicesFrom`). Partial and Full are services too, so their tick and
+  price sit on their row (`FIELD_SVCS`, read as `.svc-it`) and they are
+  not repeated in the list. timing.js: `timingKey` gives `partial` for a
+  partial highlight (its figures, else the Full ones), `highlights` for
+  every other highlight, balayage or foil. The rows lay out by the card's
+  own width (`container-type`), stacking under 620px, because the Team
+  window is narrower than My Settings. **Available Hours totals**
+  (`paintHoursTotals`, `dayMinutes`): each day shows its bookable time
+  under its name ("7h 30m available": the slots, less the flexible 30 min
+  lunch when at least 30 minutes of the day fall between 11 and 1), and
+  the week's total is beside the heading (`#whTotal`) and on My Settings'
+  Available hours tab (`#mwHrsTot`). **The website survey matches** in all
+  nine pages (Color: Single Process, Partial Highlights, Full Highlights,
+  Balayage, Other; Cuts without Teen or Color & Cut; Treatments with Bond
+  Repair as one, Condition and Mask; Styling: Blowout, Updos,
+  Consultation), and so do `SERVICE_SLUG` there and `SERVICE_BY_LABEL` in
+  enquiry.js (old labels still map where a service exists, for cached
+  pages), and the pages' service lists and JSON-LD. A new export brings the
+  old lists back: re-apply with this list.
+
 ## Small screens
 
 Checked on 2026-10-22 at 375, 390, 768 and 1440px against the real console
