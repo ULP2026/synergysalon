@@ -2870,7 +2870,10 @@
   /* An opened kind: its services two to a row where there is room, no
      header row (each box says "min"), and closer together. */
   #myWorkSlot .svc .svc-bd { gap: 8px; padding-top: 8px; }
-  #myWorkSlot .svc .svc-list { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); column-gap: 14px; gap: 2px 14px; }
+  #myWorkSlot .svc .svc-list { grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); column-gap: 14px; gap: 2px 14px; }
+  /* Its body is one column no wider than the card (2026-11-05): a 320px
+     service column used to push the whole card past a phone's edge. */
+  .svc .svc-bd { grid-template-columns: minmax(0, 1fr); }
   #myWorkSlot .svc .svc-it-price input { height: 30px; }
   #myWorkSlot .svc .svc-list > .svc-it-h { display: none; }
   #myWorkSlot .svc .svc-list > .hint { grid-column: 1 / -1; margin-top: 4px; }
@@ -2995,23 +2998,60 @@
   /* Color's timing, on a second row under its description: Start, Break and
      Finish, once for color and once for highlights, each with its total. The
      Break is processing time, when the stylist is free for somebody else. */
-  .svc .svc-time { display: grid; gap: 6px; margin: 0; }
-  .svc .svc-time .tr { display: grid; grid-template-columns: 76px repeat(3, minmax(0, 1fr)) 64px; gap: 8px; align-items: end; }
-  .svc .svc-time .tr > b { font-size: .78rem; font-weight: 600; padding-bottom: 9px; }
-  .svc .svc-time .tot { font-size: .78rem; color: var(--muted); padding-bottom: 9px; text-align: right; white-space: nowrap; }
-  .svc .svc-time .svc-f input { padding-right: 34px; }
-  .svc .svc-time .svc-f::after { content: "min"; position: absolute; right: 8px; bottom: 9px; color: var(--muted); font-size: .75rem; pointer-events: none; }
-  .svc .svc-time .svc-f.brk > span { color: var(--link); }
+  /* Laid out by its own width, not the screen's: the Team window is
+     narrower than My Settings, and the six figures need about 640px. */
+  .svc .svc-time { display: grid; gap: 8px; margin: 0; container-type: inline-size; }
+  /* Color's three fields (2026-11-05): Color, Partial Highlights and Full
+     Highlights, one bordered row each, the figures under one header. */
+  .svc .svc-time .tr, .svc .svc-time .tr-h {
+    display: grid; grid-template-columns: minmax(150px, 1.4fr) repeat(3, minmax(64px, 1fr)) 64px 104px;
+    grid-template-areas: "nm st br fi tot pr"; column-gap: 10px; align-items: center; }
+  .svc .svc-time .tr { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .svc .svc-time .tr-h { padding: 0 13px; font-size: .68rem; font-weight: 600; color: var(--muted); }
+  .svc .svc-time .tr-h span:nth-child(2) { grid-area: st; } .svc .svc-time .tr-h span:nth-child(3) { grid-area: br; color: var(--link); }
+  .svc .svc-time .tr-h span:nth-child(4) { grid-area: fi; } .svc .svc-time .tr-h span:nth-child(5) { grid-area: tot; text-align: right; }
+  .svc .svc-time .tr-h span:nth-child(6) { grid-area: pr; }
+  .svc .svc-time .tr-svc { display: contents; }
+  .svc .svc-time .tr-nm { grid-area: nm; display: flex; align-items: center; gap: 10px; min-width: 0; margin: 0; }
+  .svc .svc-time .tr-nm > span, .svc .svc-time span.tr-nm { display: grid; gap: 1px; min-width: 0; }
+  /* Color's name lines up with the two ticked names under it. */
+  .svc .svc-time span.tr-nm { padding-left: 28px; }
+  .svc .svc-time .tr-nm b { font-size: .86rem; font-weight: 600; color: var(--ink); line-height: 1.25; }
+  .svc .svc-time .tr-nm small { font-size: .7rem; color: var(--muted); line-height: 1.3; white-space: normal; }
+  .svc .svc-time .svc-tick span { white-space: normal; overflow: visible; }
+  .svc .svc-time .tr-svc.unticked .tr-nm b { color: var(--faint); text-decoration: line-through; }
+  .svc .svc-time .svc-it.unticked .svc-tick span { text-decoration: none; }
+  .svc .svc-time [data-f=start] { grid-area: st; } .svc .svc-time [data-f=break] { grid-area: br; }
+  .svc .svc-time [data-f=finish] { grid-area: fi; } .svc .svc-time .tr-price { grid-area: pr; }
+  .svc .svc-time .svc-f { margin: 0; position: relative; }
+  .svc .svc-time .svc-f > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .svc .svc-time .svc-f input { height: 36px; padding-right: 34px; }
+  .svc .svc-time .tr-price input { padding-right: 10px; }
+  .svc .svc-time .svc-f:not(.tr-price)::after { content: "min"; position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+                                               color: var(--muted); font-size: .72rem; pointer-events: none; }
+  .svc .svc-time .tot { grid-area: tot; font-size: .82rem; font-weight: 600; color: var(--ink); text-align: right; white-space: nowrap; }
+  .svc .svc-time .tot small { display: none; }
   .svc .tot-f::after { content: none; }
   .svc .tot-f input { padding-right: 10px; }
   .svc .svc-time .hint { font-size: .72rem; color: var(--muted); margin: 0; }
   .svc.off .svc-time { opacity: .5; }
-  @media (max-width: 520px) {
-    .svc .svc-time .tr { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .svc .svc-time .tr > b { grid-column: 1 / -1; padding-bottom: 0; }
-    .svc .svc-time .tot { grid-column: 1 / -1; text-align: left; padding-bottom: 0; }
-    /* Three to a row is too narrow for "min" and the spinner beside a number. */
-    .svc .svc-time .svc-f::after { content: none; }
+  @container (max-width: 620px) {
+    .svc .svc-time .tr-h { display: none; }
+    .svc .svc-time .tr { grid-template-columns: repeat(3, minmax(0, 1fr));
+                         grid-template-areas: "nm nm nm" "st br fi" "tot pr pr"; row-gap: 8px; padding: 10px; }
+    .svc .svc-time .svc-f > span { position: static; width: auto; height: auto; clip: auto; display: block;
+                                   font-size: .68rem; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
+    .svc .svc-time [data-f=break] > span { color: var(--link); }
+    .svc .svc-time .svc-f:not(.tr-price)::after { top: auto; bottom: 10px; transform: none; }
+    .svc .svc-time .tot { text-align: left; align-self: end; padding-bottom: 8px; }
+    .svc .svc-time .tot small { display: block; font-size: .68rem; font-weight: 600; color: var(--muted); }
+    .svc .svc-time .tr-none { display: none; }
+    /* Its label sits above the box here, so the $ goes by the box's foot. */
+    #myWorkSlot .svc .svc-time .tr-price::before, .svc .svc-time .tr-price::before { top: auto; bottom: 10px; transform: none; }
+  }
+  @container (max-width: 300px) {
+    /* Too narrow for "min" beside a number and its spinner. */
+    .svc .svc-time .svc-f:not(.tr-price)::after { content: none; }
     .svc .svc-time .svc-f input { padding-right: 6px; }
   }
   /* Money, Subscription (2026-11-02). */
@@ -3386,6 +3426,16 @@
   #memberHours .hr-add .ic { width: 14px; height: 14px; }
   #memberHours .hr-err { grid-column: 1 / -1; margin: 0; font-size: var(--fs-xs); font-weight: 500; color: var(--warn); }
   #memberHours .hr.bad { border-color: var(--warn); }
+  /* Totals (2026-11-05): each day's bookable time under its name, the
+     week's beside the heading and on My Settings' Available hours tab. */
+  #memberHours .hr b { display: grid; gap: 1px; }
+  #memberHours .hr-tot { font-size: var(--fs-xs); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #memberHours .hr.off .hr-tot { color: var(--faint); }
+  .wh-sec { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .wh-total { font-size: var(--fs-xs); font-weight: 600; color: var(--indigo); letter-spacing: 0; text-transform: none;
+              font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mw-tot { margin-left: 6px; font-weight: 500; opacity: .8; font-variant-numeric: tabular-nums; }
+  .mw-tot:empty { display: none; }
   /* A time in a day that is off lets the tap through: the day switches on. */
   #memberHours .hr.off .hr-shifts input:disabled { pointer-events: none; }
   #memberHours .hr.off .hr-shifts { cursor: pointer; }
@@ -4092,7 +4142,7 @@
                  of the one card, not one long column. -->
             <div class="seg mw-tabs" id="mwTabs" role="group" aria-label="Show">
               <button type="button" data-mw="svc" aria-pressed="true">Services &amp; pricing</button>
-              <button type="button" data-mw="hrs" aria-pressed="false">Available hours</button>
+              <button type="button" data-mw="hrs" aria-pressed="false">Available hours<span class="mw-tot" id="mwHrsTot" data-no-i18n></span></button>
             </div>
             <div id="myWorkSlot" data-mw="svc"></div>
             <div class="my-work-acts"><button type="button" class="btn" id="myWorkSave">Save my services &amp; hours</button></div>
@@ -4469,7 +4519,7 @@
              schedules: only the admin sets a stylist's hours (hoursOpen()). -->
         <!-- "Available Hours" since 2026-11-03 (on request; it was Working
              hours): the times a guest can be booked with this person. -->
-        <div class="md-sec">Available Hours</div>
+        <div class="md-sec wh-sec">Available Hours <span class="wh-total" id="whTotal" data-no-i18n></span></div>
         <p class="small muted wh-note" id="whNote">The times guests can book with this person. A day switched off is closed.</p>
         <div id="memberHoursWrap" class="wh wh-off">
           <div class="hrs" id="memberHours"></div>
@@ -12274,10 +12324,10 @@ let memberOrig = {};        // what the modal opened with, so only real changes 
  * each covers, so nobody has to guess which box a balayage goes in.
  */
 const SERVICE_KINDS = [
-  ['cuts', 'Cuts', 'Haircuts, trims and bangs'],
-  ['treatments', 'Treatments', 'Keratin, bond repair, scalp care'],
-  ['color', 'Color', 'Balayage, highlights, single process'],
-  ['styling', 'Styling', 'Blowouts, updos, special events'],
+  ['cuts', 'Cuts', 'Women, men, kids and bang trims'],
+  ['treatments', 'Treatments', 'Keratin, bond repair, conditioning, masks, scalp'],
+  ['color', 'Color', 'Color, partial and full highlights, balayage'],
+  ['styling', 'Styling', 'Blowouts, updos and consultations'],
 ];
 
 let memberPicFallback = null;  // the salon's portrait of them, if there is one
@@ -12306,14 +12356,30 @@ const minsLabel = (n) => (n ? `${Math.floor(n / 60) ? `${Math.floor(n / 60)}h` :
  * Finish are the stylist working; the Break is processing, when they can take
  * somebody else, and the diary leaves it open (timing.js on the server).
  */
-function timeRow(group, label, p = {}, on) {
-  const field = (f, name, min, max, ph) => `<label class="svc-f${f === 'break' ? ' brk' : ''}"><span>${name}</span>
+function timeRow(group, label, p = {}, on, { sub = '', svc = null, item = {}, kindPrice = null } = {}) {
+  const field = (f, name, min, max, ph) => `<label class="svc-f${f === 'break' ? ' brk' : ''}" data-f="${f}"><span>${name}</span>
       <input type="number" min="${min}" max="${max}" step="5" inputmode="numeric" placeholder="${ph}"
         data-t="${group}.${f}" aria-label="${esc(`${label} ${name.toLowerCase()} in minutes`)}" value="${p[f] ?? ''}" ${on ? '' : 'disabled'}></label>`;
-  return `<div class="tr" data-group="${group}"><b>${esc(label)}</b>
+  // Partial and Full Highlights are services as well as timings (2026-11-05):
+  // their row carries the service's own tick and price, read with the list's
+  // (.svc-it), so they are not listed twice.
+  const ticked = item.on !== false;
+  const price = item.price ?? kindPrice;
+  const name = svc
+    ? `<span class="svc-it tr-svc${ticked ? '' : ' unticked'}" data-item="${esc(svc.slug)}">
+        <label class="svc-tick tr-nm"><input type="checkbox" ${ticked ? 'checked' : ''} ${on ? '' : 'disabled'}
+          aria-label="${esc(label)} offered"><span><b>${esc(label)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></label>
+        <label class="svc-f price tr-price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
+          data-it="price" aria-label="${esc(label)} price" value="${price != null && price !== '' ? Number(price).toFixed(2) : ''}" ${on && ticked ? '' : 'disabled'}></label>
+        <input type="hidden" data-it="duration" value="">
+      </span>`
+    : `<span class="tr-nm"><b>${esc(label)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="tr-price tr-none" aria-hidden="true"></span>`;
+  return `<div class="tr" data-group="${group}">${name}
       ${field('start', 'Start', 5, 480, '30')}${field('break', 'Break', 0, 240, '30')}${field('finish', 'Finish', 5, 480, '30')}
-      <span class="tot" data-tot="${group}">${minsLabel(timeTotal(p))}</span></div>`;
+      <span class="tot" data-tot="${group}"><small>Total</small>${minsLabel(timeTotal(p))}</span></div>`;
 }
+/** Partial and Full Highlights: the two services shown as Color's fields, not in its list. */
+const FIELD_SVCS = { partial: 'partial-highlights', highlights: 'full-highlights' };
 const timeTotal = (p) => {
   const n = (v) => (v === '' || v == null ? null : Number(v));
   const [a, b, c] = [n(p.start), n(p.break), n(p.finish)];
@@ -12336,9 +12402,10 @@ function svcDefaultMins(row, svc) {
   const parts = (g) => {
     const tr = row.querySelector(`.tr[data-group="${g}"]`);
     if (!tr) return null;
-    return timeTotal(Object.fromEntries([...tr.querySelectorAll('input')].map((i) => [i.dataset.t.split('.')[1], i.value])));
+    return timeTotal(Object.fromEntries([...tr.querySelectorAll('input[data-t]')].map((i) => [i.dataset.t.split('.')[1], i.value])));
   };
   if (row.dataset.svc === 'color') {
+    if (/partial/i.test(svc.name) && HIGHLIGHTISH.test(svc.name)) return parts('partial') || parts('highlights') || svc.durationMin || null;
     return (HIGHLIGHTISH.test(svc.name) ? parts('highlights') : parts('color')) || svc.durationMin || null;
   }
   return svc.durationMin || null;
@@ -12368,16 +12435,25 @@ function paintServices(services = {}, own = []) {
     // No length on the kind itself (asked for 2026-11-04): each service has
     // its own minutes, below. A length saved on the kind before is carried
     // into each of its services that has none, so nothing typed is lost.
+    // Color's three clearly labelled fields above its services (asked for
+    // 2026-11-05): Color, Partial Highlights and Full Highlights, each Start,
+    // Break (processing, when the stylist is free) and Finish with its total.
+    // Full Highlights is the set that was "Highlights", so what was typed
+    // there is kept. Partial and Full are services too: their tick and price
+    // are on their row, and they are not repeated in the list below.
+    const fieldSvc = (g) => list.find((x) => x.slug === FIELD_SVCS[g]) || null;
     const timing = key === 'color' ? `<div class="svc-time">
-          ${timeRow('color', 'Color', v, v.on)}
-          ${timeRow('highlights', 'Highlights', v.highlights || {}, v.on)}
-          <p class="hint">In minutes, for any color service below with no minutes of its own. Highlights also times balayage and foils. Color &amp; Cut adds your Cuts time after Finish.</p>
+          <div class="tr-h" aria-hidden="true"><span></span><span>Start</span><span>Break</span><span>Finish</span><span>Total</span><span>Price</span></div>
+          ${timeRow('color', 'Color', v, v.on, { sub: 'Single process, gloss and corrective' })}
+          ${timeRow('partial', 'Partial Highlights', v.partial || {}, v.on, { svc: fieldSvc('partial'), item: items[FIELD_SVCS.partial] || {}, kindPrice: v.price })}
+          ${timeRow('highlights', 'Full Highlights', v.highlights || {}, v.on, { svc: fieldSvc('highlights'), item: items[FIELD_SVCS.highlights] || {}, kindPrice: v.price, sub: 'Also times balayage and Biolage' })}
+          <p class="hint">Minutes. Break is processing time, when you are free for another client. These time any color service below that has no minutes of its own.</p>
         </div>` : '';
     // Each service its own price (asked for 2026-11-04: pricing sits under
     // the services, not the kind). A kind's old single price is carried into
     // every service of it that has none yet, shown here so it can be
     // changed, and saved per service from then on.
-    const rows = list.map((x) => {
+    const rows = list.filter((x) => key !== 'color' || !Object.values(FIELD_SVCS).includes(x.slug)).map((x) => {
       const it = items[x.slug] || {};
       const ticked = it.on !== false;
       const price = it.price ?? v.price;
@@ -12416,6 +12492,7 @@ function paintServices(services = {}, own = []) {
   const lunchOn = services.lunch !== false;
   $('memberLunch').querySelector('.switch').setAttribute('aria-checked', String(lunchOn));
   $('memberLunch').classList.toggle('off', !lunchOn);
+  paintHoursTotals();
   paintOwn();
 }
 
@@ -12583,8 +12660,8 @@ $('memberSvcs').oninput = (e) => {
   const group = e.target.dataset.t?.split('.')[0];
   if (!group) return;
   const row = e.target.closest('.tr');
-  const p = Object.fromEntries([...row.querySelectorAll('input')].map((i) => [i.dataset.t.split('.')[1], i.value]));
-  row.querySelector('.tot').textContent = minsLabel(timeTotal(p));
+  const p = Object.fromEntries([...row.querySelectorAll('input[data-t]')].map((i) => [i.dataset.t.split('.')[1], i.value]));
+  row.querySelector('.tot').innerHTML = `<small>Total</small>${esc(minsLabel(timeTotal(p)))}`;
   if (group === 'color') {
     const tot = e.target.closest('.svc').querySelector('[data-f=total]');
     if (tot) tot.value = timeTotal(p) ? minsLabel(timeTotal(p)) : '';
@@ -12688,13 +12765,57 @@ function paintHours(hours = []) {
     return `<div class="hr ${on ? '' : 'off'}" data-day="${n}" data-label="${label}">
       <button type="button" class="switch" role="switch" aria-checked="${on}"
         aria-label="${label} worked"><span></span></button>
-      <b>${label}</b>
+      <b>${label}<small class="hr-tot" data-no-i18n></small></b>
       <span class="hr-shifts">${shiftsHtml(label, shifts, on)}</span>
       <button type="button" class="hr-add" data-hr-add${on && shifts.length < MAX_SHIFTS ? '' : ' hidden'}>${ic('plus')}Add hours</button>
       <p class="hr-err" role="alert" hidden></p>
     </div>`;
   }).join('');
+  paintHoursTotals();
 }
+
+/**
+ * Total available hours (asked for 2026-11-05): each day's slots added up,
+ * less the flexible half-hour lunch where it falls (on, and at least 30
+ * minutes of the day inside 11 AM to 1 PM, which is when availability.js
+ * keeps it free), so the figure is the time guests can really book. A slot
+ * typed wrong (empty, backwards) counts nothing until it is fixed. Shown
+ * under each day, beside the Available Hours heading and on My Settings'
+ * Available hours tab, and kept up to date as hours change.
+ */
+const LUNCH_FROM = 11 * 60, LUNCH_TO = 13 * 60, LUNCH_MIN = 30;
+function dayMinutes(row) {
+  if (row.querySelector('.switch').getAttribute('aria-checked') !== 'true') return null;
+  let total = 0; let inLunch = 0;
+  for (const h of readDay(row)) {
+    if (!h.starts || !h.ends) continue;
+    const a = hmOf(h.starts); const b = hmOf(h.ends);
+    if (!(b > a)) continue;
+    total += b - a;
+    inLunch += Math.max(0, Math.min(b, LUNCH_TO) - Math.max(a, LUNCH_FROM));
+  }
+  const lunchOn = $('memberLunch').querySelector('.switch').getAttribute('aria-checked') === 'true';
+  const lunch = lunchOn && inLunch >= LUNCH_MIN ? LUNCH_MIN : 0;
+  return { total, lunch, open: Math.max(0, total - lunch) };
+}
+const hrsLabel = (n) => (n ? `${Math.floor(n / 60) ? `${Math.floor(n / 60)}h` : ''}${n % 60 ? ` ${n % 60}m` : ''}`.trim() : '0h');
+function paintHoursTotals() {
+  let week = 0; let days = 0;
+  for (const row of $('memberHours').querySelectorAll('.hr')) {
+    const d = dayMinutes(row);
+    const out = row.querySelector('.hr-tot');
+    if (!out) continue;
+    if (!d) { out.textContent = 'Closed'; out.removeAttribute('title'); continue; }
+    week += d.open; if (d.open) days += 1;
+    out.textContent = `${hrsLabel(d.open)} available`;
+    out.title = d.lunch ? `${hrsLabel(d.total)} of hours, less the 30 min lunch` : `${hrsLabel(d.total)} of hours`;
+  }
+  const line = `${hrsLabel(week)} a week${days ? ` · ${days} day${days === 1 ? '' : 's'}` : ''}`;
+  $('whTotal').textContent = line;
+  $('mwHrsTot').textContent = week ? `· ${hrsLabel(week)}` : '';
+}
+$('memberHours').addEventListener('input', () => paintHoursTotals());
+$('memberHours').addEventListener('change', () => paintHoursTotals());
 
 /** A day's slots as typed. */
 const readDay = (row) => [...row.querySelectorAll('.hr-sh')].map((sh) => {
@@ -12706,6 +12827,7 @@ function paintDay(row, list) {
   row.querySelector('.hr-shifts').innerHTML = shiftsHtml(row.dataset.label, list, on);
   row.querySelector('.hr-add').hidden = !on || list.length >= MAX_SHIFTS;
   hoursCheck(row);
+  paintHoursTotals();
 }
 
 /**
@@ -12915,6 +13037,7 @@ $('memberLunch').onclick = (e) => {
   const on = sw.getAttribute('aria-checked') !== 'true';
   sw.setAttribute('aria-checked', String(on));
   $('memberLunch').classList.toggle('off', !on);
+  paintHoursTotals();
 };
 $('memberHours').onclick = (e) => {
   const row = e.target.closest('.hr');
@@ -12952,6 +13075,7 @@ $('memberHours').onclick = (e) => {
   row.querySelector('.hr-add').hidden = !on || readDay(row).length >= MAX_SHIFTS;
   if (dead) row.querySelector('input[type=time]').focus();
   hoursCheck(row);
+  paintHoursTotals();
 };
 
 /** What the rows say, in the shape the API validates: one entry a time slot. */
@@ -12979,10 +13103,10 @@ function readServices() {
     // services on the menu.
     const kept = row.dataset.dur === '' || row.dataset.dur == null ? null : num(row.dataset.dur);
     v.duration = row.dataset.svc === 'color' || !its.length ? kept : null;
-    // Color: Start, Break and Finish for color, and again for highlights.
+    // Color: Start, Break and Finish for color, partial and full highlights.
     for (const tr of row.querySelectorAll('.svc-time .tr')) {
       const p = {};
-      for (const i of tr.querySelectorAll('input')) p[i.dataset.t.split('.')[1]] = num(i.value);
+      for (const i of tr.querySelectorAll('input[data-t]')) p[i.dataset.t.split('.')[1]] = num(i.value);
       if (tr.dataset.group === 'color') Object.assign(v, p);
       else v[tr.dataset.group] = p;
     }
@@ -13710,7 +13834,7 @@ $('memberForm').onsubmit = async (e) => {
       if (v.on && v.duration != null && !(Number.isInteger(v.duration) && v.duration >= 5 && v.duration <= 720)) {
         note($('memberNote'), `The ${label} duration is a number of minutes, from 5 to 720.`); return;
       }
-      for (const [p, name] of key === 'color' ? [[v, 'Color'], [v.highlights || {}, 'Highlights']] : []) {
+      for (const [p, name] of key === 'color' ? [[v, 'Color'], [v.partial || {}, 'Partial Highlights'], [v.highlights || {}, 'Full Highlights']] : []) {
         if (!v.on) break;
         const bad = ['start', 'break', 'finish'].find((x) => p[x] != null && !(Number.isInteger(p[x]) && p[x] >= 0));
         if (bad) { note($('memberNote'), `${name} ${bad} is a whole number of minutes.`); return; }

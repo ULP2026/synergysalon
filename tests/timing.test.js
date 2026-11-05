@@ -151,3 +151,23 @@ test('a booking takes the price the stylist typed, never an invented one', () =>
   assert.equal(combineServices(timedService(haircut, priced), [timedService(single, priced)]).priceCents, 16550);
   assert.equal(combineServices(timedService(haircut, priced), [timedService(single, {})]).priceCents, null);
 });
+
+// The menu of 2026-11-05: Color's fields are Color, Partial Highlights and
+// Full Highlights. Full is the set that was "Highlights" (still stored as
+// `highlights`), so balayage and Biolage keep their timing.
+test('Partial Highlights has its own figures; Full Highlights times every other highlight', () => {
+  const partial = svc('partial-highlights', 'Partial Highlights', 'color', 120);
+  const full = svc('full-highlights', 'Full Highlights', 'color', 150);
+  assert.equal(timingKey(partial), 'partial');
+  assert.equal(timingKey(full), 'highlights');
+  assert.equal(timingKey(svc('biolage-highlights', 'Biolage Highlights', 'color', 150)), 'highlights');
+  const withPartial = { ...mine, color: { ...mine.color, partial: { start: 30, break: 30, finish: 20, price: 95 } } };
+  assert.deepEqual([timedService(partial, withPartial).duration_min, timedService(partial, withPartial).breaks], [80, [[30, 30]]]);
+  assert.deepEqual([timedService(full, withPartial).duration_min, timedService(full, withPartial).breaks], [155, [[60, 45]]]);
+  // No Partial figures typed: booked by the Full ones (never too short), else the menu's.
+  assert.equal(timedService(partial, mine).duration_min, 155);
+  assert.equal(timedService(partial, {}).duration_min, 120);
+  // Its price is its own row's, or the one typed beside it as a service.
+  assert.equal(ownPrice(withPartial, partial), 9500);
+  assert.equal(ownPrice({ ...withPartial, items: { 'partial-highlights': { price: 110 } } }, partial), 11000);
+});

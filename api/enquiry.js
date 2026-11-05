@@ -44,26 +44,36 @@ import { tenantForRequest } from './_lib/tenant.js';
 const SERVICE_BY_LABEL = {
   "single process color": "single-process-color",
   "single process": "single-process-color",
-  "highlights & foils": "highlights-and-foils",
+  // The menu of 2026-11-05: Partial and Full Highlights in place of
+  // Highlights & Foils, no Teen Cut or Color & Cut, Bond Repair as one
+  // choice, Condition and Mask Treatment, Updos for bridal and events, and
+  // Consultation for what was Extensions. The old labels still map where
+  // there is a service to map to, for a page cached from before.
+  "highlights & foils": "full-highlights",
+  "partial highlights": "partial-highlights",
+  "full highlights": "full-highlights",
   "balayage": "balayage",
   "biolage highlights": "biolage-highlights",
   "gloss or toner": "gloss-or-toner",
   "corrective color": "corrective-color",
-  "color & cut": "color-and-cut",
   "women's cut": "womens-cut",
   "men's cut": "mens-cut",
-  "teen cut": "teen-cut",
   "kids' cut": "kids-cut",
   "bang trim": "bang-trim",
   "keratin treatment": "keratin-and-brazilian-blowout",
   "brazilian blowout": "keratin-and-brazilian-blowout",
   "olaplex bond repair": "bond-repair",
   "k18 treatment": "bond-repair",
+  "bond repair: olaplex & k18": "bond-repair",
+  "condition treatment": "condition-treatment",
+  "mask treatment": "mask-treatment",
   "ai scalp analysis": "ai-scalp-analysis",
   "blowout": "blowouts",
   "special occasion updo": "special-event",
-  "bridal styling": "bridal-styling",
+  "bridal styling": "special-event",
+  "updos": "special-event",
   "extensions": "extensions",
+  "consultation": "extensions",
 };
 
 const clean = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');

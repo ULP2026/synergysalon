@@ -17,8 +17,14 @@
  * must agree on what a break is: [minutes from the start, minutes long].
  */
 
-/** Within Color, the services timed by the Highlights figures. */
+/**
+ * Within Color, the services timed by the Highlights figures. Since
+ * 2026-11-05 a stylist types two sets: Partial Highlights times a service
+ * that says "partial"; Full Highlights (the one set there was before, still
+ * stored as `highlights`) times every other highlight, balayage or foil.
+ */
 const HIGHLIGHTS = /highlight|balayage|foil/i;
+const PARTIAL = /partial/i;
 
 /** Color & Cut: the cut, then the color's own parts. */
 const WITH_CUT = /\bcut\b/i;
@@ -48,7 +54,9 @@ const mins = (v, lo, hi) => {
 
 /** Which of a stylist's figures a service is timed by. */
 export function timingKey(service) {
-  if (service.category === 'color' && HIGHLIGHTS.test(`${service.slug} ${service.name}`)) return 'highlights';
+  const said = `${service.slug} ${service.name}`;
+  if (service.category === 'color' && PARTIAL.test(said) && HIGHLIGHTS.test(said)) return 'partial';
+  if (service.category === 'color' && HIGHLIGHTS.test(said)) return 'highlights';
   return service.category;
 }
 
@@ -87,6 +95,9 @@ export function ownTiming(details, service) {
 function kindTiming(details, service) {
   const key = timingKey(service);
   if (key === 'highlights') return parts(details?.color?.highlights);
+  // Partial Highlights by its own figures, else the Full ones: a partial is
+  // never longer than a full, so that books too long rather than too short.
+  if (key === 'partial') return parts(details?.color?.partial) ?? parts(details?.color?.highlights);
   if (key === 'color' && WITH_CUT.test(service.name)) return colorAndCut(details);
   if (key === 'color' && SINGLE_PROCESS.test(`${service.slug} ${service.name}`)) {
     return parts(details?.color, COLOR_AND_CUT.break) ?? parts(COLOR_AND_CUT);
@@ -143,6 +154,7 @@ export function ownPrice(details, service) {
   if (item != null) return item;
   const key = timingKey(service);
   if (key === 'highlights') return cents(details?.color?.highlights?.price);
+  if (key === 'partial') return cents(details?.color?.partial?.price);
   if (key === 'color' && WITH_CUT.test(service.name)) {
     const cut = cents(details?.cuts?.price);
     const color = cents(details?.color?.price);

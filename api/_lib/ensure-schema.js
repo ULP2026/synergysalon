@@ -315,6 +315,29 @@ const STATEMENTS = [
   // 051: the generic "Haircut" off the menu; Cuts is Women's, Men's, Teen,
   // Kids' and the Bang Trim, as the website's survey has it.
   "UPDATE services SET active = false WHERE slug = 'haircuts' AND active",
+  // 052: the service menu of 2026-11-05 (Teen Cut, Highlights & Foils, Color
+  // & Cut and Bridal off; Partial and Full Highlights, Condition and Mask
+  // Treatment in; Updos and Consultation renamed). Idempotent: the updates
+  // match nothing the second time and the inserts skip existing slugs.
+  `UPDATE services SET active = false
+ WHERE owner_staff_id IS NULL AND active
+   AND slug IN ('teen-cut', 'highlights-and-foils', 'color-and-cut', 'bridal-styling')`,
+  `UPDATE services SET name = 'Bond Repair: Olaplex & K18', blurb = 'Rebuild what damage broke'
+ WHERE owner_staff_id IS NULL AND slug = 'bond-repair'`,
+  `UPDATE services SET name = 'Updos', blurb = 'Weddings, bridal parties, prom and special events'
+ WHERE owner_staff_id IS NULL AND slug = 'special-event'`,
+  `UPDATE services SET name = 'Consultation', blurb = 'Talk it through with your stylist first', consult_first = true
+ WHERE owner_staff_id IS NULL AND slug = 'extensions'`,
+  `INSERT INTO services (tenant_id, slug, name, category, blurb, duration_min, buffer_min, price_cents, consult_first, sort_order)
+SELECT t.id, v.*
+FROM tenants t, (VALUES
+  ('partial-highlights',  'Partial Highlights',  'color',      'Face-framing and crown',          120, 15, NULL::integer, false, 18),
+  ('full-highlights',     'Full Highlights',     'color',      'All over, root to end',           150, 15, NULL,          false, 19),
+  ('condition-treatment', 'Condition Treatment', 'treatments', 'Deep conditioning, soft and healthy', 30, 10, NULL,      false, 52),
+  ('mask-treatment',      'Mask Treatment',      'treatments', 'A nourishing hair mask',           30, 10, NULL,          false, 54)
+) AS v(slug, name, category, blurb, duration_min, buffer_min, price_cents, consult_first, sort_order)
+WHERE t.slug = 'synergy'
+ON CONFLICT (tenant_id, slug) DO NOTHING`,
   `DO $$ BEGIN
      IF NOT EXISTS (SELECT 1 FROM pg_constraint
                      WHERE conname = 'cashout_requests_status_check'
@@ -324,6 +347,17 @@ const STATEMENTS = [
          CHECK (status IN ('requested', 'processing', 'paid', 'failed', 'declined'));
      END IF;
    END $$`,
+  `INSERT INTO stylist_services (stylist_id, service_id)
+SELECT DISTINCT ss.stylist_id, v.id
+  FROM stylist_services ss
+  JOIN services o ON o.id = ss.service_id
+  JOIN services v ON v.tenant_id = o.tenant_id AND v.category = o.category
+ WHERE v.slug IN ('partial-highlights', 'full-highlights', 'condition-treatment', 'mask-treatment')
+   AND v.owner_staff_id IS NULL AND o.owner_staff_id IS NULL
+   -- once only: a service already linked to anybody is left to roster.js,
+   -- so a stylist who unticks one is not given it back on the next start
+   AND NOT EXISTS (SELECT 1 FROM stylist_services z WHERE z.service_id = v.id)
+ON CONFLICT DO NOTHING`,
 ];
 
 let done = null;

@@ -139,6 +139,8 @@ test('price, timing and the shared notes are kept, with or without a sign-in', {
       assert.deepEqual(s.color, {
         on: true, price: 85.5, duration: 120, start: 45, break: 30, finish: 45,
         highlights: { start: 60, break: 40, finish: 50, duration: 150 },
+        // Partial Highlights (2026-11-05): kept, empty until it is typed.
+        partial: { start: null, break: null, finish: null, duration: null },
       }, name);
       assert.equal(s.cuts.duration, 45);
       // One set of notes for every service, not one per service.
