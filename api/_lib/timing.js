@@ -153,8 +153,10 @@ export function ownPrice(details, service) {
   const item = cents(details?.items?.[service.slug]?.price);
   if (item != null) return item;
   const key = timingKey(service);
-  if (key === 'highlights') return cents(details?.color?.highlights?.price);
-  if (key === 'partial') return cents(details?.color?.partial?.price);
+  // Highlights fall back to the Color price (2026-11-05: the Color row has
+  // a Price again, the price of any color service with none of its own).
+  if (key === 'highlights') return cents(details?.color?.highlights?.price) ?? cents(details?.color?.price);
+  if (key === 'partial') return cents(details?.color?.partial?.price) ?? cents(details?.color?.price);
   if (key === 'color' && WITH_CUT.test(service.name)) {
     const cut = cents(details?.cuts?.price);
     const color = cents(details?.color?.price);

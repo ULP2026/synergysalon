@@ -2871,7 +2871,10 @@
   /* An opened kind: its services two to a row where there is room, no
      header row (each box says "min"), and closer together. */
   #myWorkSlot .svc .svc-bd { gap: 8px; padding-top: 8px; }
-  #myWorkSlot .svc .svc-list { grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); column-gap: 14px; gap: 2px 14px; }
+  /* Two to a row only where each is wide enough for its whole name
+     (2026-11-05: at 1024px two cramped columns cut "Single Process Color"
+     to "Single ..."). */
+  #myWorkSlot .svc .svc-list { grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr)); column-gap: 14px; gap: 2px 14px; }
   /* Its body is one column no wider than the card (2026-11-05): a 320px
      service column used to push the whole card past a phone's edge. */
   .svc .svc-bd { grid-template-columns: minmax(0, 1fr); }
@@ -3109,7 +3112,9 @@
   .svc .svc-it:hover { background: var(--raise); }
   .svc .svc-tick { display: flex; align-items: center; gap: 10px; margin: 0; min-width: 0; cursor: pointer; font-size: .86rem; }
   .svc .svc-tick input { width: 18px; height: 18px; padding: 0; flex: none; accent-color: var(--periwinkle); cursor: pointer; }
-  .svc .svc-tick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A service's name is never cut: it wraps if it has to (2026-11-05). */
+  .svc .svc-tick span { overflow-wrap: anywhere; white-space: normal; line-height: 1.3; }
+  .svc .svc-it-h, .svc .svc-it { grid-template-columns: minmax(140px, 1fr) 104px 96px; }
   .svc .svc-it.unticked .svc-tick span { color: var(--faint); text-decoration: line-through; }
   .svc .svc-it-dur input { height: 34px; }
   .svc.off .svc-list { opacity: .55; }
@@ -3427,16 +3432,19 @@
   #memberHours .hr-add .ic { width: 14px; height: 14px; }
   #memberHours .hr-err { grid-column: 1 / -1; margin: 0; font-size: var(--fs-xs); font-weight: 500; color: var(--warn); }
   #memberHours .hr.bad { border-color: var(--warn); }
-  /* Totals (2026-11-05): each day's bookable time under its name, the
-     week's beside the heading and on My Settings' Available hours tab. */
+  /* Totals (2026-11-05): each day's bookable time under its name, and the
+     week's in its own row under Lunch break (.wh-sum). */
   #memberHours .hr b { display: grid; gap: 1px; }
   #memberHours .hr-tot { font-size: var(--fs-xs); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
   #memberHours .hr.off .hr-tot { color: var(--faint); }
-  .wh-sec { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  .wh-total { font-size: var(--fs-xs); font-weight: 600; color: var(--indigo); letter-spacing: 0; text-transform: none;
-              font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .mw-tot { margin-left: 6px; font-weight: 500; opacity: .8; font-variant-numeric: tabular-nums; }
-  .mw-tot:empty { display: none; }
+  .wh-sum { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -6px 0 16px;
+            padding: 12px 14px; border-radius: 12px; background: var(--peri-pale); border: 1.5px solid color-mix(in srgb, var(--periwinkle) 30%, transparent); }
+  .wh-sum-l, .wh-sum-v { display: grid; gap: 1px; min-width: 0; }
+  .wh-sum-l b { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+  .wh-sum small { font-size: var(--fs-xs); color: var(--muted); }
+  .wh-sum-v { text-align: right; }
+  .wh-sum-v b { font-size: 1.15rem; font-weight: 700; color: var(--indigo); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #myWorkSlot .wh-sum { margin: 0 0 10px; }
   /* A time in a day that is off lets the tap through: the day switches on. */
   #memberHours .hr.off .hr-shifts input:disabled { pointer-events: none; }
   #memberHours .hr.off .hr-shifts { cursor: pointer; }
@@ -4143,7 +4151,7 @@
                  of the one card, not one long column. -->
             <div class="seg mw-tabs" id="mwTabs" role="group" aria-label="Show">
               <button type="button" data-mw="svc" aria-pressed="true">Services &amp; pricing</button>
-              <button type="button" data-mw="hrs" aria-pressed="false">Available hours<span class="mw-tot" id="mwHrsTot" data-no-i18n></span></button>
+              <button type="button" data-mw="hrs" aria-pressed="false">Available hours</button>
             </div>
             <div id="myWorkSlot" data-mw="svc"></div>
             <div class="my-work-acts"><button type="button" class="btn" id="myWorkSave">Save my services &amp; hours</button></div>
@@ -4520,7 +4528,7 @@
              schedules: only the admin sets a stylist's hours (hoursOpen()). -->
         <!-- "Available Hours" since 2026-11-03 (on request; it was Working
              hours): the times a guest can be booked with this person. -->
-        <div class="md-sec wh-sec">Available Hours <span class="wh-total" id="whTotal" data-no-i18n></span></div>
+        <div class="md-sec">Available Hours</div>
         <p class="small muted wh-note" id="whNote">The times guests can book with this person. A day switched off is closed.</p>
         <div id="memberHoursWrap" class="wh wh-off">
           <div class="hrs" id="memberHours"></div>
@@ -4534,6 +4542,12 @@
             <span class="wh-lunch-t"><b>Lunch break</b><small class="wh-flex">Flexible</small></span>
             <span class="wh-lunch-d">30 min between 11 AM and 1 PM, moved around bookings</span>
           </div></div>
+          <!-- The week's total, under Lunch break (asked for 2026-11-05; it
+               sat beside the heading): the days' bookable time added up. -->
+          <div class="wh-sum" aria-live="polite">
+            <span class="wh-sum-l"><b>Total hours</b><small>A week, after the lunch break</small></span>
+            <span class="wh-sum-v" data-no-i18n><b id="whTotal">0h</b><small id="whDays"></small></span>
+          </div>
         </div>
         </div>
       </div>
@@ -5183,6 +5197,7 @@ const I18N_ES = {
   // Appt. Book
   'Today': 'Hoy', 'Day': 'Día', 'Month': 'Mes', 'Previous': 'Anterior', 'Next': 'Siguiente',
   // 2026-11-05: Appt. Book's Week, Payroll and Need Help?.
+  'Total hours': 'Horas totales', 'A week, after the lunch break': 'Por semana, sin el almuerzo',
   'Week': 'Semana', 'Previous day': 'Día anterior', 'Next day': 'Día siguiente', 'Previous week': 'Semana anterior',
   'Next week': 'Semana siguiente', 'Previous month': 'Mes anterior', 'Next month': 'Mes siguiente', 'Choose a date': 'Elegir una fecha',
   'No appointments': 'Sin citas', 'Closed': 'Cerrado', 'Earned Income': 'Ingresos ganados',
@@ -12357,6 +12372,8 @@ const minsLabel = (n) => (n ? `${Math.floor(n / 60) ? `${Math.floor(n / 60)}h` :
  * Finish are the stylist working; the Break is processing, when they can take
  * somebody else, and the diary leaves it open (timing.js on the server).
  */
+/** A dollar figure for a price box: two decimals, or empty. */
+const priceVal = (v) => (v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v).toFixed(2) : '');
 function timeRow(group, label, p = {}, on, { sub = '', svc = null, item = {}, kindPrice = null } = {}) {
   const field = (f, name, min, max, ph) => `<label class="svc-f${f === 'break' ? ' brk' : ''}" data-f="${f}"><span>${name}</span>
       <input type="number" min="${min}" max="${max}" step="5" inputmode="numeric" placeholder="${ph}"
@@ -12365,16 +12382,22 @@ function timeRow(group, label, p = {}, on, { sub = '', svc = null, item = {}, ki
   // their row carries the service's own tick and price, read with the list's
   // (.svc-it), so they are not listed twice.
   const ticked = item.on !== false;
-  const price = item.price ?? kindPrice;
+  // A service row's own price; the Color price shows as its hint until one
+  // is typed, and is what it is booked at meanwhile (ownPrice, timing.js).
+  const price = item.price;
   const name = svc
     ? `<span class="svc-it tr-svc${ticked ? '' : ' unticked'}" data-item="${esc(svc.slug)}">
         <label class="svc-tick tr-nm"><input type="checkbox" ${ticked ? 'checked' : ''} ${on ? '' : 'disabled'}
           aria-label="${esc(label)} offered"><span><b>${esc(label)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span></label>
-        <label class="svc-f price tr-price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
-          data-it="price" aria-label="${esc(label)} price" value="${price != null && price !== '' ? Number(price).toFixed(2) : ''}" ${on && ticked ? '' : 'disabled'}></label>
+        <label class="svc-f price tr-price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal"
+          data-it="price" data-inherit aria-label="${esc(label)} price" value="${priceVal(price)}" placeholder="${priceVal(kindPrice) || '0.00'}" ${on && ticked ? '' : 'disabled'}></label>
         <input type="hidden" data-it="duration" value="">
       </span>`
-    : `<span class="tr-nm"><b>${esc(label)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="tr-price tr-none" aria-hidden="true"></span>`;
+    // The Color row's own price (asked for 2026-11-05): the color kind's
+    // price, used by every color service that has none of its own.
+    : `<span class="tr-nm"><b>${esc(label)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>
+       <label class="svc-f price tr-price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
+         data-kp="${group}" aria-label="${esc(label)} price" value="${priceVal(kindPrice)}" ${on ? '' : 'disabled'}></label>`;
   return `<div class="tr" data-group="${group}">${name}
       ${field('start', 'Start', 5, 480, '30')}${field('break', 'Break', 0, 240, '30')}${field('finish', 'Finish', 5, 480, '30')}
       <span class="tot" data-tot="${group}"><small>Total</small>${minsLabel(timeTotal(p))}</span></div>`;
@@ -12445,7 +12468,7 @@ function paintServices(services = {}, own = []) {
     const fieldSvc = (g) => list.find((x) => x.slug === FIELD_SVCS[g]) || null;
     const timing = key === 'color' ? `<div class="svc-time">
           <div class="tr-h" aria-hidden="true"><span></span><span>Start</span><span>Break</span><span>Finish</span><span>Total</span><span>Price</span></div>
-          ${timeRow('color', 'Color', v, v.on, { sub: 'Single process, gloss and corrective' })}
+          ${timeRow('color', 'Color', v, v.on, { sub: 'Single process, gloss and corrective', kindPrice: v.price })}
           ${timeRow('partial', 'Partial Highlights', v.partial || {}, v.on, { svc: fieldSvc('partial'), item: items[FIELD_SVCS.partial] || {}, kindPrice: v.price })}
           ${timeRow('highlights', 'Full Highlights', v.highlights || {}, v.on, { svc: fieldSvc('highlights'), item: items[FIELD_SVCS.highlights] || {}, kindPrice: v.price, sub: 'Also times balayage and Biolage' })}
           <p class="hint">Minutes. Break is processing time, when you are free for another client. These time any color service below that has no minutes of its own.</p>
@@ -12457,13 +12480,16 @@ function paintServices(services = {}, own = []) {
     const rows = list.filter((x) => key !== 'color' || !Object.values(FIELD_SVCS).includes(x.slug)).map((x) => {
       const it = items[x.slug] || {};
       const ticked = it.on !== false;
-      const price = it.price ?? v.price;
+      // Color's services show the Color price as their hint, not as a
+      // figure of their own, so changing it changes theirs (2026-11-05).
+      const price = key === 'color' ? it.price : (it.price ?? v.price);
       const mins = it.duration ?? (key === 'color' ? null : v.duration);
       return `<div class="svc-it${ticked ? '' : ' unticked'}" data-item="${esc(x.slug)}">
           <label class="svc-tick"><input type="checkbox" ${ticked ? 'checked' : ''} ${v.on ? '' : 'disabled'}
             aria-label="${esc(x.name)} offered"><span>${esc(x.name)}</span></label>
-          <label class="svc-f price svc-it-price"><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
-            data-it="price" aria-label="${esc(x.name)} price" value="${price != null && price !== '' ? Number(price).toFixed(2) : ''}" ${v.on && ticked ? '' : 'disabled'}></label>
+          <label class="svc-f price svc-it-price"><input type="number" min="0" max="10000" step="0.01" inputmode="decimal"
+            placeholder="${key === 'color' ? (priceVal(v.price) || '0.00') : '0.00'}"${key === 'color' ? ' data-inherit' : ''}
+            data-it="price" aria-label="${esc(x.name)} price" value="${priceVal(price)}" ${v.on && ticked ? '' : 'disabled'}></label>
           <label class="svc-f dur svc-it-dur"><input type="number" min="5" max="720" step="5" inputmode="numeric"
             data-it="duration" aria-label="${esc(x.name)} duration in minutes" value="${mins ?? ''}" ${v.on && ticked ? '' : 'disabled'}></label>
         </div>`;
@@ -12471,7 +12497,7 @@ function paintServices(services = {}, own = []) {
     const body = `<div class="svc-fold"><div class="svc-bd" id="svcb-${key}"${v.on ? '' : ' inert'}>${timing}
         ${list.length ? `<div class="svc-list">
           <div class="svc-it-h"><span>Service</span><span>Price</span><span>Minutes</span></div>${rows}
-          <p class="hint">Each service has its own price. Untick a service this person does not do. Leave Minutes empty to use ${key === 'color' ? 'the color timing above' : "the salon's usual time"}.</p>
+          <p class="hint">${key === 'color' ? 'A service with no price of its own is booked at the Color price above.' : 'Each service has its own price.'} Untick a service this person does not do. Leave Minutes empty to use ${key === 'color' ? 'the color timing above' : "the salon's usual time"}.</p>
         </div>` : '<p class="hint">No services of this kind on the menu yet.</p>'}
       </div></div>`;
     // A kind that is on opens to its services; one that is off is one line.
@@ -12656,6 +12682,10 @@ $('memberSvcs').addEventListener('keydown', (e) => {
 });
 
 $('memberSvcs').oninput = (e) => {
+  if (e.target.dataset.kp === 'color') {
+    const hint = priceVal(e.target.value) || '0.00';
+    for (const i of e.target.closest('.svc').querySelectorAll('[data-inherit]')) i.placeholder = hint;
+  }
   const svcRow = e.target.closest('.svc');
   if (svcRow) svcRefresh(svcRow);
   const group = e.target.dataset.t?.split('.')[0];
@@ -12811,9 +12841,8 @@ function paintHoursTotals() {
     out.textContent = `${hrsLabel(d.open)} available`;
     out.title = d.lunch ? `${hrsLabel(d.total)} of hours, less the 30 min lunch` : `${hrsLabel(d.total)} of hours`;
   }
-  const line = `${hrsLabel(week)} a week${days ? ` · ${days} day${days === 1 ? '' : 's'}` : ''}`;
-  $('whTotal').textContent = line;
-  $('mwHrsTot').textContent = week ? `· ${hrsLabel(week)}` : '';
+  $('whTotal').textContent = hrsLabel(week);
+  $('whDays').textContent = `${days} day${days === 1 ? '' : 's'} a week`;
 }
 $('memberHours').addEventListener('input', () => paintHoursTotals());
 $('memberHours').addEventListener('change', () => paintHoursTotals());
@@ -13098,6 +13127,9 @@ function readServices() {
     // except a kind with no services on the menu, which keeps what it had.
     const its = row.querySelectorAll('.svc-it');
     const v = { on, price: its.length ? null : (row.dataset.price === '' || row.dataset.price == null ? null : Number(row.dataset.price)) };
+    // Color has a price of its own again (2026-11-05), on its Color row.
+    const kp = row.querySelector('[data-kp=color]');
+    if (kp) v.price = num(kp.value);
     // Lengths are each service's own (2026-11-04); the kind keeps one only
     // where nothing replaced it: Color's length saved before its parts (the
     // server reckons it from the parts once typed), or a kind with no
@@ -15345,7 +15377,8 @@ function obGuide() {
     const noMins = on.flatMap((r) => [...r.querySelectorAll('.svc-it:not(.unticked) [data-it=duration]')])
       .find((i) => !i.value.trim() && (!i.placeholder || i.placeholder === '–'));
     // Prices are per service (2026-11-04): the first offered service still without one.
-    const noPrice = on.flatMap((r) => [...r.querySelectorAll('.svc-it:not(.unticked) [data-it=price]')]).find((i) => !i.value.trim());
+    const noPrice = on.flatMap((r) => [...r.querySelectorAll('.svc-it:not(.unticked) [data-it=price]')])
+      .find((i) => !i.value.trim() && !(i.hasAttribute('data-inherit') && i.placeholder !== '0.00'));
     return [
       { key: 'on', label: 'Switch on what you do', done: on.length > 0 || svcOwn.some((x) => x.on), el: $('memberSvcs'),
         tip: "Tap the switch beside each kind of work you do. It opens to its services: untick any you don't do. Something not on the list? Add it as your own service at the bottom." },
