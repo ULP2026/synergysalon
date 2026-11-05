@@ -1918,6 +1918,12 @@ made that way are real: name them ZZ and remove them.
   Settings and the Team window for clipped text, overlaps and anything
   outside the card.
 
+- **Shampoo Blowout** (asked for 2026-11-06): a Styling service, between
+  Blowout & Styling and Updos (migration 053, also in ensure-schema; 45
+  minutes, an estimate like the rest; linked once to whoever offers
+  Styling). The website survey's Styling choices, both label maps and the
+  pages' service lists and JSON-LD have it too.
+
 ## Small screens
 
 Checked on 2026-10-22 at 375, 390, 768 and 1440px against the real console

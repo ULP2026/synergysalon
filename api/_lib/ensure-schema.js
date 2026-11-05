@@ -358,6 +358,22 @@ SELECT DISTINCT ss.stylist_id, v.id
    -- so a stylist who unticks one is not given it back on the next start
    AND NOT EXISTS (SELECT 1 FROM stylist_services z WHERE z.service_id = v.id)
 ON CONFLICT DO NOTHING`,
+  // 053: Shampoo Blowout under Styling (2026-11-06); idempotent, and the
+  // stylists' link is made once only.
+  `INSERT INTO services (tenant_id, slug, name, category, blurb, duration_min, buffer_min, price_cents, consult_first, sort_order)
+SELECT t.id, 'shampoo-blowout', 'Shampoo Blowout', 'styling', 'Wash, blow-dry and style', 45, 10, NULL, false, 85
+  FROM tenants t
+ WHERE t.slug = 'synergy'
+ON CONFLICT (tenant_id, slug) DO NOTHING`,
+  `INSERT INTO stylist_services (stylist_id, service_id)
+SELECT DISTINCT ss.stylist_id, v.id
+  FROM stylist_services ss
+  JOIN services o ON o.id = ss.service_id
+  JOIN services v ON v.tenant_id = o.tenant_id AND v.category = o.category
+ WHERE v.slug = 'shampoo-blowout'
+   AND v.owner_staff_id IS NULL AND o.owner_staff_id IS NULL
+   AND NOT EXISTS (SELECT 1 FROM stylist_services z WHERE z.service_id = v.id)
+ON CONFLICT DO NOTHING`,
 ];
 
 let done = null;
