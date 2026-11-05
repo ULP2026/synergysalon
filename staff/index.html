@@ -857,6 +857,23 @@
   .feed .acts { display:flex; gap:8px; flex:0 0 auto; }
 
   .wrapseg { flex-wrap:wrap; align-self:flex-start; margin-bottom:2px; }
+  /* Phones (2026-11-05): one row that scrolls sideways, not a second row
+     squeezed into the same rounded pill, which read as broken. The tab in
+     use is scrolled into view (showSetting). */
+  @media (max-width: 640px) {
+    .wrapseg { flex-wrap:nowrap; max-width:100%; overflow-x:auto; overscroll-behavior-x:contain;
+               scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+    .wrapseg::-webkit-scrollbar { display:none; }
+    .wrapseg button { flex:none; white-space:nowrap; }
+    /* A soft fade on whichever side has more tabs (segEdges), so the row
+       says it scrolls. */
+    .wrapseg[data-more="r"] { -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 32px), transparent);
+                              mask-image:linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
+    .wrapseg[data-more="l"] { -webkit-mask-image:linear-gradient(90deg, transparent, #000 32px);
+                              mask-image:linear-gradient(90deg, transparent, #000 32px); }
+    .wrapseg[data-more="l r"] { -webkit-mask-image:linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+                                mask-image:linear-gradient(90deg, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+  }
   .setpane { }
   .soon { padding:18px 0 8px; }
   .prow { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
@@ -13251,12 +13268,31 @@ function showSetting(name) {
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
   }
+  // On a phone the tabs are one sideways row: keep the one in use in view.
+  const seg = $('setSeg');
+  const on = seg.querySelector('[aria-pressed="true"]');
+  if (on && seg.scrollWidth > seg.clientWidth) {
+    const box = seg.getBoundingClientRect();
+    const r = on.getBoundingClientRect();
+    seg.scrollLeft += (r.left + r.width / 2) - (box.left + box.width / 2);
+  }
+  segEdges(seg);
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
   if (name === 'me') { paintDarkSwitch(); setMyWorkOpen(false); loadMyWork(); }
   if (name === 'salon') { loadBusiness(); loadReplyTo(); }
   if (name === 'team') loadAccount();
   if (name === 'karen') loadKarenSettings();
   if (name === 'payment') renderFinance();
+}
+/** Which sides of a sideways tab row have more tabs past them: the fade in the CSS. */
+function segEdges(seg) {
+  const l = seg.scrollLeft > 2;
+  const r = seg.scrollLeft + seg.clientWidth < seg.scrollWidth - 2;
+  seg.dataset.more = [l ? 'l' : '', r ? 'r' : ''].filter(Boolean).join(' ');
+}
+for (const seg of document.querySelectorAll('.wrapseg')) {
+  seg.addEventListener('scroll', () => segEdges(seg), { passive: true });
+  if (window.ResizeObserver) new ResizeObserver(() => segEdges(seg)).observe(seg);
 }
 $('setSeg').onclick = (e) => {
   const b = e.target.closest('button[data-set]');
