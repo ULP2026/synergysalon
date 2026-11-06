@@ -701,7 +701,10 @@
   .wk-grid .cal-cell.today .wk-n b { background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 3px rgba(85, 96, 166, .14); }
   .wk-grid .cal-ev.wk-ev { white-space: normal; padding: 6px 8px; border-radius: 8px; }
   .wk-ev i, .wk-ev b, .wk-ev span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: normal; }
-  .wk-ev i { font-size: .7rem; opacity: .85; font-weight: 600; }
+  /* The exact start and end first (2026-11-06), as on the day's cards; in a
+     narrow column the end wraps under the start rather than being cut. */
+  .wk-ev i { font-size: .76rem; font-weight: 700; margin-bottom: 2px; white-space: normal; }
+  .wk-ev i .t0, .wk-ev i .t1 { display: inline-block; white-space: pre; }
   .wk-ev span { opacity: .82; font-size: .72rem; }
   .wk-list { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
   .wk-free { margin-top: 2px; font-size: var(--fs-xs); color: var(--faint); text-align: center; }
@@ -893,6 +896,8 @@
   .cal-ev:hover { background:var(--indigo-deep); }
   .cal-ev b { font-weight:650; }
   .cal-ev.off { background:var(--raise); color:var(--muted); text-decoration:line-through; }
+  /* Room between a day's entries in Month, so none touch (2026-11-06). */
+  .cal-cell > .cal-ev + .cal-ev { margin-top: 3px; }
   /* Month drag (2026-11-02): the chip follows the pointer; the day under it
      says whether it takes the drop. Closed days are shaded. */
   .cal-ev.cal-mv { cursor: grab; touch-action: pan-x pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -9495,7 +9500,7 @@ function renderMonth(d) {
       + (a.status === 'cancelled' ? ' (cancelled)' : '');
     const mv = canMove(a) ? ' cal-mv' : '';
     return `<button class="cal-ev ${cls}${mv}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
-              title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><b>${esc(a.time.replace(':00', ''))}</b> ${esc(a.guestName)}</button>`;
+              title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><b>${esc(exactClock(salonMinutes(a.startsAt)))}</b> ${esc(a.guestName)}</button>`;
   };
 
   $('calendar').innerHTML = `<div class="cal">
@@ -9739,7 +9744,7 @@ function renderWeek(d) {
     const mv = canMove(a) ? ' cal-mv' : '';
     const title = `${a.time} · ${a.guestName} · ${a.service} with ${a.stylist}${off ? ' (cancelled)' : ''}`;
     return `<button class="cal-ev wk-ev ${off ? 'off' : ''}${mv}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
-              title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><i>${esc(a.time)}</i><b>${esc(a.guestName)}</b><span>${esc(a.service)}${a.stylist ? ` · ${esc(a.stylist)}` : ''}</span></button>`;
+              title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><i>${cardTime(salonMinutes(a.startsAt), a.durationMin)}</i><b>${esc(a.guestName)}</b><span>${esc(a.service)}${a.stylist ? ` · ${esc(a.stylist)}` : ''}</span></button>`;
   };
   const days = Array.from({ length: 7 }, (_, i) => addDays(d.start, i));
   $('calendar').innerHTML = `<div class="cal wk"><div class="wk-grid">${days.map((iso) => {

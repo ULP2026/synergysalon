@@ -1447,7 +1447,11 @@ made that way are real: name them ZZ and remove them.
     short card shows the start beside the name; in a narrow column the end
     wraps under the start. Cards start 1px under their minute and stop 5px
     short of their end (`cardH`, the drag ghost and the dropped card
-    alike), so back-to-back visits never touch.
+    alike), so back-to-back visits never touch. Week and Month follow
+    (same day, after "I still can't see it": Appt. Book reopens on the
+    view last used, and those draw chips of their own): Week's chips lead
+    with the exact start and end (`cardTime`), Month's with the exact start
+    ("10:00 AM", `exactClock`), and Month's chips have 3px between them.
   - Activity: who did it is a small picture on the bottom-right corner of
     the event's icon (`.tl-badge`, who it was on hover; the name line under
     the event was taken off on request);
