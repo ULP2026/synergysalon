@@ -2312,21 +2312,20 @@ must stay that way: anything committed here is served publicly.
   `<script id="ss-earliest">` in each page's static head (a script in the
   bundle never runs): the first open Women's Cut from tomorrow, two weeks at
   a time up to six, cached ten minutes in sessionStorage; no time or no
-  answer, and the line stays hidden. Left of Book Now (later that day,
-  asked for, to the salon's mock-up) is **OPEN NOW** as plain text with a
-  green dot, not a button (`.nav-open`, `[data-ss-open]`; "CLOSED" with a
-  grey dot), level with the button, from `window.__ssHours` else the
-  design's table, filled by `<script id="ss-open">` in the static head.
-  The line under the pair reads "Soonest Opening: TOMORROW 9:00a haircut
-  with Dina" (TODAY, TOMORROW, else "SAT, NOV 8"; the stylist's first name
-  from the slot's `stylists` in `/api/availability`), ending with the
-  button's right edge, since centred it ran off the header at 1440px.
-  Book Now on a computer is larger (later that day, asked for: twice the
-  size, then a little smaller as too big): 60px tall with 21px type from
-  768px up, the phone button's own size, and 56px from 992 to 1199px where
-  the menu's links share the bar; phones keep their own full-width row.
-  OPEN NOW is hidden from 992 to 1339px, where the links need its room,
-  and on phones. A new
+  answer, and the line stays hidden. Left of the button (later that day,
+  asked for in rounds) is **SOONEST OPENING**, plain text with a green dot
+  and the time on a line under it, "TOMORROW 9:00a with Dina" (TODAY,
+  TOMORROW, else "SAT, NOV 8"; the stylist's first name from the slot's
+  `stylists` in `/api/availability`; "haircut" dropped to fit beside the
+  menu), in `.nav-open[data-ss-soon]`, filled by `ss-earliest`. It took the
+  place of an OPEN NOW indicator, and the line that sat under the button
+  went with it, as did the `ss-open` script. It shows only from 1520px
+  wide: below that it would run into the menu's links (or, under 992px,
+  the logo and the menu button). The button reads **Book Online** (was
+  Book Now) and is 66px tall with 23px type from 768px up (asked for:
+  twice the size, then a little back, then a little up again), 56px with
+  18px type from 992 to 1199px where the menu's links share the bar;
+  phones keep their own full-width row. A new
   export of any page undoes all of it: re-apply.
 
 - **Online booking is live again (2026-11-06, asked for).** The
