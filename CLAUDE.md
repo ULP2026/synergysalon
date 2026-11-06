@@ -2187,6 +2187,16 @@ must stay that way: anything committed here is served publicly.
   with the first real bookings, which is how the 30 September problem started.
 
 
+- **`/documentation` is the public SynergyApp Documentation** (2026-11-06,
+  asked for, laid out after portl.tax/documentation): one long page,
+  `documentation.html`, on the Privacy Policy's own styles (header, Geist and
+  Anton, the indigo, the footer), nine numbered sections with a contents
+  list. Every label in it was read from the live app that day, signed in as
+  the agency login with every write refused in the browser. It leaves out
+  what is not usable yet (Payroll payouts, the subscription) and every price,
+  and names no CRM. When a screen changes, change the page with it: it says
+  "named as it appears in the app". In the sitemap.
+
 - **The home page hero says BOOK ME NOW** (2026-11-06, asked for), in place
   of "Call 813.654.2055": a glowing button (`.hero-bk`, periwinkle with a
   pulsing glow, steady for reduced motion) to `/book`, which opens the

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SynergyApp Documentation</title>
+<meta name="description" content="How SynergyApp works: the Synergy Salon staff app for the appointment book, clients, the team, online booking, reminders and Karen AI.">
+<link rel="canonical" href="https://synergysalon.com/documentation">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
+<link rel="apple-touch-icon" type="image/png" sizes="180x180" href="/apple-touch-icon.png">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JR6491GP6D"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-JR6491GP6D');
+</script>
+<!-- SynergyApp Documentation (asked for 2026-11-06): one public page, laid
+     out like the site's Privacy Policy and Terms (the same header, fonts,
+     colours and footer), with numbered sections and a contents list. Every
+     label in it was read from the live app on 2026-11-06; check them again
+     there before changing the wording. It leaves out what is not live yet
+     (Payroll payouts, the subscription) and every price. -->
+<style>
+  @font-face{font-family:'Geist';src:url('/assets/fe9fff11-c08d-40c6-b30c-c3dcc9dc2bd9.woff2') format('woff2-variations');font-weight:100 900;font-display:swap}
+  @font-face{font-family:'Anton';src:url('/assets/3828f8dd-62dc-4950-8f47-b2606af00051.woff2') format('woff2');font-weight:400;font-display:swap}
+  :root{--ink:#14141a;--muted:#5b5b6a;--line:#e3e3ea;--indigo:#353676;--indigo2:#5560A6;--accent:#DB2B39;--wash:#f2f3fa}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{margin:0;background:#fff;color:var(--ink);font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;font-weight:400;font-size:1rem;line-height:1.65;letter-spacing:-0.01em;-webkit-font-smoothing:antialiased}
+  a{color:var(--indigo);text-underline-offset:3px}
+  .wrap{max-width:56rem;margin:0 auto;padding:0 clamp(1rem,4vw,2.5rem)}
+  header.site{background:var(--indigo)}
+  header.site .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-top:1.1rem;padding-bottom:1.1rem}
+  header.site img{height:2.5rem;width:auto;display:block}
+  .back{font-size:.9375rem;font-weight:500;text-decoration:none;color:#fff;opacity:.92}
+  .back:hover{text-decoration:underline;opacity:1}
+  .hero{padding:clamp(2.5rem,6vw,4.5rem) 0 1.5rem}
+  .eyebrow{display:inline-flex;align-items:center;height:2rem;padding:0 .875rem;border-radius:1rem;background:rgba(219,43,57,.1);box-shadow:inset 0 0 0 1px rgba(219,43,57,.35);color:var(--accent);font-size:.8125rem;font-weight:500;text-transform:uppercase;letter-spacing:.02em}
+  h1{font-family:'Anton','Geist',sans-serif;font-weight:400;text-transform:uppercase;line-height:.95;letter-spacing:.01em;font-size:clamp(2.25rem,7vw,3.5rem);margin:1.25rem 0 .75rem}
+  .updated{color:var(--muted);font-size:.9375rem;margin:0}
+  .lede{font-size:1.0625rem;color:var(--muted);margin:1.25rem 0 0}
+  nav.toc{margin:2.5rem 0 0;padding:1.25rem 1.5rem;background:var(--wash);border-radius:14px}
+  nav.toc p{margin:0 0 .5rem;font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--indigo2)}
+  nav.toc ol{margin:0;padding-left:1.4rem;columns:2;column-gap:2rem}
+  nav.toc li{margin:0 0 .4rem;font-size:.9375rem;break-inside:avoid}
+  @media(max-width:600px){nav.toc ol{columns:1}}
+  main{padding:1rem 0 3rem}
+  section{padding-top:2.75rem}
+  h2{font-size:1.375rem;font-weight:650;letter-spacing:-0.02em;margin:0 0 .5rem;scroll-margin-top:1.25rem;display:flex;align-items:baseline;gap:.6rem}
+  h2 .n{flex:none;display:inline-grid;place-items:center;min-width:1.9rem;height:1.9rem;padding:0 .4rem;border-radius:.95rem;background:var(--indigo);color:#fff;font-size:.875rem;font-weight:600;letter-spacing:0;transform:translateY(-.1rem)}
+  h3{font-size:1.0625rem;font-weight:600;margin:1.75rem 0 .35rem;scroll-margin-top:1.25rem}
+  p,ul,ol{margin:.6rem 0}
+  ul,ol{padding-left:1.25rem}
+  li{margin:.3rem 0}
+  li::marker{color:var(--indigo2)}
+  .ui{font-weight:600;color:var(--indigo)}
+  .tbl{margin:1rem 0 1.25rem;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px}
+  table{width:100%;border-collapse:collapse;font-size:.9375rem;line-height:1.5}
+  th,td{text-align:left;vertical-align:top;padding:.7rem .9rem;border-bottom:1px solid var(--line)}
+  th{background:var(--wash);font-size:.8125rem;font-weight:600;color:var(--indigo);letter-spacing:.01em}
+  tr:last-child td{border-bottom:0}
+  td:first-child{font-weight:600;white-space:nowrap}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:1rem 0}
+  .steps li{counter-increment:s;position:relative;padding:.1rem 0 .1rem 2.5rem;margin:.65rem 0}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:.05rem;width:1.75rem;height:1.75rem;border-radius:50%;display:grid;place-items:center;background:var(--wash);color:var(--indigo);font-size:.8125rem;font-weight:700;box-shadow:inset 0 0 0 1px rgba(85,96,166,.35)}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin:1rem 0 1.25rem;padding:1rem;border-radius:14px;background:var(--wash)}
+  .flow span{padding:.4rem .75rem;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1px var(--line);font-size:.875rem;font-weight:500;color:var(--ink)}
+  .flow i{font-style:normal;color:var(--indigo2);font-weight:600}
+  .note{border-left:3px solid var(--indigo2);background:#fafaff;padding:.75rem 1rem;border-radius:0 10px 10px 0;margin:1rem 0;font-size:.9375rem;color:#33334a}
+  .note p{margin:0}
+  .top{display:inline-block;margin-top:.75rem;font-size:.8125rem;color:var(--muted);text-decoration:none}
+  .top:hover{text-decoration:underline}
+  footer.site{border-top:1px solid var(--line);margin-top:2rem}
+  footer.site .wrap{padding-top:2rem;padding-bottom:2.5rem;font-size:.875rem;color:var(--muted)}
+  footer.site a{font-weight:500}
+  .fnav{margin-top:.75rem;display:flex;gap:1rem;flex-wrap:wrap}
+  @media(max-width:600px){
+    td:first-child{white-space:normal}
+    th,td{padding:.6rem .7rem}
+    h2{font-size:1.2rem}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a href="/" aria-label="Synergy Salon home"><img src="/assets/0502ac51-868b-4827-b615-5ef85253d5b6.png" alt="Synergy Salon"></a>
+    <a class="back" href="/">&larr; Back to site</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero" id="top">
+    <span class="eyebrow">Product Documentation</span>
+    <h1>SynergyApp Documentation</h1>
+    <p class="updated">Last updated 6 November 2026</p>
+    <p class="lede">How SynergyApp works: the staff app that runs Synergy Salon&rsquo;s appointment book, clients and team, and the online booking, emails, texts and Karen AI connected to it. Every page, button and setting below is named as it appears in the app.</p>
+  </div>
+
+  <nav class="toc" aria-label="Contents">
+    <p>Contents</p>
+    <ol>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#navigation">Pages and Navigation</a></li>
+      <li><a href="#roles">User Roles and Permissions</a></li>
+      <li><a href="#booking">Booking and Appointments</a></li>
+      <li><a href="#providers">Providers and Schedules</a></li>
+      <li><a href="#clients">Client Management</a></li>
+      <li><a href="#payments">Payments and Card on File</a></li>
+      <li><a href="#messaging">SMS and Email</a></li>
+      <li><a href="#integrations">Integrations and Administration</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- 1 -->
+    <section id="overview">
+      <h2><span class="n">1</span>Overview</h2>
+      <p>SynergyApp is the salon&rsquo;s own system for running the day. The team signs in at <a href="https://app.synergysalon.com">app.synergysalon.com</a> to see the appointment book, look after clients, set who offers which services and when, and keep track of what the salon has sent to clients.</p>
+      <p>It works hand in hand with the salon&rsquo;s website, <a href="https://synergysalon.com">synergysalon.com</a>. A guest who presses <span class="ui">BOOK ME NOW</span> on the website is booked straight into the same appointment book the team works from, so there is one diary and nothing to copy across.</p>
+      <h3>Who uses it</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Who</th><th>How they use SynergyApp</th></tr></thead>
+        <tbody>
+          <tr><td>The salon&rsquo;s owner and admins</td><td>Run the whole salon: every appointment and client, the team, the salon&rsquo;s profile, automations and finance.</td></tr>
+          <tr><td>Stylists and the rest of the team</td><td>Sign in to see their own appointments and clients, set their own services, prices and photo, and connect their Google Calendar.</td></tr>
+          <tr><td>Clients</td><td>Never sign in. They book on the website, receive emails, can text or call Karen, and change or cancel from the link in their emails.</td></tr>
+        </tbody>
+      </table></div>
+      <a class="top" href="#top">Back to top</a>
+    </section>
+
+    <!-- 2 -->
+    <section id="navigation">
+      <h2><span class="n">2</span>Pages and Navigation</h2>
+      <p>The menu at the top of every screen has four items and a button for Karen. On a phone it stays at the top, with the icons only.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Menu item</th><th>What it is for</th></tr></thead>
+        <tbody>
+          <tr><td>Dashboard</td><td>The day at a glance: a greeting, today&rsquo;s figures and the next appointments.</td></tr>
+          <tr><td>Appt. Book</td><td>The appointment book, by day, week or month. Book, move, check in and cancel here.</td></tr>
+          <tr><td>Clients</td><td>Every client, with their details, visits and the messages sent to them.</td></tr>
+          <tr><td>Settings (the gear)</td><td>Your own account, the salon, the team, automations, money and Karen AI.</td></tr>
+          <tr><td>Call Karen</td><td>Opens Karen, the salon&rsquo;s assistant, inside the app. Her phone number is shown under her name.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Dashboard</h3>
+      <p>The Dashboard greets you by name with the date, then shows two figures and a list:</p>
+      <ul>
+        <li><span class="ui">Salon Appts. Today</span>, with <span class="ui">Salon Appts. in the last 30 days</span> under it. Opens Appt. Book.</li>
+        <li><span class="ui">Clients Served</span>, with <span class="ui">new clients in the last 30 days</span> under it. Opens Clients.</li>
+        <li><span class="ui">Coming up</span>: the next appointments, each with the client, the service and stylist, the time, and an <span class="ui">Open</span> button that opens the appointment. A first-time client is marked <span class="ui">First visit</span>. <span class="ui">See all appointments</span> opens Appt. Book, and <span class="ui">Past appointments</span> lists the earlier ones.</li>
+      </ul>
+
+      <h3>Appt. Book</h3>
+      <p>At the top: <span class="ui">Today</span>, back and forward arrows, and a calendar button to jump to any date, with the date written out and the number of appointments under it. On the right, a dropdown switches between <span class="ui">Day</span>, <span class="ui">Week</span> and <span class="ui">Month</span>. <span class="ui">New appointment</span> is at the top right of the page.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>View</th><th>What it shows</th></tr></thead>
+        <tbody>
+          <tr><td>Day</td><td>One column per stylist, with the time down the side. Click an empty time to book it; drag an appointment to move it.</td></tr>
+          <tr><td>Week</td><td>Sunday to Saturday, a list for each day. Days the salon is shut say <span class="ui">Closed</span>. Click a day to add an appointment, or its date to see that day by stylist.</td></tr>
+          <tr><td>Month</td><td>The whole month. Drag an appointment to another day to move it.</td></tr>
+        </tbody>
+      </table></div>
+      <p>The key at the foot of the day view explains the colours: <span class="ui">Lunch &middot; flexible</span>, <span class="ui">Lunch</span>, <span class="ui">Block, not bookable</span>, <span class="ui">Confirmed</span>, <span class="ui">Checked in</span>, <span class="ui">Done</span>, <span class="ui">Notes</span> and <span class="ui">Busy in Google</span>.</p>
+
+      <h3>Settings</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Tab</th><th>What is in it</th></tr></thead>
+        <tbody>
+          <tr><td>My Settings</td><td>My Profile and <span class="ui">Edit my profile</span>, Appearance (<span class="ui">Dark Mode</span>), Language (<span class="ui">English</span> or <span class="ui">Espa&ntilde;ol</span>) and <span class="ui">Sign out</span>.</td></tr>
+          <tr><td>Salon</td><td>The Salon Profile and where client replies go (see section 9).</td></tr>
+          <tr><td>Team</td><td>Team Members, and <span class="ui">Add Team Member</span>.</td></tr>
+          <tr><td>Automations</td><td>The emails the salon sends on its own, each one on or off (see section 8).</td></tr>
+          <tr><td>Money</td><td>Finance: what visits were worth, by stylist (see section 7).</td></tr>
+          <tr><td>Karen AI</td><td>Karen&rsquo;s phone number, Chat History, Call History and Email History.</td></tr>
+        </tbody>
+      </table></div>
+      <a class="top" href="#top">Back to top</a>
+    </section>
+
+    <!-- 3 -->
+    <section id="roles">
+      <h2><span class="n">3</span>User Roles and Permissions</h2>
+      <p>Everybody on the team has one role, chosen in their team member window under <span class="ui">Personal information</span>, <span class="ui">Role</span>. The roles are <span class="ui">Owner</span>, <span class="ui">Admin</span>, <span class="ui">Manager</span>, <span class="ui">Front desk</span> and <span class="ui">Stylist</span>. Owner and Admin have the same rights; the difference is only the title.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Role</th><th>Sees</th><th>Can manage</th></tr></thead>
+        <tbody>
+          <tr><td>Owner, Admin</td><td>The whole salon: every appointment, client and stylist, every message sent, and the Salon tab.</td><td>Everything, including adding, changing and removing team members, their roles, services and hours; the salon&rsquo;s profile; switching automations on and off.</td></tr>
+          <tr><td>Manager</td><td>Their own appointments and clients, and the whole salon&rsquo;s Finance on the Money tab.</td><td>Their own account, services and hours; can also delete clients and appointments.</td></tr>
+          <tr><td>Front desk</td><td>Their own appointments and clients, and their own figures on the Money tab.</td><td>Their own account, services and hours.</td></tr>
+          <tr><td>Stylist</td><td>Their own appointments and clients (those booked with them, or that they added), and their own figures on the Money tab.</td><td>Their own account, services, prices, available hours and Google Calendar.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note"><p>Everyone can read the Team list (names, pictures and roles), but only an Owner or Admin can change somebody else. Anyone who is not an Owner or Admin sees Team, Automations, Money and Karen AI as their own share, read-only where it belongs to the whole salon, and has no Salon tab.</p></div>
+      <h3>New team members</h3>
+      <p>A new team member is added from <span class="ui">Settings</span>, <span class="ui">Team</span>, <span class="ui">Add Team Member</span>. Karen emails them an invitation with a one-time link, and they choose their own password. A new stylist is then taken through setting up their account (their details, services and prices, and hours) before the rest of the app opens.</p>
+      <a class="top" href="#top">Back to top</a>
+    </section>
+
+    <!-- 4 -->
+    <section id="booking">
+      <h2><span class="n">4</span>Booking and Appointments</h2>
+      <p>Every appointment, however it was made, is in the same appointment book. The app only offers times when the stylist is working and free, and the same time can never be sold twice.</p>
+
+      <h3>How appointments are made</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Where</th><th>Who</th><th>How</th></tr></thead>
+        <tbody>
+          <tr><td>The website</td><td>Guests</td><td>Any <span class="ui">BOOK ME NOW</span> or Book button on synergysalon.com opens the booking survey.</td></tr>
+          <tr><td>Appt. Book</td><td>The team</td><td><span class="ui">New appointment</span>, or click an empty time on the day view.</td></tr>
+          <tr><td>Karen</td><td>Clients and the team</td><td>By text to Karen&rsquo;s number. She offers real free times and books, moves and cancels.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Booking online (guests)</h3>
+      <div class="flow" aria-label="The online booking steps">
+        <span>What brings you in?</span><i>&rarr;</i>
+        <span>Who would you like to book with?</span><i>&rarr;</i>
+        <span>Who is this appointment for?</span><i>&rarr;</i>
+        <span>Service details</span><i>&rarr;</i>
+        <span>Choose your availability</span><i>&rarr;</i>
+        <span>Your information</span><i>&rarr;</i>
+        <span>Book Me Now!</span>
+      </div>
+      <ol class="steps">
+        <li>The guest picks one or more kinds of service (<span class="ui">Select all that apply</span>).</li>
+        <li>They choose a stylist, or the first available.</li>
+        <li>They say who the appointment is for, and answer a question about each kind of service they picked.</li>
+        <li>They choose a day and a time from the stylist&rsquo;s real free times.</li>
+        <li>They give their name, email and phone, with optional notes, and press <span class="ui">Book Me Now!</span></li>
+        <li>The confirmation reads <span class="ui">You&rsquo;re booked</span> with the day, time and stylist, and the booking email follows.</li>
+      </ol>
+      <p>Several services in one visit are booked as one appointment with one stylist who offers them all, long enough for everything.</p>
+
+      <h3>Booking in the app (the team)</h3>
+      <ol class="steps">
+        <li>Press <span class="ui">New appointment</span> on Appt. Book.</li>
+        <li><span class="ui">Who is the stylist?</span> Choose a stylist, or <span class="ui">First available</span>.</li>
+        <li><span class="ui">What type of service?</span> then <span class="ui">Which service?</span> Use <span class="ui">Add another service</span> for more than one.</li>
+        <li><span class="ui">When?</span> Pick a day and one of the free times.</li>
+        <li><span class="ui">Who is the client?</span> Type three letters of the name to find an existing client, or enter a new name, phone and email, with optional notes.</li>
+        <li>Press <span class="ui">Book appointment</span>.</li>
+      </ol>
+      <p><span class="ui">Help me book</span>, at the top of the same window, hands the booking to Karen: she asks what is missing, one step at a time, and books it.</p>
+
+      <h3>The appointment window</h3>
+      <p>Click any appointment to open it. It shows when, the stylist, any processing time, the client&rsquo;s phone and email, notes, who booked it, the services and a Payment panel. The buttons along the top:</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Button</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>Check in</td><td>The client has arrived. It then becomes <span class="ui">Done</span>, for when the visit is over; <span class="ui">Undo check-in</span> takes it back.</td></tr>
+          <tr><td>Move Appt.</td><td>Choose a new day, stylist and time from the free times for the whole visit.</td></tr>
+          <tr><td>Cancel Appt.</td><td>Cancels the appointment and frees the time.</td></tr>
+          <tr><td>No Show</td><td>Marks that the client did not come.</td></tr>
+          <tr><td>Delete Ticket</td><td>Removes the appointment entirely.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Rescheduling and cancellations</h3>
+      <p>When the team moves an appointment, the app asks how to tell the client:</p>
+      <ul>
+        <li><span class="ui">Send the Client a Notification</span>: the client is sent their new date and time.</li>
+        <li><span class="ui">Just Move the Appointment</span>: the schedule changes and the client is not told.</li>
+      </ul>
+      <p>Clients can change or cancel on their own. Every email they receive has a link to their appointment page, where <span class="ui">Choose a new time</span> shows the stylist&rsquo;s free times and <span class="ui">Move my appointment</span> confirms it, and <span class="ui">Cancel appointment</span> cancels.</p>
+
+      <h3>Appointment statuses</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>Booked / Upcoming</td><td>Booked and still to come.</td></tr>
+          <tr><td>Checked in</td><td>The client has arrived.</td></tr>
+          <tr><td>Done</td><td>The visit is finished.</td></tr>
+          <tr><td>No show</td><td>The client did not come.</td></tr>
+          <tr><td>Cancelled</td><td>Cancelled by the salon or the client. The time is free again.</td></tr>
+        </tbody>
+      </table></div>
+      <a class="top" href="#top">Back to top</a>
+    </section>
+
+    <!-- 5 -->
+    <section id="providers">
+      <h2><span class="n">5</span>Providers and Schedules</h2>
+      <p>Stylists are the team members who take appointments. Each one&rsquo;s window (open it from <span class="ui">Settings</span>, <span class="ui">Team</span>, or your own from <span class="ui">My Settings</span>) holds their picture, name and phone, <span class="ui">Personal information</span>, <span class="ui">Connect your tools</span>, <span class="ui">Services &amp; pricing</span> and <span class="ui">Available Hours</span>.</p>
+
+      <h3>Services &amp; pricing</h3>
+      <p>Each kind of work is switched on for the stylist who offers it, and opens to its services. Untick a service the stylist does not do; each one has its own price and its own minutes.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Kind</th><th>Services</th></tr></thead>
+        <tbody>
+          <tr><td>Cuts</td><td>Women&rsquo;s Cut, Men&rsquo;s Cut, Kids&rsquo; Cut, Bang Trim</td></tr>
+          <tr><td>Treatments</td><td>Keratin &amp; Brazilian Blowout, K18/Olaplex Treatment, Condition Treatment, Mask Treatment, AI Scalp Analysis</td></tr>
+          <tr><td>Color</td><td>Color, Partial Highlights and Full Highlights, each with its own times; then Balayage, Single Process Color, Biolage Highlights, Gloss or Toner, Corrective Color</td></tr>
+          <tr><td>Styling</td><td>Blowout &amp; Styling, Shampoo Blowout, Updos, Consultation</td></tr>
+        </tbody>
+      </table></div>
+      <p>Color is timed in three parts: <span class="ui">Start</span>, <span class="ui">Break</span> and <span class="ui">Finish</span>, with the <span class="ui">Total</span> beside them. The Break is processing time, when the stylist is free to take somebody else, and the appointment book offers that time to other clients. A box at the foot, <span class="ui">Special Instructions When Booking Clients</span>, holds the stylist&rsquo;s notes.</p>
+      <div class="flow" aria-label="How a color appointment is timed">
+        <span>Start: the stylist applies the color</span><i>&rarr;</i>
+        <span>Break: it processes, the stylist is free</span><i>&rarr;</i>
+        <span>Finish: rinse, tone and style</span>
+      </div>
+      <p>Guests are booked for exactly the minutes the stylist has set. Left empty, the salon&rsquo;s usual time for that service is used.</p>
+
+      <h3>Available Hours</h3>
+      <p><span class="ui">Available Hours</span> are the times guests can book with this person. Switch each day on or off (a day switched off is closed), set its start and end, and use <span class="ui">Add hours</span> for a split day. Each day shows how much time it leaves bookable, and <span class="ui">Total hours</span> adds up the week.</p>
+      <p>The <span class="ui">Lunch break</span> is <span class="ui">FLEXIBLE</span>: 30 minutes between 11 AM and 1 PM, moved around bookings, so it never blocks a guest who needs that time.</p>
+      <h3>Blocked time</h3>
+      <p>Time blocked off for a stylist shows on the Appt. Book day view as <span class="ui">Block, not bookable</span>, and is not offered to anyone, online or in the app.</p>
+      <div class="note"><p>Online, a stylist is offered only once they have a service switched on, available hours set and their Google Calendar connected (see section 9).</p></div>
+      <a class="top" href="#top">Back to top</a>
+    </section>
+
+    <!-- 6 -->
+    <section id="clients">
+      <h2><span class="n">6</span>Client Management</h2>
+      <p><span class="ui">Clients</span> lists everyone who has booked or asked about a visit, newest first, with their status, phone, email, how many visits and their next appointment.</p>
+      <h3>Finding a client</h3>
+      <ul>
+        <li><span class="ui">CHOOSE YOUR STYLIST</span> narrows the list to one stylist&rsquo;s clients, or <span class="ui">All</span>.</li>
+        <li>When booking, type three letters of a name in <span class="ui">Who is the client?</span> to find them.</li>
+        <li>Clients are added with <span class="ui">Add client</span>: name, phone, email, where they heard about the salon, and notes. A client who books online or through Karen is added on their own.</li>
+      </ul>
+      <h3>The client window</h3>
+      <p>Click a client to open their window.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Part</th><th>What it holds</th></tr></thead>
+        <tbody>
+          <tr><td>Header</td><td>Their name and phone, their status, their tags, <span class="ui">Need Help?</span> (opens Karen already holding this client) and <span class="ui">Book appointment</span>.</td></tr>
+          <tr><td>Appt. Book</td><td><span class="ui">Visits</span>, <span class="ui">Next</span> and <span class="ui">Last visit</span>, and their recent appointments, each opening its window.</td></tr>
+          <tr><td>Contact details</td><td>Email, source, when they were added, and their stylist. The pencil edits them.</td></tr>
+          <tr><td>Payments</td><td>The <span class="ui">Card on file</span> switch (see section 7).</td></tr>
+          <tr><td>Contact preferences</td><td>Whether they are sent follow-up emails, and whether they have agreed to texts.</td></tr>
+          <tr><td>Notes</td><td><span class="ui">Add note</span> for anything the team should know.</td></tr>
+          <tr><td>Activity</td><td>Their history: appointments, emails, texts and changes to their details, filtered by <span class="ui">All</span>, <span class="ui">Appointments</span>, <span class="ui">Email</span>, <span class="ui">SMS</span> and <span class="ui">Admin</span>. A text or email can be sent from the foot of it.</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Client status</h3>
+      <p>The status in the header is one of <span class="ui">New</span>, <span class="ui">Contacted</span>, <span class="ui">Booked</span>, <span class="ui">Client</span> or <span class="ui">Lost</span>. Choose it from the list; booking moves a new client to Booked on its own.</p>
+      <a class="top" href="#top">Back to top</a>
+    </section>
+
+    <!-- 7 -->
+    <section id="payments">
+      <h2><span class="n">7</span>Payments and Card on File</h2>
+      <p>SynergyApp does not take or record payments yet. Each appointment&rsquo;s Payment panel says so; prices are kept on the services and the appointments so the salon can see what its visits are worth.</p>
+      <h3>Card on file</h3>
+      <p>The <span class="ui">Card on file</span> switch, under <span class="ui">Payments</span> in a client&rsquo;s window, records that the salon holds a card for that client. It is a note for the team; the app does not store or charge the card.</p>
+      <h3>Finance</h3>
+      <p><span class="ui">Settings</span>, <span class="ui">Money</span> opens <span class="ui">Finance</span>: what visits were worth, by stylist, for <span class="ui">This month</span>, <span class="ui">Last month</span>, <span class="ui">Last 30 days</span> or <span class="ui">This year</span>. Owners, Admins and Managers see the whole salon; everybody else sees their own.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Figure</th><th>What it counts</th></tr></thead>
+        <tbody>
+          <tr><td>Earned</td><td>The price of the visits that have happened in the period.</td></tr>
+          <tr><td>Average visit</td><td>Earned divided by the visits that have a price.</td></tr>
+          <tr><td>Booked ahead</td><td>The price of the appointments still to come.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note"><p>Finance is worked out from each visit&rsquo;s price as booked. It is what visits were worth, not money received. Cancelled visits and no-shows are left out, and a visit with no price counts as nothing until a price is added.</p></div>
+      <a class="top" href="#top">Back to top</a>
+    </section>
+
+    <!-- 8 -->
+    <section id="messaging">
+      <h2><span class="n">8</span>SMS and Email</h2>
+      <h3>Automations</h3>
+      <p><span class="ui">Settings</span>, <span class="ui">Automations</span> lists the messages the salon sends on its own. Each one is switched on or off, and each opens to show its steps and the email itself.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Automation</th><th>Sent when</th></tr></thead>
+        <tbody>
+          <tr><td>Appointment Booking</td><td>A client books an appointment</td></tr>
+          <tr><td>Appointment Reminder</td><td>About 36 hours before an appointment</td></tr>
+          <tr><td>Reschedule Notice</td><td>A client moves their appointment</td></tr>
+          <tr><td>Cancellation Notice</td><td>An appointment is cancelled</td></tr>
+          <tr><td>New Guest Welcome</td><td>Somebody books for the first time</td></tr>
+          <tr><td>No-show Recovery</td><td>Staff mark an appointment as a no-show</td></tr>
+          <tr><td>Late Cancellation</td><td>A client cancels close to the time</td></tr>
+          <tr><td>Post-visit Check-in</td><td>An appointment is marked complete</td></tr>
+          <tr><td>Review Request</td><td>An appointment is marked complete</td></tr>
+          <tr><td>Rebook Reminder</td><td>A service is due and nothing is booked</td></tr>
+          <tr><td>New Guest Second Visit</td><td>A first visit finished and nothing is booked</td></tr>
+          <tr><td>Team Member Invitation</td><td>A team member or stylist is invited</td></tr>
+          <tr><td>Lapsed Client Win-back</td><td>Ninety days since their last visit</td></tr>
+        </tbody>
+      </table></div>
+      <p>Confirmations and reminders always go to a client with an email address. The follow-ups (thank-yous, rebook and win-back emails) can be switched off for one client under <span class="ui">Contact preferences</span>, <span class="ui">Email</span>.</p>
+      <h3>Text messages</h3>
+      <p>Texts come from Karen&rsquo;s number. A client is sent appointment texts only once they have agreed to them, either by ticking the box at <a href="/sms-opt-in">synergysalon.com/sms-opt-in</a> or by texting START to Karen. Texting STOP ends them. Until a client agrees, their window says so and no texts are sent.</p>
+      <h3>Writing to one client</h3>
+      <p>At the foot of a client&rsquo;s Activity, choose <span class="ui">Text</span> or <span class="ui">Email</span>, write the message and send it. A text goes from Karen&rsquo;s number and their reply comes back to Karen; an email comes from the salon, and replies go to the salon&rsquo;s reply inbox.</p>
+      <h3>What was sent</h3>
+      <p><span class="ui">Settings</span>, <span class="ui">Karen AI</span>, <span class="ui">Email History</span> lists every email the automations have sent, newest first, with a search and a filter by kind of email. Each one opens the email as it was sent. A client&rsquo;s own emails and texts are also on their Activity.</p>
+      <a class="top" href="#top">Back to top</a>
+    </section>
+
+    <!-- 9 -->
+    <section id="integrations">
+      <h2><span class="n">9</span>Integrations and Administration</h2>
+      <h3>Connected services</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Service</th><th>What it does in SynergyApp</th></tr></thead>
+        <tbody>
+          <tr><td>Google Calendar</td><td>Connected by each stylist under <span class="ui">Connect your tools</span>. Their appointments are copied into their Google Calendar and kept up to date. Their own Google events count as busy, so online guests are not offered those times; on Appt. Book they show as <span class="ui">Busy in Google</span>.</td></tr>
+          <tr><td>Karen AI</td><td>The salon&rsquo;s assistant, on her own phone number. She answers texts and calls (see below), and in the app through <span class="ui">Call Karen</span> and <span class="ui">Need Help?</span>.</td></tr>
+          <tr><td>Email</td><td>The automations&rsquo; emails, sent from the salon&rsquo;s own address.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Karen AI</h3>
+      <p>Clients call or text Karen&rsquo;s number to talk to her. She recognises clients and the team by the number they text from and greets them by name. For clients she books, moves and cancels appointments and tells them when theirs is; for the team she answers questions such as &ldquo;What&rsquo;s on my schedule tomorrow?&rdquo;. A call is greeted and put through to the salon.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>On the Karen AI tab</th><th>What it shows</th></tr></thead>
+        <tbody>
+          <tr><td>Karen&rsquo;s number</td><td>Her phone number, and whether it is connected.</td></tr>
+          <tr><td>Chat History</td><td>The conversations the team has had with Karen, in the app and by text.</td></tr>
+          <tr><td>Call History</td><td>Every call to Karen&rsquo;s number: who called, when, and whether the salon picked up.</td></tr>
+          <tr><td>Email History</td><td>Every email the automations have sent (see section 8).</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Salon settings</h3>
+      <p>On <span class="ui">Settings</span>, <span class="ui">Salon</span> (Owner and Admin):</p>
+      <ul>
+        <li><span class="ui">Salon Profile</span>: what clients see. The logo (<span class="ui">Change logo</span>, <span class="ui">Remove</span>), salon name, phone, website, Google review link, address, booking page and time zone. The logo is also the mark in the app&rsquo;s menu.</li>
+        <li><span class="ui">Where do you want people to reply to</span>: the inbox client replies are delivered to. Once saved it shows <span class="ui">Saved</span>, with <span class="ui">Change</span> to set another.</li>
+      </ul>
+
+      <h3>Managing the team</h3>
+      <ol class="steps">
+        <li>Open <span class="ui">Settings</span>, <span class="ui">Team</span>. Each member shows their role and whether their calendar is connected.</li>
+        <li>Press <span class="ui">Add Team Member</span> to invite somebody; Karen emails them and guides them through setting up.</li>
+        <li>Click a member to change their role, services, prices and available hours, then <span class="ui">Save</span>.</li>
+        <li><span class="ui">Remove from team</span> takes somebody off for good; their past appointments keep their name.</li>
+      </ol>
+
+      <h3>Your own account</h3>
+      <p>On <span class="ui">My Settings</span>: <span class="ui">Edit my profile</span> (picture, name, phone, password), <span class="ui">Dark Mode</span>, the app&rsquo;s language, and <span class="ui">Sign out</span>.</p>
+      <a class="top" href="#top">Back to top</a>
+    </section>
+
+  </main>
+</div>
+
+<footer class="site">
+  <div class="wrap">
+    <p>&copy; 2026 Synergy Salon of Tampa Bay, Inc. All rights reserved.</p>
+    <div class="fnav">
+      <a href="/">Home</a>
+      <a href="/privacy-policy">Privacy Policy</a>
+      <a href="/terms">Terms &amp; Conditions</a>
+      <a href="/sms-opt-in">Contact</a>
+      <a href="tel:8136542055">813.654.2055</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
