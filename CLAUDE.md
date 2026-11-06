@@ -2297,14 +2297,16 @@ must stay that way: anything committed here is served publicly.
   bundle never runs): the first open Women's Cut from tomorrow, two weeks at
   a time up to six, cached ten minutes in sessionStorage; no time or no
   answer, and the line stays hidden. Left of Book Now (later that day,
-  asked for: "match the CTA's text styling") is an **Open now** pill
-  (`.nav-open`, `[data-ss-open]`): the button's own height, pill radius and
-  15px/500 type as glass, a green dot and "Open now · until 6p", or a grey
-  dot and "Closed · Opens Mon 9a", from `window.__ssHours` else the design's
-  table, filled by `<script id="ss-open">` in the static head. The date
-  line under them is now one line in the same type, centred under the
-  pair. The pill drops its note from 992 to 1439px and is hidden from 992
-  to 1199px, where the menu's links need the bar, and on phones. A new
+  asked for, to the salon's mock-up) is **OPEN NOW** as plain text with a
+  green dot, not a button (`.nav-open`, `[data-ss-open]`; "CLOSED" with a
+  grey dot), level with the button, from `window.__ssHours` else the
+  design's table, filled by `<script id="ss-open">` in the static head.
+  The line under the pair reads "Soonest Opening: TOMORROW 9:00a haircut
+  with Dina" (TODAY, TOMORROW, else "SAT, NOV 8"; the stylist's first name
+  from the slot's `stylists` in `/api/availability`), ending with the
+  button's right edge, since centred it ran off the header at 1440px.
+  OPEN NOW is hidden from 992 to 1199px, where the menu's links need the
+  bar, and on phones. A new
   export of any page undoes all of it: re-apply.
 
 - **Online booking is live again (2026-11-06, asked for).** The
