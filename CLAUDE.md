@@ -1166,17 +1166,16 @@ made that way are real: name them ZZ and remove them.
   client's name and phone, with the text itself (`smsText` in
   karen-sms.js, kept to one text) and its length. No SMS is sent anywhere
   yet.
-- **Automations has two groups, each with a submenu** (asked for
-  2026-11-06), laid out as the Finance card's period buttons (`.seg
-  .fin-seg`, the submenu a step quieter): **Booking Management**, whose one
-  submenu item **Appointment Book** lists every automation the app runs
-  (all are started by an appointment or its absence; the owner's Team
-  Member Invitation is there too, having no better home), and
-  **Marketing**: **All Holidays**, **Slow Day**, **Invite a Friend**, each a
-  Coming soon card with no switch (`AUTO_GROUPS`). They are not built on
-  purpose: marketing to a list needs an unsubscribe link and the clients'
-  agreement, and the texting registration says no marketing. The tab is
-  remembered per browser (`ss-auto-tab`).
+- **Automations has a submenu of two** (asked for 2026-11-06), laid out
+  as the Finance card's period buttons (`.seg .fin-seg`): **Booking
+  Management**, an **Appointment Book** heading over every automation the
+  app runs (all are started by an appointment or its absence; the owner's
+  Team Member Invitation is there too, having no better home), and
+  **Marketing**: **All Holidays**, **Slow Day** and **Invite a Friend**,
+  each a Coming soon card with no switch (`AUTO_GROUPS`). They are not
+  built on purpose: marketing to a list needs an unsubscribe link and the
+  clients' agreement, and the texting registration says no marketing. The
+  tab is remembered per browser (`ss-auto-tab`).
 - **Sent History under each automation** (asked for 2026-11-02; on the
   Automations page for a few hours on 2026-11-03, then back in the window on
   request): below "View only. This is what the app does on its own." in the
