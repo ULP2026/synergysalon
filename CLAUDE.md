@@ -1168,8 +1168,8 @@ made that way are real: name them ZZ and remove them.
   yet.
 - **Automations has a submenu of two** (asked for 2026-11-06), laid out
   as the Finance card's period buttons (`.seg .fin-seg`): **Booking
-  Management**, an **Appointment Book** heading over every automation the
-  app runs (all are started by an appointment or its absence; the owner's
+  Management**, every automation the app runs (the Appointment Book
+  heading over them was removed on request) (all are started by an appointment or its absence; the owner's
   Team Member Invitation is there too, having no better home), and
   **Marketing**: **All Holidays**, **Slow Day** and **Invite a Friend**,
   each a Coming soon card with no switch (`AUTO_GROUPS`). They are not

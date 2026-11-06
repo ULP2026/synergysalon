@@ -2548,11 +2548,9 @@
   .au-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
   .au-top h2 { margin: 0; font-size: 1.05rem; }
   /* The submenu, Booking Management and Marketing, as the Finance card's
-     period buttons (2026-11-06); Appointment Book is a heading under it. */
+     period buttons (2026-11-06). */
   .au-seg.fin-seg { margin: -4px 0 14px; }
   .au-top .n:empty { display: none; }
-  .au-sec { margin: 0 0 8px; font-size: var(--fs-sm); font-weight: 650; color: var(--indigo-deep); }
-  .au-sec:empty { display: none; }
   .au-list .au-row.au-soon { grid-column: 1 / -1; cursor: default; padding: 12px 14px; align-items: flex-start; }
   .au-list .au-row.au-soon:hover { transform: none; box-shadow: none; border-color: var(--line); }
   .au-soon .au-ic { margin-top: 2px; }
@@ -6618,9 +6616,9 @@ async function loadAutoStats() {
 }
 
 // Automations in two groups, one submenu of two (asked for 2026-11-06),
-// laid out as the Finance card's period buttons: Booking Management, whose
-// Appointment Book heading holds every automation the app runs today (each
-// is started by an appointment or its absence), and Marketing.
+// laid out as the Finance card's period buttons: Booking Management, every
+// automation the app runs today (each is started by an appointment or its
+// absence; no heading over them, removed on request), and Marketing.
 // Marketing's three are not built: they would be marketing sent to a list,
 // which needs an unsubscribe link and the clients' agreement first (the
 // texting registration says no marketing), so each is a Coming soon card
@@ -6656,7 +6654,6 @@ function renderAutomations() {
       <h2>${me?.user?.canManageTeam ? 'Automations' : 'Automations for your clients'}<span class="n" id="autoN"></span></h2>
     </div>
     <div class="seg wrapseg fin-seg au-seg" id="autoGrp" role="group" aria-label="Automation group"></div>
-    <h3 class="au-sec" id="autoSec"></h3>
     <div class="au-list" id="autoList"></div>`;
   paintAutoTabs();
   paintAutomationList();
@@ -6665,9 +6662,6 @@ function renderAutomations() {
 function paintAutoTabs() {
   $('autoGrp').innerHTML = AUTO_GROUPS.map((x) =>
     `<button type="button" data-au-grp="${x.id}" aria-pressed="${x.id === autoTab.group}">${esc(x.name)}</button>`).join('');
-  // Booking Management's one section is a heading over its list.
-  const g = AUTO_GROUPS.find((x) => x.id === autoTab.group);
-  $('autoSec').textContent = g.id === 'booking' ? g.subs[0].name : '';
 }
 /** The automations this person sees: the team's own invitation is the owner's. */
 function visibleAutomations() {
