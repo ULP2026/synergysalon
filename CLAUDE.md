@@ -2187,6 +2187,18 @@ must stay that way: anything committed here is served publicly.
   with the first real bookings, which is how the 30 September problem started.
 
 
+- **Clients has Filters and Sort** (2026-11-06, asked for), under the
+  search: a Filters button opening a small panel (Status, Next visit: has a
+  visit booked or not, Tag: only tags clients have, Card on file only; a
+  count on the button, Clear filters) and a sort list (Recently added, Name
+  A-Z and Z-A, Next visit soonest, Last visit most recent, Most visits,
+  remembered per browser as `ss-client-sort`). Both are done by
+  `/api/staff/contacts` (`next`, `card`, `tag`, `sort`, `CLIENT_SORTS`), so
+  they cover every client and not just the first page; the page asks for up
+  to 300. The list's next visit is now the soonest one ahead: it was `max()`,
+  which showed a client with several visits booked their last as their next.
+  `tests/clients-list.integration.test.js`.
+
 - **`/documentation` is the public SynergyApp Documentation** (2026-11-06,
   asked for, laid out after portl.tax/documentation): one long page,
   `documentation.html`, on the Privacy Policy's own styles (header, Geist and

@@ -593,6 +593,39 @@
   .toolbar .dv-when .summary { display: block; margin: 0; font-size: var(--fs-sm); color: var(--muted); line-height: 1.35; text-align: left; }
   /* The view dropdown, a field like the others, on the right. */
   .dv-view { position: relative; flex: none; display: block; margin: 0; }
+  /* Clients' Filters and Sort (2026-11-06): pills like the view dropdown. */
+  .cl-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -6px 0 14px; }
+  .cl-filt { position: relative; }
+  .cl-fbtn, .cl-sort select { height: 40px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); color: var(--ink);
+                              font: inherit; font-size: .92rem; font-weight: 500; cursor: pointer;
+                              transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .cl-fbtn { display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; }
+  .cl-fbtn .ic { width: 16px; height: 16px; color: var(--muted); }
+  .cl-fbtn .cl-chev { transition: transform var(--t) var(--ease); }
+  .cl-fbtn[aria-expanded="true"] .cl-chev { transform: rotate(180deg); }
+  .cl-fbtn b { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+               background: var(--indigo); color: #fff; font-size: .72rem; font-weight: 700; }
+  .cl-fbtn b[hidden] { display: none; }
+  .cl-fbtn.on { border-color: var(--periwinkle); background: var(--peri-pale); color: var(--indigo); }
+  .cl-fbtn:hover, .cl-sort select:hover { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); background: var(--peri-pale); }
+  .cl-fbtn:focus-visible, .cl-sort select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .cl-sort { position: relative; display: block; margin: 0; }
+  .cl-sort select { appearance: none; -webkit-appearance: none; padding: 0 38px 0 16px; min-width: 190px; }
+  .cl-sort .ic { position: absolute; right: 14px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .cl-pop { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; width: 290px; display: grid; gap: 12px; padding: 16px;
+            border: 1px solid var(--line-2); border-radius: 14px; background: var(--card); box-shadow: var(--shadow); }
+  .cl-pop label { display: grid; gap: 4px; margin: 0; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
+  .cl-pop select { height: 38px; font-size: var(--fs-sm); }
+  .cl-pop .cl-check { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-weight: 500; color: var(--ink); cursor: pointer; }
+  .cl-pop .cl-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--indigo); }
+  .cl-pop-acts { display: flex; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+  @media (max-width: 560px) {
+    .cl-tools { display: grid; grid-template-columns: 1fr 1fr; }
+    .cl-fbtn { width: 100%; justify-content: center; }
+    .cl-sort select { width: 100%; min-width: 0; padding: 0 30px 0 12px; font-size: .82rem; }
+    .cl-sort .ic { right: 10px; }
+    .cl-pop { width: min(300px, calc(100vw - 48px)); }
+  }
   .dv-view select { appearance: none; -webkit-appearance: none; width: 140px; height: 42px; margin: 0; padding: 0 40px 0 16px;
                     border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); color: var(--ink);
                     font: inherit; font-size: .95rem; font-weight: 500; cursor: pointer;
@@ -3812,6 +3845,7 @@
   <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h3.5l1.7 4.3-2.2 1.4a11 11 0 0 0 6.3 6.3l1.4-2.2L20 15.5V19a1.5 1.5 0 0 1-1.6 1.5A16.5 16.5 0 0 1 3.5 5.6 1.5 1.5 0 0 1 5 4z"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></symbol>
   <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6.5h16M7 12h10M10 17.5h4"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
   <symbol id="i-form" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5Z"/><path d="M14 3.5V8h4M9 12.5h6M9 16h6"/></symbol>
   <symbol id="i-sync" viewBox="0 0 24 24"><path d="M19.5 11A7.5 7.5 0 0 0 6 6.8L4.5 8.5M4.5 4v4.5H9M4.5 13A7.5 7.5 0 0 0 18 17.2l1.5-1.7M19.5 20v-4.5H15"/></symbol>
@@ -4085,6 +4119,39 @@
             <svg class="ic"><use href="#i-search"/></svg>
             <input id="contactSearch" type="search" placeholder="Search name, email or phone" aria-label="Search clients">
           </div>
+        </div>
+        <!-- Filters and Sort (asked for 2026-11-06), under the search. The
+             server does both (contacts.js), so they cover every client. -->
+        <div class="cl-tools">
+          <div class="cl-filt">
+            <button type="button" class="cl-fbtn" id="clFilterBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="clFilterPop">
+              <svg class="ic" aria-hidden="true"><use href="#i-filter"/></svg><span>Filters</span><b id="clFilterN" hidden></b>
+              <svg class="ic cl-chev" aria-hidden="true"><use href="#i-down"/></svg></button>
+            <div class="cl-pop" id="clFilterPop" role="dialog" aria-label="Filter clients" hidden>
+              <label><span>Status</span>
+                <select data-cf="status"><option value="">Any status</option><option value="new">New</option><option value="contacted">Contacted</option>
+                  <option value="booked">Booked</option><option value="won">Client</option><option value="lost">Lost</option></select></label>
+              <label><span>Next visit</span>
+                <select data-cf="next"><option value="">Any</option><option value="booked">Has a visit booked</option><option value="none">No visit booked</option></select></label>
+              <label id="clTagField" hidden><span>Tag</span><select data-cf="tag"><option value="">Any tag</option></select></label>
+              <label class="cl-check"><input type="checkbox" data-cf="card"><span>Card on file only</span></label>
+              <div class="cl-pop-acts">
+                <button type="button" class="btn quiet sm" id="clFilterClear">Clear filters</button>
+                <button type="button" class="btn sm" id="clFilterDone">Done</button>
+              </div>
+            </div>
+          </div>
+          <label class="cl-sort"><span class="sr-only">Sort clients</span>
+            <select id="clSort">
+              <option value="new">Recently added</option>
+              <option value="name">Name A–Z</option>
+              <option value="name_desc">Name Z–A</option>
+              <option value="next">Next visit (soonest)</option>
+              <option value="last">Last visit (most recent)</option>
+              <option value="visits">Most visits</option>
+            </select>
+            <svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>
+          </label>
         </div>
         <!-- All, then one per stylist; built in fillStylistFilter(). -->
         <div class="cfilter cstylists hidden" id="contactStylist" role="group" aria-label="Show clients of"></div>
@@ -5231,6 +5298,12 @@ const I18N_ES = {
   'Cancelled': 'Cancelada', 'No-show': 'No se presentó', 'Completed': 'Completada',
   // Clients
   'Search name, email or phone': 'Buscar nombre, correo o teléfono', 'Search clients': 'Buscar clientes',
+  'Filters': 'Filtros', 'Filter clients': 'Filtrar clientes', 'Sort clients': 'Ordenar clientes', 'Any status': 'Cualquier estado',
+  'Next visit': 'Próxima visita', 'Any': 'Cualquiera', 'Has a visit booked': 'Con visita reservada', 'No visit booked': 'Sin visita reservada',
+  'Tag': 'Etiqueta', 'Any tag': 'Cualquier etiqueta', 'Card on file only': 'Solo con tarjeta registrada', 'Clear filters': 'Quitar filtros',
+  'Recently added': 'Añadidos recientemente', 'Name A–Z': 'Nombre A–Z', 'Name Z–A': 'Nombre Z–A', 'Next visit (soonest)': 'Próxima visita (la más cercana)',
+  'Last visit (most recent)': 'Última visita (la más reciente)', 'Most visits': 'Más visitas',
+  'No client matches these filters. Clear filters to see everyone.': 'Ningún cliente coincide con estos filtros. Quítalos para ver a todos.',
   'Choose your stylist': 'Elige tu estilista', 'All': 'Todos', 'No visit booked': 'Sin visita reservada',
   'visit': 'visita', 'visits': 'visitas', 'Book an appointment': 'Reservar una cita',
   'No clients yet': 'Aún no hay clientes', 'No one matches': 'Nadie coincide',
@@ -9536,6 +9609,10 @@ addEventListener('scroll', () => { if (!$('dpPop').classList.contains('hidden'))
 
 let contactList = [];
 let contactStylist = '';    // a stylist's slug, or '' for everyone
+/** Clients' Filters (this visit only) and Sort (remembered per browser). */
+let clFilters = { status: '', next: '', tag: '', card: false };
+let clSortBy = (() => { try { return localStorage.getItem('ss-client-sort') || 'new'; } catch { return 'new'; } })();
+const clFilterCount = () => ['status', 'next', 'tag'].filter((k) => clFilters[k]).length + (clFilters.card ? 1 : 0);
 
 /**
  * Choose your stylist: every stylist record the salon has, from the server
@@ -9624,9 +9701,11 @@ function renderContacts(d, filtered) {
     $('contacts').innerHTML = filtered || contactStatus
       ? emptyState({
         icon: 'search', title: 'No one matches',
-        text: contactStylist && !$('contactSearch').value.trim()
-          ? 'Nobody has booked with this stylist yet.'
-          : 'Try a different name, email or phone number.',
+        text: clFilterCount()
+          ? 'No client matches these filters. Clear filters to see everyone.'
+          : contactStylist && !$('contactSearch').value.trim()
+            ? 'Nobody has booked with this stylist yet.'
+            : 'Try a different name, email or phone number.',
       })
       : emptyState({
         icon: 'contacts', title: 'No clients yet',
@@ -10449,10 +10528,14 @@ async function loadContacts() {
   const sv = contactStylist;
   if (!contactList.length) $('contacts').innerHTML = skeleton(6);
   try {
-    const d = await api(`/api/staff/contacts?q=${encodeURIComponent(qv)}&stylist=${encodeURIComponent(sv)}&stylists=1`);
+    const p = new URLSearchParams({ q: qv, stylist: sv, stylists: '1', sort: clSortBy, limit: '300' });
+    for (const k of ['status', 'next', 'tag']) if (clFilters[k]) p.set(k, clFilters[k]);
+    if (clFilters.card) p.set('card', '1');
+    const d = await api(`/api/staff/contacts?${p}`);
     if (seq !== contactSeq) return;
     if (d.stylists) { contactStylists = d.stylists; fillStylistFilter(); }
-    renderContacts(d, Boolean(qv || sv));
+    if (d.tags) paintTagChoices(d.tags);
+    renderContacts(d, Boolean(qv || sv || clFilterCount()));
   } catch (err) {
     if (seq === contactSeq && err.message !== 'signed out') {
       $('contacts').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load clients', text: err.message });
@@ -10463,6 +10546,56 @@ $('contactSearch').oninput = () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(loadContacts, 250);
 };
+
+/** The Tag choice lists only the tags clients actually have; none, no choice. */
+function paintTagChoices(tags) {
+  const sel = document.querySelector('[data-cf="tag"]');
+  const keep = clFilters.tag;
+  sel.innerHTML = '<option value="">Any tag</option>'
+    + [...new Set([...tags, ...(keep ? [keep] : [])])].map((t) => `<option value="${esc(t)}"${t === keep ? ' selected' : ''}>${esc(t)}</option>`).join('');
+  $('clTagField').hidden = !tags.length && !keep;
+}
+function paintFilterButton() {
+  const n = clFilterCount();
+  $('clFilterN').hidden = !n;
+  $('clFilterN').textContent = String(n);
+  $('clFilterBtn').classList.toggle('on', n > 0);
+  $('clFilterBtn').setAttribute('aria-label', n ? `Filters, ${n} on` : 'Filters');
+}
+function setFilterPop(open) {
+  $('clFilterPop').hidden = !open;
+  $('clFilterBtn').setAttribute('aria-expanded', String(open));
+  if (open) $('clFilterPop').querySelector('select')?.focus();
+}
+$('clSort').value = clSortBy;
+paintFilterButton();
+$('clSort').onchange = (e) => {
+  clSortBy = e.target.value;
+  try { localStorage.setItem('ss-client-sort', clSortBy); } catch { /* this visit only */ }
+  loadContacts();
+};
+$('clFilterBtn').onclick = () => setFilterPop($('clFilterPop').hidden);
+$('clFilterDone').onclick = () => { setFilterPop(false); $('clFilterBtn').focus(); };
+$('clFilterClear').onclick = () => {
+  clFilters = { status: '', next: '', tag: '', card: false };
+  for (const el of $('clFilterPop').querySelectorAll('[data-cf]')) { if (el.type === 'checkbox') el.checked = false; else el.value = ''; }
+  paintFilterButton();
+  loadContacts();
+};
+// Each choice applies at once; the list behind the panel follows it.
+$('clFilterPop').addEventListener('change', (e) => {
+  const el = e.target.closest('[data-cf]');
+  if (!el) return;
+  clFilters[el.dataset.cf] = el.type === 'checkbox' ? el.checked : el.value;
+  paintFilterButton();
+  loadContacts();
+});
+document.addEventListener('click', (e) => {
+  if (!$('clFilterPop').hidden && !e.target.closest('.cl-filt')) setFilterPop(false);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('clFilterPop').hidden) { setFilterPop(false); $('clFilterBtn').focus(); }
+});
 
 let editingContact = null;
 

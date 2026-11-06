@@ -30,6 +30,16 @@ import { visitLinesSql, visitNameSql } from '../../_lib/visit.js';
 
 const STATUSES = ['new', 'contacted', 'booked', 'won', 'lost'];
 
+/** Clients' Sort: the order for each choice (2026-11-06). The id breaks ties so paging is stable. */
+const CLIENT_SORTS = {
+  new: "(c.status = 'new') DESC, c.created_at DESC",
+  name: 'lower(c.name) ASC',
+  name_desc: 'lower(c.name) DESC',
+  next: 'next_visit ASC NULLS LAST, lower(c.name) ASC',
+  last: 'last_seen DESC NULLS LAST, lower(c.name) ASC',
+  visits: 'visits DESC, lower(c.name) ASC',
+};
+
 /** Room for years of dated notes; the edit form and Add note share it. */
 const NOTES_MAX = 8000;
 
@@ -737,14 +747,26 @@ export default handler({
     const member = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(memberParam)
       ? memberParam : null;
 
+    // Clients' Filters and Sort (asked for 2026-11-06), done here rather than
+    // in the browser so they cover every client, not the first page of them.
+    const next = ['booked', 'none'].includes(url.searchParams.get('next')) ? url.searchParams.get('next') : null;
+    const card = url.searchParams.get('card') === '1';
+    const tag = (url.searchParams.get('tag') || '').trim().slice(0, 30) || null;
+    const sort = CLIENT_SORTS[url.searchParams.get('sort')] ? url.searchParams.get('sort') : 'new';
+
     const { rows } = await query(
       `SELECT c.id, c.name, c.email, c.phone, c.source, c.status, c.notes,
               c.first_booked_at, c.last_visit_at, c.created_at,
               count(a.id) FILTER (WHERE a.status <> 'cancelled') AS visits,
               ${STYLIST_OF} AS stylist,
               (to_jsonb(c) ->> 'card_on_file')::boolean AS card_on_file,
-              max(a.starts_at) FILTER (WHERE a.status = 'booked'
-                                        AND a.starts_at >= now()) AS next_visit
+              -- The soonest one still to come. This was max() until
+              -- 2026-11-06, which showed a client with three visits ahead
+              -- their last one as their next.
+              min(a.starts_at) FILTER (WHERE a.status = 'booked'
+                                        AND a.starts_at >= now()) AS next_visit,
+              COALESCE(max(a.starts_at) FILTER (WHERE a.status NOT IN ('cancelled', 'no_show')
+                                                 AND a.starts_at < now()), c.last_visit_at) AS last_seen
          FROM contacts c
          LEFT JOIN appointments a ON a.contact_id = c.id
         WHERE c.tenant_id = $1
@@ -764,16 +786,29 @@ export default handler({
                    AND ms.staff_user_id = $6::uuid))
           -- Anyone but the owner lists only the clients in their own book.
           AND ${clientInChairSql('c', '$7', '$8')}
+          AND (NOT $9::boolean OR (to_jsonb(c) ->> 'card_on_file')::boolean IS TRUE)
+          AND ($10::text IS NULL OR COALESCE(to_jsonb(c) -> 'tags', '[]'::jsonb) ? $10::text)
         GROUP BY c.id
-        ORDER BY (c.status = 'new') DESC, c.created_at DESC
+        HAVING ($11::text IS NULL
+                OR ($11::text = 'booked') = (count(a.id) FILTER (WHERE a.status = 'booked' AND a.starts_at >= now()) > 0))
+        ORDER BY ${CLIENT_SORTS[sort]}, c.id
         LIMIT $4`,
-      [tenant.id, STATUSES.includes(status) ? status : null, q, limit, stylist, member, chairIds(chair), user.id],
+      [tenant.id, STATUSES.includes(status) ? status : null, q, limit, stylist, member, chairIds(chair), user.id,
+        card, tag, next],
     );
+    // The tags in use among the clients this person sees, for the Filters list.
+    const tags = url.searchParams.has('stylists') ? (await query(
+      `SELECT DISTINCT t.tag
+         FROM contacts c, jsonb_array_elements_text(COALESCE(to_jsonb(c) -> 'tags', '[]'::jsonb)) AS t(tag)
+        WHERE c.tenant_id = $1 AND ${clientInChairSql('c', '$2', '$3')}
+        ORDER BY 1 LIMIT 100`,
+      [tenant.id, chairIds(chair), user.id],
+    ).catch(() => ({ rows: [] }))).rows.map((r) => r.tag) : undefined;
 
     return json(res, 200, {
       count: rows.length,
       // Only when asked: the booking window's name search does not need it.
-      ...(url.searchParams.has('stylists') ? { stylists: await stylistChoices(tenant.id, null, chairIds(chair)) } : {}),
+      ...(url.searchParams.has('stylists') ? { stylists: await stylistChoices(tenant.id, null, chairIds(chair)), tags } : {}),
       contacts: rows.map((c) => ({
         id: c.id,
         name: c.name,
@@ -787,7 +822,7 @@ export default handler({
         cardOnFile: c.card_on_file === true,
         nextVisit: c.next_visit,
         firstBookedAt: c.first_booked_at,
-        lastVisitAt: c.last_visit_at,
+        lastVisitAt: c.last_seen || c.last_visit_at,
         createdAt: c.created_at,
       })),
     });

@@ -71,7 +71,9 @@ test('a client wears their stylist, not where the record came from', () => {
 
 test('Choose your stylist is built from every stylist record the server lists', () => {
   assert.match(body('fillStylistFilter'), /Choose your stylist/);
-  assert.match(html, /contacts\?q=\$\{encodeURIComponent\(qv\)\}&stylist=\$\{encodeURIComponent\(sv\)\}&stylists=1/);
+  // The list asks for the stylists with it (and, since 2026-11-06, its filters and sort).
+  assert.match(body('loadContacts'), /new URLSearchParams\(\{ q: qv, stylist: sv, stylists: '1'/);
+  assert.match(body('loadContacts'), /\/api\/staff\/contacts\?\$\{p\}/);
 });
 
 test('email and texts are two separate switches', () => {
