@@ -2358,8 +2358,22 @@ must stay that way: anything committed here is served publicly.
   Book Now) and is 66px tall with 23px type from 768px up (asked for:
   twice the size, then a little back, then a little up again), 56px with
   18px type from 992 to 1199px where the menu's links share the bar;
-  phones keep their own full-width row. A new
-  export of any page undoes all of it: re-apply.
+  phones keep their own full-width row.
+  Then (2026-11-07, to the salon's reference picture) the two swapped
+  again: beside the button, **"Soonest Available Opening:"** over the time,
+  now with the service ("TOMORROW 9:00a haircut with Dina", the time on a
+  dark glass chip), and under the button a green **OPEN NOW**
+  (`.nav-now[data-ss-now]`, inside `.nav-under` with the stacked time).
+  OPEN NOW is worked out in `ss-earliest` from the salon's Hours of
+  Operation (`window.__ssHours`, which `ss-hours` fills), on the salon's
+  clock, every minute; when closed it says CLOSED NOW with a grey dot, and
+  with no hours it is hidden: never assumed. Side by side only from 1680px
+  (the longer line ran into Contact at 1512); below that the label, the
+  time and OPEN NOW stack under the button, right-aligned; on a phone the
+  time is on the left under the full-width button and OPEN NOW on the
+  right. The `.hero-bar` prefix on these rules is what beats the export's
+  own, media queries included. A new export of any page undoes all of it:
+  re-apply.
 
 - **Online booking is live again (2026-11-06, asked for).** The
   `ss-booking-paused` block is gone from all nine pages and
