@@ -2305,8 +2305,11 @@ must stay that way: anything committed here is served publicly.
   with Dina" (TODAY, TOMORROW, else "SAT, NOV 8"; the stylist's first name
   from the slot's `stylists` in `/api/availability`), ending with the
   button's right edge, since centred it ran off the header at 1440px.
-  OPEN NOW is hidden from 992 to 1199px, where the menu's links need the
-  bar, and on phones. A new
+  Book Now on a computer is about twice its first size (later that day,
+  asked for): 72px tall with 26px type from 768px up, a middle 56px from
+  992 to 1199px where the menu's links share the bar; phones keep their
+  own full-width row. OPEN NOW is hidden from 992 to 1399px, where the
+  links need its room, and on phones. A new
   export of any page undoes all of it: re-apply.
 
 - **Online booking is live again (2026-11-06, asked for).** The
