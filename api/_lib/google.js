@@ -261,8 +261,8 @@ export async function pushEvent(userId, appt, timezone) {
   let calendarId = await salonCalendarFor(userId, token, salon);
   let created = await call(token, `/calendars/${encodeURIComponent(calendarId)}/events`, { method: 'POST', body });
   if (!created && calendarId !== 'primary') {
-    // The stylist deleted the salon calendar in Google. Make it again rather
-    // than losing the booking, once.
+    // The calendar the app used to make was deleted in Google before the
+    // merge reached it: the booking goes to their main calendar instead.
     await query('UPDATE staff_users SET google_calendar_id = NULL WHERE id = $1', [userId]);
     calendarId = await salonCalendarFor(userId, token, salon);
     created = await call(token, `/calendars/${encodeURIComponent(calendarId)}/events`, { method: 'POST', body });
@@ -282,8 +282,8 @@ export async function pushEvent(userId, appt, timezone) {
  * Copy a lunch or block into the stylist's salon calendar in Google (asked
  * for 2026-10-31), so the time the app has stopped selling shows as taken
  * on their phone too. Shown busy, titled by what it is, with nobody
- * invited. Busy time is read from their main calendar only, never this
- * one, so the copy is never read back as a second block.
+ * invited. It goes in their main calendar with the bookings (2026-11-06);
+ * busyBetween skips it by id, so it is never read back as a second block.
  */
 export async function pushBlock(userId, block, timezone, salonName) {
   const token = await accessTokenFor(userId);
@@ -331,47 +331,76 @@ export async function dropBlock(userId, eventId, calendarId) {
 }
 
 /**
- * The calendar bookings are written to in this person's Google account: one
- * the app made, named after the salon, so salon work is its own calendar
- * they can colour or hide, and never mixed into their personal one.
+ * The calendar bookings are written to in this person's Google account:
+ * their main calendar, since 2026-11-06 (asked for: "merge the app and
+ * website calendar so Dina sees only one calendar in Google"). From
+ * 2026-10-14 until then the app made a calendar of the salon's own beside
+ * it, which showed as a second "Synergy Salon" in an account that is itself
+ * called Synergy Salon. Copies in the main calendar are never read back as
+ * busy time (busyBetween skips them by id), so writing there is safe.
  *
- * google_calendar_id holds its id. 'primary' means write to their main
- * calendar instead: a connection made before the app asked to create
- * calendars, or one where the person unticked that permission. Those keep
- * working as before until they reconnect. Empty means make one now.
- *
- * `verify` checks a stored calendar still exists, for a fresh connection:
- * the same account reconnecting gets its old calendar back, a different
- * account (where the stored id means nothing) gets a new one.
+ * google_calendar_id is 'primary' for everyone now. One that still holds a
+ * calendar the app made is moved over by mergeIntoMain (run by the daily
+ * sync) before anything else is written. `verify` is kept for callers and
+ * no longer changes anything.
  */
 export async function salonCalendarFor(userId, token, salon, { verify = false } = {}) {
+  void token; void salon; void verify;
   const { rows } = await query('SELECT google_calendar_id FROM staff_users WHERE id = $1', [userId]);
   const stored = rows[0]?.google_calendar_id;
-  if (stored === 'primary' && !verify) return 'primary';
   if (stored && stored !== 'primary') {
-    if (!verify) return stored;
-    const still = await call(token, `/calendars/${encodeURIComponent(stored)}`).catch(() => null);
-    if (still?.id) return stored;
+    // Not merged yet: keep writing where the copies are until the sync
+    // moves them all at once, so no booking is split across two calendars.
+    return stored;
   }
-  let id = 'primary';
+  if (stored !== 'primary') await query("UPDATE staff_users SET google_calendar_id = 'primary' WHERE id = $1", [userId]);
+  return 'primary';
+}
+
+/**
+ * Move one person's salon copies out of the calendar the app made and into
+ * their main calendar, and remove that calendar (the app may delete only
+ * calendars it made). Bookings are put back by the mirror, which copies
+ * every booking with no copy on record; lunches and blocks are put back
+ * here. Returns how many copies were moved, or null when there was nothing
+ * to merge.
+ */
+export async function mergeIntoMain(userId) {
+  const { rows: [u] } = await query(
+    `SELECT u.google_calendar_id AS cal, t.name AS salon, t.timezone
+       FROM staff_users u JOIN tenants t ON t.id = u.tenant_id WHERE u.id = $1`,
+    [userId],
+  );
+  if (!u?.cal || u.cal === 'primary') return null;
+  const token = await accessTokenFor(userId);
+  if (!token) return null;
+  const { rows: events } = await query(
+    'SELECT event_id FROM google_events WHERE staff_user_id = $1 AND calendar_id = $2', [userId, u.cal]);
+  const { rows: blocks } = await query(
+    `SELECT b.event_id, o.id, o.reason, lower(o.during) AS starts_at, upper(o.during) AS ends_at
+       FROM google_blocks b JOIN time_off o ON o.id = b.time_off_id
+      WHERE b.staff_user_id = $1 AND b.calendar_id = $2`, [userId, u.cal]).catch(() => ({ rows: [] }));
   try {
-    const cal = await call(token, '/calendars', {
-      method: 'POST',
-      body: {
-        summary: salon?.name || 'Salon appointments',
-        description: 'Your appointments at the salon, kept up to date by the salon app. '
-          + 'Changes made here are not sent back to the salon.',
-        ...(salon?.timezone ? { timeZone: salon.timezone } : {}),
-      },
-    });
-    if (cal?.id) id = cal.id;
+    // One call removes the calendar and every copy in it.
+    await call(token, `/calendars/${encodeURIComponent(u.cal)}`, { method: 'DELETE' });
   } catch (err) {
-    // Most often the permission was not granted. Their main calendar still
-    // works, so bookings go there rather than nowhere.
-    console.error('salon calendar not created; using the main calendar', err.message);
+    // Could not remove the calendar: take the copies out one by one, so
+    // nothing is left twice once they are made again in the main one.
+    console.error('merge: salon calendar not removed, removing its copies', err.message);
+    for (const e of [...events, ...blocks]) {
+      await call(token, `/calendars/${encodeURIComponent(u.cal)}/events/${encodeURIComponent(e.event_id)}`,
+        { method: 'DELETE' }).catch(() => {});
+    }
   }
-  await query('UPDATE staff_users SET google_calendar_id = $2 WHERE id = $1', [userId, id]);
-  return id;
+  await query('DELETE FROM google_events WHERE staff_user_id = $1 AND calendar_id = $2', [userId, u.cal]);
+  await query('DELETE FROM google_blocks WHERE staff_user_id = $1 AND calendar_id = $2', [userId, u.cal]).catch(() => {});
+  await query("UPDATE staff_users SET google_calendar_id = 'primary' WHERE id = $1", [userId]);
+  for (const b of blocks) {
+    if (new Date(b.ends_at) <= new Date()) continue;
+    await pushBlock(userId, { id: b.id, reason: b.reason, startsAt: b.starts_at, endsAt: b.ends_at }, u.timezone, u.salon)
+      .catch((err) => console.error('merge: block copy not remade', err.message));
+  }
+  return events.length + blocks.length;
 }
 
 /**
@@ -416,7 +445,12 @@ export async function busyBetween(userId, fromIso, toIso, { titles = false } = {
       WHERE staff_user_id = $1 AND COALESCE(to_jsonb(g) ->> 'calendar_id', 'primary') = 'primary'`,
     [userId],
   ).catch(() => ({ rows: [] }));
-  const own = new Set(ours.map((r) => r.event_id));
+  // And the copies of lunches and blocks, which are in the main calendar too
+  // since 2026-11-06: the block itself already stops the time.
+  const { rows: ourBlocks } = await query(
+    "SELECT event_id FROM google_blocks WHERE staff_user_id = $1 AND calendar_id = 'primary'", [userId],
+  ).catch(() => ({ rows: [] }));
+  const own = new Set([...ours, ...ourBlocks].map((r) => r.event_id));
   return (data?.items || [])
     .filter((e) => e.status !== 'cancelled' && e.transparency !== 'transparent' && !own.has(e.id))
     .map((e) => ({

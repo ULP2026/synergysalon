@@ -1,6 +1,9 @@
 /**
- * Bookings copied to a stylist's Google account go into the salon's own
- * calendar there, made by the app, not into their main calendar.
+ * Bookings copied to a stylist's Google account go into their main
+ * calendar (since 2026-11-06: one calendar in Google, not the account's own
+ * plus one the app made). Someone still on a calendar the app made is
+ * merged: that calendar is removed and the copies are made again in the
+ * main one, never read back as busy time.
  *
  *   DATABASE_URL=postgres://… node --test "tests/*.test.js"
  *
@@ -22,14 +25,15 @@ process.env.GOOGLE_CLIENT_ID ||= 'zz-client';
 process.env.GOOGLE_CLIENT_SECRET ||= 'zz-secret';
 
 const { encryptSecret } = await import('../api/_lib/secrets.js');
-const { busyBetween, pushEvent, salonCalendarFor } = await import('../api/_lib/google.js');
+const { busyBetween, mergeIntoMain, pushEvent, salonCalendarFor } = await import('../api/_lib/google.js');
 
 /** A fake Google Calendar API that records every request. */
 function fakeGoogle() {
   const calendars = new Map([['primary', new Map()]]);
   const calls = [];
   let n = 0;
-  const reply = (status, body) => new Response(body == null ? '' : JSON.stringify(body), { status });
+  // 204 has no body at all, as Google sends it.
+  const reply = (status, body) => new Response(status === 204 ? null : (body == null ? '' : JSON.stringify(body)), { status });
   globalThis.fetch = async (u, init = {}) => {
     const { pathname, searchParams } = new URL(u);
     const method = init.method || 'GET';
@@ -43,7 +47,9 @@ function fakeGoogle() {
     }
     const cal = calendars.get(parts[0]);
     if (!cal) return reply(404, { error: 'notFound' });
+    if (parts.length === 1 && method === 'DELETE') { calendars.delete(parts[0]); return reply(204, null); }
     if (parts.length === 1) return reply(200, { id: parts[0] });
+    if (method === 'DELETE') { cal.delete(parts[2]); return reply(204, null); }
     if (method === 'POST') { const id = `zz-ev-${++n}`; cal.set(id, body); return reply(200, { id }); }
     if (method === 'PATCH') {
       if (!cal.has(parts[2])) return reply(404, {});
@@ -92,7 +98,7 @@ async function cleanup(db) {
   await db.query("DELETE FROM staff_users WHERE email = 'zz-salon-cal@example.com'");
 }
 
-test('a booking goes into the salon calendar, made once and reused', { skip }, async () => {
+test('a booking goes into the main calendar, and no second calendar is made', { skip }, async () => {
   const db = pool();
   const realFetch = globalThis.fetch;
   await cleanup(db);
@@ -101,30 +107,47 @@ test('a booking goes into the salon calendar, made once and reused', { skip }, a
     const g = fakeGoogle();
 
     const eventId = await pushEvent(userId, appt, tenant.timezone);
-    const made = g.calls.filter((c) => c.method === 'POST' && c.path === '/calendars');
-    assert.equal(made.length, 1, 'one salon calendar is created');
+    assert.equal(g.calls.filter((c) => c.method === 'POST' && c.path === '/calendars').length, 0, 'no calendar is made');
+    assert.ok(g.calendars.get('primary').has(eventId), 'the event is in their main calendar');
     const calId = (await db.query('SELECT google_calendar_id FROM staff_users WHERE id = $1', [userId])).rows[0].google_calendar_id;
-    assert.match(calId, /^zz-cal-/);
-    assert.ok(g.calendars.get(calId).has(eventId), 'the event is in the salon calendar');
-    assert.equal(g.calendars.get('primary').size, 0, 'nothing in their main calendar');
-    const row = (await db.query('SELECT calendar_id FROM google_events WHERE appointment_id = $1', [appt.id])).rows[0];
-    assert.equal(row.calendar_id, calId);
+    assert.equal(calId, 'primary');
 
-    // Moved: edited where it is, no second calendar.
+    // Moved: edited where it is.
     await pushEvent(userId, { ...appt, guest_name: 'ZZ Guest Moved' }, tenant.timezone);
-    assert.equal(g.calls.filter((c) => c.method === 'POST' && c.path === '/calendars').length, 1);
-    assert.equal(g.calendars.get(calId).get(eventId).summary, 'ZZ Guest Moved · Haircut');
+    assert.equal(g.calendars.get('primary').get(eventId).summary, 'ZZ Guest Moved · Haircut');
+    assert.equal(g.calendars.get('primary').size, 1);
+    assert.equal(await salonCalendarFor(userId, 'zz-access', tenant, { verify: true }), 'primary');
+  } finally {
+    globalThis.fetch = realFetch;
+    await cleanup(db);
+  }
+});
 
-    // The stylist deleted the calendar in Google: made again, booking not lost.
-    g.calendars.delete(calId);
-    await db.query('DELETE FROM google_events WHERE appointment_id = $1', [appt.id]);
-    await pushEvent(userId, appt, tenant.timezone);
-    const again = (await db.query('SELECT google_calendar_id FROM staff_users WHERE id = $1', [userId])).rows[0].google_calendar_id;
-    assert.notEqual(again, calId);
-    assert.equal(g.calendars.get(again).size, 1);
+test('someone on the calendar the app used to make is merged into their main one', { skip }, async () => {
+  const db = pool();
+  const realFetch = globalThis.fetch;
+  await cleanup(db);
+  try {
+    const { tenant, userId, appt } = await setup(db);
+    const g = fakeGoogle();
+    // As before 2026-11-06: a calendar the app made, holding the copy.
+    g.calendars.set('zz-old-cal', new Map());
+    await db.query("UPDATE staff_users SET google_calendar_id = 'zz-old-cal' WHERE id = $1", [userId]);
+    const oldEvent = await pushEvent(userId, appt, tenant.timezone);
+    assert.ok(g.calendars.get('zz-old-cal').has(oldEvent), 'until merged, copies stay together where they are');
 
-    // Reconnecting the same account finds the calendar it has.
-    assert.equal(await salonCalendarFor(userId, 'zz-access', tenant, { verify: true }), again);
+    assert.equal(await mergeIntoMain(userId), 1);
+    assert.ok(g.calls.some((c) => c.method === 'DELETE' && c.path === '/calendars/zz-old-cal'), 'removed in one call');
+    assert.equal(g.calendars.has('zz-old-cal'), false, 'the calendar the app made is removed');
+    assert.equal((await db.query('SELECT count(*)::int n FROM google_events WHERE appointment_id = $1', [appt.id])).rows[0].n, 0);
+    assert.equal((await db.query('SELECT google_calendar_id FROM staff_users WHERE id = $1', [userId])).rows[0].google_calendar_id, 'primary');
+    assert.equal(await mergeIntoMain(userId), null, 'nothing to merge twice');
+
+    // The mirror puts the copy back, in the main calendar.
+    const again = await pushEvent(userId, appt, tenant.timezone);
+    assert.ok(g.calendars.get('primary').has(again));
+    const busy = await busyBetween(userId, new Date().toISOString(), new Date(Date.now() + 14 * 86_400_000).toISOString());
+    assert.equal(busy.length, 0, 'the copy is not read back as busy time');
   } finally {
     globalThis.fetch = realFetch;
     await cleanup(db);

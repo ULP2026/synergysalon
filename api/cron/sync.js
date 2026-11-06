@@ -13,6 +13,8 @@
  * writes to it or reads its pending rows. The path keeps its name so the
  * schedule in vercel.json is untouched.
  */
+import { query } from '../_lib/db.js';
+import { mergeIntoMain } from '../_lib/google.js';
 import { mirrorToGoogle } from '../_lib/google-mirror.js';
 import { handler, json } from '../_lib/http.js';
 
@@ -24,6 +26,16 @@ export default handler({
     const secret = process.env.CRON_SECRET;
     if (secret && req.headers.authorization !== `Bearer ${secret}`) {
       return json(res, 401, { error: 'Unauthorized' });
+    }
+    // Anyone still on the calendar the app used to make is moved into their
+    // main one first (2026-11-06), so the copies below land there.
+    const { rows: apart } = await query(
+      `SELECT id FROM staff_users
+        WHERE google_calendar_id IS NOT NULL AND google_calendar_id <> 'primary'
+          AND (to_jsonb(staff_users) ->> 'google_refresh_token') IS NOT NULL`,
+    ).catch(() => ({ rows: [] }));
+    for (const u of apart) {
+      await mergeIntoMain(u.id).catch((err) => console.error('merge into main calendar failed', err.message));
     }
     const copied = await mirrorToGoogle({ limit: DAILY_LIMIT });
     // A count only: the response is public when CRON_SECRET is unset.

@@ -269,20 +269,25 @@ The desk is not limited by Google. Bookings are copied into the stylist's
 Google Calendar for stylists who signed in with Google (`google-mirror.js`,
 run after every booking or change and again by the daily cron; a pasted address is
 read-only), and their copy is removed before an appointment is deleted.
-The copies go into **a calendar of the salon's own in their Google account**,
-named after the salon (asked for 2026-10-14): made on connect by
-`salonCalendarFor` in `google.js` through the `calendar.app.created` scope,
-which reaches only calendars the app made. Its id is
-`staff_users.google_calendar_id`; `'primary'` there means "write to their
-main calendar" (a connection from before the scope, or one that unticked it,
-until they reconnect). Each copy records its calendar
-(`google_events.calendar_id`, 020, also in ensure-schema) and is edited
-there. Reconnecting the same account finds its calendar again; one the
-stylist deleted is made again on the next booking. Busy time is read from the
-main calendar only, never the salon one, and the main calendar's own copies
-of bookings are skipped too: read back as busy, they stopped a guest moving
-their own appointment. Add `calendar.app.created` to the OAuth consent
-screen's scope list before submitting for Google's verification.
+The copies go into **the person's main Google calendar** (since 2026-11-06,
+asked for: "merge the app and website calendar so Dina sees only one
+calendar in Google"). From 2026-10-14 until then they went into a calendar
+the app made, named after the salon, which in hair@synergysalon.com (an
+account itself named Synergy Salon) showed as a second "Synergy Salon".
+`salonCalendarFor` now always answers `'primary'` and makes nothing;
+`staff_users.google_calendar_id` is `'primary'`. Anyone still holding a
+calendar the app made is moved by `mergeIntoMain` (google.js), which the
+daily `/api/cron/sync` runs first: it deletes that calendar in one call
+(allowed by `calendar.app.created`, which reaches only calendars the app
+made; event by event if that fails), drops those `google_events` and
+`google_blocks` rows, remakes the copies of future lunches and blocks, and
+the mirror then copies every booking afresh into the main calendar. Each
+copy still records its calendar (`google_events.calendar_id`, 020).
+Busy time is read from the main calendar, and the app's own copies there,
+bookings (`google_events`) and lunches and blocks (`google_blocks`), are
+skipped by id: read back as busy, they stopped a guest moving their own
+appointment. `calendar.app.created` is still requested on connect, only so
+an old calendar can be removed; it can go once nobody has one.
 The guest's own reschedule and cancel update the Google copy at once
 (`api/appointment.js`) instead of waiting for the cron.
 
