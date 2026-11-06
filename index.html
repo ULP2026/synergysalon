@@ -614,8 +614,11 @@
       // The page draws "Open today " and the hours as two pieces of text, and
       // redraws the hours itself every minute: change only that piece. Writing
       // the hours into "Open today " showed them twice (2026-11-07).
+      // Before the page has drawn the hours piece, leave "Open today " alone:
+      // its own clock fills the hours in on its first tick.
       var s = n.nextSibling;
-      if (!v.slice(at + 10).trim() && s && s.nodeType === 3) {
+      if (!v.slice(at + 10).trim()) {
+        if (!s || s.nodeType !== 3) continue;
         var hours = s.nodeValue.replace(/^[^\u00b7]*?(\s\u00b7|$)/, h + '$1');
         if (hours !== s.nodeValue) s.nodeValue = hours;
         continue;
