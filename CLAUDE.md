@@ -2298,7 +2298,8 @@ must stay that way: anything committed here is served publicly.
   copy of `.sv-ctas` on the others (their `.hero-ctas` is in a hidden
   `.hero-foot`). It said BOOK ME NOW with Karen's number for a few hours.
   Later that day (asked for, to a reference) it reads **Call 813.654.2055**
-  as a dark glass pill with a thin light edge and the periwinkle arrow
+  as a clear glass pill (the photo showing through; dark for an hour, then
+  lightened on request) with a thin light edge and the periwinkle arrow
   circle, a soft glow breathing on its two sides (`a.btn.hero-bk`,
   `heroSideGlow`, still for reduced motion); the number line under it is
   hidden (`a.hero-call`), since the button says it.
