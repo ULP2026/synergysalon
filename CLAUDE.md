@@ -1284,7 +1284,8 @@ made that way are real: name them ZZ and remove them.
   `noreply@noreply.synergysalon.com`), logging why. `BOOKING_FROM_EMAIL` now
   only says which domain is verified. Verify synergysalon.com in Resend and
   the fallback stops being used.
-  Replies go to `shopFrom().replyTo` (`hair@synergysalon.com`), which is a
+  Replies go to `shopFrom().replyTo` (`admin@synergysalon.com` since
+  2026-11-06, asked for; `hair@synergysalon.com` before), which is a
   different address on purpose and not a Resend domain.
   Appt. Book shows only appointments of a client who still exists (since
   2026-10-31, `ct.id IS NOT NULL` in `diary.js`): deleting a client
