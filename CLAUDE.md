@@ -1439,6 +1439,15 @@ made that way are real: name them ZZ and remove them.
     mark; a card is the service small in capitals with the time, the
     client's name, their phone (the booking's, else the client's, from
     diary.js), and its status marks in the bottom-right corner.
+    Since 2026-11-06 (asked for) a card is headed by its exact time on the
+    left, start and end ("9:00 AM - 10:00 AM", `cardTime`, `exactClock`),
+    from the same minutes that place it on the grid; the service follows
+    across the card's whole width (beside the time it was cut short). Each
+    part of a visit with a processing break shows its own start and end; a
+    short card shows the start beside the name; in a narrow column the end
+    wraps under the start. Cards start 1px under their minute and stop 5px
+    short of their end (`cardH`, the drag ghost and the dropped card
+    alike), so back-to-back visits never touch.
   - Activity: who did it is a small picture on the bottom-right corner of
     the event's icon (`.tl-badge`, who it was on hover; the name line under
     the event was taken off on request);
