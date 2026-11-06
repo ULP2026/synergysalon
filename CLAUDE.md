@@ -2188,8 +2188,13 @@ must stay that way: anything committed here is served publicly.
   booking popup like every other Book link, and under it, centred, a text
   link "Call 813.851.4556" to Karen's number (`.hero-call`,
   tel:+18138514556). Both inside the template, the styles beside
-  `.hero-ctas`. Only `index.html`; the other pages' heroes still call the
-  salon. A new export of the home page undoes it: re-apply.
+  `.hero-ctas`. **The other eight pages** (the four service pages, scalp
+  analysis, Riverview, Brandon, FishHawk) show a different hero, `.sv-ctas`
+  ("Book your appointment now" and "Text us now"; their `.hero-ctas` is in
+  a `.hero-foot` that is `display:none` there): every copy of that block is
+  now the same BOOK ME NOW and Call 813.851.4556 (styles beside `.sv-ctas`,
+  `svBkGlow`). The "Text us now" buttons further down are untouched. A new
+  export of any of these pages undoes it: re-apply.
 
 - **Online booking is live again (2026-11-06, asked for).** The
   `ss-booking-paused` block is gone from all nine pages and
