@@ -20,16 +20,38 @@ import { DateTime } from 'luxon';
 
 import { availableSlots } from './_lib/availability.js';
 import { createBooking } from './_lib/booking.js';
-import { ONLINE_BOOKING } from './_lib/config.js';
+import { DEFAULT_TZ, ONLINE_BOOKING, shopFrom } from './_lib/config.js';
 import { previewAllowed } from './_lib/preview.js';
-import { hasColumn, transaction } from './_lib/db.js';
+import { hasColumn, query, transaction } from './_lib/db.js';
 import { saveContactMessage, sendOptInConfirmation } from './_lib/contact-form.js';
-import { sendConfirmation, sendContactNotice } from './_lib/email.js';
+import { calendarUrl, sendConfirmation, sendContactNotice } from './_lib/email.js';
 import { mirrorToGoogle } from './_lib/google-mirror.js';
 import {
   handler, json, readJson, requireString,
 } from './_lib/http.js';
 import { tenantForRequest } from './_lib/tenant.js';
+
+/**
+ * The guest's booking when this request did not make it (2026-11-07). Their
+ * details save as they type, so the booking is usually made a moment before
+ * "Book Me Now!", whose own request then finds it already there; the
+ * confirmation still needs the stylist actually booked and its calendar link.
+ */
+async function bookingByRef(tenantId, ref) {
+  const { rows } = await query(
+    `SELECT a.ref, a.starts_at, a.duration_min, s.name AS stylist_name,
+            COALESCE((SELECT string_agg(x ->> 'name', ' + ')
+                        FROM jsonb_array_elements(CASE WHEN jsonb_typeof(to_jsonb(a) -> 'services') = 'array'
+                                                       THEN to_jsonb(a) -> 'services' ELSE '[]'::jsonb END) x),
+                     v.name) AS service_name
+       FROM appointments a
+       JOIN stylists s ON s.id = a.stylist_id
+       JOIN services v ON v.id = a.service_id
+      WHERE a.tenant_id = $1::uuid AND a.ref = $2::text AND a.status = 'booked'`,
+    [tenantId, ref],
+  );
+  return rows[0] || null;
+}
 
 /**
  * What the wizard calls a service, and what it is in the database.
@@ -380,12 +402,17 @@ export default handler({
     }
     await mirrorToGoogle().catch((err) => console.error('google mirror deferred', err));
 
+    const appt = result.booked
+      || (result.already ? await bookingByRef(tenant.id, result.already).catch(() => null) : null);
     return json(res, 200, {
       saved: Boolean(result.contactId),
       contactId: result.contactId,
       ref: result.booked?.ref ?? result.already ?? null,
-      stylist: result.booked?.stylist_name ?? null,
-      startsAt: result.booked?.starts_at ?? null,
+      stylist: appt?.stylist_name ?? null,
+      startsAt: appt?.starts_at ?? null,
+      // Add to my Calendar on the website's confirmation (2026-11-07): the
+      // confirmation email's own link, so the two never disagree on the time.
+      calendar: appt ? calendarUrl(appt, shopFrom(tenant), tenant.timezone || DEFAULT_TZ) || null : null,
       bookingError: result.bookingError ?? null,
     });
   },

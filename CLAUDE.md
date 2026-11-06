@@ -176,7 +176,15 @@ confetti, a six-second "Appointment booked!" toast, and an optional "How did you
 answers on `window.__ssBk`; the adapter reads them there (not from headings),
 answers `ss-bk-confirm` with `ss-bk-result`, and the popup says "booked" and
 throws confetti and the toast only when the reply has a ref. There is no redirect to
-`/thank-you` any more. Returning guests are filled in only from what this
+`/thank-you` any more. The confirmation's first button is **Add to my
+Calendar** (2026-11-07, all nine pages with the popup): `/api/enquiry`
+replies with `calendar`, the confirmation email's own Google Calendar link
+(`calendarUrl` in `email.js`), passed through `ss-bk-result` as `calUrl`
+and shown only for a booking (`bkHasCal`); its class is `bk-addcal`, since
+`bk-cal` is the availability calendar's. Details save as they are typed, so
+the booking is usually made just before "Book Me Now!", whose own request
+finds it already there: the reply looks that booking up (`bookingByRef`) so
+the stylist and the link still come back. Returning guests are filled in only from what this
 browser saved at their last booking (`ss-guest` in `localStorage`, matched on
 the typed name): looking a profile up by name on a public page would expose
 any client's email and phone. Color's "Other" has no service, so it saves a
