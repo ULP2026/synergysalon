@@ -709,6 +709,36 @@
   .wk-list { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
   .wk-free { margin-top: 2px; font-size: var(--fs-xs); color: var(--faint); text-align: center; }
   .cal-cell.past:not(.today) .wk-n b { color: var(--muted); }
+  /* The Week time grid (2026-11-06): the hours on the left as on the Day view. */
+  .wkt-wrap { overflow: auto; max-height: calc(100vh - 230px); max-height: calc(100dvh - 230px); border-top: 1px solid var(--line); }
+  .wkt { display: grid; grid-template-columns: 60px repeat(7, minmax(110px, 1fr)); min-width: calc(60px + 7 * 110px); }
+  .wkt-corner, .wkt-head { position: sticky; top: 0; z-index: 4; background: var(--card); border-bottom: 1px solid var(--line); }
+  .wkt-corner { left: 0; z-index: 5; }
+  .wkt-head { display: flex; justify-content: center; padding: 8px 4px 6px; border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+  .wkt-head .cal-n.wk-n { display: flex; flex-direction: column; align-items: center; gap: 4px; width: auto; height: auto; min-width: 0;
+          margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--ink); }
+  .wkt-head .wk-n span { font-size: var(--fs-xs); font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+  .wkt-head .wk-n b { display: grid; place-items: center; min-width: 30px; height: 30px; border-radius: 999px; font-size: var(--fs-md); font-weight: 650; }
+  .wkt-head .wk-n:hover b { background: var(--peri-pale); color: var(--indigo); }
+  .wkt-head.today .wk-n b { background: var(--periwinkle); color: #fff; box-shadow: 0 0 0 3px rgba(85, 96, 166, .14); }
+  .wkt-head.past:not(.today) .wk-n b { color: var(--muted); }
+  .wkt-axis { position: sticky; left: 0; z-index: 3; background: var(--card); border-right: 1px solid var(--line); }
+  .wkt-axis span { position: absolute; right: 8px; transform: translateY(-50%); font-size: var(--fs-xs); font-weight: 600;
+                   color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .wkt-axis span:first-child { transform: none; }
+  .wk .cal-cell.wkt-col { position: relative; display: block; min-height: 0; padding: 0; gap: 0; border-right: 0;
+          border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); cursor: copy;
+          background-image: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px calc(var(--wk-hour) / 2)),
+                            repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px var(--wk-hour)); }
+  .wkt-col .wkt-past { position: absolute; left: 0; right: 0; top: 0; background: color-mix(in srgb, var(--ink) 4%, transparent); pointer-events: none; }
+  .wkt-col .cal-ev.wkt-ev { position: absolute; z-index: 1; margin: 0; padding: 5px 7px; border-radius: 8px; white-space: normal; overflow: hidden;
+          display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; gap: 1px; }
+  .wkt-col .cal-ev.wkt-ev i { white-space: nowrap; margin: 0; font-variant-numeric: tabular-nums; }
+  .wkt-col .cal-ev.wkt-ev:hover { z-index: 2; }
+  .wkt-col .cal-ev.wkt-ev.short { flex-direction: row; align-items: center; gap: 6px; padding: 2px 7px; }
+  .wkt-col .cal-ev.wkt-ev.short i { margin: 0; flex: none; }
+  .wkt-col .cal-ev.wkt-ev.short span { display: none; }
+  .wkt-col .cal-ev.wkt-ev.short b { min-width: 0; }
   @media (max-width: 860px) {
     .wk-grid { grid-template-columns: minmax(0, 1fr); }
     .wk-grid .cal-cell { min-height: 0; border-right: 0; display: grid; grid-template-columns: 64px minmax(0, 1fr);
@@ -9562,6 +9592,8 @@ function calBegin() {
   document.body.classList.add('dg-dragging');
   const f = d.chip.cloneNode(true);
   f.className = 'cal-ev cal-float';
+  // A Week grid card carries its place in its column; the floating copy must not.
+  f.style.top = ''; f.style.left = ''; f.style.height = '';
   f.setAttribute('aria-hidden', 'true');
   f.style.width = `${d.chip.offsetWidth}px`;
   document.body.appendChild(f);
@@ -9747,6 +9779,7 @@ function renderWeek(d) {
               title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><i>${cardTime(salonMinutes(a.startsAt), a.durationMin)}</i><b>${esc(a.guestName)}</b><span>${esc(a.service)}${a.stylist ? ` · ${esc(a.stylist)}` : ''}</span></button>`;
   };
   const days = Array.from({ length: 7 }, (_, i) => addDays(d.start, i));
+  if (!WK_LIST.matches) { renderWeekGrid(d, days, byDate); return; }
   $('calendar').innerHTML = `<div class="cal wk"><div class="wk-grid">${days.map((iso) => {
     const dt = new Date(`${iso}T12:00:00`);
     const list = byDate.get(iso) || [];
@@ -9758,6 +9791,95 @@ function renderWeek(d) {
     </div>`;
   }).join('')}</div></div>
   <p class="cal-hint">Click any day to add an appointment. Click the date to see that day by stylist. Drag an appointment to another day to move it.</p>`;
+}
+
+/**
+ * Week as a time grid (asked for 2026-11-06): the hours down the left as on
+ * the Day view, the seven days across, and each appointment drawn at its
+ * exact start and length, its start and end written first. The columns are
+ * the month's cells (.cal-cell with data-add) and the cards its chips
+ * (.cal-ev with data-ref), so clicking a time, opening a day, opening an
+ * appointment and dragging one to another day all work as before. A phone
+ * keeps the list, where seven time columns would be too narrow to read.
+ */
+const WK_LIST = matchMedia('(max-width: 860px)');
+const WK_HOUR = 72;   // pixels an hour: the Day view's 112 is too tall for seven columns
+WK_LIST.addEventListener?.('change', () => { if (calView === 'week' && monthData?.start) renderWeek(monthData); });
+/** "10:00a", as the website writes times: short enough for a Week column. */
+function shortClock(mins) {
+  const h = Math.floor(mins / 60) % 24, m = mins % 60;
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')}${h < 12 ? 'a' : 'p'}`;
+}
+function renderWeekGrid(d, days, byDate) {
+  // As wide as seven readable columns, as the Day view widens for its
+  // people (see .main.diary): 160px a day past the hours, up to the window.
+  document.querySelector('.main').style.setProperty('--diary-w', `${64 + 42 + 60 + 7 * 160}px`);
+  const live = d.appointments.filter((a) => a.status !== 'cancelled');
+  // The salon's hours across the week (the team's, as the Day view uses),
+  // widened a whole hour at a time to anything booked outside them.
+  const open = (d.salonWeek || []).filter(Array.isArray);
+  let from = open.length ? Math.min(...open.map((x) => x[0])) : DG_FROM;
+  let to = open.length ? Math.max(...open.map((x) => x[1])) : DG_TO;
+  for (const a of live) {
+    const s0 = salonMinutes(a.startsAt);
+    from = Math.min(from, s0);
+    to = Math.max(to, s0 + a.durationMin);
+  }
+  from = Math.max(0, Math.floor(from / 60) * 60);
+  to = Math.min(24 * 60, Math.ceil(to / 60) * 60);
+  const px = (m) => ((m - from) / 60) * WK_HOUR;
+  const height = px(to);
+  const hours = [];
+  for (let m = from; m < to; m += 60) hours.push(`<span style="top:${px(m)}px">${clock(m)}</span>`);
+  const nowMin = salonMinutes(new Date().toISOString());
+  const card = (a, lane, lanes) => {
+    const s0 = salonMinutes(a.startsAt);
+    const off = a.status === 'cancelled';
+    const mv = canMove(a) ? ' cal-mv' : '';
+    const h = Math.max(22, (a.durationMin / 60) * WK_HOUR - 5);
+    const title = `${exactClock(s0)} to ${exactClock(s0 + a.durationMin)} · ${a.guestName} · ${a.service}${a.stylist ? ` with ${a.stylist}` : ''}${off ? ' (cancelled)' : ''}`;
+    const pos = `top:${px(s0) + 1}px;height:${h}px;left:calc(${(lane / lanes) * 100}% + 3px);width:calc(${100 / lanes}% - 6px)`;
+    return `<button class="cal-ev wk-ev wkt-ev${off ? ' off' : ''}${h < 44 ? ' short' : ''}${mv}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
+      style="${pos}" title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><i>${esc(shortClock(s0))}${h < 44 ? '' : ` - ${esc(shortClock(s0 + a.durationMin))}`}</i><b>${esc(a.guestName)}</b><span>${esc(a.service)}${a.stylist ? ` · ${esc(a.stylist)}` : ''}</span></button>`;
+  };
+  const cols = days.map((iso) => {
+    const dt = new Date(`${iso}T12:00:00`);
+    const shut = Array.isArray(d.salonWeek) && d.salonWeek[dt.getDay()] === null;
+    // Side by side where two overlap, a lane each, as the Day view's
+    // Unassigned column does.
+    const list = (byDate.get(iso) || []).filter((a) => a.status !== 'cancelled')
+      .map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin }))
+      .sort((x, y) => x.s - y.s || y.e - x.e);
+    const placed = [];
+    let group = [];
+    let groupEnd = -1;
+    const close = () => { const n = Math.max(1, ...group.map((g) => g.lane + 1)); group.forEach((g) => { g.lanes = n; }); group = []; };
+    for (const it of list) {
+      if (it.s >= groupEnd) { close(); groupEnd = it.e; } else groupEnd = Math.max(groupEnd, it.e);
+      const used = new Set(group.filter((g) => g.e > it.s).map((g) => g.lane));
+      let lane = 0; while (used.has(lane)) lane += 1;
+      it.lane = lane;
+      group.push(it); placed.push(it);
+    }
+    close();
+    const past = iso < d.today ? height : iso === d.today ? Math.max(0, Math.min(height, px(nowMin))) : 0;
+    const now = iso === d.today && nowMin >= from && nowMin <= to ? `<div class="dg-now" style="top:${px(nowMin)}px" aria-hidden="true"></div>` : '';
+    return `<div class="cal-cell wkt-col ${iso === d.today ? 'today' : ''} ${iso < d.today ? 'past' : ''} ${shut ? 'shut' : ''}" data-add="${iso}"
+        style="height:${height}px" title="Click to add an appointment on ${esc(dayLabel(iso))}">
+      ${past ? `<div class="wkt-past" style="height:${past}px"></div>` : ''}
+      ${placed.map((it) => card(it.a, it.lane, it.lanes)).join('')}${now}</div>`;
+  }).join('');
+  const heads = days.map((iso) => {
+    const dt = new Date(`${iso}T12:00:00`);
+    return `<div class="wkt-head ${iso === d.today ? 'today' : ''} ${iso < d.today ? 'past' : ''}">
+      <button type="button" class="cal-n wk-n" data-day="${iso}" title="Open this day"><span>${esc(DOW[dt.getDay()])}</span><b>${dt.getDate()}</b></button></div>`;
+  }).join('');
+  const cancelled = d.appointments.length - live.length;
+  $('calendar').innerHTML = `<div class="cal wk"><div class="wkt-wrap"><div class="wkt" style="--wk-hour:${WK_HOUR}px">
+      <div class="wkt-corner"></div>${heads}
+      <div class="wkt-axis" style="height:${height}px">${hours.join('')}</div>${cols}
+    </div></div></div>
+  <p class="cal-hint">Click a time to add an appointment. Click the date to see that day by stylist. Drag an appointment to another day to move it.${cancelled ? ` ${cancelled} cancelled this week ${cancelled === 1 ? 'is' : 'are'} left off the grid.` : ''}</p>`;
 }
 
 function setView(next, date) {

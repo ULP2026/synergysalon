@@ -1452,6 +1452,19 @@ made that way are real: name them ZZ and remove them.
     view last used, and those draw chips of their own): Week's chips lead
     with the exact start and end (`cardTime`), Month's with the exact start
     ("10:00 AM", `exactClock`), and Month's chips have 3px between them.
+    **Week is a time grid on a computer** (asked for the same day: "the time
+    on the left side should be on Day and Week"): the hours down the left
+    as on Day (`renderWeekGrid`, `.wkt`, 72px an hour, the salon's hours
+    from `salonWeek` widened to anything booked), the seven days across,
+    each visit at its exact start and length, overlaps side by side, the
+    time first in the website's short form ("10:00a - 11:00a",
+    `shortClock`, so it fits a day's column; the full times are in the
+    card's title). The page widens to 160px a day as Day widens for its
+    people. Its columns are the month's `.cal-cell[data-add]` and its cards
+    `.cal-ev[data-ref]`, so clicking, opening a day, opening a visit and
+    dragging to another day work as before (the dragged copy drops the
+    card's grid position). Cancelled visits are left off the grid and
+    counted under it. Under 861px (`WK_LIST`) Week stays the list.
   - Activity: who did it is a small picture on the bottom-right corner of
     the event's icon (`.tl-badge`, who it was on hover; the name line under
     the event was taken off on request);
