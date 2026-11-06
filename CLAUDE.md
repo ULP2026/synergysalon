@@ -2297,6 +2297,11 @@ must stay that way: anything committed here is served publicly.
   `.hero-bk` and `.hero-call`, in `.hero-ctas` on the home page and in every
   copy of `.sv-ctas` on the others (their `.hero-ctas` is in a hidden
   `.hero-foot`). It said BOOK ME NOW with Karen's number for a few hours.
+  Later that day (asked for, to a reference) it reads **Call 813.654.2055**
+  as a dark glass pill with a thin light edge and the periwinkle arrow
+  circle, a soft glow breathing on its two sides (`a.btn.hero-bk`,
+  `heroSideGlow`, still for reduced motion); the number line under it is
+  hidden (`a.hero-call`), since the button says it.
   The header's button is **Book Now** (was Book Online), wrapped in
   `.nav-book` with an **Earliest Appointment** line (`.nav-soon`,
   `[data-ss-earliest]`): under the button on a computer; on a phone (where
