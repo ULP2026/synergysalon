@@ -2361,8 +2361,8 @@ must stay that way: anything committed here is served publicly.
   phones keep their own full-width row.
   Then (2026-11-07, to the salon's reference picture) the two swapped
   again: beside the button, **"Soonest Available Opening:"** over the time,
-  now with the service ("TOMORROW 9:00a haircut with Dina", the time on a
-  dark glass chip), and under the button a green **OPEN NOW**
+  now with the service ("TOMORROW 9:00a haircut with Dina", plain text
+  on the photo; a dark box behind it was removed on request), and under the button a green **OPEN NOW**
   (`.nav-now[data-ss-now]`, inside `.nav-under` with the stacked time).
   OPEN NOW is worked out in `ss-earliest` from the salon's Hours of
   Operation (`window.__ssHours`, which `ss-hours` fills), on the salon's
@@ -2374,6 +2374,11 @@ must stay that way: anything committed here is served publicly.
   right. The `.hero-bar` prefix on these rules is what beats the export's
   own, media queries included. A new export of any page undoes all of it:
   re-apply.
+  "Open today" in the top strip and the drawer: the template redraws the
+  hours itself every minute from `window.__ssHours`, and draws "Open today "
+  and the hours as two pieces of text, so `ss-hours` changes only the
+  hours piece. Writing the hours into the "Open today " piece showed them
+  twice ("9a to 6p9a to 6p", fixed 2026-11-07).
 
 - **Online booking is live again (2026-11-06, asked for).** The
   `ss-booking-paused` block is gone from all nine pages and
