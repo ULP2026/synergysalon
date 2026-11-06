@@ -2317,7 +2317,7 @@ must stay that way: anything committed here is served publicly.
   (`.nav-open[data-ss-soon]`), and the time is the line under the button,
   "TOMORROW 9:00a with Dina" (`.nav-soon`; TODAY, TOMORROW, else "SAT, NOV
   8"; the stylist's first name from the slot's `stylists` in
-  `/api/availability`), both shown or hidden together by `ss-earliest`. The
+  `/api/availability`), centred under the button (asked for), both shown or hidden together by `ss-earliest`. The
   label took the place of an OPEN NOW indicator (its `ss-open` script went
   with it) and shows only from 1440px wide, where it clears the menu's
   links; phones show the time centred under their full-width button. The button reads **Book Online** (was
