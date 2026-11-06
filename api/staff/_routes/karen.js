@@ -31,6 +31,7 @@ import { HttpError, handler, json, readJson } from '../../_lib/http.js';
 import { karenAi } from '../../_lib/karen-ai.js';
 import { confirm, dropProposal, propose } from '../../_lib/karen-actions.js';
 import { karenCalls } from '../../_lib/karen-calls.js';
+import { emailLastReceived, emailThread, emailThreads } from '../../_lib/karen-email.js';
 import { deskReply } from '../../_lib/karen-desk.js';
 import { karenPeople, karenThread, logKaren } from '../../_lib/karen-log.js';
 import { phoneKey, prettyPhone } from '../../_lib/karen-sms.js';
@@ -66,6 +67,30 @@ export default handler({
       return json(res, 200, {
         calls: await karenCalls(user.tenant_id, { chair: await chairOf(user), userId: user.id }),
       });
+    }
+    // Email Inbox (2026-11-06, karen-email.js): the admin only, like the
+    // other histories; ?mail=threads the conversations, ?mail=<id> one.
+    const mail = url.searchParams.get('mail');
+    if (mail) {
+      if (!owner) throw new HttpError(403, 'Only the admin reads the salon\'s email.');
+      if (mail === 'threads') {
+        const { rows: [t] } = await query(
+          "SELECT COALESCE((to_jsonb(tenants) ->> 'karen_email_on')::boolean, true) AS on, to_jsonb(tenants) ->> 'reply_to' AS reply_to FROM tenants WHERE id = $1::uuid",
+          [user.tenant_id],
+        );
+        return json(res, 200, {
+          threads: await emailThreads(user.tenant_id),
+          on: t?.on !== false,
+          inbox: t?.reply_to || '',
+          last: await emailLastReceived(user.tenant_id),
+          // Karen reads mail only once Resend can be asked for it.
+          ready: Boolean(process.env.RESEND_API_KEY),
+          webhook: `https://${String(req.headers['x-forwarded-host'] || req.headers.host || '')}/api/staff/karen-mail`,
+        });
+      }
+      const thread = await emailThread(user.tenant_id, mail);
+      if (!thread) throw new HttpError(404, 'No such conversation.');
+      return json(res, 200, thread);
     }
     const who = url.searchParams.get('history');
     if (who) {
@@ -129,6 +154,14 @@ export default handler({
     const user = await requireTeamAdmin(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
+    // Karen answers email on her own, or only files it for a person.
+    if (typeof body.emailOn === 'boolean') {
+      if (!await hasColumn('tenants', 'karen_email_on')) {
+        throw new HttpError(409, 'Karen\'s email is not switched on for this salon yet.', 'NOT_MIGRATED');
+      }
+      await query('UPDATE tenants SET karen_email_on = $2 WHERE id = $1::uuid', [tenant.id, body.emailOn]);
+      return json(res, 200, { on: body.emailOn });
+    }
     const raw = typeof body.phone === 'string' ? body.phone.trim() : '';
     const key = phoneKey(raw);
     if (raw && !key) throw new HttpError(400, 'That phone number looks too short: include the area code.');

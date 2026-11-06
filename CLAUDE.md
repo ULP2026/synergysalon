@@ -1287,7 +1287,37 @@ made that way are real: name them ZZ and remove them.
   Replies go to `shopFrom().replyTo` (`admin@synergysalon.com` since
   2026-11-06, asked for; `hair@synergysalon.com` before), which is a
   different address on purpose and not a Resend domain.
-  Appt. Book shows only appointments of a client who still exists (since
+- **Karen answers the salon's email** (asked for 2026-11-06,
+  `api/_lib/karen-email.js`). Mail to the reply-to inbox (admin@, Google
+  Workspace) is copied by a Workspace routing rule to Karen's receiving
+  address at Resend (Resend Inbound, a subdomain with its MX at GoDaddy);
+  Resend's `email.received` webhook calls `/api/staff/karen-mail`
+  (`_routes/karen-mail.js`, no session). The webhook is trusted for the
+  email's id only: the email is fetched from Resend with `RESEND_API_KEY`
+  (`GET /emails/receiving/{id}`), so a forged call can only point at mail
+  Resend really received. Each email is stored once (057:
+  `email_messages` unique on Message-ID and on Resend's id), threaded by
+  References, else same sender and subject within 30 days, and answered at
+  most once (the reply row is claimed first, `answers` unique; a retried
+  webhook is a duplicate and does nothing). Not answered, with the reason
+  kept: the salon's own mail and Karen's (`X-Synergy-Karen`, `APP_SENDERS`,
+  the inbox itself: Karen's alerts go to admin@ too, so this is the loop
+  guard), auto-replies, bulk and list mail, no-reply senders, a team
+  member's email (Karen's team powers stay on text), a sender neither
+  Resend nor Google vouched for (DKIM or DMARC pass, Google's verdict read
+  from `ARC-Authentication-Results` since the copy has been routed), a new
+  conversation the sorter (Haiku, one word) calls `sensitive` (flagged) or
+  `other` (skipped), anyone Karen answered six times this hour, and
+  anything she hands to the team with `alert_salon`. Otherwise she answers
+  with the text conversation itself (`converse` in karen-sms.js, state in
+  `karen_threads` under `email:<address>`, `KAREN_EMAIL_PROMPT`), and a YES
+  on the first line of a reply carries out what she proposed, as by text.
+  The signature is added by code. She sends as the inbox
+  (`sendKarenEmail`), which needs the root domain verified in Resend;
+  until then Resend refuses it and she sends from the fallback with
+  Reply-To the inbox. Settings, Karen AI, Email Inbox (the admin only)
+  lists it all, with the switch (`tenants.karen_email_on`).
+- Appt. Book shows only appointments of a client who still exists (since
   2026-10-31, `ct.id IS NOT NULL` in `diary.js`): deleting a client
   (`removeContact`, which cancels what was still to come) sets their
   appointments' `contact_id` to NULL through the foreign key, and they

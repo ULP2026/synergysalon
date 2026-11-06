@@ -2319,6 +2319,23 @@
   .kc-r time { font-size: .72rem; color: var(--faint); white-space: nowrap; }
   @media (max-width: 520px) { .kc-row { grid-template-columns: 32px minmax(0, 1fr); } .kc-r { grid-column: 2; justify-items: start; } }
   .kh-empty { margin: auto; padding: 24px; text-align: center; color: var(--muted); font-size: .9rem; }
+  /* Email Inbox (2026-11-06): Chat History's box, a conversation a row, each email a card. */
+  .kh-person > .kc-ic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+                        background: var(--peri-pale); color: var(--periwinkle); }
+  .kh-person > .kc-ic .ic { width: 17px; height: 17px; }
+  .km-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
+  .km-bar b { display: block; font-size: .9rem; overflow-wrap: anywhere; }
+  .km-bar small { display: block; font-size: .78rem; color: var(--muted); }
+  .km-sw { display: inline-flex; align-items: center; gap: 10px; font-size: .86rem; font-weight: 550; cursor: pointer; }
+  .km-msg { align-self: flex-start; max-width: min(620px, 94%); padding: 10px 12px; border: 1px solid var(--line);
+            border-radius: 12px; background: var(--card); }
+  .km-msg.out { align-self: flex-end; background: var(--peri-pale); border-color: transparent; }
+  .km-h { display: flex; justify-content: space-between; gap: 10px; font-size: .8rem; }
+  .km-h b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .km-h time { flex: none; color: var(--faint); font-size: .72rem; }
+  .km-s { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 3px; font-size: .76rem; color: var(--muted); }
+  .km-b { margin: 8px 0 0; font-size: .88rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .km-n { display: block; margin-top: 6px; font-size: .76rem; color: var(--muted); }
   @media (max-width: 720px) {
     .kh-box { grid-template-columns: 1fr; height: calc(100dvh - 190px); min-height: 360px; }
     .kh-box .kh-thread { display: none; }
@@ -4419,6 +4436,31 @@
           <!-- Email History, laid out as the two above (asked for
                2026-11-05): the same box, mark, header and one-line rows. -->
           <div class="kx" id="mailCard"></div>
+          <!-- Email Inbox (asked for 2026-11-06, karen-email.js): email to the
+               salon's reply-to inbox, which Karen reads and answers, by person
+               and conversation, with why any was left for a person. The admin's
+               only, like the histories' every-conversation view. -->
+          <div class="kx hidden" id="kmCard">
+            <div class="ml-top">
+              <button type="button" class="ml-toggle" data-kx="kmCard" aria-expanded="false" aria-controls="kmContent">
+                <span class="kx-ic" aria-hidden="true"><svg class="ic"><use href="#i-mail"/></svg></span>
+                <span class="ml-t"><h2>Email Inbox</h2>
+                  <p>Email to the salon that Karen read and answered, by person and conversation. Only you can see this.</p></span>
+              </button>
+              <button type="button" class="ml-chev" data-kx="kmCard" aria-label="Show the email inbox"><svg class="ic"><use href="#i-right"/></svg></button>
+            </div>
+            <div class="kx-content" id="kmContent">
+              <div class="km-bar">
+                <div><b id="kmInbox">Loading…</b><small id="kmSetup"></small></div>
+                <label class="km-sw"><span>Karen answers on her own</span>
+                  <button type="button" class="switch" role="switch" id="kmOn" aria-checked="true" aria-label="Karen answers emails on her own"><span></span></button></label>
+              </div>
+              <div class="kh-box" id="kmBox">
+                <div class="kh-people" id="kmThreads" role="list" aria-label="Email conversations"></div>
+                <div class="kh-thread" id="kmThread" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
       <!-- Where client replies land (moved here from Salon on request,
@@ -5419,7 +5461,7 @@ const I18N_ES = {
   'Salon Profile': 'Perfil del salón', 'Team Members': 'Miembros del equipo', 'Add team member': 'Agregar miembro del equipo',
   'Money': 'Dinero', 'Subscription': 'Suscripción', 'Activate subscription': 'Activar suscripción',
   'Pricing coming soon': 'Precio próximamente', 'Synergy Salon App': 'App de Synergy Salon',
-  'Chat History': 'Historial de chats', 'Call History': 'Historial de llamadas', 'Sent History': 'Historial de envíos',
+  'Chat History': 'Historial de chats', 'Email Inbox': 'Bandeja de correo', 'Call History': 'Historial de llamadas', 'Sent History': 'Historial de envíos',
   'Who this automation emailed and texted, newest first.': 'A quién envió esta automatización correos y textos, del más reciente al más antiguo.',
   'Billing': 'Facturación', 'Payroll': 'Nómina', 'Coming soon': 'Próximamente', 'Coming Soon': 'Próximamente',
   'Phone Number Settings': 'Configuración del número', "Karen's number": 'Número de Karen', 'Message History': 'Historial de mensajes',
@@ -14590,15 +14632,15 @@ const khPic = (x) => personPhoto({ ...x, photo: (me?.stylists || []).find((s) =>
  * History (asked for 2026-11-02), closed until opened and remembered per
  * browser.
  */
-const KX_KEY = { khCard: 'ss-kh-open', kcCard: 'ss-kc-open' };
+const KX_KEY = { khCard: 'ss-kh-open', kcCard: 'ss-kc-open', kmCard: 'ss-km-open' };
 function kxOpen(id) { try { return localStorage.getItem(KX_KEY[id]) === '1'; } catch { return false; } }
 function setKx(id, open) {
   try { localStorage.setItem(KX_KEY[id], open ? '1' : '0'); } catch { /* private window: just this time */ }
   $(id).classList.toggle('open', open);
-  const what = id === 'khCard' ? 'chat' : 'call';
+  const what = { khCard: 'chat history', kcCard: 'call history', kmCard: 'email inbox' }[id];
   for (const b of $(id).querySelectorAll('[data-kx]')) {
     if (b.classList.contains('ml-toggle')) b.setAttribute('aria-expanded', String(open));
-    else b.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the ${what} history`);
+    else b.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the ${what}`);
   }
   if (open && id === 'khCard' && khWho) { const box = $('khThread'); box.scrollTop = box.scrollHeight; }
 }
@@ -14734,9 +14776,102 @@ $('khThread').onclick = (e) => {
   for (const b of $('khPeople').querySelectorAll('[data-kh]')) b.setAttribute('aria-current', 'false');
 };
 
+/**
+ * Email Inbox (2026-11-06): what came to the salon's inbox and what Karen
+ * did with each one. Statuses in the words the team uses: answered, needs
+ * you (flagged for a person), not for Karen (automatic mail, newsletters,
+ * not the salon's business), waiting (filed, nobody has answered).
+ */
+const KM_THREAD = { answered: ['ok', 'Answered'], flagged: ['warn', 'Needs you'], skipped: ['', 'Not for Karen'], open: ['', 'Waiting'] };
+const KM_MSG = {
+  in: { replied: ['ok', 'Karen answered'], flagged: ['warn', 'Needs you'], skipped: ['', 'Not for Karen'], received: ['', 'Waiting for a person'], failed: ['warn', 'Reply failed'] },
+  out: { sent: ['ok', 'Sent'], sending: ['', 'Sending'], failed: ['warn', 'Not sent'] },
+};
+const kmChip = ([tone, label]) => `<span class="chip ${tone}">${esc(label)}</span>`;
+let kmThreads = [];
+let kmWho = null;
+async function loadKarenInbox() {
+  const card = $('kmCard');
+  if (!me?.user?.canManageTeam) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  $('kmThreads').innerHTML = skeleton(3);
+  let d;
+  try { d = await api('/api/staff/karen?mail=threads'); } catch (err) {
+    $('kmThreads').innerHTML = `<p class="kh-empty">${esc(err.message)}</p>`;
+    return;
+  }
+  $('kmInbox').textContent = d.inbox ? `Karen reads ${d.inbox}` : 'Set "Where do you want people to reply" below first';
+  $('kmSetup').textContent = !d.ready ? 'Waiting for the email provider to be connected.'
+    : d.last?.count ? `Last email received ${ago(d.last.at)} · ${d.last.count} in all`
+      : 'No email has reached Karen yet: the inbox still needs its copy to Karen set up.';
+  $('kmOn').setAttribute('aria-checked', String(d.on !== false));
+  kmThreads = d.threads || [];
+  if (!kmThreads.length) {
+    $('kmBox').classList.remove('open');
+    $('kmThreads').innerHTML = '<p class="kh-empty">No emails yet. They appear here as they come in.</p>';
+    $('kmThread').innerHTML = '<p class="kh-empty">Nothing to show yet.</p>';
+    return;
+  }
+  $('kmThreads').innerHTML = kmThreads.map((x) => `
+    <button type="button" class="kh-person" role="listitem" data-km="${esc(x.id)}" aria-current="${x.id === kmWho}">
+      <span class="kc-ic" aria-hidden="true">${ic(x.contact_id ? 'user' : 'mail')}</span>
+      <span style="min-width:0"><b><span>${esc(x.name || x.email)}</span><time datetime="${esc(x.last_at)}">${esc(ago(x.last_at))}</time></b>
+        <small>${esc(x.subject || '(no subject)')}</small>
+        <small>${kmChip(KM_THREAD[x.status] || KM_THREAD.open)}</small></span></button>`).join('');
+  if (!kmWho || !kmThreads.some((x) => x.id === kmWho)) kmWho = matchMedia('(max-width: 720px)').matches ? null : kmThreads[0].id;
+  if (kmWho) openMailThread(kmWho); else $('kmThread').innerHTML = '';
+}
+async function openMailThread(id) {
+  kmWho = id;
+  for (const b of $('kmThreads').querySelectorAll('[data-km]')) b.setAttribute('aria-current', String(b.dataset.km === id));
+  $('kmBox').classList.add('open');
+  const x = kmThreads.find((t) => t.id === id) || { name: '', email: '', subject: '', count: 0 };
+  const top = `<div class="kh-top"><button type="button" class="iconbtn kh-back" data-km-back aria-label="Back to the conversations">${ic('left')}</button>
+    <b>${esc(x.name || x.email)}<small>${esc(x.email)} · ${x.count} email${x.count === 1 ? '' : 's'}</small></b>
+    ${x.contact_id ? `<button type="button" class="btn sm" data-km-person="${esc(x.contact_id)}">Open client</button>` : ''}</div>`;
+  $('kmThread').innerHTML = `${top}<div class="kh-msgs">${skeleton(2)}</div>`;
+  let t;
+  try { t = await api(`/api/staff/karen?mail=${encodeURIComponent(id)}`); } catch (err) {
+    $('kmThread').innerHTML = `${top}<p class="kh-empty">${esc(err.message)}</p>`;
+    return;
+  }
+  if (kmWho !== id) return;
+  const rows = (t.messages || []).map((m) => {
+    const who = m.direction === 'out' ? `Karen, to ${m.to_email}` : (m.from_name ? `${m.from_name} <${m.from_email}>` : m.from_email);
+    const chip = (KM_MSG[m.direction] || {})[m.status];
+    return `<div class="km-msg ${m.direction === 'out' ? 'out' : 'in'}">
+      <div class="km-h"><b>${esc(who)}</b><time datetime="${esc(m.created_at)}">${esc(khWhen(m.created_at))}</time></div>
+      <div class="km-s">${esc(m.subject || '(no subject)')}${chip ? kmChip(chip) : ''}</div>
+      <p class="km-b">${esc(m.body)}</p>
+      ${m.note ? `<small class="km-n">${esc(m.note)}</small>` : ''}</div>`;
+  }).join('');
+  $('kmThread').innerHTML = `${top}<div class="kh-msgs">${rows || '<p class="kh-empty">No emails.</p>'}</div>`;
+}
+$('kmThreads').onclick = (e) => { const b = e.target.closest('[data-km]'); if (b) openMailThread(b.dataset.km); };
+$('kmThread').onclick = (e) => {
+  const p = e.target.closest('[data-km-person]');
+  if (p) { openPerson(p.dataset.kmPerson); return; }
+  if (!e.target.closest('[data-km-back]')) return;
+  kmWho = null;
+  $('kmBox').classList.remove('open');
+  for (const b of $('kmThreads').querySelectorAll('[data-km]')) b.setAttribute('aria-current', 'false');
+};
+// Off: Karen still files every email here, and answers none.
+$('kmOn').onclick = async (e) => {
+  e.preventDefault();
+  const b = $('kmOn');
+  const on = b.getAttribute('aria-checked') !== 'true';
+  b.setAttribute('aria-checked', String(on));
+  try { await api('/api/staff/karen', { method: 'PATCH', body: JSON.stringify({ emailOn: on }) }); } catch (err) {
+    b.setAttribute('aria-checked', String(!on));
+    toast(err.message);
+  }
+};
+
 async function loadKarenSettings() {
   loadKarenHistory();
   loadKarenCalls();
+  loadKarenInbox();
   const v = $('kaVid');
   if (!v.poster) { v.poster = KAREN_PIC; }
   if (!kQuiet()) {

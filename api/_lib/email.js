@@ -564,6 +564,51 @@ export async function sendInvite({ name, email, link, appUrl, expiresDays, invit
   return { ...out, kind };
 }
 
+/** The address the app sends from when nothing better is verified: for karen-email.js's loop guard. */
+export const APP_SENDERS = () => [senderAddress(SENDER), FALLBACK, VERIFIED].map((x) => String(x).toLowerCase());
+
+/**
+ * Karen's answer to an email (2026-11-06, karen-email.js): plain, in the
+ * same thread (In-Reply-To and References), from the salon's reply-to inbox
+ * (admin@), as the salon asked. Resend sends as that address only once the
+ * salon's own domain is verified there; until then it goes from the verified
+ * sender with Reply-To set to the inbox, so the answer still comes back to
+ * it. Marked X-Synergy-Karen so a copy that comes back is never answered.
+ * Returns { sent, id, from } or { skipped } without a provider.
+ */
+export async function sendKarenEmail({ to, subject, text, inReplyTo = null, references = '' }, tenant = {}) {
+  const resend = client();
+  if (!resend) {
+    console.warn('RESEND_API_KEY is not set; Karen does not send her reply to', to);
+    return { skipped: true };
+  }
+  const shop = shopFrom(tenant);
+  const own = shop.replyTo;
+  const name = `Karen at ${shop.name}`;
+  const message = {
+    from: own ? `${name} <${own}>` : fromFor(shop),
+    replyTo: own || undefined,
+    to,
+    subject,
+    text,
+    html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#1a1a1a;white-space:pre-line;">${escapeHtml(text)}</div>`,
+    headers: {
+      ...(inReplyTo ? { 'In-Reply-To': inReplyTo } : {}),
+      ...(references ? { References: references } : {}),
+      'X-Synergy-Karen': '1',
+    },
+  };
+  let { data, error } = await resend.emails.send(message);
+  let from = message.from;
+  if (error && own) {
+    console.warn(`Resend refused ${own} (${error.message}); Karen sends from ${FALLBACK}, replies to ${own}`);
+    from = `${name} <${FALLBACK}>`;
+    ({ data, error } = await resend.emails.send({ ...message, from }));
+  }
+  if (error) throw new Error(`Resend refused the message: ${error.message}`);
+  return { sent: true, id: data?.id || null, from };
+}
+
 /**
  * Forgot Password? (2026-11-06): the link to choose a new password. Not an
  * automation and never switched off: somebody locked out must be able to get
@@ -637,20 +682,23 @@ export function sendCashoutNotice({ name, amountCents, note, appUrl }, tenant = 
  * email), with the conversation so the team need not ask again. Not a guest
  * message, so not in MESSAGES or Email History.
  */
-export function sendKarenAlert({ name, phone, known, reason, summary, transcript = [] }, tenant = {}) {
+export function sendKarenAlert({ name, phone, email = '', known, reason, summary, transcript = [] }, tenant = {}) {
   const shop = shopFrom(tenant);
   const to = shop.replyTo;
   if (!to) return Promise.resolve({ skipped: true });
-  const who = name || phone || 'A client';
+  const who = name || phone || email || 'A client';
   const said = transcript.slice(-10)
     .map((m) => `${m.role === 'user' ? (first(name) === 'there' ? 'Client' : first(name)) : 'Karen'}: ${m.text}`)
     .join('\n');
   return send(shop, to, `Karen needs you: ${who} (${reason})`, {
     heading: 'A client needs a person',
-    intro: `${who} texted Karen, and Karen has handed this to you. Please call or text them back.`,
+    intro: email
+      ? `${who} emailed the salon, and Karen has handed this to you. Please answer them yourself.`
+      : `${who} texted Karen, and Karen has handed this to you. Please call or text them back.`,
     rows: [
       ['Name', name || 'Not on file'],
       ['Mobile', phone || 'Unknown'],
+      ...(email ? [['Email', email]] : []),
       ['On file', known ? 'Yes, a client of the salon' : 'No, a new number'],
       ['Why', reason],
       ['Summary', summary],

@@ -146,6 +146,9 @@ const KINDS = {
 const YES = /^(y|yes|yeah|yep|yup|sure|ok|okay|confirm|please do|do it|go ahead|correct)\b/;
 const NO = /^(n|no|nope|nah|keep it|never ?mind|don'?t)\b/;
 const first = (name) => String(name || '').trim().split(/\s+/)[0] || '';
+/** "Text" or "Reply to this email": Karen answers email too since 2026-11-06 (karen-email.js). */
+const byEmail = (ctx) => ctx?.channel === 'email';
+const writeMe = (ctx) => (byEmail(ctx) ? 'Reply to this email' : 'Text me');
 
 /** "today", "tomorrow", "friday", "this week": the days a message asks about, on the salon's clock. */
 function daysAsked(t, zone) {
@@ -297,9 +300,21 @@ async function smart(ctx, st, ai) {
     const out = await aiReply(ctx, base, { ...AI_DEPS, describe: (a) => describe(a, ctx.tenant.timezone) }, ai);
     return { say: out.say, greeted: true, state: remember(out.say, out.state) };
   } catch (err) {
+    // By email nobody is waiting on the phone: no rules answer in Karen's
+    // place; the email is left for a person (karen-email.js).
+    if (byEmail(ctx)) throw err;
     console.error('karen-ai failed; the rules answer instead', err);
     return route(ctx, {});
   }
+}
+
+/**
+ * Karen's conversation for another channel (email, 2026-11-06): the same
+ * model, tools and YES-to-confirm as by text. `ctx` carries `channel:
+ * 'email'`, `email` (the sender's address) and `key` (the conversation's).
+ */
+export function converse(ctx, state, ai) {
+  return smart(ctx, state || {}, ai);
 }
 
 /** The yes: the proposal made by the very functions the rules use. */
@@ -432,7 +447,8 @@ async function facts(ctx) {
 async function alert(ctx, { reason, summary, transcript }) {
   await sendKarenAlert({
     name: ctx.who.name || '',
-    phone: prettyPhone(ctx.key) || '',
+    phone: byEmail(ctx) ? (ctx.who.phone || '') : (prettyPhone(ctx.key) || ''),
+    email: byEmail(ctx) ? ctx.email : '',
     known: ctx.who.kind === 'client',
     reason,
     summary,
@@ -684,9 +700,9 @@ async function cancelIt(ctx, a) {
     );
     return rows[0] ? { ...rows[0], stylist_name: a.stylist, stylist_slug: a.stylist_slug, service_name: a.service, service_slug: a.service_slug, lines: a.lines } : null;
   });
-  if (!appt) return { say: 'That appointment has already been changed. Text "my appointments" to see where things stand.', state: {} };
+  if (!appt) return { say: 'That appointment has already been changed. Ask me for your appointments to see where things stand.', state: {} };
   await afterChange(appt, () => sendCancellation(appt, tenant));
-  return { say: `Done: your ${describe(a, tenant.timezone)} is cancelled. Text "book" whenever you'd like to come back in.`, state: {} };
+  return { say: `Done: your ${describe(a, tenant.timezone)} is cancelled. ${writeMe(ctx)} whenever you'd like to come back in.`, state: {} };
 }
 
 async function moveIt(ctx, a, start, { offerAgain = true } = {}) {
@@ -882,10 +898,10 @@ async function bookIt(ctx, service, start, name, { stylistSlug = null, offerAgai
       stylistSlug,
       start,
       guestName: name,
-      guestEmail: who.email || '',
-      guestPhone: prettyPhone(key) || '',
+      guestEmail: who.email || ctx.email || '',
+      guestPhone: byEmail(ctx) ? (who.phone || '') : (prettyPhone(key) || ''),
       contactId: who.kind === 'client' ? who.id : null,
-      notes: 'Booked by text with Karen.',
+      notes: byEmail(ctx) ? 'Booked by email with Karen.' : 'Booked by text with Karen.',
       channel: 'online',
       via: 'karen',
     }));
@@ -899,7 +915,7 @@ async function bookIt(ctx, service, start, name, { stylistSlug = null, offerAgai
   await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', appt.ref, err));
   return {
     say: `You're booked, ${first(name)}! ${service.name} with ${first(appt.stylist_name)} on ${when(appt.starts_at, tenant.timezone)}. `
-      + 'Text me any time to move or cancel it.',
+      + `${writeMe(ctx)} any time to move or cancel it.`,
     state: {},
   };
 }
