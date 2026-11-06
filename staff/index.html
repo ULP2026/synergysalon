@@ -1749,8 +1749,7 @@
   .dg-ev:hover { z-index: 2; box-shadow: 0 10px 24px -12px rgba(30, 31, 92, .55); transform: translateY(-1px); }
   .dg-ev:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
   .dg-ev .st { position: absolute; right: 8px; bottom: 6px; display: flex; align-items: center; gap: 3px; }
-  .dg-ev .top { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
-  .dg-ev .svc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .68rem; font-weight: 700;
+  .dg-ev .svc { display: block; min-width: 0; border: 0; background: none; padding: 0; border-radius: 0; box-shadow: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .68rem; font-weight: 700; margin-bottom: 1px;
                 letter-spacing: .05em; text-transform: uppercase; color: var(--dg-ink); opacity: .8; }
   .dg-ev > * { flex: none; min-width: 0; }
   .dg-ev .st i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
@@ -1762,10 +1761,14 @@
   .dg-ev .ln { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
   .dg-ev .ln.m { color: var(--muted); }
   .dg-ev .ln.p { font-weight: 650; color: var(--dg-ink); }
-  .dg-ev .tm { margin-left: auto; font-weight: 600; color: var(--dg-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .dg-ev.short { flex-direction: row; align-items: center; gap: 6px; padding: 3px 8px; }
-  .dg-ev.short .st, .dg-ev.short .ln, .dg-ev.short .svc { display: none; }
-  .dg-ev.short .top { order: 2; margin: 0 0 0 auto; }
+  /* The time heads the card on the left (2026-11-06), the exact start and end. */
+  .dg-ev .tm { display: block; overflow: hidden; margin-bottom: 3px;
+               font-size: .78rem; font-weight: 700; color: var(--dg-ink); font-variant-numeric: tabular-nums; }
+  /* In a narrow column the end wraps under the start rather than being cut. */
+  .dg-ev .tm .t0, .dg-ev .tm .t1 { display: inline-block; white-space: pre; }
+  .dg-ev.short { flex-direction: row; align-items: center; gap: 8px; padding: 3px 8px; }
+  .dg-ev.short .st, .dg-ev.short .ln, .dg-ev.short .svc, .dg-ev.short .t1 { display: none; }
+  .dg-ev.short .tm { flex: none; margin: 0; }
   .dg-ev.dg-part .st { position: static; }
   .dg-ev.short b { display: inline; font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dg-ev.here { box-shadow: 0 0 0 2px var(--ok) inset, 0 1px 2px rgba(30, 31, 92, .08); }
@@ -8288,15 +8291,31 @@ function cardMarks(a) {
 
 function shortDate(iso) { return iso ? fmtWhen(iso, { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
 
-function dayCard(a, top, height) {
-  // Laid out as asked on 2026-11-03: the service small in capitals with the
-  // time beside it, the client's name, their phone; the status marks sit in
+/** "9:00 AM": a card's time always with its minutes, so it reads exactly. */
+function exactClock(mins) {
+  const h = Math.floor(mins / 60) % 24, m = mins % 60;
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}
+/**
+ * The time at the head of a card, on its left (asked for 2026-11-06): the
+ * start and the end, from the same minutes that place the card on the grid,
+ * so the two cannot disagree. A short card shows the start alone.
+ */
+function cardTime(start, len) {
+  return `<span class="t0">${esc(exactClock(start))}</span>${len ? `<span class="t1"> - ${esc(exactClock(start + len))}</span>` : ''}`;
+}
+
+function dayCard(a, top, height, len = a.durationMin) {
+  // The time first, on the left (asked for 2026-11-06), then the service
+  // small in capitals across the card's whole width (beside the time it was
+  // cut short), the client's name and their phone; the status marks sit in
   // the bottom-right corner. Everything else is on the ticket a click opens.
   const cls = [height < DG_SHORT ? 'short' : '', a.checkedInAt && a.status === 'booked' ? 'here' : '',
     a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : '', canMove(a) ? 'dg-mv' : ''].join(' ');
   return `<button type="button" class="dg-ev ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
       title="${esc(`${a.time} to ${a.endTime} · ${a.guestName} · ${a.service}${canMove(a) ? ' · Drag to move' : ''}`)}">
-    <div class="top"><span class="svc">${esc(a.service)}</span><span class="tm">${esc(a.time)}</span></div>
+    <span class="tm">${cardTime(salonMinutes(a.startsAt), len)}</span>
+    <span class="svc">${esc(a.service)}</span>
     <b>${esc(a.guestName)}</b>
     ${a.guestPhone ? `<span class="ln m">${esc(showPhone(a.guestPhone))}</span>` : ''}
     <div class="st">${cardMarks(a)}</div>
@@ -8304,11 +8323,11 @@ function dayCard(a, top, height) {
 }
 
 /** The Finish of a color after its processing break: the same appointment. */
-function partCard(a, top, height, label) {
+function partCard(a, top, height, label, start, len) {
   const cls = [a.checkedInAt && a.status === 'booked' ? 'here' : '',
     a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : '', canMove(a) ? 'dg-mv' : ''].join(' ');
   return `<button type="button" class="dg-ev short dg-part ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
-      title="${esc(`${label} · ${a.guestName} · ${a.service}`)}"><b>${esc(label)} · ${esc(a.guestName)}</b></button>`;
+      title="${esc(`${label} · ${a.guestName} · ${a.service}`)}">${start != null ? `<span class="tm">${cardTime(start, len)}</span>` : ''}<b>${esc(label)} · ${esc(a.guestName)}</b></button>`;
 }
 
 /**
@@ -8392,7 +8411,9 @@ function renderDiary(d) {
       title="${esc(`${label}${b.stylist ? ` · ${b.stylist}` : ''} · ${clock(s)} to ${clock(e)}${b.reason ? ` · ${b.reason}` : ''}`)}"><span>${label}${sub}</span></button>`;
   };
   const blkSpan = (b) => [Math.max(from, salonMinutes(b.startsAt)), Math.min(to, salonMinutes(b.endsAt) || 24 * 60)];
-  const cardH = (m) => Math.max(22, (m / 60) * DG_HOUR - 3);
+  // A card starts 1px under its minute and stops 5px short of its end, so
+  // back-to-back visits have a clear gap and never touch (2026-11-06).
+  const cardH = (m) => Math.max(22, (m / 60) * DG_HOUR - 5);
   // A color with a processing break is drawn as its parts: the card for the
   // Start, the Break open (dashed, and the pointer passes through it, so the
   // time can be clicked and booked: the stylist is free), then the Finish.
@@ -8403,13 +8424,14 @@ function renderDiary(d) {
     let out = '';
     let t = 0;
     for (const [at, len] of breaks) {
-      out += t ? partCard(a, px(s0 + t) + 1, cardH(at - t), 'Continues') : dayCard(a, px(s0) + 1, cardH(at));
+      // Each part shows its own start and end, so a card's time is what it covers.
+      out += t ? partCard(a, px(s0 + t) + 1, cardH(at - t), 'Continues', s0 + t, at - t) : dayCard(a, px(s0) + 1, cardH(at), at);
       out += `<div class="dg-proc" style="top:${px(s0 + at) + 1}px;height:${Math.max(18, px(s0 + at + len) - px(s0 + at) - 3)}px"
         title="${esc(`${a.guestName} processing · ${clock(s0 + at)} to ${clock(s0 + at + len)} · ${a.stylist || 'stylist'} free`)}">
         <span>Processing · free</span><small>${esc(a.guestName)} · ${esc(clock(s0 + at))} to ${esc(clock(s0 + at + len))}</small></div>`;
       t = at + len;
     }
-    return out + partCard(a, px(s0 + t) + 1, cardH(a.durationMin - t), 'Finish');
+    return out + partCard(a, px(s0 + t) + 1, cardH(a.durationMin - t), 'Finish', s0 + t, a.durationMin - t);
   };
   // Working hours (2026-10-31): the time outside a stylist's hours that day
   // is greyed out and cannot be booked, and a day they do not work is
@@ -8821,7 +8843,7 @@ function dgPaint(x, y) {
   const slug = t.col.dataset.stylist || a.stylistSlug || '';
   const why = dgWhyNot(slug, t.start);
   g.style.top = `${((t.start - dgRange.from) / 60) * DG_HOUR + 1}px`;
-  g.style.height = `${Math.max(22, (a.durationMin / 60) * DG_HOUR - 3)}px`;
+  g.style.height = `${Math.max(22, (a.durationMin / 60) * DG_HOUR - 5)}px`;
   g.classList.toggle('bad', Boolean(why));
   g.innerHTML = `<b>${esc(clock(t.start))} to ${esc(clock(t.start + a.durationMin))}</b><span>${esc(why || a.guestName)}</span>`;
   dgDrag.target = { slug, start: t.start, why, col: t.col };
@@ -8956,9 +8978,9 @@ async function dgDrop(a, t) {
   if (main && t.col?.isConnected) {
     t.col.appendChild(main);
     main.style.top = `${((t.start - dgRange.from) / 60) * DG_HOUR + 1}px`;
-    main.style.height = `${Math.max(22, (a.durationMin / 60) * DG_HOUR - 3)}px`;
+    main.style.height = `${Math.max(22, (a.durationMin / 60) * DG_HOUR - 5)}px`;
     const tm = main.querySelector('.tm');
-    if (tm) tm.textContent = clock(t.start);
+    if (tm) tm.innerHTML = cardTime(t.start, a.durationMin);
     cards.filter((c) => c !== main).forEach((c) => { c.hidden = true; });
   }
   try {
