@@ -2182,6 +2182,15 @@ must stay that way: anything committed here is served publicly.
   with the first real bookings, which is how the 30 September problem started.
 
 
+- **The home page hero says BOOK ME NOW** (2026-11-06, asked for), in place
+  of "Call 813.654.2055": a glowing button (`.hero-bk`, periwinkle with a
+  pulsing glow, steady for reduced motion) to `/book`, which opens the
+  booking popup like every other Book link, and under it, centred, a text
+  link "Call 813.851.4556" to Karen's number (`.hero-call`,
+  tel:+18138514556). Both inside the template, the styles beside
+  `.hero-ctas`. Only `index.html`; the other pages' heroes still call the
+  salon. A new export of the home page undoes it: re-apply.
+
 - **Online booking is live again (2026-11-06, asked for).** The
   `ss-booking-paused` block is gone from all nine pages and
   `ONLINE_BOOKING = true`, so every "Book" opens the real survey and the
