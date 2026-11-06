@@ -2314,14 +2314,13 @@ must stay that way: anything committed here is served publicly.
   a time up to six, cached ten minutes in sessionStorage; no time or no
   answer, and the line stays hidden. Left of the button (later that day,
   asked for in rounds) is **SOONEST OPENING**, plain text with a green dot
-  and the time on a line under it, "TOMORROW 9:00a with Dina" (TODAY,
-  TOMORROW, else "SAT, NOV 8"; the stylist's first name from the slot's
-  `stylists` in `/api/availability`; "haircut" dropped to fit beside the
-  menu), in `.nav-open[data-ss-soon]`, filled by `ss-earliest`. It took the
-  place of an OPEN NOW indicator, and the line that sat under the button
-  went with it, as did the `ss-open` script. It shows only from 1520px
-  wide: below that it would run into the menu's links (or, under 992px,
-  the logo and the menu button). The button reads **Book Online** (was
+  (`.nav-open[data-ss-soon]`), and the time is the line under the button,
+  "TOMORROW 9:00a with Dina" (`.nav-soon`; TODAY, TOMORROW, else "SAT, NOV
+  8"; the stylist's first name from the slot's `stylists` in
+  `/api/availability`), both shown or hidden together by `ss-earliest`. The
+  label took the place of an OPEN NOW indicator (its `ss-open` script went
+  with it) and shows only from 1440px wide, where it clears the menu's
+  links; phones show the time centred under their full-width button. The button reads **Book Online** (was
   Book Now) and is 66px tall with 23px type from 768px up (asked for:
   twice the size, then a little back, then a little up again), 56px with
   18px type from 992 to 1199px where the menu's links share the bar;
