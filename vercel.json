@@ -151,7 +151,7 @@
   ],
   "rewrites": [
     {
-      "source": "/:page(home|dashboard|appointments|clients|contacts|leads|settings|account|team|calendars|invite)",
+      "source": "/:page(home|dashboard|appointments|clients|contacts|leads|settings|account|team|calendars|invite|reset)",
       "has": [
         {
           "type": "host",
@@ -211,7 +211,7 @@
       "destination": "/api/calendar?k=:token"
     },
     {
-      "source": "/staff/:page(home|dashboard|appointments|clients|contacts|leads|settings|account|team|calendars|invite)",
+      "source": "/staff/:page(home|dashboard|appointments|clients|contacts|leads|settings|account|team|calendars|invite|reset)",
       "destination": "/staff"
     },
     {

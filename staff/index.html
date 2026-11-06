@@ -249,6 +249,9 @@
      line into a 44px pill. */
   .auth .auth-alt { text-align: center; margin: 18px 0 0; font-size: var(--fs-sm); color: var(--muted); }
   .auth .auth-alt a { color: var(--link); font-weight: 600; }
+  .auth .auth-forgot { text-align: right; margin: -6px 0 14px; font-size: var(--fs-sm); }
+  .auth .auth-forgot a { color: var(--link); font-weight: 600; text-decoration: none; }
+  .auth .auth-forgot a:hover { text-decoration: underline; }
   /* The face in setup opens the photo upload: a camera on its corner says so. */
   .ob-face { position: relative; }
   .ob-face-cam { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 28px; height: 28px;
@@ -1048,7 +1051,31 @@
   .biz-row dd a { color: var(--indigo); text-decoration: none; }
   .biz-row dd a:hover { text-decoration: underline; }
   .biz-none { color: var(--faint); font-style: italic; }
-  .biz-row.edit { align-items: center; }
+  /* Each label level with its own box, not centred on the row: the Google
+     review link's note under its box had pushed its label below the box
+     (fixed on request, 2026-11-06). */
+  .biz-row.edit { align-items: start; }
+  .biz-row.edit dt { padding-top: 6px; }
+  /* Hours of Operation: each day its name and Open/Closed, the times under
+     it; beside it where the card is wide enough (a container query, since
+     the space beside the labels is narrow on a computer too). */
+  .biz-hours { display: grid; gap: 8px; container-type: inline-size; }
+  .bh-day { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px;
+            padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .bh-day:last-child { border-bottom: 0; padding-bottom: 0; }
+  .bh-name { font-weight: 600; font-size: .84rem; }
+  .bh-open { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: .8rem; color: var(--muted);
+             cursor: pointer; white-space: nowrap; }
+  .biz-form .bh-open input { width: 16px; height: 16px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: var(--indigo); }
+  .bh-times { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .biz-form .bh-times input { flex: 1 1 0; min-width: 0; width: auto; padding: 0 8px; }
+  .bh-to { font-size: .78rem; color: var(--muted); flex: none; }
+  .bh-day.closed .bh-times { opacity: .45; }
+  .bh-day.closed .bh-name { color: var(--muted); }
+  @container (min-width: 460px) {
+    .bh-day { grid-template-columns: 96px 84px minmax(0, 1fr); }
+    .bh-times { grid-column: auto; }
+  }
   .biz-row.edit dt label { display: inline; margin: 0; font: inherit; color: inherit; }
   .biz-form input { height: 32px; padding: 0 10px; font-size: .84rem; border-radius: 8px; width: 100%; }
   .biz-form small { display: block; margin-top: 3px; font-size: .72rem; color: var(--muted); }
@@ -3299,6 +3326,7 @@
   input.tool-acct::placeholder { color: var(--faint); }
   .tool .tool-ic.mail .ic { width: 20px; height: 20px; color: var(--muted); }
   #replyCard .tool { margin: 0; border: 0; padding: 0; background: none; }
+  .reply-karen { margin-top: 16px; }
   #replyCard.on { border-color: color-mix(in srgb, var(--periwinkle) 45%, transparent); background: color-mix(in srgb, var(--peri-pale) 55%, var(--card)); }
   :root[data-theme="dark"] #replyCard.on { background: rgba(85, 96, 166, .16); }
   .tool .why { display: block; font-size: .76rem; color: var(--muted); margin-top: 8px; }
@@ -3908,6 +3936,38 @@
   </div>
 </main>
 
+<!-- A reset link from the email (2026-11-06): choose and confirm a new
+     password, then sign in with it. Beside sign-in, as an invite is. -->
+<main id="reset" class="auth hidden">
+  <div class="card">
+    <img class="logo" src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon">
+    <div id="resetNote" class="note hidden" role="status"></div>
+    <form id="resetForm" class="hidden" novalidate>
+      <h1>Choose a new password</h1>
+      <p class="lede" id="resetLede"></p>
+      <label><span>New password</span>
+        <div class="pw">
+          <input type="password" name="password" autocomplete="new-password" required>
+          <button type="button" class="iconbtn" data-reveal aria-label="Show password" aria-pressed="false">
+            <svg class="ic"><use href="#i-eye"/></svg>
+          </button>
+        </div>
+      </label>
+      <label><span>Confirm new password</span>
+        <div class="pw">
+          <input type="password" name="confirm" autocomplete="new-password" required>
+          <button type="button" class="iconbtn" data-reveal aria-label="Show password" aria-pressed="false">
+            <svg class="ic"><use href="#i-eye"/></svg>
+          </button>
+        </div>
+      </label>
+      <p class="small muted pw-rule" id="resetRule"></p>
+      <button class="btn block" type="submit">Save new password</button>
+    </form>
+    <a class="btn block hidden" id="resetSignIn" href="#">Back to sign in</a>
+  </div>
+</main>
+
 <main id="login" class="auth hidden">
   <div class="card">
     <img class="logo" src="/assets/7c1e4b2a-9d3f-4e61-b8a5-2f0c6d9e1a73.png" alt="Synergy Salon">
@@ -3925,8 +3985,18 @@
           </button>
         </div>
       </label>
+      <!-- Forgot Password? (asked for 2026-11-06), under the password. -->
+      <p class="auth-forgot"><a href="#" id="showForgot">Forgot password?</a></p>
       <button class="btn block" type="submit">Sign in</button>
       <p class="auth-alt">New to the team? <a href="#" id="showRequest">Request access</a></p>
+    </form>
+
+    <form id="forgotForm" class="hidden" novalidate>
+      <h1>Reset your password</h1>
+      <p class="lede">Type the email you sign in with. If it has an account here, we&rsquo;ll email you a link to choose a new password.</p>
+      <label><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+      <button class="btn block" type="submit">Email me a reset link</button>
+      <p class="auth-alt"><a href="#" id="forgotBack">Back to sign in</a></p>
     </form>
 
     <form id="requestForm" class="hidden">
@@ -4249,7 +4319,8 @@
       </div>
       </div>
 
-      <!-- Salon: what clients see of the salon and where their replies go.
+      <!-- Salon: what clients see of the salon (where their replies go moved
+           to Karen AI, 2026-11-06). Everyone reads it; owner and admins edit.
            Salon and Team were one "Salon & Team" tab from 2026-10-15 until
            they were split again on request on 2026-10-23. -->
       <div class="setpane hidden" id="set-salon">
@@ -4262,9 +4333,6 @@
               is also the mark in the menu at the top of this app.</p>
             <div id="business"></div>
           </section>
-
-          <!-- The inbox guests' replies land in; built in paintReplyTo(). -->
-          <section class="acard" id="replyCard"></section>
 
       </div>
       </div>
@@ -4353,6 +4421,10 @@
           <div class="kx" id="mailCard"></div>
         </section>
       </div>
+      <!-- Where client replies land (moved here from Salon on request,
+           2026-11-06): Karen's emails and texts are what they reply to.
+           Built in paintReplyTo(); the owner or an admin changes it. -->
+      <section class="acard reply-karen" id="replyCard"></section>
       </div>
 
       <!-- Payment (2026-10-30): what was the Payroll tab, renamed, with
@@ -5298,6 +5370,11 @@ const I18N_ES = {
   'Cancelled': 'Cancelada', 'No-show': 'No se presentó', 'Completed': 'Completada',
   // Clients
   'Search name, email or phone': 'Buscar nombre, correo o teléfono', 'Search clients': 'Buscar clientes',
+  'Forgot password?': '¿Olvidaste tu contraseña?', 'Reset your password': 'Restablece tu contraseña',
+  'Email me a reset link': 'Envíame un enlace', 'Back to sign in': 'Volver a iniciar sesión',
+  'Choose a new password': 'Elige una contraseña nueva', 'New password': 'Contraseña nueva',
+  'Confirm new password': 'Confirma la contraseña nueva', 'Save new password': 'Guardar contraseña nueva',
+  'Hours of Operation:': 'Horario:',
   'Filters': 'Filtros', 'Filter clients': 'Filtrar clientes', 'Sort clients': 'Ordenar clientes', 'Any status': 'Cualquier estado',
   'Next visit': 'Próxima visita', 'Any': 'Cualquiera', 'Has a visit booked': 'Con visita reservada', 'No visit booked': 'Sin visita reservada',
   'Tag': 'Etiqueta', 'Any tag': 'Cualquier etiqueta', 'Card on file only': 'Solo con tarjeta registrada', 'Clear filters': 'Quitar filtros',
@@ -5592,8 +5669,10 @@ function dateLabel(date) {
 function showLogin(message, kind) {
   $('boot').classList.add('hidden');
   $('app').classList.add('hidden');
+  $('reset').classList.add('hidden');
   $('login').classList.remove('hidden');
   $('requestForm').classList.add('hidden');
+  $('forgotForm').classList.add('hidden');
   $('loginForm').classList.remove('hidden');
   note($('loginNote'), message, kind || 'bad');
 }
@@ -5616,6 +5695,78 @@ $('showRequest').onclick = (e) => {
   note($('loginNote'), '');
 };
 $('showLogin').onclick = (e) => { e.preventDefault(); showLogin(); };
+
+// Forgot Password? (2026-11-06): the email it was typed into carries over.
+$('showForgot').onclick = (e) => {
+  e.preventDefault();
+  const typed = $('loginForm').elements.email.value;
+  $('loginForm').classList.add('hidden');
+  $('forgotForm').classList.remove('hidden');
+  note($('loginNote'), '');
+  $('forgotForm').elements.email.value = typed;
+  $('forgotForm').elements.email.focus();
+};
+$('forgotBack').onclick = (e) => { e.preventDefault(); showLogin(); };
+$('forgotForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const email = e.target.elements.email.value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { note($('loginNote'), 'Type the email you sign in with.'); e.target.elements.email.focus(); return; }
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    const r = await api('/api/staff/reset', { method: 'POST', body: JSON.stringify({ action: 'request', email }) });
+    // The same words whether or not the address has an account.
+    showLogin(r.message, 'good');
+    $('loginForm').elements.email.value = email;
+  } catch (err) {
+    note($('loginNote'), err.message);
+  } finally { btn.disabled = false; }
+};
+
+/** The page a reset link opens: the link checked, then a new password twice. */
+async function showReset(token) {
+  $('boot').classList.add('hidden');
+  $('login').classList.add('hidden');
+  $('app').classList.add('hidden');
+  $('reset').classList.remove('hidden');
+  const back = $('resetSignIn');
+  back.onclick = (e) => { e.preventDefault(); history.replaceState(null, '', HOME_PATH); showLogin(); };
+  let who;
+  try {
+    const r = await fetch(`/api/staff/reset?t=${encodeURIComponent(token)}`);
+    who = await r.json();
+    if (!r.ok) throw new Error(who.error || 'This reset link does not work.');
+  } catch (err) {
+    note($('resetNote'), err.message);
+    back.classList.remove('hidden');
+    return;
+  }
+  const f = $('resetForm');
+  $('resetLede').textContent = `For ${who.email}. Choose a password only you know.`;
+  $('resetRule').textContent = `At least ${who.minPasswordLength} characters.`;
+  f.elements.password.setAttribute('minlength', String(who.minPasswordLength));
+  f.classList.remove('hidden');
+  f.elements.password.focus();
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const pw = f.elements.password.value;
+    if (pw.length < who.minPasswordLength) { note($('resetNote'), `Choose at least ${who.minPasswordLength} characters.`); f.elements.password.focus(); return; }
+    if (pw !== f.elements.confirm.value) { note($('resetNote'), 'The two passwords are not the same.'); f.elements.confirm.focus(); return; }
+    const btn = f.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+      const r = await api('/api/staff/reset', { method: 'POST', body: JSON.stringify({ action: 'reset', t: token, password: pw }) });
+      f.reset();
+      history.replaceState(null, '', HOME_PATH);
+      showLogin('Your password is changed. Sign in with your new password.', 'good');
+      $('loginForm').elements.email.value = r.email || who.email;
+      $('loginForm').elements.password.focus();
+    } catch (err) {
+      note($('resetNote'), err.message);
+      btn.disabled = false;
+    }
+  };
+}
 
 $('loginForm').onsubmit = async (e) => {
   e.preventDefault();
@@ -14258,7 +14409,7 @@ function paintReplyTo() {
       ${row}
       ${set && !editing ? `<span class="why ok" role="status">${replyTo.justSaved ? 'Saved. ' : ''}Client replies now go to ${esc(replyTo.value)}.</span>` : ''}
       ${!set && replyTo.fallback ? `<span class="why">Until this is set, replies go to the salon profile email, ${esc(replyTo.fallback)}.</span>` : ''}
-      ${replyTo.canEdit ? '' : '<span class="why">An owner or manager sets this.</span>'}
+      ${replyTo.canEdit ? '' : '<span class="why">The salon owner or an admin sets this.</span>'}
     </div></div>`;
   if (editing && replyTo.editing && !replyTo.saving) {
     const input = card.querySelector('input[name="replyTo"]');
@@ -14343,7 +14494,6 @@ function showSetting(name) {
   // The salon's profile is the owner's: typed or bookmarked, it opens My
   // Settings for anyone else (2026-11-04; every tab but My Settings did,
   // from 2026-11-03).
-  if (name === 'salon' && !me?.user?.canManageTeam) name = 'me';
   setTab = name;
   for (const b of $('setSeg').querySelectorAll('button')) {
     b.setAttribute('aria-pressed', String(b.dataset.set === name));
@@ -14359,9 +14509,9 @@ function showSetting(name) {
   segEdges(seg);
   for (const k of SET_TABS) $('set-' + k).classList.toggle('hidden', k !== name);
   if (name === 'me') { paintDarkSwitch(); setMyWorkOpen(false); loadMyWork(); }
-  if (name === 'salon') { loadBusiness(); loadReplyTo(); }
+  if (name === 'salon') loadBusiness();
   if (name === 'team') loadAccount();
-  if (name === 'karen') { loadKarenSettings(); renderMailHistory(); }
+  if (name === 'karen') { loadKarenSettings(); renderMailHistory(); loadReplyTo(); }
   if (name === 'payment') renderFinance();
 }
 /** Which sides of a sideways tab row have more tabs past them: the fade in the CSS. */
@@ -14672,6 +14822,46 @@ function joinAddress({ street, city, state, zip }) {
 }
 
 let bizEditing = false;   // Salon Profile: the details as fields (pencil) or as a list
+
+/**
+ * Hours of Operation (asked for 2026-11-06): each day open with its times,
+ * or Closed, Monday first. Stored Sunday first, as the server keeps them
+ * (hours.js). What a guest can book is still each stylist's own hours.
+ */
+const BH_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const BH_WEEK = [1, 2, 3, 4, 5, 6, 0];
+function hoursFields(hours) {
+  const h = Array.isArray(hours) && hours.length === 7 ? hours : Array(7).fill(null);
+  return `<div class="biz-row edit biz-hours-row"><dt><span id="bhLabel">Hours of Operation:</span></dt><dd>
+    <div class="biz-hours" role="group" aria-labelledby="bhLabel">${BH_WEEK.map((i) => {
+      const d = h[i];
+      return `<div class="bh-day${d ? '' : ' closed'}" data-day="${i}">
+        <span class="bh-name">${BH_DAYS[i]}</span>
+        <label class="bh-open"><input type="checkbox" data-bh="open" ${d ? 'checked' : ''}><span>${d ? 'Open' : 'Closed'}</span></label>
+        <span class="bh-times">
+          <input type="time" data-bh="from" value="${esc(d?.open || '09:00')}" aria-label="${BH_DAYS[i]} opens" ${d ? '' : 'disabled'}>
+          <span class="bh-to">to</span>
+          <input type="time" data-bh="to" value="${esc(d?.close || '17:00')}" aria-label="${BH_DAYS[i]} closes" ${d ? '' : 'disabled'}>
+        </span>
+      </div>`;
+    }).join('')}</div>
+    <small>When the salon is open, shown on the website, in emails and to Karen. Guests book within each stylist&rsquo;s own hours.</small>
+  </dd></div>`;
+}
+/** The seven days as typed, Sunday first, or the first problem in words. */
+function readHoursFields() {
+  const out = Array(7).fill(null);
+  for (const row of document.querySelectorAll('.bh-day')) {
+    const i = Number(row.dataset.day);
+    if (!row.querySelector('[data-bh="open"]').checked) continue;
+    const open = row.querySelector('[data-bh="from"]').value;
+    const close = row.querySelector('[data-bh="to"]').value;
+    if (!open || !close) return { error: `Give ${BH_DAYS[i]} an opening and a closing time, or mark it Closed.`, row };
+    if (close <= open) return { error: `${BH_DAYS[i]} closes before it opens.`, row };
+    out[i] = { open, close };
+  }
+  return { hours: out };
+}
 function renderBusiness(d) {
   const a = splitAddress(d.address);
   const addr = [a.street, a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
@@ -14681,7 +14871,8 @@ function renderBusiness(d) {
   // Every detail on the right of the logo, one line each in the shape of a
   // Google business listing (asked for 2026-11-03): a bold label, then the
   // value, small. The pencil turns the editable ones into fields in place;
-  // Booking page and Time zone are set by the app and only shown. About was
+  // Time zone is set by the app and only shown (Booking page went on
+  // request, 2026-11-06). About was
   // taken off on request the same day: what is stored is kept, the save
   // below leaves it out so the server leaves it alone.
   const row = (label, value) => `<div class="biz-row"><dt>${esc(label)}:</dt><dd>${value}</dd></div>`;
@@ -14699,7 +14890,7 @@ function renderBusiness(d) {
           <input name="city" value="${esc(a.city)}" placeholder="City" aria-label="City" autocomplete="address-level2">
           <input name="state" value="${esc(a.state)}" placeholder="State" aria-label="State" maxlength="20" autocomplete="address-level1">
           <input name="zip" value="${esc(a.zip)}" placeholder="Zip" aria-label="Zip" maxlength="10" inputmode="numeric" autocomplete="postal-code"></span>`)}
-        ${row('Booking page', link(d.bookingUrl, d.bookingUrl))}
+        ${hoursFields(d.hours)}
         ${row('Time zone', esc(d.timezone))}
         <div class="biz-acts">
           <button type="button" class="btn quiet sm" id="bizCancel">Cancel</button>
@@ -14712,7 +14903,7 @@ function renderBusiness(d) {
         ${row('Website', site ? link(site, d.website) : none)}
         ${row('Google review link', d.reviewUrl ? link(d.reviewUrl, d.reviewUrl) : none)}
         ${row('Address', addr ? esc(addr) : none)}
-        ${row('Booking page', link(d.bookingUrl, d.bookingUrl))}
+        ${row('Hours', (d.hoursText || []).length ? d.hoursText.map(esc).join('<br>') : none)}
         ${row('Time zone', esc(d.timezone))}
       </dl>`;
   $('business').innerHTML = `
@@ -14731,7 +14922,7 @@ function renderBusiness(d) {
         <div class="biz-info">
           ${d.canEdit && !editing ? `<button type="button" class="px-pen biz-pen" id="bizEdit" aria-label="Edit the Salon Profile" title="Edit the Salon Profile">${ic('edit')}</button>` : ''}
           ${details}
-          ${d.canEdit ? '' : '<p class="small muted" style="margin:8px 0 0">Only an owner or a manager can change these details.</p>'}
+          ${d.canEdit ? '' : '<p class="small muted" style="margin:8px 0 0">Only the salon owner or an admin can change these details.</p>'}
         </div>
       </div>
     </div>`;
@@ -14750,10 +14941,21 @@ function renderBusiness(d) {
   }
   $('bizCancel').onclick = () => { bizEditing = false; renderBusiness(d); $('bizEdit')?.focus(); };
   $('bizForm').onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); $('bizCancel').click(); } };
+  // A day switched to Closed greys its times; back to Open, they come back.
+  $('bizForm').addEventListener('change', (e) => {
+    const box = e.target.closest('[data-bh="open"]');
+    if (!box) return;
+    const row = box.closest('.bh-day');
+    row.classList.toggle('closed', !box.checked);
+    row.querySelector('.bh-open span').textContent = box.checked ? 'Open' : 'Closed';
+    for (const t of row.querySelectorAll('input[type=time]')) t.disabled = !box.checked;
+  });
   $('bizForm').onsubmit = async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
     if (!String(f.get('name') || '').trim()) { toast('The salon needs a name.'); $('bizName').focus(); return; }
+    const hrs = readHoursFields();
+    if (hrs.error) { toast(hrs.error); hrs.row.querySelector('input[type=time]:not(:disabled)')?.focus(); return; }
     $('bizSave').disabled = true;
     try {
       await saveBusiness({
@@ -14761,6 +14963,7 @@ function renderBusiness(d) {
         website: f.get('website'),
         reviewUrl: f.get('reviewUrl'),
         address: joinAddress({ street: f.get('street'), city: f.get('city'), state: f.get('state'), zip: f.get('zip') }),
+        hours: hrs.hours,
       }, { done: true });
     } catch (err) { fail(err); if ($('bizSave')) $('bizSave').disabled = false; }
   };
@@ -16216,6 +16419,10 @@ async function start(landing) {
   if (/^(\/staff)?\/invite/.test(location.pathname) && inviteToken) {
     return showInvite(inviteToken);
   }
+  // A reset link, likewise: whoever follows it cannot sign in.
+  if (/^(\/staff)?\/reset/.test(location.pathname) && inviteToken) {
+    return showReset(inviteToken);
+  }
 
   try {
     me = await api('/api/staff/me');
@@ -16247,9 +16454,9 @@ async function start(landing) {
   // Since 2026-11-04 everybody has the tabs; anyone but the owner has no
   // Salon tab, and sees Team, Automations, Money and Karen AI as their own
   // share of them (read-only where it is the salon's).
-  for (const b of document.querySelectorAll('#setSeg button')) {
-    b.classList.toggle('hidden', !me.user.canManageTeam && b.dataset.set === 'salon');
-  }
+  // Since 2026-11-06 everyone has the Salon tab too, read-only unless they
+  // are the owner or an admin (the server says so as canEdit, and refuses
+  // anyone else's save).
   $('setSeg').classList.remove('hidden');
   document.body.classList.toggle('not-owner', !me.user.canManageTeam);
   $('pendingBadge').textContent = me.pendingApprovals ?? 0;

@@ -31,6 +31,7 @@ import me from './_routes/me.js';
 import payroll from './_routes/payroll.js';
 import profile from './_routes/profile.js';
 import requestAccess from './_routes/request-access.js';
+import reset from './_routes/reset.js';
 import team from './_routes/team.js';
 
 const ROUTES = {
@@ -54,6 +55,7 @@ const ROUTES = {
   payroll,
   profile,
   'request-access': requestAccess,
+  reset,
   team,
 };
 

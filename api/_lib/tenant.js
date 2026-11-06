@@ -31,6 +31,8 @@ async function bySlug(slug) {
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
             to_jsonb(tenants) ->> 'review_url' AS review_url,
+            -- 055: the salon's Hours of Operation; null until set (hours.js).
+            to_jsonb(tenants) -> 'hours' AS hours,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE slug = $1 AND active`,
     [slug],
@@ -54,6 +56,8 @@ async function byHost(host) {
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
             to_jsonb(tenants) ->> 'review_url' AS review_url,
+            -- 055: the salon's Hours of Operation; null until set (hours.js).
+            to_jsonb(tenants) -> 'hours' AS hours,
             ghl_location_id, ghl_calendar_id
        FROM tenants WHERE (host = $1 OR app_host = $1) AND active`,
     [host],
@@ -102,6 +106,8 @@ export async function tenantForUser(user) {
             -- the switches should get.
             to_jsonb(tenants) -> 'automations_off' AS automations_off,
             to_jsonb(tenants) ->> 'review_url' AS review_url,
+            -- 055: the salon's Hours of Operation; null until set (hours.js).
+            to_jsonb(tenants) -> 'hours' AS hours,
             -- Karen's number, shown under Call Karen in the console; through
             -- to_jsonb so it reads as null before the column exists.
             to_jsonb(tenants) ->> 'karen_phone' AS karen_phone,

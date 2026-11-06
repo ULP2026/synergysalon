@@ -1,4 +1,5 @@
 /** GET /api/services — the menu the booking form is built from. */
+import { websiteHours } from './_lib/hours.js';
 import { query } from './_lib/db.js';
 import { GOOGLE_CONNECTED_SQL, googleOptional } from './_lib/google-busy.js';
 import { stylistPhoto } from './_lib/stylist-photos.js';
@@ -69,7 +70,8 @@ export default handler({
     }
 
     return json(res, 200, {
-      salon: { name: tenant.name, timezone: tenant.timezone },
+      // The hours for the website's "Open today" (2026-11-06), written as it writes them.
+      salon: { name: tenant.name, timezone: tenant.timezone, hours: websiteHours(tenant.hours) },
       services: services.rows.map((s) => ({
         slug: s.slug,
         name: s.name,

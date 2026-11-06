@@ -32,9 +32,11 @@ test('the Salon Profile has no About and no standing Save button', () => {
   const biz = body('renderBusiness');
   assert.ok(!/name="about"/.test(biz), 'no About field');
   assert.ok(!biz.includes('Save Salon Profile'));
-  for (const label of ['Salon name', 'Phone', 'Website', 'Google review link', 'Address', 'Booking page', 'Time zone']) {
+  for (const label of ['Salon name', 'Phone', 'Website', 'Google review link', 'Address', 'Hours', 'Time zone']) {
     assert.ok(biz.includes(`'${label}'`), `${label} is listed`);
   }
+  // The Booking page row went on request (2026-11-06).
+  assert.ok(!biz.includes("'Booking page'"));
   // The save leaves About out, so the server keeps what is stored.
   assert.ok(!/about:/.test(biz));
 });

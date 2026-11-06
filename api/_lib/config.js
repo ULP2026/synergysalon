@@ -1,3 +1,5 @@
+import { hoursLines } from './hours.js';
+
 /**
  * Everything about the booking system that a person might reasonably want to
  * change without reading the rest of the code.
@@ -109,6 +111,9 @@ export const SITE_URL = process.env.SITE_URL || '';
  * never heard of. Nothing about a shop belongs in the code.
  */
 export function shopFrom(tenant = {}) {
+  // The salon's hours, at the foot of every email, when the caller loaded
+  // them (tenant.js does); never set, they are the website's (hours.js).
+  const hours = tenant.hours === undefined ? [] : hoursLines(tenant.hours);
   const site = tenant.host ? `https://${tenant.host}`
     : (SITE_URL || (tenant.slug ? `/s/${tenant.slug}` : ''));
   const digits = String(tenant.phone || '').replace(/[^\d+]/g, '');
@@ -136,6 +141,7 @@ export function shopFrom(tenant = {}) {
     // emails; empty until one is connected.
     karenPhone: tenant.karen_phone || '',
     timezone: tenant.timezone || DEFAULT_TZ,
+    hoursLines: hours,
   };
 }
 

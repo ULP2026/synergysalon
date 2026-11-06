@@ -376,6 +376,13 @@ SELECT DISTINCT ss.stylist_id, v.id
    AND v.owner_staff_id IS NULL AND o.owner_staff_id IS NULL
    AND NOT EXISTS (SELECT 1 FROM stylist_services z WHERE z.service_id = v.id)
 ON CONFLICT DO NOTHING`,
+  // 055: the salon's Hours of Operation (hours.js).
+  'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS hours jsonb',
+  // 056: Forgot Password? (reset.js).
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS reset_hash text',
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS reset_expires_at timestamptz',
+  'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS reset_requested_at timestamptz',
+  'CREATE INDEX IF NOT EXISTS staff_users_reset_hash ON staff_users (reset_hash) WHERE reset_hash IS NOT NULL',
 ];
 
 let done = null;

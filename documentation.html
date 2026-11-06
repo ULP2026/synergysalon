@@ -175,11 +175,11 @@ gtag('config', 'G-JR6491GP6D');
         <thead><tr><th>Tab</th><th>What is in it</th></tr></thead>
         <tbody>
           <tr><td>My Settings</td><td>My Profile and <span class="ui">Edit my profile</span>, Appearance (<span class="ui">Dark Mode</span>), Language (<span class="ui">English</span> or <span class="ui">Espa&ntilde;ol</span>) and <span class="ui">Sign out</span>.</td></tr>
-          <tr><td>Salon</td><td>The Salon Profile and where client replies go (see section 9).</td></tr>
+          <tr><td>Salon</td><td>The Salon Profile, with the salon&rsquo;s Hours of Operation (see section 9).</td></tr>
           <tr><td>Team</td><td>Team Members, and <span class="ui">Add Team Member</span>.</td></tr>
           <tr><td>Automations</td><td>The emails the salon sends on its own, each one on or off (see section 8).</td></tr>
           <tr><td>Money</td><td>Finance: what visits were worth, by stylist (see section 7).</td></tr>
-          <tr><td>Karen AI</td><td>Karen&rsquo;s phone number, Chat History, Call History and Email History.</td></tr>
+          <tr><td>Karen AI</td><td>Karen&rsquo;s phone number, Chat History, Call History, Email History, and where client replies go.</td></tr>
         </tbody>
       </table></div>
       <a class="top" href="#top">Back to top</a>
@@ -198,7 +198,7 @@ gtag('config', 'G-JR6491GP6D');
           <tr><td>Stylist</td><td>Their own appointments and clients (those booked with them, or that they added), and their own figures on the Money tab.</td><td>Their own account, services, prices, available hours and Google Calendar.</td></tr>
         </tbody>
       </table></div>
-      <div class="note"><p>Everyone can read the Team list (names, pictures and roles), but only an Owner or Admin can change somebody else. Anyone who is not an Owner or Admin sees Team, Automations, Money and Karen AI as their own share, read-only where it belongs to the whole salon, and has no Salon tab.</p></div>
+      <div class="note"><p>Everyone can read the Team list (names, pictures and roles), but only an Owner or Admin can change somebody else. Anyone who is not an Owner or Admin sees Salon, Team, Automations, Money and Karen AI as their own share, read-only where it belongs to the whole salon: they can read the Salon Profile but not change it.</p></div>
       <h3>New team members</h3>
       <p>A new team member is added from <span class="ui">Settings</span>, <span class="ui">Team</span>, <span class="ui">Add Team Member</span>. Karen emails them an invitation with a one-time link, and they choose their own password. A new stylist is then taken through setting up their account (their details, services and prices, and hours) before the rest of the app opens.</p>
       <a class="top" href="#top">Back to top</a>
@@ -425,14 +425,15 @@ gtag('config', 'G-JR6491GP6D');
           <tr><td>Chat History</td><td>The conversations the team has had with Karen, in the app and by text.</td></tr>
           <tr><td>Call History</td><td>Every call to Karen&rsquo;s number: who called, when, and whether the salon picked up.</td></tr>
           <tr><td>Email History</td><td>Every email the automations have sent (see section 8).</td></tr>
+          <tr><td>Where do you want people to reply to</td><td>The inbox client replies are delivered to. The Owner or an Admin sets it; once saved it shows <span class="ui">Saved</span>, with <span class="ui">Change</span> to set another.</td></tr>
         </tbody>
       </table></div>
 
       <h3>Salon settings</h3>
-      <p>On <span class="ui">Settings</span>, <span class="ui">Salon</span> (Owner and Admin):</p>
+      <p>On <span class="ui">Settings</span>, <span class="ui">Salon</span>. Everyone on the team can read it; only the Owner and Admins can change it.</p>
       <ul>
-        <li><span class="ui">Salon Profile</span>: what clients see. The logo (<span class="ui">Change logo</span>, <span class="ui">Remove</span>), salon name, phone, website, Google review link, address, booking page and time zone. The logo is also the mark in the app&rsquo;s menu.</li>
-        <li><span class="ui">Where do you want people to reply to</span>: the inbox client replies are delivered to. Once saved it shows <span class="ui">Saved</span>, with <span class="ui">Change</span> to set another.</li>
+        <li><span class="ui">Salon Profile</span>: what clients see. The logo (<span class="ui">Change logo</span>, <span class="ui">Remove</span>), salon name, phone, website, Google review link, address, <span class="ui">Hours of Operation</span> and time zone. The logo is also the mark in the app&rsquo;s menu.</li>
+        <li><span class="ui">Hours of Operation</span>: each day <span class="ui">Open</span> with its opening and closing times, or <span class="ui">Closed</span>. They show on the website&rsquo;s &ldquo;Open today&rdquo;, at the foot of every email, and to Karen. What a guest can book is still each stylist&rsquo;s own Available Hours.</li>
       </ul>
 
       <h3>Managing the team</h3>
@@ -445,6 +446,13 @@ gtag('config', 'G-JR6491GP6D');
 
       <h3>Your own account</h3>
       <p>On <span class="ui">My Settings</span>: <span class="ui">Edit my profile</span> (picture, name, phone, password), <span class="ui">Dark Mode</span>, the app&rsquo;s language, and <span class="ui">Sign out</span>.</p>
+      <h3>Forgotten password</h3>
+      <ol class="steps">
+        <li>On the sign-in page, press <span class="ui">Forgot password?</span> under the password.</li>
+        <li>Type the email you sign in with and press <span class="ui">Email me a reset link</span>. The page says the same thing whether or not the address has an account.</li>
+        <li>Open the email and press <span class="ui">Choose a new password</span>. The link works once, for one hour.</li>
+        <li>Type the new password twice and press <span class="ui">Save new password</span>, then sign in with it. Anywhere still signed in with the old password is signed out.</li>
+      </ol>
       <a class="top" href="#top">Back to top</a>
     </section>
 

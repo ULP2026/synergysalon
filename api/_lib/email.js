@@ -243,6 +243,7 @@ function layout({ heading, intro, rows, action, secondary, where, change, steps,
         ${escapeHtml(shop.name)}<br>
         ${shop.addressLines.map(escapeHtml).join('<br>')}${shop.addressLines.length ? '<br>' : ''}
         ${shop.phone ? `<a href="${shop.phoneHref}" style="color:${BRAND};text-decoration:none;">${escapeHtml(shop.phone)}</a>` : ''}
+        ${(shop.hoursLines || []).length ? `<br><span style="color:${MUTED};">Hours: ${shop.hoursLines.map(escapeHtml).join(' · ')}</span>` : ''}
       </p>
     </div>
   </div>
@@ -269,6 +270,7 @@ function plain({ heading, intro, rows, action, secondary, where, change, steps, 
     shop.name,
     ...shop.addressLines,
     shop.phone,
+    ...((shop.hoursLines || []).length ? [`Hours: ${shop.hoursLines.join(' · ')}`] : []),
   ].join('\n');
 }
 
@@ -560,6 +562,25 @@ export async function sendInvite({ name, email, link, appUrl, expiresDays, invit
   }
   if (out.sent) await log('sent');
   return { ...out, kind };
+}
+
+/**
+ * Forgot Password? (2026-11-06): the link to choose a new password. Not an
+ * automation and never switched off: somebody locked out must be able to get
+ * back in. Not kept in Email History, because it holds a working link.
+ */
+export async function sendPasswordReset({ name, email, link, minutes }, tenant = {}) {
+  const shop = shopFrom(tenant);
+  const first = String(name || '').trim().split(/\s+/)[0] || 'there';
+  return send(shop, email, `Choose a new password for ${shop.name}`, {
+    heading: `Hi ${first},`,
+    intro: `Somebody asked to reset the password for ${email} on the ${shop.name} app. `
+      + 'If it was you, choose a new password with the button below.',
+    rows: [],
+    action: { label: 'Choose a new password', href: link },
+    footnote: `The link works once, for ${minutes} minutes. If you did not ask for this, ignore this email: `
+      + 'your password stays as it is, and nobody can change it without this link.\n\nKaren',
+  });
 }
 
 /** A sent welcome or reminder rebuilt from its log row (Email History), with a placeholder for the link that is never kept. */

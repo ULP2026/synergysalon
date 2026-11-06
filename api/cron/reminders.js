@@ -34,7 +34,9 @@ export default handler({
               -- far as email.js is concerned: nothing is logged, and the
               -- switch reads as on however it was left.
               t.id AS tenant_id,
-              to_jsonb(t) -> 'automations_off' AS automations_off
+              to_jsonb(t) -> 'automations_off' AS automations_off,
+              -- 055: the salon's hours, for the foot of the email.
+              to_jsonb(t) -> 'hours' AS hours
          FROM appointments a
          JOIN stylists s ON s.id = a.stylist_id
          JOIN services v ON v.id = a.service_id
@@ -60,6 +62,7 @@ export default handler({
           id: appt.tenant_id, automations_off: appt.automations_off,
           name: appt.shop_name, timezone: appt.timezone, host: appt.host,
           slug: appt.slug, address: appt.address, phone: appt.phone, email: appt.email,
+          hours: appt.hours,
         });
         // Switched off in Marketing: leave reminder_sent_at alone so the
         // appointment is picked up again if it is switched back on before

@@ -27,6 +27,7 @@ import { DateTime } from 'luxon';
 
 import { contactDetail } from '../staff/_routes/contacts.js';
 import { availableSlots } from './availability.js';
+import { hoursLines } from './hours.js';
 import { notAgencySql } from './auth.js';
 import { CLIENT_PRICES, ONLINE_BOOKING } from './config.js';
 import { pool, query } from './db.js';
@@ -282,7 +283,8 @@ export async function deskReply(ctx, client, db = null) {
       const { rows } = await q(
         `SELECT name, address, phone, email,
                 to_jsonb(t) ->> 'reply_to' AS reply_to, to_jsonb(t) ->> 'karen_phone' AS karen_phone,
-                to_jsonb(t) -> 'automations_off' AS automations_off
+                to_jsonb(t) -> 'automations_off' AS automations_off,
+                to_jsonb(t) -> 'hours' AS hours
            FROM tenants t WHERE id = $1::uuid`,
         [tenant.id],
       );
@@ -290,6 +292,7 @@ export async function deskReply(ctx, client, db = null) {
       const off = Array.isArray(t.automations_off) ? t.automations_off : [];
       return {
         name: t.name, address: t.address || null, phone: t.phone || null,
+        opening_hours: hoursLines(t.hours),
         client_replies_go_to: t.reply_to || t.email || null,
         karen_number: t.karen_phone || 'none connected yet',
         automations_switched_off: off.length ? off : 'none: every automated email is on',

@@ -169,7 +169,10 @@ test('a new stylist sets up their account first, then sees only their own chair'
     for (const m of roster.body.members) {
       for (const k of ['phone', 'email', 'google', 'services', 'hours', 'invited']) assert.equal(m[k], undefined, `roster leaves out ${k}`);
     }
-    assert.equal((await call(business, n, 'GET', '/api/staff/business')).status, 403, 'the salon profile is the owner\'s');
+    // Read-only for them since 2026-11-06: they see it, they cannot change it.
+    const prof = await call(business, n, 'GET', '/api/staff/business');
+    assert.equal(prof.status, 200, 'the salon profile is everyone\'s to read');
+    assert.equal(prof.body.canEdit, false, 'and only the owner\'s to change');
     assert.equal((await call(business, n, 'PATCH', '/api/staff/business', { name: 'ZZ no' })).status, 403);
     // Their own services, prices and hours are theirs to set, in My Settings.
     const hours = [{ weekday: 1, starts: '10:00', ends: '16:00' }];

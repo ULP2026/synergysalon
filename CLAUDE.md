@@ -2187,6 +2187,47 @@ must stay that way: anything committed here is served publicly.
   with the first real bookings, which is how the 30 September problem started.
 
 
+- **Settings, Salon, and Forgot Password?** (2026-11-06, asked for).
+  - **Everyone reads the Salon Profile; only the owner and admins change
+    it** (asked for the same day). The Salon tab is shown to every role;
+    `GET /api/staff/business` answers anyone signed in (only `recipients`
+    stays the owner's) with `canEdit: seesAll(user)`, and every save,
+    logo included, is refused (403) for anyone else, managers too. A
+    reader gets no pencil and no logo buttons, and a line saying who can
+    change it. The "Where do you want people to reply to" card is on Karen
+    AI now (below Email History), changed by the owner or an admin.
+  - The Salon Profile no longer shows the Booking page (`bookingUrl` is
+    still in the API). Labels sit level with the top of their box
+    (`.biz-row.edit` is `align-items: start`): centred on the row, the
+    Google review link's note had pushed its label below its box.
+  - **Hours of Operation** (`tenants.hours`, 055, also in ensure-schema;
+    `api/_lib/hours.js`): seven days, Sunday first, each `{open, close}` or
+    null for closed, set by the owner in the Salon Profile's edit (each day
+    Open with its times, or Closed). Never set, they are the hours the
+    website had hard-coded (`DEFAULT_SALON_HOURS`). Shown on the Salon
+    Profile (`hoursText`), at the foot of every email (`shopFrom().hoursLines`;
+    `tenant.js` loads `hours` everywhere, the reminder cron too), to Karen
+    (karen-ai's details and karen-desk's `salon_settings`), and on the
+    website's "Open today": the pages' own clock reads `window.__ssHours`
+    first, filled by `<script id="ss-hours">` in each page's static head
+    from `/api/services` (`salon.hours`, written "9a to 3p"). These are
+    opening hours for people to read; what is bookable is still each
+    stylist's Available Hours. The JSON-LD opening hours in the pages are
+    static and were not touched. `tests/salon-hours.integration.test.js`.
+  - **Forgot Password?** under the password on the sign-in page opens a
+    form for the email; `/api/staff/reset` (`reset.js`, through the staff
+    router, no new function) answers the same words for any address and
+    does the lookup and the email after answering (`waitUntil`), so neither
+    the words nor the time tell who has an account. Only an active login
+    gets a link: random, only its SHA-256 kept (`staff_users.reset_hash`,
+    056, also in ensure-schema), one hour, spent on use, replaced by a newer
+    request, requests two minutes apart. The link (`/reset?t=`, a vercel.json
+    rewrite like `/invite`) opens `#reset`: the new password twice, then the
+    sign-in form with the email filled; every session with the old password
+    is deleted. The email (`sendPasswordReset`) is not an automation and is
+    not kept in Email History, since it holds a working link.
+    `tests/password-reset.integration.test.js`.
+
 - **Clients has Filters and Sort** (2026-11-06, asked for), under the
   search: a Filters button opening a small panel (Status, Next visit: has a
   visit booked or not, Tag: only tags clients have, Card on file only; a

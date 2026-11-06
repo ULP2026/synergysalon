@@ -8,6 +8,7 @@
  * here, and not the CRM credentials, which are never returned by any endpoint
  * to begin with. Those are support's job, and the blast radius is the reason.
  */
+import { hoursFrom, hoursLines, salonHours } from '../../_lib/hours.js';
 import { DateTime } from 'luxon';
 
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
@@ -583,11 +584,12 @@ export default handler({
     // salon's (2026-11-03): the salon's profile, the automations and their
     // previews and sends, the email log and Finance. The owner's only.
     // Since 2026-11-04 anyone sees their own share of the automations,
-    // their sends, their Money and their cash-outs (scoped below); the
-    // salon's profile stays the owner's.
-    const ownView = ['sent', 'automations', 'sends', 'history', 'finance', 'cashouts'].some((k) => q.has(k));
-    if (!ownView && !seesAll(user)) {
-      throw new HttpError(403, 'Only the salon owner can see the salon settings.');
+    // their sends, their Money and their cash-outs (scoped below). Since
+    // 2026-11-06 everyone reads the salon's profile too (read-only: only the
+    // owner and admins change it, below). Who an automation goes to stays
+    // the owner's.
+    if (q.has('recipients') && !seesAll(user)) {
+      throw new HttpError(403, 'Only the salon owner can see that.');
     }
     const chair = await chairOf(user);
     const scope = { chair, userId: user.id };
@@ -623,7 +625,8 @@ export default handler({
       `SELECT name, slug, logo, address, phone, email, website, about, timezone,
               host, app_host, to_jsonb(tenants) ->> 'reply_to' AS reply_to,
               -- Through to_jsonb, so Settings still loads before migration 026.
-              to_jsonb(tenants) ->> 'review_url' AS review_url
+              to_jsonb(tenants) ->> 'review_url' AS review_url,
+              to_jsonb(tenants) -> 'hours' AS hours
          FROM tenants WHERE id = $1`,
       [tenant.id],
     );
@@ -646,8 +649,13 @@ export default handler({
       // booking link is and what clock the diary runs on without being handed
       // the controls that would break both.
       timezone: t.timezone,
+      // Hours of Operation (055): seven days, Sunday first, each {open, close} or null.
+      hours: salonHours(t.hours),
+      hoursText: hoursLines(t.hours),
       bookingUrl: t.host ? `https://${t.host}` : `/s/${t.slug}`,
-      canEdit: CAN_EDIT.includes(user.role),
+      // Everyone on the team reads the Salon Profile; only the owner and
+      // admins change it (asked for 2026-11-06), the same rule PATCH enforces.
+      canEdit: seesAll(user),
     });
   },
 
@@ -744,6 +752,9 @@ export default handler({
       add('website', site && !/^https?:\/\//i.test(site) ? `https://${site}` : site);
     }
 
+    // Hours of Operation (2026-11-06): all seven days at once, each closed or open-close.
+    if (body.hours !== undefined) add('hours', JSON.stringify(hoursFrom(body.hours)));
+
     const logo = logoFrom(body.logo);
     if (logo !== undefined) add('logo', logo);
 
@@ -752,7 +763,7 @@ export default handler({
     const { rows } = await query(
       `UPDATE tenants SET ${sets.join(', ')} WHERE id = $1
         RETURNING name, logo, address, phone, email, website, about,
-                  COALESCE(reply_to, '') AS "replyTo"`,
+                  COALESCE(reply_to, '') AS "replyTo", to_jsonb(tenants) -> 'hours' AS hours`,
       params,
     );
     return json(res, 200, { ...rows[0], saved: true });

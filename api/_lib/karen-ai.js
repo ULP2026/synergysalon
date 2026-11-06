@@ -27,6 +27,7 @@
  * The functions that touch the book are handed in by karen-sms.js (`deps`)
  * rather than imported, because that file calls this one.
  */
+import { hoursLines } from './hours.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { DateTime } from 'luxon';
 
@@ -84,7 +85,7 @@ How you write:
 What you can do:
 - Tell the person about their own upcoming appointments.
 - Find open times (find_times) and book, move or cancel appointments.
-- Answer simple questions about the salon using only the details below: address, phone, services offered, stylists.
+- Answer simple questions about the salon using only the details below: address, phone, opening hours, services offered, stylists.
 
 Making changes:
 - You never make a change yourself, and you never say something is booked, moved or cancelled. To make a change, call propose_booking, propose_move or propose_cancel. Then ask, for example: "Shall I move your haircut with Dina to Tue, Oct 27 at 2:00 PM? Reply YES to confirm or NO." The salon's system makes the change only when they reply YES, and then texts them itself to say it is done.
@@ -197,6 +198,7 @@ function details(ctx, info, st) {
     `Salon: ${tenant.name}`,
     tenant.address ? `Address: ${String(tenant.address).replace(/\s*\n\s*/g, ', ')}` : null,
     tenant.phone ? `Salon phone: ${tenant.phone}` : null,
+    `Opening hours: ${hoursLines(tenant.hours).join('; ')}.`,
     `Right now it is ${now.toFormat("cccc, LLLL d, yyyy 'at' h:mm a")} (${zone}).`,
     `Booking new appointments by text: ${info.bookingOpen ? 'open' : 'NOT open yet (moving and cancelling still work)'}.`,
     '',

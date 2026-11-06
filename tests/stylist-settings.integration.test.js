@@ -147,8 +147,12 @@ test('a stylist\'s Settings: their own automations, income, cash-outs and client
     assert.equal(r.status, 200);
     r = await call(business, n, 'GET', '/api/staff/business?cashouts=1');
     assert.equal(r.body.requests.find((x) => x.id === mine.id).status, 'paid');
-    // The salon's profile stays the owner's.
-    assert.equal((await call(business, n, 'GET', '/api/staff/business')).status, 403);
+    // The salon's profile: theirs to read since 2026-11-06, never to change.
+    const prof = await call(business, n, 'GET', '/api/staff/business');
+    assert.equal(prof.status, 200);
+    assert.equal(prof.body.canEdit, false);
+    assert.equal((await call(business, n, 'PATCH', '/api/staff/business', { name: 'ZZ no' })).status, 403);
+    assert.equal((await call(business, n, 'GET', '/api/staff/business?recipients=reminder')).status, 403, 'who automations go to stays the owner\'s');
 
     // ── Appt. Book: no calendar, or removed, is left off; the ticket stays ──
     const d = await call(diary, o, 'GET', `/api/staff/diary?date=${day.toISODate()}`);
