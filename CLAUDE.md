@@ -298,6 +298,17 @@ appointment. `calendar.app.created` is still requested on connect, only so
 an old calendar can be removed; it can go once nobody has one.
 The guest's own reschedule and cancel update the Google copy at once
 (`api/appointment.js`) instead of waiting for the cron.
+A move updates Google at once from every path (asked for 2026-11-09):
+`mirrorToGoogle({ appointmentId })` does the appointment just changed
+first, and both of its lists run newest change first; oldest first, copies
+that kept failing filled its twenty and a fresh move waited for the
+nightly run. A copy whose owner is no longer the appointment's stylist
+(moved to somebody else) is cancelled in their calendar and its
+`google_events` row deleted; before, the old stylist kept the visit at its
+old time. Deleting a client now sets `updated_at` on the appointments it
+cancels, or their Google copies never heard of it.
+`tests/synergy-calendar.integration.test.js` ("a move reaches Google")
+runs the desk's move from Dina to Micah.
 
 **Several services are one appointment.** The survey's other services go to
 the server (`body.services` on `/api/enquiry`, `&with=` on

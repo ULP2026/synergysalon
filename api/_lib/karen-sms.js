@@ -755,7 +755,7 @@ async function moveIt(ctx, a, start, { offerAgain = true } = {}) {
 /** The change is committed; the email and the Google copy are courtesies on top. */
 async function afterChange(appt, email) {
   try { await email(); } catch (err) { console.error('karen-sms email failed for', appt.ref, err); }
-  await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', appt.ref, err));
+  await mirrorToGoogle({ appointmentId: appt.id }).catch((err) => console.error('google mirror deferred for', appt.ref, err));
 }
 
 // ── clients: a new booking ───────────────────────────────────────────────

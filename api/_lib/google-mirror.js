@@ -21,8 +21,45 @@ import { visitNameSql } from './visit.js';
 let push = pushEvent;
 export function setGooglePushForTests(fn) { push = fn || pushEvent; }
 
-export async function mirrorToGoogle({ limit = 20, tenantId = null } = {}) {
+/**
+ * `appointmentId`: the one just changed, done first. Both lists run newest
+ * change first (2026-11-09): oldest first, twenty copies that kept failing
+ * sat at the head of the queue and a move made at the desk waited for the
+ * nightly run, while the stylist's phone still showed the old time.
+ */
+export async function mirrorToGoogle({ limit = 20, tenantId = null, appointmentId = null } = {}) {
   if (!googleConfigured() && push === pushEvent) return [];
+  const done = [];
+
+  // A copy left with somebody the appointment no longer belongs to (moved
+  // to another stylist, 2026-11-09): taken out of their calendar. Before
+  // this the old stylist's phone kept the visit at its old time for good.
+  const { rows: stale } = await query(
+    `SELECT a.*, ${visitNameSql()} AS service_name, g.staff_user_id AS copy_owner, t.timezone, t.name AS salon_name
+       FROM google_events g
+       JOIN appointments a ON a.id = g.appointment_id
+       JOIN stylists s ON s.id = a.stylist_id
+       JOIN services v ON v.id = a.service_id
+       JOIN tenants t ON t.id = a.tenant_id
+       ${chairLoginJoin('s', 'u')}
+      WHERE g.staff_user_id IS DISTINCT FROM u.id
+        AND ($1::uuid IS NULL OR a.tenant_id = $1::uuid)
+        AND a.starts_at > now() - interval '1 day'
+      ORDER BY (a.id = $3::uuid) DESC NULLS LAST, a.updated_at DESC
+      LIMIT $2::int`,
+    [tenantId, limit, appointmentId],
+  ).catch((err) => { console.error('google mirror (moved copies) query failed', err.message); return { rows: [] }; });
+  for (const appt of stale) {
+    try {
+      await push(appt.copy_owner, { ...appt, status: 'cancelled' }, appt.timezone);
+      await query('DELETE FROM google_events WHERE appointment_id = $1::uuid AND staff_user_id = $2::uuid',
+        [appt.id, appt.copy_owner]);
+      done.push({ ref: appt.ref, removedFrom: appt.copy_owner });
+    } catch (err) {
+      console.error('google copy of a moved appointment not removed for', appt.ref, err.message);
+    }
+  }
+
   // Through to_jsonb so this is harmless before migration 010.
   const { rows } = await query(
     `SELECT a.*, s.name AS stylist_name, ${visitNameSql()} AS service_name, u.id AS staff_user_id,
@@ -38,12 +75,11 @@ export async function mirrorToGoogle({ limit = 20, tenantId = null } = {}) {
         AND a.starts_at > now() - interval '1 day'
         AND ((g.event_id IS NULL AND a.status::text <> 'cancelled')
              OR (g.event_id IS NOT NULL AND g.updated_at < a.updated_at))
-      ORDER BY a.updated_at
+      ORDER BY (a.id = $3::uuid) DESC NULLS LAST, a.updated_at DESC
       LIMIT $2::int`,
-    [tenantId, limit],
+    [tenantId, limit, appointmentId],
   ).catch((err) => { console.error('google mirror query failed', err.message); return { rows: [] }; });
 
-  const done = [];
   for (const appt of rows) {
     try {
       done.push({ ref: appt.ref, event: await push(appt.staff_user_id, appt, appt.timezone) });

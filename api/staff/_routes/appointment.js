@@ -358,7 +358,7 @@ export async function moveAppointment(tenant, user, ref, { start, stylist, notif
         console.error('reschedule email failed for', ref, err);
       }
     }
-    await mirrorToGoogle().catch((err) => console.error('google mirror deferred for', ref, err));
+    await mirrorToGoogle({ appointmentId: appt.id }).catch((err) => console.error('google mirror deferred for', ref, err));
   }
   return { appt, moved };
 }

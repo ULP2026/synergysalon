@@ -280,7 +280,8 @@ export async function removeContact(client, tenantId, id) {
   if (!contact) return null;
 
   const { rows: cancelled } = await client.query(
-    `UPDATE appointments SET status = 'cancelled', cancelled_at = now()
+    // updated_at too, or the stylists' Google copies never heard of it.
+    `UPDATE appointments SET status = 'cancelled', cancelled_at = now(), updated_at = now()
       WHERE contact_id = $1 AND status = 'booked' AND starts_at >= now()
       RETURNING id`,
     [id],

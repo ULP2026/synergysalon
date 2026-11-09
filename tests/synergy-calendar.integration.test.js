@@ -18,6 +18,8 @@ import { availableSlots, combineServices } from '../api/_lib/availability.js';
 import { createBooking } from '../api/_lib/booking.js';
 import { setGoogleReaderForTests } from '../api/_lib/google-busy.js';
 import { mirrorToGoogle, setGooglePushForTests } from '../api/_lib/google-mirror.js';
+import { tenantForUser } from '../api/_lib/tenant.js';
+import { moveAppointment } from '../api/staff/_routes/appointment.js';
 import { makeBookable } from './bookable.js';
 
 const url = process.env.DATABASE_URL;
@@ -339,6 +341,86 @@ test('a booking and its cancellation reach the stylist\'s Google Calendar', { sk
     if (apptId) await c.query('DELETE FROM appointments WHERE id = $1', [apptId]);
     await c.query("UPDATE stylists SET staff_user_id = NULL WHERE slug = 'dina'");
     if (userId) await c.query('DELETE FROM staff_users WHERE id = $1', [userId]);
+    await c.end();
+  }
+});
+
+test('a move reaches Google at once: the new time, and off the old stylist\'s calendar', { skip }, async (t) => {
+  // Asked for 2026-11-09: an appointment moved in the app moves in Google.
+  // Commits, like the test above, so it runs only on a seeded local
+  // database and never writes to the live one.
+  const c = await connect();
+  const pushed = [];
+  const users = [];
+  const appts = [];
+  try {
+    const tenant = await tenantForUser({ tenant_id: (await tenantOf(c)).id });
+    const { rows: ready } = await c.query(
+      `SELECT count(*)::int AS n FROM stylists s
+        WHERE s.tenant_id = $1 AND s.slug IN ('dina', 'micah') AND s.active
+          AND EXISTS (SELECT 1 FROM stylist_services x WHERE x.stylist_id = s.id)
+          AND EXISTS (SELECT 1 FROM stylist_hours h WHERE h.stylist_id = s.id)`,
+      [tenant.id],
+    );
+    if (!isLocal || ready[0].n < 2) {
+      t.skip('needs a seeded local database with Dina and Micah set up');
+      return;
+    }
+    const day = tuesday(tenant.timezone);
+    const dina = await linkLogin(c, tenant, 'dina', { refresh: 'zz-token' });
+    const micah = await linkLogin(c, tenant, 'micah', { refresh: 'zz-token' });
+    users.push(dina, micah);
+    setGooglePushForTests(async (uid, appt) => {
+      pushed.push({ uid, ref: appt.ref, status: appt.status, start: new Date(appt.starts_at).toISOString() });
+      if (appt.status !== 'cancelled') {
+        await c.query(
+          `INSERT INTO google_events (appointment_id, staff_user_id, event_id) VALUES ($1, $2, 'zz-event')
+           ON CONFLICT (appointment_id, staff_user_id) DO UPDATE SET updated_at = now()`, [appt.id, uid]);
+      }
+      return 'zz-event';
+    });
+    const book = async (hour, name) => {
+      await c.query('BEGIN');
+      const a = await createBooking(c, tenant, {
+        serviceSlug: 'womens-cut', stylistSlug: 'dina', start: day.set({ hour }).toISO(),
+        guestName: name, guestPhone: '8135550100', guestEmail: 'zz@example.com', channel: 'staff',
+      });
+      await c.query('COMMIT');
+      appts.push(a.id);
+      return a;
+    };
+    const first = await book(10, 'ZZ Move One');
+    const second = await book(13, 'ZZ Move Two');
+
+    // The one just changed goes first, ahead of anything older in the queue.
+    await mirrorToGoogle({ tenantId: tenant.id, limit: 1, appointmentId: first.id });
+    assert.equal(pushed[0].ref, first.ref);
+    await mirrorToGoogle({ tenantId: tenant.id });
+    assert.deepEqual(pushed.map((p) => p.ref).sort(), [first.ref, second.ref].sort());
+
+    // Moved at the desk to Micah, an hour later: Micah's calendar gets it at
+    // the new time, and Dina's copy is taken off hers.
+    pushed.length = 0;
+    const to = day.set({ hour: 11 });
+    const { moved } = await moveAppointment(tenant, { id: dina }, first.ref, { start: to.toISO(), stylist: 'micah', notify: false });
+    assert.equal(moved, true);
+    assert.deepEqual(
+      pushed.map((p) => [p.uid, p.status, p.start]).sort(),
+      [[dina, 'cancelled', to.toUTC().toISO({ suppressMilliseconds: false })], [micah, 'booked', to.toUTC().toISO({ suppressMilliseconds: false })]].sort(),
+    );
+    const { rows: copies } = await c.query('SELECT staff_user_id FROM google_events WHERE appointment_id = $1', [first.id]);
+    assert.deepEqual(copies.map((r) => r.staff_user_id), [micah], 'only Micah keeps a copy');
+
+    // Nothing left to do: the next run pushes nothing.
+    pushed.length = 0;
+    await mirrorToGoogle({ tenantId: tenant.id });
+    assert.equal(pushed.length, 0);
+  } finally {
+    setGooglePushForTests(null);
+    await c.query('ROLLBACK').catch(() => {});
+    if (appts.length) await c.query('DELETE FROM appointments WHERE id = ANY($1::uuid[])', [appts]);
+    await c.query("UPDATE stylists SET staff_user_id = NULL WHERE slug IN ('dina', 'micah') AND staff_user_id = ANY($1::uuid[])", [users]);
+    if (users.length) await c.query('DELETE FROM staff_users WHERE id = ANY($1::uuid[])', [users]);
     await c.end();
   }
 });
