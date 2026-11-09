@@ -2060,6 +2060,28 @@ made that way are real: name them ZZ and remove them.
     a stylist sees what they imported). Skipped rows come back with their
     line and reason. `tests/clients-bulk.integration.test.js`.
 
+- **Later on 2026-11-09** (asked for):
+  - **Clients is more compact**: the count ("8 Clients") sits on the right
+    of the Choose your stylist row (`.cl-meta`, alone on the right for
+    anyone who has no stylist row), not on a line of its own under it; the
+    Filters, sort, Import and Select pills are 34px (were 40) with smaller
+    type, and the sort list is as wide as its words.
+  - **Select and Delete in Karen AI's histories**: Chat, Call and Email
+    History each have a compact bar at the top (`hxBarHtml`, `.hx-bar`):
+    Select (Cancel while on), then Select all, the count and Delete. While
+    on, each row's picture gives its place to a checkbox (`HX_BOX`) and a
+    click picks the row (a capture listener on the card, so nothing opens).
+    Delete asks in `#hxDelDlg` (Cancel or Delete, no typing), then `DELETE
+    /api/staff/karen {kind: 'chat'|'calls'|'emails', ids, confirm: true}`
+    (`deleteHistory`, `requireTeamAdmin`: Owner and Admin roles and the
+    agency login; the bar is shown only to them). Chat deletes a person's
+    whole conversation (`karen_messages` by `user_id`, or 'removed' for a
+    login that is gone), Calls rows of `karen_calls`, Emails rows of
+    `message_sends`, which also leave the client's Activity and Sent
+    History; nothing reads that log to decide whether to send, so nothing
+    is sent again. Up to 500 at a time, this salon's rows only.
+    `tests/karen-history-delete.integration.test.js`.
+
 - **K18/Olaplex Treatment** (asked for 2026-11-06) is Bond Repair's name
   now (migration 054; slug `bond-repair` kept, so bookings, prices and
   stylists stay). ensure-schema's 052 line, which renamed it on every cold

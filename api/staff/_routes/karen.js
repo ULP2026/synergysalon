@@ -19,6 +19,9 @@
  *   GET    ?history=people  everyone who has talked to Karen; ?history=<id>
  *          one person's whole history (the admin only: Settings, Karen
  *          AI, Message History, asked for 2026-10-31).
+ *   DELETE {kind: 'chat'|'calls'|'emails', ids, confirm: true}  remove
+ *          records from Chat, Call or Email History (Select, asked for
+ *          2026-11-09; the owner and admins only, deleteHistory).
  *
  * The number is bought from the phone provider and pointed at the webhooks
  * listed here; this records which number it is, so the team can see it and
@@ -53,6 +56,50 @@ async function settings(req, tenantId) {
     texting: Boolean(process.env.TWILIO_AUTH_TOKEN),
     webhooks: { sms: `${base}/karen-sms`, voice: `${base}/karen-voice` },
   };
+}
+
+/** Most records one delete removes: a screenful or two, not the whole log. */
+export const HISTORY_DELETE_MAX = 500;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Records taken out of Karen AI's histories (asked for 2026-11-09), by the
+ * owner or an admin, chosen with Select in each card:
+ *   chat    a person's whole conversation with Karen (karen_messages), by
+ *           their login's id, or 'removed' for those whose login is gone;
+ *   calls   rows of Call History (karen_calls);
+ *   emails  rows of Email History (message_sends). The log is all it is:
+ *           nothing reads it to decide whether to send (a reminder is
+ *           marked on its appointment), so deleting one never sends again.
+ *           It also leaves the client's Activity, which reads the same log.
+ * Only this salon's rows, whatever ids are sent. Returns how many went.
+ */
+export async function deleteHistory(tenantId, kind, rawIds, db = null) {
+  const q = db ? db.query.bind(db) : query;
+  if (!Array.isArray(rawIds)) throw new HttpError(400, 'Choose what to delete first.');
+  const ids = [...new Set(rawIds.filter((x) => typeof x === 'string' || typeof x === 'number').map(String))];
+  if (!ids.length) throw new HttpError(400, 'Choose what to delete first.');
+  if (ids.length > HISTORY_DELETE_MAX) throw new HttpError(400, `Delete up to ${HISTORY_DELETE_MAX} at a time.`);
+  if (kind === 'chat') {
+    const users = ids.filter((x) => UUID.test(x));
+    const removed = ids.includes('removed');
+    const { rowCount } = await q(
+      `DELETE FROM karen_messages WHERE tenant_id = $1::uuid
+          AND (user_id = ANY($2::uuid[]) OR ($3::boolean AND user_id IS NULL))`,
+      [tenantId, users, removed],
+    );
+    return { deleted: users.length + (removed ? 1 : 0), rows: rowCount };
+  }
+  if (kind === 'calls' || kind === 'emails') {
+    const ok = kind === 'calls' ? ids.filter((x) => /^\d{1,18}$/.test(x)) : ids.filter((x) => UUID.test(x));
+    const { rowCount } = await q(
+      `DELETE FROM ${kind === 'calls' ? 'karen_calls' : 'message_sends'}
+        WHERE tenant_id = $1::uuid AND id::text = ANY($2::text[])`,
+      [tenantId, ok],
+    );
+    return { deleted: rowCount, rows: rowCount };
+  }
+  throw new HttpError(400, 'Say which history to delete from.');
 }
 
 export default handler({
@@ -147,6 +194,15 @@ export default handler({
       console.error('karen-desk failed', err);
       throw new HttpError(502, "Karen couldn't look that up just now.", 'AI_FAILED');
     }
+  },
+
+  async DELETE(req, res) {
+    assertSameOrigin(req);
+    // The owner and admins only (canManageTeam), as the histories are theirs to read.
+    const user = await requireTeamAdmin(req);
+    const body = await readJson(req);
+    if (body.confirm !== true) throw new HttpError(400, 'Confirm the delete first.');
+    return json(res, 200, await deleteHistory(user.tenant_id, body.kind, body.ids));
   },
 
   async PATCH(req, res) {

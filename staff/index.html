@@ -597,24 +597,25 @@
   /* The view dropdown, a field like the others, on the right. */
   .dv-view { position: relative; flex: none; display: block; margin: 0; }
   /* Clients' Filters and Sort (2026-11-06): pills like the view dropdown. */
-  .cl-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -6px 0 14px; }
+  .cl-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -6px 0 12px; }
   .cl-filt { position: relative; }
-  .cl-fbtn, .cl-sort select { height: 40px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); color: var(--ink);
-                              font: inherit; font-size: .92rem; font-weight: 500; cursor: pointer;
+  /* Compact (2026-11-09): 34px, the stylist pills' height, not a field's 40. */
+  .cl-fbtn, .cl-sort select { height: 34px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); color: var(--ink);
+                              font: inherit; font-size: .84rem; font-weight: 500; cursor: pointer;
                               transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease); }
-  .cl-fbtn { display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; }
-  .cl-fbtn .ic { width: 16px; height: 16px; color: var(--muted); }
+  .cl-fbtn { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; }
+  .cl-fbtn .ic { width: 15px; height: 15px; color: var(--muted); }
   .cl-fbtn .cl-chev { transition: transform var(--t) var(--ease); }
   .cl-fbtn[aria-expanded="true"] .cl-chev { transform: rotate(180deg); }
-  .cl-fbtn b { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+  .cl-fbtn b { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
                background: var(--indigo); color: #fff; font-size: .72rem; font-weight: 700; }
   .cl-fbtn b[hidden] { display: none; }
   .cl-fbtn.on { border-color: var(--periwinkle); background: var(--peri-pale); color: var(--indigo); }
   .cl-fbtn:hover, .cl-sort select:hover { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); background: var(--peri-pale); }
   .cl-fbtn:focus-visible, .cl-sort select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .cl-sort { position: relative; display: block; margin: 0; }
-  .cl-sort select { appearance: none; -webkit-appearance: none; padding: 0 38px 0 16px; min-width: 190px; }
-  .cl-sort .ic { position: absolute; right: 14px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .cl-sort select { appearance: none; -webkit-appearance: none; width: auto; margin: 0; padding: 0 32px 0 13px; min-width: 0; }
+  .cl-sort .ic { position: absolute; right: 11px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
   .cl-pop { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; width: 290px; display: grid; gap: 12px; padding: 16px;
             border: 1px solid var(--line-2); border-radius: 14px; background: var(--card); box-shadow: var(--shadow); }
   .cl-pop label { display: grid; gap: 4px; margin: 0; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); }
@@ -625,7 +626,7 @@
   @media (max-width: 560px) {
     .cl-tools { display: grid; grid-template-columns: 1fr 1fr; }
     .cl-fbtn { width: 100%; justify-content: center; }
-    .cl-sort select { width: 100%; min-width: 0; padding: 0 30px 0 12px; font-size: .82rem; }
+    .cl-sort select { width: 100%; min-width: 0; padding: 0 30px 0 12px; font-size: .8rem; }
     .cl-sort .ic { right: 10px; }
     .cl-pop { width: min(300px, calc(100vw - 48px)); }
   }
@@ -634,7 +635,7 @@
   .cl-bulk { display: flex; gap: 8px; margin-left: auto; }
   .cl-fbtn[aria-pressed="true"] { border-color: var(--periwinkle); background: var(--peri-pale); color: var(--indigo); }
   .cl-fbtn[aria-pressed="true"] .ic { color: var(--indigo); }
-  .cl-selbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-height: 48px; margin: -4px 0 12px; padding: 6px 8px 6px 14px;
+  .cl-selbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 42px; margin: -2px 0 10px; padding: 4px 6px 4px 12px;
                border: 1px solid color-mix(in srgb, var(--periwinkle) 40%, var(--line)); border-radius: 12px; background: var(--peri-pale);
                animation: kd-in .18s var(--ease); }
   .cl-selbar[hidden] { display: none; }
@@ -647,7 +648,7 @@
   .cl-seln { font-size: var(--fs-sm); color: var(--muted); font-variant-numeric: tabular-nums; }
   .cl-selacts { display: flex; gap: 8px; margin-left: auto; }
   .cl-selacts[hidden] { display: none; }
-  .cl-selacts .btn { display: inline-flex; align-items: center; gap: 6px; }
+  .cl-selacts .btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; font-size: .84rem; }
   .cl-selacts .btn .ic { width: 16px; height: 16px; }
   /* While selecting, each row's picture gives its place to a checkbox, so
      the row keeps its shape at every width; the row picks, it does not open. */
@@ -1297,7 +1298,12 @@
   .cstages button[aria-pressed="true"] .n { color: inherit; opacity: .8; }
   .ctags-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: -4px 0 16px; }
   .ctags-bar > .ic { width: 16px; height: 16px; color: var(--faint); margin-right: 2px; }
-  .ctags-bar .count { margin-left: auto; font-size: var(--fs-sm); color: var(--muted); }
+  .ctags-bar .count { margin-left: auto; font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; }
+  .cl-meta { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; }
+  .cl-meta .cstylists { flex: 1; min-width: 0; margin: 0; }
+  .cl-meta .ctags-bar { flex: none; margin: 0 0 0 auto; }
+  .cl-meta .ctags-bar:empty { display: none; }
+  @media (max-width: 640px) { .cl-meta { align-items: flex-start; } }
   .tag {
     display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px; border-radius: 999px;
     border: 1px solid transparent; background: #f3eefc; color: #6a4fb0;
@@ -2428,6 +2434,37 @@
   .kc-r time { font-size: .72rem; color: var(--faint); white-space: nowrap; }
   @media (max-width: 520px) { .kc-row { grid-template-columns: 32px minmax(0, 1fr); } .kc-r { grid-column: 2; justify-items: start; } }
   .kh-empty { margin: auto; padding: 24px; text-align: center; color: var(--muted); font-size: .9rem; }
+  /* Select in each history (2026-11-09): a compact bar at the card's top,
+     owner and admins only. While on, each row's picture gives its place to a
+     checkbox, as Clients does, and a row picks rather than opens. */
+  .hx-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 32px; margin: 0 0 10px; max-width: 760px; }
+  .hx-bar[hidden] { display: none; }
+  .kh-box ~ .hx-bar, .hx-bar.wide { max-width: none; }
+  .hx-sel { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px;
+            border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); color: var(--ink);
+            font: inherit; font-size: .8rem; font-weight: 500; cursor: pointer;
+            transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .hx-sel .ic { width: 14px; height: 14px; color: var(--muted); }
+  .hx-sel:hover { border-color: color-mix(in srgb, var(--periwinkle) 45%, var(--line-2)); background: var(--peri-pale); }
+  .hx-sel[aria-pressed="true"] { border-color: var(--periwinkle); background: var(--peri-pale); color: var(--indigo); }
+  .hx-sel:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .hx-all { display: inline-flex; align-items: center; gap: 7px; margin: 0; cursor: pointer; }
+  .hx-all > span { display: inline; margin: 0; font-size: .82rem; font-weight: 600; color: var(--ink); }
+  .hx-all input, .hx-box input { width: 16px; height: 16px; margin: 0; accent-color: var(--indigo); cursor: pointer; }
+  .hx-box input { pointer-events: none; }
+  .hx-n { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hx-bar .hx-del { display: inline-flex; align-items: center; gap: 5px; height: 30px; min-height: 0; padding: 0 11px; font-size: .8rem; }
+  .hx-del .ic { width: 14px; height: 14px; }
+  .hx-box { display: none; place-items: center; width: 36px; height: 36px; }
+  .kx.hx-on [data-hxid] > .hx-box { display: grid; }
+  .kx.hx-on [data-hxid] > img, .kx.hx-on [data-hxid] > .kc-ic { display: none; }
+  .kx.hx-on [data-hxid].hx-picked { background: var(--peri-pale); border-color: color-mix(in srgb, var(--periwinkle) 50%, var(--line)); }
+  @media (max-width: 520px) {
+    .kx.hx-on .kc-row > .hx-box { width: 32px; height: 32px; }
+    /* One line on a phone: the box alone says Select all (its label is kept for screen readers). */
+    .hx-bar { gap: 8px; }
+    .hx-all > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  }
   /* Email Inbox (2026-11-06): Chat History's box, a conversation a row, each email a card. */
   .kh-person > .kc-ic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
                         background: var(--peri-pale); color: var(--periwinkle); }
@@ -4387,8 +4424,12 @@
           </div>
         </div>
         <!-- All, then one per stylist; built in fillStylistFilter(). -->
-        <div class="cfilter cstylists hidden" id="contactStylist" role="group" aria-label="Show clients of"></div>
-        <div class="ctags-bar" id="contactTags"></div>
+        <!-- The count sits on the stylist row's right (2026-11-09), not on a
+             line of its own under it. -->
+        <div class="cl-meta">
+          <div class="cfilter cstylists hidden" id="contactStylist" role="group" aria-label="Show clients of"></div>
+          <div class="ctags-bar" id="contactTags"></div>
+        </div>
         <div id="contacts" style="flex:1;display:flex;flex-direction:column"></div>
       </div>
     </section>
@@ -5367,6 +5408,24 @@
     <div class="off-actions">
       <button type="button" class="btn quiet" id="clDelCancel">Cancel</button>
       <button type="submit" class="btn danger solid" id="clDelGo" disabled>Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Karen AI, history Delete (2026-11-09): what goes, and Cancel or Delete. -->
+<dialog id="hxDelDlg" class="au off" aria-labelledby="hxDelTitle">
+  <header class="au-head">
+    <span class="au-ic"><svg class="ic"><use href="#i-trash"/></svg></span>
+    <div class="grow"><h2 id="hxDelTitle">Delete?</h2><p id="hxDelSub"></p></div>
+    <button type="button" class="iconbtn lg" id="hxDelClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </header>
+  <form class="off-body" id="hxDelForm">
+    <p class="off-warn" id="hxDelWarn"></p>
+    <p class="off-why" id="hxDelWhy"></p>
+    <p class="note bad hidden" id="hxDelNote"></p>
+    <div class="off-actions">
+      <button type="button" class="btn quiet" id="hxDelCancel">Cancel</button>
+      <button type="submit" class="btn danger solid" id="hxDelGo">Delete</button>
     </div>
   </form>
 </dialog>
@@ -7027,6 +7086,20 @@ function setMailOpen(open) {
     else b.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the email history`);
   }
 }
+// Karen AI's histories' Select state (2026-11-09); the code is with Chat History.
+const HX = {
+  chat: { card: 'khCard', list: 'khPeople', one: 'conversation', many: 'conversations',
+    why: 'A deleted conversation leaves Chat History for good. Nothing booked or changed through Karen is touched.',
+    reload: () => { khWho = null; return loadKarenHistory(); } },
+  calls: { card: 'kcCard', list: 'kcList', one: 'call', many: 'calls',
+    why: 'A deleted call leaves Call History for good. Nothing else changes.',
+    reload: () => loadKarenCalls() },
+  emails: { card: 'mailCard', list: 'mlList', one: 'email record', many: 'email records',
+    why: "A deleted record leaves Email History, the automation's Sent History and the client's Activity for good. The email itself was already delivered and is not recalled, and nothing is sent again.",
+    reload: () => loadMailLog(true) },
+};
+for (const k of Object.keys(HX)) Object.assign(HX[k], { on: false, sel: new Set() });
+const HX_BOX = '<span class="hx-box" aria-hidden="true"><input type="checkbox" tabindex="-1"></span>';
 function renderMailHistory() {
   const names = mailNames();
   const open = mailOpen();
@@ -7053,6 +7126,7 @@ function renderMailHistory() {
         ${Object.entries(names).map(([k, v]) => `<option value="${esc(k)}"${mailLog.kind === k ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}
       </select>
     </div>
+    ${hxBarHtml('emails')}
     <div id="mlList"></div>
     </div>`;
   let timer = null;
@@ -7096,8 +7170,8 @@ function paintMailLog(note) {
     // One row a send, as Call History has one row a call.
     const when = fmtWhen(s.sentAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     return `
-      <button type="button" class="kc-row" role="listitem" data-sent="${esc(s.id)}" aria-label="Open the ${esc(what)} sent to ${esc(s.name)}">
-        <span class="kc-ic" aria-hidden="true">${ic(a ? a.icon : 'mail')}</span>
+      <button type="button" class="kc-row" role="listitem" data-sent="${esc(s.id)}" data-hxid="${esc(s.id)}" aria-label="Open the ${esc(what)} sent to ${esc(s.name)}">
+        ${HX_BOX}<span class="kc-ic" aria-hidden="true">${ic(a ? a.icon : 'mail')}</span>
         <span style="min-width:0"><b>${esc(s.name)}</b><small>${esc([what, s.email].filter(Boolean).join(' · '))}</small></span>
         <span class="kc-r">${s.status === 'failed' ? '<span class="chip warn">Failed</span>' : ''}
           <time datetime="${esc(s.sentAt)}" title="${esc(when)}">${esc(when)}</time></span>
@@ -7110,6 +7184,7 @@ function paintMailLog(note) {
       ? `<div class="kc-list" role="list" aria-label="Emails sent">${mailLog.rows.map(row).join('')}</div>
          ${mailLog.next ? '<div class="ml-more"><button type="button" class="btn quiet sm" data-ml-more>Show more</button></div>' : ''}`
       : `<p class="kh-empty">${filtered ? 'No email matches that.' : 'No emails sent yet. They appear here as the automations send them.'}</p>`;
+  hxPaint('emails');
 }
 
 /**
@@ -15374,6 +15449,7 @@ async function loadKarenCalls() {
   }
   if (!calls.length) {
     $('kcList').innerHTML = '<p class="kh-empty">No calls yet. Calls to Karen\'s number appear here as they come in.</p>';
+    hxPaint('calls');
     return;
   }
   const KIND = { staff: 'Team', client: 'Client', unknown: 'Unknown caller' };
@@ -15384,20 +15460,141 @@ async function loadKarenCalls() {
       : `<span class="kc-ic" aria-hidden="true">${ic(c.kind === 'client' ? 'user' : 'phone')}</span>`;
     const sub = [c.kind === 'staff' && c.role ? (ROLE_LABEL[c.role] || KIND.staff) : KIND[c.kind], c.name && c.phone ? showPhone(c.phone) : '']
       .filter(Boolean).join(' · ');
-    const inner = `${face}<span style="min-width:0"><b>${esc(c.name || showPhone(c.phone) || 'Unknown number')}</b><small>${esc(sub)}</small></span>
+    const inner = `${HX_BOX}${face}<span style="min-width:0"><b>${esc(c.name || showPhone(c.phone) || 'Unknown number')}</b><small>${esc(sub)}</small></span>
       <span class="kc-r"><span class="chip ${tone}">${esc(out)}</span>
         <time datetime="${esc(c.at)}" title="${esc(khWhen(c.at))}">${esc(khWhen(c.at))}</time></span>`;
     // A client's call opens their profile.
     return c.kind === 'client' && c.contactId
-      ? `<button type="button" class="kc-row" role="listitem" data-kc-person="${esc(c.contactId)}" title="Open ${esc(c.name || 'client')}">${inner}</button>`
-      : `<div class="kc-row" role="listitem">${inner}</div>`;
+      ? `<button type="button" class="kc-row" role="listitem" data-hxid="${esc(c.id)}" data-kc-person="${esc(c.contactId)}" title="Open ${esc(c.name || 'client')}">${inner}</button>`
+      : `<div class="kc-row" role="listitem" data-hxid="${esc(c.id)}">${inner}</div>`;
   }).join('');
+  hxPaint('calls');
 }
 $('kcList').onclick = (e) => {
   const b = e.target.closest('[data-kc-person]');
   if (b) openPerson(b.dataset.kcPerson);
 };
 const khWhen = (iso) => fmtWhen(iso, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+/* ───────────── Select and Delete in Karen AI's histories (2026-11-09) ─────────────
+   Chat, Call and Email History each have a Select at the top, for the owner
+   and admins only (canManageTeam; the server agrees, DELETE
+   /api/staff/karen is requireTeamAdmin). Rows wear a checkbox in their
+   picture's place, as Clients' rows do; Select all takes every row shown;
+   Delete asks first in #hxDelDlg. */
+function hxBarHtml(kind) {
+  return `<div class="hx-bar${kind === 'chat' ? ' wide' : ''}" data-hx="${kind}" hidden>
+    <label class="hx-all" hidden><input type="checkbox" data-hx-all><span>Select all</span></label>
+    <span class="hx-n" hidden aria-live="polite"></span>
+    <button type="button" class="btn danger sm hx-del" data-hx-del hidden>${ic('trash')}<span>Delete</span></button>
+    <button type="button" class="hx-sel" data-hx-toggle aria-pressed="false">${ic('select')}<span>Select</span></button>
+  </div>`;
+}
+const hxRows = (kind) => [...($(HX[kind].list)?.querySelectorAll('[data-hxid]') || [])];
+function hxPaint(kind) {
+  const h = HX[kind];
+  const card = $(h.card);
+  const bar = card?.querySelector(`.hx-bar[data-hx="${kind}"]`);
+  if (!bar) return;
+  const rows = hxRows(kind);
+  const ids = rows.map((r) => r.dataset.hxid);
+  for (const id of [...h.sel]) if (!ids.includes(id)) h.sel.delete(id);
+  if (!rows.length) h.on = false;
+  // Only the owner and admins may delete, so only they are offered Select.
+  bar.hidden = !me?.user?.canManageTeam || !rows.length;
+  card.classList.toggle('hx-on', h.on);
+  const n = h.sel.size;
+  const tog = bar.querySelector('[data-hx-toggle]');
+  tog.setAttribute('aria-pressed', String(h.on));
+  tog.querySelector('span').textContent = h.on ? 'Cancel' : 'Select';
+  bar.querySelector('.hx-all').hidden = !h.on;
+  const all = bar.querySelector('[data-hx-all]');
+  all.checked = n > 0 && n === rows.length;
+  all.indeterminate = n > 0 && n < rows.length;
+  const count = bar.querySelector('.hx-n');
+  count.hidden = !h.on;
+  count.textContent = n ? `${n} selected` : 'None selected';
+  bar.querySelector('[data-hx-del]').hidden = !h.on || !n;
+  for (const r of rows) {
+    const on = h.sel.has(r.dataset.hxid);
+    r.classList.toggle('hx-picked', h.on && on);
+    const box = r.querySelector('.hx-box input');
+    if (box) box.checked = on;
+    if (h.on) r.setAttribute('aria-pressed', String(on)); else r.removeAttribute('aria-pressed');
+  }
+}
+function hxSet(kind, on) {
+  HX[kind].on = on;
+  if (!on) HX[kind].sel.clear();
+  hxPaint(kind);
+}
+async function hxDelete(kind) {
+  const h = HX[kind];
+  const ids = [...h.sel];
+  if (!ids.length) return;
+  const n = ids.length;
+  const word = n === 1 ? h.one : h.many;
+  $('hxDelTitle').textContent = `Delete ${n} ${word}?`;
+  $('hxDelSub').textContent = { chat: 'Chat History', calls: 'Call History', emails: 'Email History' }[kind];
+  $('hxDelWarn').textContent = `Are you sure you want to delete ${n === 1 ? `this ${h.one}` : `these ${n} ${h.many}`}? This cannot be undone.`;
+  $('hxDelWhy').textContent = h.why;
+  $('hxDelNote').classList.add('hidden');
+  const go = $('hxDelGo');
+  go.textContent = `Delete ${n} ${word}`;
+  go.disabled = false;
+  const dlg = $('hxDelDlg');
+  $('hxDelCancel').onclick = () => closeDialog(dlg);
+  $('hxDelClose').onclick = () => closeDialog(dlg);
+  $('hxDelForm').onsubmit = async (e) => {
+    e.preventDefault();
+    go.disabled = true;
+    go.textContent = 'Deleting…';
+    try {
+      const r = await api('/api/staff/karen', { method: 'DELETE', body: JSON.stringify({ kind, ids, confirm: true }) });
+      closeDialog(dlg);
+      hxSet(kind, false);
+      toast(`${r.deleted} ${r.deleted === 1 ? h.one : h.many} deleted.`);
+      await h.reload();
+    } catch (err) {
+      note($('hxDelNote'), err.message);
+      go.disabled = false;
+      go.textContent = `Delete ${n} ${word}`;
+    }
+  };
+  openDialog(dlg);
+  setTimeout(() => $('hxDelCancel').focus(), 60);
+}
+{
+  // The bars for Chat and Call History sit at the top of their content;
+  // Email History's is drawn with its filters (renderMailHistory).
+  $('khContent').insertAdjacentHTML('afterbegin', hxBarHtml('chat'));
+  $('kcContent').insertAdjacentHTML('afterbegin', hxBarHtml('calls'));
+  for (const [kind, h] of Object.entries(HX)) {
+    // Capture, so that while selecting a row picks instead of opening.
+    $(h.card).addEventListener('click', (e) => {
+      const bar = e.target.closest('.hx-bar');
+      if (bar && bar.dataset.hx === kind) {
+        if (e.target.closest('[data-hx-toggle]')) hxSet(kind, !h.on);
+        else if (e.target.closest('[data-hx-del]')) hxDelete(kind);
+        return;
+      }
+      if (!h.on) return;
+      const row = e.target.closest('[data-hxid]');
+      if (!row || !$(h.list)?.contains(row)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = row.dataset.hxid;
+      if (h.sel.has(id)) h.sel.delete(id); else h.sel.add(id);
+      hxPaint(kind);
+    }, true);
+    $(h.card).addEventListener('change', (e) => {
+      if (!e.target.matches('[data-hx-all]') || e.target.closest('.hx-bar')?.dataset.hx !== kind) return;
+      h.sel.clear();
+      if (e.target.checked) for (const r of hxRows(kind)) h.sel.add(r.dataset.hxid);
+      hxPaint(kind);
+    });
+  }
+}
 async function loadKarenHistory() {
   const sec = $('kaHistory');
   // Everybody since 2026-11-04, read-only: the owner every conversation and
@@ -15418,15 +15615,17 @@ async function loadKarenHistory() {
     $('khBox').classList.remove('open');
     $('khPeople').innerHTML = '<p class="kh-empty">No conversations yet. They appear here as the team talks to Karen.</p>';
     $('khThread').innerHTML = '<p class="kh-empty">Nothing to show yet.</p>';
+    hxPaint('chat');
     return;
   }
   const pic = khPic;
   $('khPeople').innerHTML = people.map((x) => `
-    <button type="button" class="kh-person" role="listitem" data-kh="${esc(x.id)}" aria-current="${x.id === khWho}">
-      <img src="${esc(pic(x))}" alt="">
+    <button type="button" class="kh-person" role="listitem" data-kh="${esc(x.id)}" data-hxid="${esc(x.id)}" aria-current="${x.id === khWho}">
+      ${HX_BOX}<img src="${esc(pic(x))}" alt="">
       <span style="min-width:0"><b><span>${esc(x.name)}</span><time datetime="${esc(x.lastAt)}">${esc(ago(x.lastAt))}</time></b>
         <small>${esc(x.lastBody)}</small></span></button>`).join('');
   khPeople = people;
+  hxPaint('chat');
   if (!khWho || !people.some((x) => x.id === khWho)) khWho = matchMedia('(max-width: 720px)').matches ? null : people[0].id;
   if (khWho) openKarenThread(khWho); else $('khThread').innerHTML = '';
 }
