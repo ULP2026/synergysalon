@@ -296,7 +296,7 @@ gtag('config', 'G-JR6491GP6D');
         <thead><tr><th>Kind</th><th>Services</th></tr></thead>
         <tbody>
           <tr><td>Cuts</td><td>Women&rsquo;s Cut, Men&rsquo;s Cut, Kids&rsquo; Cut, Bang Trim</td></tr>
-          <tr><td>Treatments</td><td>Keratin &amp; Brazilian Blowout, K18/Olaplex Treatment, Condition Treatment, Mask Treatment, AI Scalp Analysis</td></tr>
+          <tr><td>Treatments</td><td>Keratin &amp; Brazilian Blowout, K18/Olaplex Treatment, Condition Treatment, Mask Treatment, Perm, AI Scalp Analysis</td></tr>
           <tr><td>Color</td><td>Color, Partial Highlights and Full Highlights, each with its own times; then Balayage, Single Process Color, Biolage Highlights, Gloss or Toner, Corrective Color</td></tr>
           <tr><td>Styling</td><td>Blowout &amp; Styling, Shampoo Blowout, Updos, Consultation</td></tr>
         </tbody>
@@ -331,6 +331,13 @@ gtag('config', 'G-JR6491GP6D');
         <li>When booking, type three letters of a name in <span class="ui">Who is the client?</span> to find them.</li>
         <li>Clients are added with <span class="ui">Add client</span>: name, phone, email, where they heard about the salon, and notes. A client who books online or through Karen is added on their own.</li>
       </ul>
+      <h3>Importing, exporting and deleting</h3>
+      <ul>
+        <li><span class="ui">Import</span> adds clients and leads from a spreadsheet saved as CSV. Use the columns <span class="ui">Name</span> (or First Name and Last Name), <span class="ui">Email</span> and <span class="ui">Phone</span>, and if you have them Status, Source, Tags and Notes; <span class="ui">Download a template</span> gives a ready file. Each person needs a name and an email or phone. Rows with no Status come in as <span class="ui">Leads</span> or <span class="ui">Clients</span>, as you choose. Anyone already a client (the same name with the same email or phone) is skipped, and every skipped row is listed with the reason.</li>
+        <li><span class="ui">Select</span> puts a checkbox on each client, with <span class="ui">Select all</span>. Once anyone is ticked, <span class="ui">Export</span> and <span class="ui">Delete</span> appear. <span class="ui">Cancel</span> leaves selecting.</li>
+        <li><span class="ui">Export</span> downloads the ticked clients as a CSV, in the columns Import reads, plus their visits, next and last visit, stylist and when they were created.</li>
+        <li><span class="ui">Delete</span> asks you to type <span class="ui">DELETE</span> before it goes. Their upcoming appointments are cancelled; past visits stay on the calendar. It cannot be undone, and only the owner, admins and managers can do it.</li>
+      </ul>
       <h3>The client window</h3>
       <p>Click a client to open their window.</p>
       <div class="tbl"><table>
@@ -338,7 +345,7 @@ gtag('config', 'G-JR6491GP6D');
         <tbody>
           <tr><td>Header</td><td>Their name and phone, their status, their tags, <span class="ui">Need Help?</span> (opens Karen already holding this client) and <span class="ui">Book appointment</span>.</td></tr>
           <tr><td>Appt. Book</td><td><span class="ui">Visits</span>, <span class="ui">Next</span> and <span class="ui">Last visit</span>, and their recent appointments, each opening its window.</td></tr>
-          <tr><td>Contact details</td><td>Email, source, when they were added, and their stylist. The pencil edits them.</td></tr>
+          <tr><td>Contact details</td><td>Email, source, <span class="ui">Created</span> (the date and exact time they were added), and their stylist. The pencil edits them.</td></tr>
           <tr><td>Payments</td><td>The <span class="ui">Card on file</span> switch (see section 7).</td></tr>
           <tr><td>Contact preferences</td><td>Whether they are sent follow-up emails, and whether they have agreed to texts.</td></tr>
           <tr><td>Notes</td><td><span class="ui">Add note</span> for anything the team should know.</td></tr>

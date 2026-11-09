@@ -629,6 +629,75 @@
     .cl-sort .ic { right: 10px; }
     .cl-pop { width: min(300px, calc(100vw - 48px)); }
   }
+  /* Import and Select (2026-11-09) sit at the row's right end; Select is
+     lit while choosing, as Filters is while a filter is on. */
+  .cl-bulk { display: flex; gap: 8px; margin-left: auto; }
+  .cl-fbtn[aria-pressed="true"] { border-color: var(--periwinkle); background: var(--peri-pale); color: var(--indigo); }
+  .cl-fbtn[aria-pressed="true"] .ic { color: var(--indigo); }
+  .cl-selbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-height: 48px; margin: -4px 0 12px; padding: 6px 8px 6px 14px;
+               border: 1px solid color-mix(in srgb, var(--periwinkle) 40%, var(--line)); border-radius: 12px; background: var(--peri-pale);
+               animation: kd-in .18s var(--ease); }
+  .cl-selbar[hidden] { display: none; }
+  .cl-all { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); cursor: pointer; }
+  .cl-all input, .csel input { width: 18px; height: 18px; margin: 0; accent-color: var(--indigo); cursor: pointer; }
+  /* The row takes the click: a box that took it and was then repainted by
+     the row's handler would be flipped back by the browser. */
+  .csel input { pointer-events: none; }
+  .cl-all > span { display: inline; margin: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+  .cl-seln { font-size: var(--fs-sm); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cl-selacts { display: flex; gap: 8px; margin-left: auto; }
+  .cl-selacts[hidden] { display: none; }
+  .cl-selacts .btn { display: inline-flex; align-items: center; gap: 6px; }
+  .cl-selacts .btn .ic { width: 16px; height: 16px; }
+  /* While selecting, each row's picture gives its place to a checkbox, so
+     the row keeps its shape at every width; the row picks, it does not open. */
+  .csel { display: none; place-items: center; width: 36px; height: 36px; }
+  .clist.selecting .csel { display: grid; }
+  .clist.selecting .cav { display: none; }
+  .clist.selecting .acts { visibility: hidden; }
+  .clist.selecting .crow.sel { background: var(--peri-pale); }
+  .clist.selecting .crow.sel:hover { background: color-mix(in srgb, var(--peri-pale) 70%, var(--raise)); }
+  @media (max-width: 560px) {
+    .cl-bulk { grid-column: 1 / -1; margin-left: 0; }
+    .cl-bulk .cl-fbtn { flex: 1; justify-content: center; }
+    .cl-selbar { gap: 8px 12px; padding: 8px 10px; }
+    .cl-selacts { width: 100%; margin-left: 0; }
+    .cl-selacts .btn { flex: 1; justify-content: center; }
+  }
+  .cl-del-names { margin: -6px 0 14px; padding-left: 18px; font-size: var(--fs-sm); line-height: 1.55; max-height: 132px; overflow-y: auto; }
+  .btn.danger.solid { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .btn.danger.solid:hover:not(:disabled) { background: color-mix(in srgb, var(--warn) 88%, #000); color: #fff; }
+  .btn.danger.solid:disabled { background: transparent; color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  dialog.au.imp { max-width: 620px; }
+  dialog.au.imp[open] { display: flex; flex-direction: column; max-height: 100vh; max-height: min(760px, calc(100dvh - 24px)); }
+  .imp-body { padding: 20px 24px 4px; overflow-y: auto; min-height: 0; }
+  .imp-drop { display: grid; justify-items: center; gap: 4px; margin: 0; padding: 28px 16px; border: 2px dashed var(--line-2); border-radius: 14px;
+              background: var(--raise); text-align: center; cursor: pointer; transition: border-color var(--t) var(--ease), background-color var(--t) var(--ease); }
+  .imp-drop:hover, .imp-drop.over, .imp-drop:focus-within { border-color: var(--periwinkle); background: var(--peri-pale); }
+  .imp-drop .ic { width: 30px; height: 30px; color: var(--periwinkle); margin-bottom: 4px; }
+  .imp-drop b { color: var(--indigo); }
+  .imp-drop span { font-size: var(--fs-sm); color: var(--muted); }
+  .imp-help { margin: 14px 0 6px; font-size: var(--fs-sm); color: var(--muted); line-height: 1.55; }
+  .imp-help b { color: var(--ink); font-weight: 600; }
+  .linkbtn { border: 0; padding: 0; background: none; font: inherit; color: var(--indigo); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .imp-file { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+  .imp-file .ic { width: 22px; height: 22px; color: var(--periwinkle); flex: none; }
+  .imp-file > span { flex: 1; min-width: 0; display: grid; }
+  .imp-file b { overflow-wrap: anywhere; }
+  .imp-file small { color: var(--muted); font-size: var(--fs-xs); }
+  .imp-as { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0; font-size: var(--fs-sm); font-weight: 600; }
+  .imp-as select { width: auto; min-width: 130px; height: 38px; }
+  .imp-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+  .imp-table { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); }
+  .imp-table th, .imp-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  .imp-table th { background: var(--raise); color: var(--muted); font-weight: 600; }
+  .imp-table tr:last-child td { border-bottom: 0; }
+  .imp-table td.miss { color: var(--warn); }
+  .imp-more { margin: 8px 0 0; font-size: var(--fs-xs); color: var(--muted); }
+  .imp-res { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-weight: 600; }
+  .imp-res .ic { width: 20px; height: 20px; color: var(--ok); }
+  .imp-skips { margin: 0; padding-left: 18px; font-size: var(--fs-sm); color: var(--muted); line-height: 1.55; max-height: 240px; overflow-y: auto; }
+  .imp-acts { margin: 0; padding: 14px 24px 18px; border-top: 1px solid var(--line); }
   .dv-view select { appearance: none; -webkit-appearance: none; width: 140px; height: 42px; margin: 0; padding: 0 40px 0 16px;
                     border: 1px solid var(--line-2); border-radius: 999px; background: var(--card); color: var(--ink);
                     font: inherit; font-size: .95rem; font-weight: 500; cursor: pointer;
@@ -1434,6 +1503,7 @@
   /* anywhere, not break-word: only anywhere lets a long email shrink the
      column's minimum width, which on a phone pushed every card off screen. */
   .px-dl dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .px-dl .px-at { white-space: nowrap; }
   .px-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
   .px-stats div { background: var(--raise); border-radius: 12px; padding: 10px 12px; }
   .px-stats b { display: block; font-size: 1.05rem; color: var(--indigo); font-variant-numeric: tabular-nums; }
@@ -2249,7 +2319,7 @@
   .kd-msg { max-width: 84%; padding: 11px 15px; border-radius: 16px; font-size: .98rem; line-height: 1.45; overflow-wrap: anywhere;
             animation: kd-in .22s var(--ease); }
   .kd-msg.karen { align-self: flex-start; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
-  .kd-msg.me { align-self: flex-end; background: var(--periwinkle); color: #fff; border-bottom-right-radius: 6px; }
+  .kd-msg.me { align-self: flex-end; background: var(--periwinkle); color: #fff; border-bottom-right-radius: 6px; white-space: pre-wrap; }
   .kd-msg p { margin: 0; } .kd-msg p + p { margin-top: 6px; }
   .kd-typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
   .kd-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); animation: kd-dot 1s infinite ease-in-out; }
@@ -2264,8 +2334,9 @@
   .kd-prop b { display: block; margin-bottom: 4px; }
   .kd-prop ul { margin: 0; padding-left: 18px; font-size: var(--fs-sm); line-height: 1.5; }
   .kd-prop .kd-note { margin: 6px 0 0; font-size: var(--fs-xs); color: var(--muted); }
-  .kd-card dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: var(--fs-xs); }
-  .kd-card dt { color: var(--muted); } .kd-card dd { margin: 0; font-weight: 600; }
+  .kd-card dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; margin: 0; font-size: var(--fs-xs); }
+  .kd-card dt { color: var(--muted); } .kd-card dd { margin: 0; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+  .kd-prop, .kd-card { min-width: 0; overflow-wrap: anywhere; }
   .kd-ok { display: flex; align-items: center; gap: 8px; font-weight: 650; color: var(--ok); }
   .kd-ok svg { width: 18px; height: 18px; }
   .kd-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 32%; overflow-y: auto; padding: 8px 14px;
@@ -2381,10 +2452,16 @@
     .kh-box.open .kh-thread { display: flex; }
     .kh-back { display: inline-grid; }
   }
-  .kd-input { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--card); }
-  .kd-input input { flex: 1; min-width: 0; height: 38px; padding: 0 14px; font-size: var(--fs-sm); border: 1px solid var(--line-2); border-radius: 999px;
-                    background: var(--field); color: var(--ink); font-family: inherit; }
-  .kd-send { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 50%;
+  /* The message box grows a line at a time as it is typed in, up to about
+     six lines, then scrolls inside itself; it never runs past the card's
+     right edge (2026-11-09). Send stays at the foot, beside the last line. */
+  .kd-input { display: flex; align-items: flex-end; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--card); min-width: 0; }
+  .kd-input textarea { flex: 1; min-width: 0; width: auto; height: 40px; min-height: 40px; max-height: 148px; margin: 0; padding: 9px 14px;
+                       font: inherit; font-size: var(--fs-sm); line-height: 1.4; border: 1px solid var(--line-2); border-radius: 19px;
+                       background: var(--field); color: var(--ink); resize: none; overflow-y: hidden; overflow-wrap: anywhere;
+                       white-space: pre-wrap; box-sizing: border-box; transition: border-color var(--t) var(--ease); }
+  .kd-input textarea.kd-scroll { overflow-y: auto; }
+  .kd-send { flex: none; width: 38px; height: 38px; margin-bottom: 1px; display: grid; place-items: center; border: 0; border-radius: 50%;
              background: var(--periwinkle); color: #fff; cursor: pointer; }
   .kd-send:hover { background: var(--indigo); }
   .kd-send .ic { width: 18px; height: 18px; }
@@ -3948,6 +4025,10 @@
   <symbol id="i-users-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5 1.7 0 3.2.6 4.4 1.6M18.5 13v6M15.5 16h6"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 2.9 8 7 9.5 4.1-1.5 7-5.2 7-9.5V6l-7-3Z"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.5V4M7.5 8.5 12 4l4.5 4.5M4.5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11.5M7.5 11 12 15.5l4.5-4.5M4.5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5V4.8a.8.8 0 0 1 .8-.8h3.4a.8.8 0 0 1 .8.8v1.7M6.5 6.5l.8 12.6a1 1 0 0 0 1 .9h7.4a1 1 0 0 0 1-.9l.8-12.6M10 10.5v6M14 10.5v6"/></symbol>
+  <symbol id="i-select" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="m8.5 12.2 2.5 2.5 4.6-5"/></symbol>
   <symbol id="i-thumbs" viewBox="0 0 24 24"><path d="M7 10v11M7 10l4-7.5a2.2 2.2 0 0 1 3 2.2L13.3 9H19a2 2 0 0 1 2 2.3l-1.4 7.5A2.6 2.6 0 0 1 17 21H7M7 10H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/></symbol>
   <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8.5a6 6 0 0 1 12 0c0 6.5 2.5 8 2.5 8h-17S6 15 6 8.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></symbol>
   <symbol id="i-user-check" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.8"/><path d="M2.5 20.5c.8-3.8 3.4-6 6.5-6s5.7 2.2 6.5 6M15.5 11.5l2 2 4-4"/></symbol>
@@ -4286,6 +4367,24 @@
             </select>
             <svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>
           </label>
+          <!-- Import and Select (asked for 2026-11-09): pills like Filters,
+               on the right of the same row. -->
+          <div class="cl-bulk">
+            <button type="button" class="cl-fbtn" id="clImportBtn" aria-haspopup="dialog">
+              <svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg><span>Import</span></button>
+            <button type="button" class="cl-fbtn" id="clSelectBtn" aria-pressed="false" aria-controls="clSelBar">
+              <svg class="ic" aria-hidden="true"><use href="#i-select"/></svg><span id="clSelectLbl">Select</span></button>
+          </div>
+        </div>
+        <!-- Shown only while selecting: Select all, the count, and once
+             anything is chosen, Export and Delete. -->
+        <div class="cl-selbar" id="clSelBar" role="region" aria-label="Selected clients" hidden>
+          <label class="cl-all"><input type="checkbox" id="clSelAll"><span>Select all</span></label>
+          <span class="cl-seln" id="clSelN" aria-live="polite">None selected</span>
+          <div class="cl-selacts" id="clSelActs" hidden>
+            <button type="button" class="btn quiet sm" id="clExport"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span>Export</span></button>
+            <button type="button" class="btn danger sm" id="clDelete"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg><span>Delete</span></button>
+          </div>
         </div>
         <!-- All, then one per stylist; built in fillStylistFilter(). -->
         <div class="cfilter cstylists hidden" id="contactStylist" role="group" aria-label="Show clients of"></div>
@@ -4670,7 +4769,11 @@
   <div class="kd-log" id="karenLog" role="log" aria-live="polite"></div>
   <div class="kd-chips" id="karenChips"></div>
   <form class="kd-input" id="karenForm" autocomplete="off">
-    <input id="karenText" placeholder="Type a message…" aria-label="Message Karen" maxlength="200">
+    <!-- A box that wraps and grows with the message (2026-11-09): a one-line
+         input scrolled a long question off its right edge. Enter sends,
+         Shift+Enter starts a new line; 1,000 characters is what the server
+         reads of a question (karen.js). -->
+    <textarea id="karenText" rows="1" placeholder="Type a message…" aria-label="Message Karen" maxlength="1000"></textarea>
     <button class="kd-send" aria-label="Send"><svg class="ic"><use href="#i-send"/></svg></button>
   </form>
   <!-- Said where it happens, so nobody is surprised (2026-10-31). -->
@@ -5246,6 +5349,68 @@
   </form>
 </dialog>
 
+<!-- Clients, Delete (2026-11-09): several clients at once, only once
+     DELETE is typed, as turning off an automation asks for its name. -->
+<dialog id="clDelDlg" class="au off" aria-labelledby="clDelTitle">
+  <header class="au-head">
+    <span class="au-ic"><svg class="ic"><use href="#i-trash"/></svg></span>
+    <div class="grow"><h2 id="clDelTitle">Delete clients?</h2><p id="clDelSub"></p></div>
+    <button type="button" class="iconbtn lg" id="clDelClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </header>
+  <form class="off-body" id="clDelForm">
+    <p class="off-warn" id="clDelWarn"></p>
+    <ul class="cl-del-names" id="clDelNames"></ul>
+    <p class="off-why">They are removed from this app and this cannot be undone. Upcoming appointments are cancelled and their times open up again; past visits stay on the calendar.</p>
+    <label class="off-type"><span>Type <b>DELETE</b> to confirm</span>
+      <input id="clDelInput" autocomplete="off" autocapitalize="characters" spellcheck="false" data-no-i18n></label>
+    <p class="note bad hidden" id="clDelNote"></p>
+    <div class="off-actions">
+      <button type="button" class="btn quiet" id="clDelCancel">Cancel</button>
+      <button type="submit" class="btn danger solid" id="clDelGo" disabled>Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Clients, Import (2026-11-09): clients and leads from a spreadsheet saved
+     as CSV. The file is read here; the server decides each row (contacts.js,
+     importContacts) and says why any was skipped. -->
+<dialog id="clImpDlg" class="au imp" aria-labelledby="clImpTitle">
+  <header class="au-head">
+    <span class="au-ic"><svg class="ic"><use href="#i-upload"/></svg></span>
+    <div class="grow"><h2 id="clImpTitle">Import clients and leads</h2><p>From a spreadsheet saved as CSV</p></div>
+    <button type="button" class="iconbtn lg" id="clImpClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </header>
+  <div class="imp-body">
+    <div id="clImpPick">
+      <label class="imp-drop" id="clImpDrop">
+        <input type="file" id="clImpFile" accept=".csv,text/csv" class="sr-only">
+        <svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg>
+        <b>Choose a CSV file</b>
+        <span>or drop it here</span>
+      </label>
+      <p class="imp-help">Columns: <b>Name</b> (or First Name and Last Name), <b>Email</b>, <b>Phone</b>, and if you have them Status, Source, Tags and Notes. Each person needs a name and an email or phone. In Excel or Google Sheets, use File, Download or Save As, CSV.
+        <button type="button" class="linkbtn" id="clImpTemplate">Download a template</button></p>
+    </div>
+    <div id="clImpPreview" hidden>
+      <div class="imp-file"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg><span><b id="clImpName"></b><small id="clImpCount"></small></span>
+        <button type="button" class="linkbtn" id="clImpAgain">Choose another file</button></div>
+      <label class="imp-as"><span>Rows with no Status import as</span>
+        <select id="clImpAs"><option value="lead">Leads</option><option value="client">Clients</option></select></label>
+      <div class="imp-table-wrap"><table class="imp-table"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead><tbody id="clImpRows"></tbody></table></div>
+      <p class="imp-more" id="clImpMore"></p>
+    </div>
+    <div id="clImpDone" hidden>
+      <p class="imp-res" id="clImpRes"></p>
+      <ul class="imp-skips" id="clImpSkips"></ul>
+    </div>
+    <p class="note bad hidden" id="clImpNote"></p>
+  </div>
+  <footer class="off-actions imp-acts">
+    <button type="button" class="btn quiet" id="clImpCancel">Cancel</button>
+    <button type="button" class="btn" id="clImpGo" disabled>Import</button>
+  </footer>
+</dialog>
+
 <dialog id="msgDlg" class="au msg" aria-labelledby="msgTitle">
   <header class="au-head">
     <span class="au-ic" id="msgIc"><svg class="ic"><use href="#i-mail"/></svg></span>
@@ -5476,7 +5641,7 @@ const I18N_ES = {
   'Try a different name, email or phone number.': 'Prueba con otro nombre, correo o teléfono.',
   'People appear here when they book or when you add them.': 'Las personas aparecen aquí cuando reservan o cuando las agregas.',
   // A client's profile
-  'Book appointment': 'Reservar cita', 'Contact details': 'Datos de contacto', 'Source': 'Origen', 'Added': 'Agregado',
+  'Book appointment': 'Reservar cita', 'Contact details': 'Datos de contacto', 'Source': 'Origen', 'Added': 'Agregado', 'Created': 'Creado', 'Select': 'Seleccionar', 'Select all': 'Seleccionar todo', 'Export': 'Exportar', 'Import': 'Importar', 'Delete': 'Eliminar', 'None selected': 'Ninguno seleccionado', 'Import clients and leads': 'Importar clientes y prospectos', 'Choose a CSV file': 'Elige un archivo CSV', 'or drop it here': 'o suéltalo aquí', 'Download a template': 'Descargar una plantilla', 'Choose another file': 'Elegir otro archivo', 'Leads': 'Prospectos',
   'Visits': 'Visitas', 'Last visit': 'Última visita', 'Tags and status': 'Etiquetas y estado', 'Payments': 'Pagos',
   'Card on file': 'Tarjeta registrada', 'Contact preferences': 'Preferencias de contacto', 'Text messages': 'Mensajes de texto',
   'Add note': 'Agregar nota', 'No notes yet.': 'Aún no hay notas.', 'Delete client': 'Eliminar cliente',
@@ -5551,6 +5716,7 @@ const MON3_ES = { Jan: 'ene', Feb: 'feb', Mar: 'mar', Apr: 'abr', May: 'may', Ju
 const DAYS_ES = { Monday: 'lunes', Tuesday: 'martes', Wednesday: 'miércoles', Thursday: 'jueves', Friday: 'viernes', Saturday: 'sábado', Sunday: 'domingo' };
 const MONTHS_ES = { January: 'enero', February: 'febrero', March: 'marzo', April: 'abril', May: 'mayo', June: 'junio', July: 'julio', August: 'agosto', September: 'septiembre', October: 'octubre', November: 'noviembre', December: 'diciembre' };
 const I18N_ES_RX = [
+  [/^(\d+) selected$/, '$1 seleccionados'],
   [/^Good morning, (.+)$/, 'Buenos días, $1'], [/^Good afternoon, (.+)$/, 'Buenas tardes, $1'], [/^Good evening, (.+)$/, 'Buenas noches, $1'],
   [/^Good morning$/, 'Buenos días'], [/^Good afternoon$/, 'Buenas tardes'], [/^Good evening$/, 'Buenas noches'],
   [/^Happy Friday! (.+)$/, '¡Feliz viernes! $1'],
@@ -6458,7 +6624,7 @@ const PAGES = {
   clients: {
     path: `${BASE}/clients`, title: 'Clients', action: 'Add client',
     sub: 'Everyone who has booked or asked about a visit.',
-    run: () => openContact(null), load: () => { fillStylistFilter(); loadContacts(); refreshTeamFilter(); },
+    run: () => openContact(null), load: () => { setSelecting(false); fillStylistFilter(); loadContacts(); refreshTeamFilter(); },
   },
   calendars: {
     path: `${BASE}/calendars`, title: 'Calendars', action: 'New calendar',
@@ -10017,6 +10183,9 @@ let contactList = [];
 let contactStylist = '';    // a stylist's slug, or '' for everyone
 /** Clients' Filters (this visit only) and Sort (remembered per browser). */
 let clFilters = { status: '', next: '', tag: '', card: false };
+// Clients, Select (2026-11-09): whether the checkboxes are showing, and who is ticked.
+let clSelecting = false;
+const clSel = new Set();
 let clSortBy = (() => { try { return localStorage.getItem('ss-client-sort') || 'new'; } catch { return 'new'; } })();
 const clFilterCount = () => ['status', 'next', 'tag'].filter((k) => clFilters[k]).length + (clFilters.card ? 1 : 0);
 
@@ -10121,14 +10290,17 @@ function renderContacts(d, filtered) {
     return;
   }
   const tz = me?.salon?.timezone ? { timeZone: me.salon.timezone } : {};
-  $('contacts').innerHTML = `<div class="clist">${shown.map((c) => {
+  // A choice survives a reload only for somebody still listed.
+  for (const id of [...clSel]) if (!shown.some((c) => String(c.id) === id)) clSel.delete(id);
+  $('contacts').innerHTML = `<div class="clist${clSelecting ? ' selecting' : ''}">${shown.map((c) => {
     const sc = statusClass(c.status);
     const next = c.nextVisit
       ? `<div class="cnext">${ic('calendar')}<span>${esc(new Date(c.nextVisit).toLocaleString(LOCALE, {
           weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', ...tz }))}</span></div>`
       : `<div class="cnext none">${ic('calendar')}<span>No visit booked</span></div>`;
     return `
-      <div class="crow ${sc}" data-open="${esc(c.id)}" tabindex="0" role="button" aria-label="Open ${esc(c.name)}">
+      <div class="crow ${sc}${clSel.has(String(c.id)) ? ' sel' : ''}" data-open="${esc(c.id)}" tabindex="0" ${clRowRole(c)}>
+        <span class="csel"><input type="checkbox" tabindex="-1" data-sel="${esc(c.id)}" aria-hidden="true"${clSel.has(String(c.id)) ? ' checked' : ''}></span>
         <span class="cav" aria-hidden="true">${esc(initialsOf(c.name))}</span>
         <div class="cmain">
           <div class="cname">
@@ -10149,7 +10321,297 @@ function renderContacts(d, filtered) {
         </div>
       </div>`;
   }).join('')}</div>`;
+  paintSelection();
 }
+
+/* ───────────── Clients: Select, Export, Delete, Import (2026-11-09) ─────────────
+   Select puts a checkbox on each row (in the picture's place) and opens a bar
+   with Select all and the count; once anybody is chosen, Export and Delete
+   appear. Export is written here from the rows already loaded, as a CSV the
+   Import reads back. Delete asks for DELETE to be typed, and the server asks
+   for it too (contacts.js, removeMany). */
+function clRowRole(c) {
+  return clSelecting
+    ? `role="checkbox" aria-checked="${clSel.has(String(c.id))}" aria-label="Select ${esc(c.name)}"`
+    : `role="button" aria-label="Open ${esc(c.name)}"`;
+}
+function paintSelection() {
+  const n = clSel.size;
+  const all = contactList.length;
+  $('clSelBar').hidden = !clSelecting;
+  $('clSelectBtn').setAttribute('aria-pressed', String(clSelecting));
+  $('clSelectLbl').textContent = clSelecting ? 'Cancel' : 'Select';
+  $('clSelN').textContent = n ? `${n} selected` : 'None selected';
+  $('clSelAll').checked = all > 0 && n === all;
+  $('clSelAll').indeterminate = n > 0 && n < all;
+  $('clSelAll').disabled = !all;
+  $('clSelActs').hidden = !n;
+  // Deleting clients is the owner's, an admin's or a manager's (contacts.js).
+  $('clDelete').hidden = !me?.user?.canAdmin;
+  const list = $('contacts').querySelector('.clist');
+  if (!list) return;
+  list.classList.toggle('selecting', clSelecting);
+  for (const row of list.querySelectorAll('.crow')) {
+    const id = row.dataset.open;
+    const on = clSel.has(id);
+    row.classList.toggle('sel', on);
+    const box = row.querySelector('[data-sel]');
+    if (box) box.checked = on;
+    const c = contactList.find((x) => String(x.id) === id);
+    if (c) {
+      row.setAttribute('role', clSelecting ? 'checkbox' : 'button');
+      row.setAttribute('aria-label', `${clSelecting ? 'Select' : 'Open'} ${c.name}`);
+      if (clSelecting) row.setAttribute('aria-checked', String(on)); else row.removeAttribute('aria-checked');
+    }
+  }
+}
+function setSelecting(on) {
+  clSelecting = on;
+  if (!on) clSel.clear();
+  paintSelection();
+}
+function toggleSel(id) {
+  if (clSel.has(id)) clSel.delete(id); else clSel.add(id);
+  paintSelection();
+}
+$('clSelectBtn').onclick = () => setSelecting(!clSelecting);
+$('clSelAll').onchange = (e) => {
+  clSel.clear();
+  if (e.target.checked) for (const c of contactList) clSel.add(String(c.id));
+  paintSelection();
+};
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && clSelecting && page === 'clients' && !document.querySelector('dialog[open]')
+      && $('clFilterPop').hidden) setSelecting(false);
+});
+
+/** One CSV field: quoted when it must be, and never read as a formula. */
+function csvCell(v) {
+  let t = v == null ? '' : String(v);
+  // A cell starting =, +, - or @ is run as a formula by Excel and Sheets;
+  // a phone number like +1 813... is left alone.
+  if (/^[=+\-@\t\r]/.test(t) && !/^[+\-]?[\d\s().-]+$/.test(t)) t = `'${t}`;
+  return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+}
+function downloadCsv(name, rows) {
+  // The byte-order mark makes Excel read accents and apostrophes as UTF-8.
+  const blob = new Blob(['\ufeff' + rows.map((r) => r.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const CSV_HEAD = ['Name', 'Email', 'Phone', 'Status', 'Source', 'Tags', 'Notes'];
+$('clExport').onclick = () => {
+  const chosen = contactList.filter((c) => clSel.has(String(c.id)));
+  if (!chosen.length) return;
+  const when = (iso, time) => (iso ? fmtWhen(iso, { year: 'numeric', month: '2-digit', day: '2-digit', ...(time ? { hour: 'numeric', minute: '2-digit' } : {}) }) : '');
+  const rows = [[...CSV_HEAD, 'Visits', 'Next visit', 'Last visit', 'Stylist', 'Created']];
+  for (const c of chosen) {
+    rows.push([c.name, c.email || '', c.phone ? showPhone(c.phone) : '', STATUS_LABEL[c.status] || c.status, c.source || '',
+      (c.tags || []).join('; '), c.notes || '', c.visits, when(c.nextVisit, true), when(c.lastVisitAt), c.stylist?.name || '', when(c.createdAt, true)]);
+  }
+  const d = new Date();
+  const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  downloadCsv(`synergy-clients-${stamp}.csv`, rows);
+  toast(`Exported ${chosen.length} ${chosen.length === 1 ? 'client' : 'clients'}.`);
+};
+
+$('clDelete').onclick = () => {
+  const chosen = contactList.filter((c) => clSel.has(String(c.id)));
+  if (!chosen.length) return;
+  const dlg = $('clDelDlg');
+  const n = chosen.length;
+  const word = n === 1 ? 'client' : 'clients';
+  $('clDelTitle').textContent = `Delete ${n} ${word}?`;
+  $('clDelSub').textContent = n === 1 ? chosen[0].name : `${n} ${word} selected`;
+  $('clDelWarn').textContent = `Are you sure you want to delete ${n === 1 ? 'this client' : `these ${n} clients`}?`;
+  const upcoming = chosen.filter((c) => c.nextVisit).length;
+  $('clDelNames').innerHTML = chosen.slice(0, 8).map((c) => `<li>${esc(c.name)}${c.nextVisit ? ' <span class="muted">· has a visit booked</span>' : ''}</li>`).join('')
+    + (n > 8 ? `<li class="muted">and ${n - 8} more</li>` : '');
+  $('clDelGo').textContent = `Delete ${n} ${word}`;
+  $('clDelGo').disabled = true;
+  $('clDelInput').value = '';
+  $('clDelNote').classList.add('hidden');
+  if (upcoming) $('clDelWarn').textContent += ` ${upcoming} ${upcoming === 1 ? 'has' : 'have'} a visit booked.`;
+  openDialog(dlg);
+  setTimeout(() => $('clDelInput').focus(), 60);
+};
+// Exactly DELETE, in capitals, as asked: the point is a deliberate act.
+$('clDelInput').oninput = () => { $('clDelGo').disabled = $('clDelInput').value.trim() !== 'DELETE'; };
+$('clDelCancel').onclick = () => closeDialog($('clDelDlg'));
+$('clDelClose').onclick = () => closeDialog($('clDelDlg'));
+$('clDelForm').onsubmit = async (e) => {
+  e.preventDefault();
+  if ($('clDelInput').value.trim() !== 'DELETE') return;
+  const ids = [...clSel];
+  const go = $('clDelGo');
+  go.disabled = true;
+  const label = go.textContent;
+  go.textContent = 'Deleting…';
+  try {
+    const r = await api('/api/staff/contacts', { method: 'DELETE', body: JSON.stringify({ ids, confirm: 'DELETE' }) });
+    closeDialog($('clDelDlg'));
+    setSelecting(false);
+    toast(`${r.deleted} ${r.deleted === 1 ? 'client' : 'clients'} deleted.${r.cancelled ? ` ${r.cancelled} upcoming ${r.cancelled === 1 ? 'appointment' : 'appointments'} cancelled.` : ''}`);
+    await loadContacts();
+  } catch (err) {
+    note($('clDelNote'), err.message);
+    go.disabled = false;
+  }
+  go.textContent = label;
+};
+
+/** A CSV file as rows of cells: quotes, doubled quotes, line breaks inside
+ *  quotes, and a comma, semicolon or tab between cells (Excel in Europe
+ *  saves with semicolons). */
+function parseCsv(text) {
+  const src = text.replace(/^\ufeff/, '');
+  const first = src.split(/\r?\n/, 1)[0] || '';
+  const count = (ch) => first.split(ch).length - 1;
+  const sep = [',', ';', '\t'].sort((a, b) => count(b) - count(a))[0];
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let q = false;
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (q) {
+      if (ch === '"' && src[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') q = false; else cell += ch;
+    } else if (ch === '"' && cell === '') q = true;
+    else if (ch === sep) { row.push(cell); cell = ''; } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && src[i + 1] === '\n') i++;
+      row.push(cell); cell = '';
+      if (row.some((x) => x.trim())) rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  row.push(cell);
+  if (row.some((x) => x.trim())) rows.push(row);
+  return rows;
+}
+/** Which column is which, by the names spreadsheets and other CRMs use. */
+const IMP_COLS = {
+  name: ['name', 'fullname', 'clientname', 'contactname', 'customername', 'customer', 'client', 'contact'],
+  first: ['firstname', 'first', 'givenname', 'fname'],
+  last: ['lastname', 'last', 'surname', 'familyname', 'lname'],
+  email: ['email', 'emailaddress', 'mail', 'eaddress'],
+  phone: ['phone', 'phonenumber', 'mobile', 'mobilephone', 'mobilenumber', 'cell', 'cellphone', 'telephone', 'tel', 'phone1', 'primaryphone'],
+  status: ['status', 'stage', 'leadstatus', 'type', 'clientstatus'],
+  source: ['source', 'leadsource', 'referral', 'referralsource', 'howdidyouhearaboutus', 'howdidyouhear'],
+  tags: ['tags', 'tag', 'labels', 'label'],
+  notes: ['notes', 'note', 'comments', 'comment'],
+};
+function importRows(table) {
+  const head = table[0].map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  const at = {};
+  for (const [k, names] of Object.entries(IMP_COLS)) {
+    const i = head.findIndex((h) => names.includes(h));
+    if (i >= 0) at[k] = i;
+  }
+  if (at.name == null && at.first == null && at.last == null) return { error: 'No Name column was found. Name the first row\'s columns Name, Email and Phone (or download the template).' };
+  if (at.email == null && at.phone == null) return { error: 'No Email or Phone column was found. Each person needs one of them.' };
+  const get = (r, k) => (at[k] == null ? '' : String(r[at[k]] ?? '').trim());
+  const rows = table.slice(1).map((r, i) => ({
+    line: i + 2,
+    name: get(r, 'name') || [get(r, 'first'), get(r, 'last')].filter(Boolean).join(' '),
+    email: get(r, 'email'), phone: get(r, 'phone'), status: get(r, 'status'),
+    source: get(r, 'source'), tags: get(r, 'tags'), notes: get(r, 'notes'),
+  }));
+  return { rows };
+}
+let clImp = null;
+function impStep(which) {
+  $('clImpPick').hidden = which !== 'pick';
+  $('clImpPreview').hidden = which !== 'preview';
+  $('clImpDone').hidden = which !== 'done';
+  $('clImpGo').hidden = which === 'done';
+  $('clImpCancel').textContent = which === 'done' ? 'Done' : 'Cancel';
+  $('clImpCancel').classList.toggle('quiet', which !== 'done');
+  $('clImpGo').disabled = which !== 'preview' || !clImp?.rows.length;
+}
+function openImport() {
+  clImp = null;
+  $('clImpFile').value = '';
+  $('clImpNote').classList.add('hidden');
+  $('clImpGo').textContent = 'Import';
+  impStep('pick');
+  openDialog($('clImpDlg'));
+}
+async function readImportFile(file) {
+  $('clImpNote').classList.add('hidden');
+  if (!file) return;
+  if (!/\.(csv|txt)$/i.test(file.name) && !/csv|text\/plain/.test(file.type)) {
+    note($('clImpNote'), 'Choose a .csv file. In Excel or Google Sheets, save or download the sheet as CSV first.');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) { note($('clImpNote'), 'That file is over 5 MB. Split it and import each part.'); return; }
+  const table = parseCsv(await file.text());
+  if (table.length < 2) { note($('clImpNote'), 'That file has no rows under its headings.'); return; }
+  const out = importRows(table);
+  if (out.error) { note($('clImpNote'), out.error); return; }
+  clImp = { name: file.name, rows: out.rows };
+  $('clImpName').textContent = file.name;
+  const n = out.rows.length;
+  const ready = out.rows.filter((r) => r.name && (r.email || r.phone)).length;
+  $('clImpCount').textContent = `${n} ${n === 1 ? 'row' : 'rows'}${ready < n ? `, ${n - ready} missing a name or an email and phone` : ''}`;
+  const cell = (v) => (v ? esc(v) : '');
+  $('clImpRows').innerHTML = out.rows.slice(0, 6).map((r) => `<tr>
+      <td class="${r.name ? '' : 'miss'}">${r.name ? esc(r.name) : 'No name'}</td><td>${cell(r.email)}</td>
+      <td class="${r.email || r.phone ? '' : 'miss'}">${r.phone ? esc(r.phone) : r.email ? '' : 'None'}</td><td>${cell(r.status) || '<span class="muted">–</span>'}</td></tr>`).join('');
+  $('clImpMore').textContent = n > 6 ? `Showing the first 6 of ${n}. Anyone already a client (the same name with the same email or phone) is skipped.`
+    : 'Anyone already a client (the same name with the same email or phone) is skipped.';
+  $('clImpGo').textContent = `Import ${n} ${n === 1 ? 'row' : 'rows'}`;
+  impStep('preview');
+}
+$('clImportBtn').onclick = openImport;
+$('clImpClose').onclick = () => closeDialog($('clImpDlg'));
+$('clImpCancel').onclick = () => closeDialog($('clImpDlg'));
+$('clImpAgain').onclick = () => { clImp = null; $('clImpFile').value = ''; impStep('pick'); $('clImpFile').click(); };
+$('clImpFile').onchange = (e) => readImportFile(e.target.files[0]);
+$('clImpTemplate').onclick = () => downloadCsv('synergy-clients-template.csv', [CSV_HEAD,
+  ['Jane Example', 'jane@example.com', '(813) 555-0100', 'Client', 'Walk-in', 'VIP; Color', 'Prefers mornings'],
+  ['Sam Example', '', '(813) 555-0101', 'Lead', 'Instagram', '', '']]);
+{
+  const drop = $('clImpDrop');
+  for (const ev of ['dragenter', 'dragover']) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); });
+  for (const ev of ['dragleave', 'drop']) drop.addEventListener(ev, () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); readImportFile(e.dataTransfer.files[0]); });
+}
+$('clImpGo').onclick = async () => {
+  if (!clImp?.rows.length) return;
+  const go = $('clImpGo');
+  go.disabled = true;
+  go.textContent = 'Importing…';
+  $('clImpNote').classList.add('hidden');
+  const fallback = $('clImpAs').value;
+  // Sent in parts of 2,000 (the most one request takes), one after another.
+  let added = 0;
+  const skipped = [];
+  try {
+    for (let i = 0; i < clImp.rows.length; i += 2000) {
+      const part = clImp.rows.slice(i, i + 2000).map((r) => ({ ...r, fallback }));
+      const r = await api('/api/staff/contacts', { method: 'POST', body: JSON.stringify({ op: 'import', rows: part }) });
+      added += r.added;
+      skipped.push(...r.skipped);
+    }
+  } catch (err) {
+    note($('clImpNote'), added ? `${added} added before this stopped: ${err.message}` : err.message);
+    go.disabled = false;
+    go.textContent = 'Try again';
+    if (added) loadContacts();
+    return;
+  }
+  $('clImpRes').innerHTML = `${ic('check')}<span>${added} ${added === 1 ? 'person' : 'people'} added${skipped.length ? `, ${skipped.length} skipped` : ''}.</span>`;
+  $('clImpSkips').innerHTML = skipped.slice(0, 100).map((x) => `<li>Row ${x.line}${x.name ? `, ${esc(x.name)}` : ''}: ${esc(x.reason)}</li>`).join('')
+    + (skipped.length > 100 ? `<li>and ${skipped.length - 100} more</li>` : '');
+  impStep('done');
+  toast(`${added} ${added === 1 ? 'person' : 'people'} imported.`);
+  loadContacts();
+};
 
 /**
  * The team as it is now. Somebody given the Stylist role since this page was
@@ -10188,13 +10650,19 @@ $('contactStylist').onclick = (e) => {
 $('contacts').addEventListener('keydown', (e) => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('crow')) {
     e.preventDefault();
-    openPerson(e.target.dataset.open);
+    if (clSelecting) toggleSel(e.target.dataset.open); else openPerson(e.target.dataset.open);
   }
 });
 
 $('contacts').onclick = (e) => {
   // The row's ⋯ menu (Edit details, Delete client) was removed on request
   // (2026-10-30): both are on the client's profile, which the row opens.
+  // While selecting, a row (or its box) picks it instead.
+  if (clSelecting) {
+    const row = e.target.closest('[data-open]');
+    if (row) { e.preventDefault(); toggleSel(row.dataset.open); }
+    return;
+  }
   const book = e.target.closest('button[data-book]');
   if (!book) {
     const row = e.target.closest('[data-open]');
@@ -10504,7 +10972,7 @@ function renderPerson() {
     : `<dl class="px-dl">
         <dt>Email</dt><dd>${c.email ? `<a class="email" href="mailto:${esc(c.email)}">${esc(c.email).replace('@', '<wbr>@')}</a>` : dash}</dd>
         <dt>Source</dt><dd>${esc(c.source || '') || dash}</dd>
-        <dt>Added</dt><dd>${esc(short(c.createdAt))}</dd>
+        <dt>Created</dt><dd>${c.createdAt ? `<time datetime="${esc(c.createdAt)}">${esc(short(c.createdAt))}<span class="px-at"> · ${esc(fmtWhen(c.createdAt, { hour: 'numeric', minute: '2-digit' }))}</span></time>` : dash}</dd>
         <dt>Stylist</dt><dd>${c.stylist
           ? `<span class="px-stylist" title="Whoever they last booked with"><img src="${esc(stylistPic(c.stylist))}" alt="">${esc(c.stylist.name)}</span>`
           : '<span class="muted">When they book</span>'}</dd>
@@ -11783,11 +12251,32 @@ function kAsk(chips, expect = null, hint = '', key = '') {
   });
 }
 
+/**
+ * Karen's message box fits what is typed (2026-11-09): one line, growing a
+ * line at a time to its max-height, then scrolling inside. Measured from
+ * scrollHeight after collapsing to auto, so it shrinks again as text is
+ * deleted or sent.
+ */
+function kFit() {
+  const t = $('karenText');
+  t.style.height = 'auto';
+  const max = parseFloat(getComputedStyle(t).maxHeight) || 148;
+  const h = Math.min(t.scrollHeight + 2, max);
+  t.style.height = `${Math.max(h, 40)}px`;
+  t.classList.toggle('kd-scroll', t.scrollHeight + 2 > max);
+}
+$('karenText').addEventListener('input', kFit);
+// Enter sends, as the one-line box did; Shift+Enter is a new line. Not while
+// an input method is composing (Japanese, Chinese), whose Enter picks a word.
+$('karenText').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('karenForm').requestSubmit(); }
+});
 $('karenForm').onsubmit = (e) => {
   e.preventDefault();
   const raw = $('karenText').value.trim();
   if (!raw) return;
   $('karenText').value = '';
+  kFit();
   kMe(raw);
   const t = raw.toLowerCase().replace(/[’`]/g, "'");
   const ask = karenAsk;

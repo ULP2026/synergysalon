@@ -4,12 +4,14 @@
  *   GET     ?q=&status=&stylist=&member=&limit=   search and list
  *   GET     ?id=                 one person, their appointments and activity
  *   POST                         add somebody
+ *   POST   {op: 'import', rows}  add many at once, from a spreadsheet
  *   PATCH                        edit somebody
  *   PATCH  {id, op: 'note'}      add a dated note to the top of their notes
  *   PATCH  {id, op: 'prefs'}     whether they get follow-up emails, and texts
  *   PATCH  {id, op: 'card'}      whether the salon holds a card for them
  *   PATCH  {id, op: 'tags'}      the team's tags for them, the whole list
- *   DELETE                       remove somebody
+ *   DELETE {id}                  remove somebody
+ *   DELETE {ids, confirm}        remove several (Clients, Select)
  *
  * One list, not two. A person who enquires on Tuesday and books on Thursday
  * is the same person, and keeping leads and clients apart guarantees they end
@@ -714,6 +716,127 @@ export async function setTags(tenantId, body, db = null, user = null) {
   return { id, tags: rows[0].tags };
 }
 
+/** Most rows one import takes, and most clients one delete removes. */
+export const IMPORT_MAX = 2000;
+export const DELETE_MAX = 300;
+
+/**
+ * A spreadsheet's word for a stage, as the app stores it. "Lead" and
+ * "Client" are what the salon says; the rest are the app's own labels and
+ * values. Anything else, or nothing, is the default the file was imported
+ * with (a lead, unless the person importing chose otherwise).
+ */
+const IMPORT_STATUS = {
+  new: 'new', lead: 'new', prospect: 'new',
+  contacted: 'contacted',
+  booked: 'booked',
+  won: 'won', client: 'won', customer: 'won', active: 'won',
+  lost: 'lost', inactive: 'lost',
+};
+
+/**
+ * Clients and leads from a spreadsheet (Clients, Import; asked for
+ * 2026-11-09). The browser reads the file and sends rows of plain fields;
+ * this decides what each one is. Every row is judged on its own, so one bad
+ * line never sinks the file: it is skipped and said why, by its line.
+ *
+ * The rule for "already a client" is the Add client window's: the same name
+ * with the same email or phone (POST above). It is applied against the
+ * salon's clients and against the rows already taken from the same file, so
+ * a file listing somebody twice adds them once.
+ *
+ * Imported people are created_by the person importing, which is also what
+ * puts them in a stylist's own book (scope.js), so a stylist can import
+ * their own clients and see them afterwards.
+ */
+export async function importContacts(tenantId, user, rows, db = null) {
+  if (!Array.isArray(rows) || !rows.length) throw new HttpError(400, 'The file has no rows to import.');
+  if (rows.length > IMPORT_MAX) {
+    throw new HttpError(400, `Import up to ${IMPORT_MAX.toLocaleString('en-US')} rows at a time; split the file and import each part.`);
+  }
+  const str = (v, max) => (typeof v === 'string' || typeof v === 'number' ? String(v) : '').replace(/\s+/g, ' ').trim().slice(0, max);
+  const run = async (client) => {
+    const withTags = await hasColumn('contacts', 'tags', client);
+    const added = [];
+    const skipped = [];
+    const seen = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] && typeof rows[i] === 'object' ? rows[i] : {};
+      const line = Number.isInteger(r.line) ? r.line : i + 2;
+      const name = str(r.name, 120);
+      const email = str(r.email, 254).toLowerCase();
+      let phone = '';
+      try { phone = optionalPhone(str(r.phone, 40)); } catch { phone = ''; }
+      const skip = (reason) => skipped.push({ line, name: name || null, reason });
+      if (!name) { skip('No name'); continue; }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (!phone) { skip('The email is not valid and there is no phone'); continue; }
+      }
+      const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
+      if (!okEmail && !phone) { skip('No email or phone'); continue; }
+      const low = name.toLowerCase();
+      if (seen.some((x) => x.name === low && ((okEmail && x.email === okEmail) || (phone && x.phone === phone)))) {
+        skip('Listed twice in this file'); continue;
+      }
+      const { rows: dup } = await client.query(
+        `SELECT 1 FROM contacts
+          WHERE tenant_id = $1
+            AND lower(btrim(name)) = lower(btrim($4::text))
+            AND (($2 <> '' AND lower(email) = $2) OR ($3 <> '' AND phone = $3))
+          LIMIT 1`,
+        [tenantId, okEmail, phone, name],
+      );
+      if (dup[0]) { skip('Already a client'); continue; }
+      seen.push({ name: low, email: okEmail, phone });
+
+      const status = IMPORT_STATUS[str(r.status, 30).toLowerCase()] || IMPORT_STATUS[str(r.fallback, 30).toLowerCase()] || 'new';
+      const tags = [];
+      for (const t of (Array.isArray(r.tags) ? r.tags : str(r.tags, 800).split(/[;,|]/))) {
+        const v = str(t, TAG_MAX);
+        if (v && tags.length < TAGS_MAX && !tags.some((x) => x.toLowerCase() === v.toLowerCase())) tags.push(v);
+      }
+      const { rows: made } = await client.query(
+        `INSERT INTO contacts (tenant_id, name, email, phone, source, notes, status, created_by, assigned_to${withTags ? ', tags' : ''})
+         VALUES ($1, $2, $3, $4, $5, $6, $7::contact_status, $8, $8${withTags ? ', $9::text[]' : ''})
+         RETURNING id`,
+        [tenantId, name, okEmail, phone, str(r.source, 60) || 'Import', str(r.notes, 2000), status, user.id,
+          ...(withTags ? [tags] : [])],
+      );
+      added.push(made[0].id);
+    }
+    return { added: added.length, skipped, total: rows.length };
+  };
+  return db ? run(db) : transaction(run);
+}
+
+/**
+ * Several clients deleted at once (Clients, Select; asked for 2026-11-09).
+ * The console makes the person type DELETE first; the word travels with the
+ * request too, so nothing that merely posts a list of ids can empty the
+ * book. Each one goes the way a single delete does (removeContact), all in
+ * one transaction: either every one chosen goes, or none does. Anyone but
+ * the owner may remove only clients in their own book, as one at a time.
+ */
+export async function removeMany(tenantId, user, body) {
+  if (body.confirm !== 'DELETE') throw new HttpError(400, 'Type DELETE to confirm.');
+  const ids = [...new Set(body.ids.filter((x) => typeof x === 'string' && UUID.test(x)))];
+  if (!ids.length) throw new HttpError(400, 'Choose who to delete first.');
+  if (ids.length > DELETE_MAX) throw new HttpError(400, `Delete up to ${DELETE_MAX} clients at a time.`);
+  const chair = await chairOf(user);
+  for (const id of ids) await assertClientInChair(user, id, chair);
+  const out = await transaction(async (client) => {
+    let deleted = 0;
+    let cancelled = 0;
+    for (const id of ids) {
+      const r = await removeContact(client, tenantId, id);
+      if (r) { deleted += 1; cancelled += r.cancelled; }
+    }
+    return { deleted, cancelled };
+  });
+  if (out.cancelled) await mirrorToGoogle().catch((err) => console.error('google mirror deferred for bulk delete', err));
+  return out;
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
@@ -760,6 +883,7 @@ export default handler({
               count(a.id) FILTER (WHERE a.status <> 'cancelled') AS visits,
               ${STYLIST_OF} AS stylist,
               (to_jsonb(c) ->> 'card_on_file')::boolean AS card_on_file,
+              COALESCE(to_jsonb(c) -> 'tags', '[]'::jsonb) AS tags,
               -- The soonest one still to come. This was max() until
               -- 2026-11-06, which showed a client with three visits ahead
               -- their last one as their next.
@@ -820,6 +944,8 @@ export default handler({
         visits: Number(c.visits),
         stylist: c.stylist || null,
         cardOnFile: c.card_on_file === true,
+        // For Export (2026-11-09): the file carries the tags back in.
+        tags: Array.isArray(c.tags) ? c.tags : [],
         nextVisit: c.next_visit,
         firstBookedAt: c.first_booked_at,
         lastVisitAt: c.last_seen || c.last_visit_at,
@@ -833,6 +959,7 @@ export default handler({
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
+    if (body.op === 'import') return json(res, 200, await importContacts(tenant.id, user, body.rows));
 
     const name = requireString(body.name, 'Name', { max: 120 });
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
@@ -968,6 +1095,7 @@ export default handler({
     const user = await requireStaff(req, CAN_DELETE);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
+    if (Array.isArray(body.ids)) return json(res, 200, await removeMany(tenant.id, user, body));
     const id = requireString(body.id, 'Contact', { max: 64 });
     if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, 'Client is not valid.');
     await assertClientInChair(user, id, await chairOf(user));

@@ -90,6 +90,7 @@ const SERVICE_BY_LABEL = {
   "k18/olaplex treatment": "bond-repair",
   "condition treatment": "condition-treatment",
   "mask treatment": "mask-treatment",
+  "perm": "perm",
   "ai scalp analysis": "ai-scalp-analysis",
   "blowout": "blowouts",
   "shampoo blowout": "shampoo-blowout",

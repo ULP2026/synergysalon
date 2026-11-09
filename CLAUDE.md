@@ -2004,6 +2004,51 @@ made that way are real: name them ZZ and remove them.
   Styling). The website survey's Styling choices, both label maps and the
   pages' service lists and JSON-LD have it too.
 
+- **Perm** (asked for 2026-11-09): a Treatments service after Mask
+  Treatment (migration 058, also in ensure-schema; 120 minutes, an estimate
+  like the rest; linked once to whoever offers Treatments). The website
+  survey's Treatments choices ("Lasting curl, wave and body"), its subtitle,
+  `SERVICE_SLUG` in all nine pages, `SERVICE_BY_LABEL` in enquiry.js, the
+  pages' service lists and JSON-LD, Karen's guide and /documentation have
+  it. A new export brings the old list back: re-apply.
+
+- **The round of 2026-11-09** (asked for):
+  - **A client's Created line**: Contact details reads "Created" with the
+    date and the exact time ("Nov 9, 2026 · 10:32 AM", salon clock), where
+    it was "Added" with the date only. Leads are the same window.
+  - **Karen's message box grows** as it is typed in: a textarea
+    (`#karenText`, `kFit`) from one line up to about six, then scrolling
+    inside; text wraps rather than running off the right edge, which is what
+    the one-line input did. Enter sends, Shift+Enter is a new line, 1,000
+    characters (what karen.js reads). The summary card's values can shrink
+    and wrap too (`.kd-card dl` was `auto 1fr`).
+  - **Clients: Import, Select, Export, Delete.** Import and Select are pills
+    at the right of the Filters row. Select shows a checkbox in each row's
+    picture place and a bar with Select all (indeterminate when some) and the
+    count; Export and Delete appear once anyone is ticked; Select reads
+    Cancel while on, and Escape or leaving the page ends it. A ticked row is
+    picked by a click, not opened. **Export** is written in the browser from
+    the loaded rows (`downloadCsv`, BOM for Excel, a cell starting = + - @ is
+    quoted against formulas unless it is a phone): Name, Email, Phone,
+    Status, Source, Tags, Notes (the columns Import reads), then Visits,
+    Next visit, Last visit, Stylist, Created; the list now carries `tags`.
+    **Delete** (`#clDelDlg`, the automation turn-off window's style) needs
+    DELETE typed exactly, and `DELETE /api/staff/contacts {ids, confirm:
+    'DELETE'}` (`removeMany`) refuses without the word; up to 300, owner,
+    admin or manager (`CAN_DELETE`, the button hidden for anyone else), each
+    one in the person's own book, all in one transaction through
+    `removeContact`. **Import** (`#clImpDlg`) reads a CSV in the browser
+    (`parseCsv`: quotes, comma, semicolon or tab), finds columns by their
+    usual names (`IMP_COLS`: First and Last Name too), previews six rows,
+    and `POST {op: 'import', rows}` (`importContacts`, 2,000 a request, the
+    console sending larger files in parts) adds each row the Add client
+    rule allows (same name with the same email or phone is "Already a
+    client", and twice in one file once), status from the row (Lead, Client
+    and the app's own words) or the window's "Rows with no Status import as",
+    source "Import" unless given, tags, notes, `created_by` the importer (so
+    a stylist sees what they imported). Skipped rows come back with their
+    line and reason. `tests/clients-bulk.integration.test.js`.
+
 - **K18/Olaplex Treatment** (asked for 2026-11-06) is Bond Repair's name
   now (migration 054; slug `bond-repair` kept, so bookings, prices and
   stylists stay). ensure-schema's 052 line, which renamed it on every cold
