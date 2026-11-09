@@ -156,9 +156,11 @@ export default handler({
       };
     });
 
-    // Lunch and blocks, for the day view only: the month grid shows bookings.
+    // Lunch and blocks. The month (and the Week view, which asks for its
+    // month) gets them too since 2026-11-09: the open time it shows between
+    // appointments must leave out what is blocked.
     let blocks = [];
-    if (!month) {
+    {
       const { rows: off } = await query(
         `SELECT t.id, lower(t.during) AS from_ts, upper(t.during) AS to_ts, t.reason,
                 s.slug AS stylist_slug
@@ -310,6 +312,33 @@ export default handler({
 
     const week = await salonWeek({ query }, tenant.id).catch(() => null);
 
+    // Each stylist on the book's hours for every weekday (Sunday first), for
+    // the Week view's open time between appointments (asked for 2026-11-09).
+    // The same stylist_hours the Day view greys out from and availability.js
+    // offers from, and only those the book shows (a login with a calendar,
+    // still on the team: `shown` above), within this person's own chair.
+    let weekHours;
+    if (month) {
+      weekHours = {};
+      const { rows: wk } = await query(
+        `SELECT s.slug, s.name, h.weekday, to_char(h.starts_at, 'HH24:MI') AS opens, to_char(h.ends_at, 'HH24:MI') AS closes
+           FROM stylists s
+           ${chairLoginJoin('s', 'su')}
+           LEFT JOIN stylist_hours h ON h.stylist_id = s.id
+          WHERE s.tenant_id = $1::uuid AND s.active
+            AND (to_jsonb(s) ->> 'removed_at') IS NULL AND su.id IS NOT NULL
+            AND ${GOOGLE_CONNECTED_SQL.replaceAll('to_jsonb(u)', 'to_jsonb(su)')}
+            AND ($2::uuid[] IS NULL OR s.id = ANY($2::uuid[]))
+          ORDER BY s.slug, h.weekday, h.starts_at`,
+        [tenant.id, mine],
+      ).catch((err) => { console.warn('diary week hours', err.message); return { rows: [] }; });
+      const mins = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+      for (const r of wk) {
+        weekHours[r.slug] ||= { name: r.name, days: [[], [], [], [], [], [], []] };
+        if (r.weekday != null && r.opens && r.closes) weekHours[r.slug].days[r.weekday].push([mins(r.opens), mins(r.closes)]);
+      }
+    }
+
     // Only what Appt. Book shows (2026-11-04): see `shown` above. The lunch
     // above was placed with every booking, as availability places it.
     const onBook = appointments.filter((a) => a.shown);
@@ -329,6 +358,7 @@ export default handler({
       // The same for the whole week (Sunday first), for the month grid: a
       // day nobody works is shaded and takes no dropped appointment.
       salonWeek: week,
+      weekHours,
       lunch,
       team,
       month: month ? month.toFormat('yyyy-MM') : null,

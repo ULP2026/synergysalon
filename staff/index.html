@@ -777,6 +777,36 @@
   .wk-ev i .t0, .wk-ev i .t1 { display: inline-block; white-space: pre; }
   .wk-ev span { opacity: .82; font-size: .72rem; }
   .wk-list { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  /* Open time and a color's parts (2026-11-09). Open is green and dashed,
+     the colour the app gives a done visit, so it reads as "free" at a
+     glance; processing is the Day view's dashed periwinkle. A Finish card
+     is a shade lighter than its Start, with "Finish" before the name. */
+  .wk-gap, .wkt-gap { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin: 0;
+         padding: 5px 9px; border: 1.5px dashed color-mix(in srgb, var(--ok) 55%, transparent); border-radius: 8px;
+         background: color-mix(in srgb, var(--ok) 7%, var(--card)); color: var(--ok); font: inherit; font-size: .74rem;
+         text-align: left; cursor: pointer; transition: background-color var(--t) var(--ease), border-color var(--t) var(--ease); }
+  .wk-gap:hover, .wkt-gap:hover { background: color-mix(in srgb, var(--ok) 14%, var(--card)); border-color: var(--ok); }
+  .wk-gap:focus-visible, .wkt-gap:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .gp-t { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .gp-t b { font-weight: 750; }
+  .gp-t .ic { width: 12px; height: 12px; flex: none; }
+  .wk-gap small, .wkt-gap small { flex: none; font-size: .7rem; font-weight: 650; opacity: .85; }
+  .wk-proc { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 4px 9px;
+         border: 1.5px dashed color-mix(in srgb, var(--periwinkle) 50%, transparent); border-radius: 8px;
+         background: color-mix(in srgb, var(--periwinkle) 6%, transparent); color: var(--indigo); font-size: .72rem; }
+  .wk-proc span { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .wk-proc small { color: var(--muted); font-size: .7rem; }
+  .cal-ev.wk-part.finish { opacity: .88; }
+  .cal-ev.wk-part em { font-style: normal; font-size: .66rem; font-weight: 750; letter-spacing: .05em; text-transform: uppercase;
+         padding: 1px 5px; margin-right: 3px; border-radius: 4px; background: rgba(255, 255, 255, .22); vertical-align: 1px; }
+  .wkt-col .wkt-proc { position: absolute; left: 3px; right: 3px; z-index: 0; pointer-events: none; overflow: hidden; padding: 2px 6px;
+         border: 1.5px dashed color-mix(in srgb, var(--periwinkle) 50%, transparent); border-radius: 8px;
+         background: color-mix(in srgb, var(--periwinkle) 6%, transparent); font-size: .66rem; font-weight: 700; color: var(--indigo); }
+  .wkt-col .wkt-gap { position: absolute; left: 3px; right: 3px; width: auto; z-index: 0; flex-direction: column; align-items: flex-start;
+         justify-content: flex-start; gap: 0; padding: 3px 6px; overflow: hidden; font-size: .66rem; }
+  .wkt-col .wkt-gap .gp-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
+  .wkt-col .wkt-gap .gp-t .ic { display: none; }
+  .wkt-col .wkt-gap.short small { display: none; }
   .wk-free { margin-top: 2px; font-size: var(--fs-xs); color: var(--faint); text-align: center; }
   .cal-cell.past:not(.today) .wk-n b { color: var(--muted); }
   /* The Week time grid (2026-11-06): the hours on the left as on the Day view. */
@@ -1908,6 +1938,14 @@
              font-size: var(--fs-xs); line-height: 1.3; color: var(--dg-ink);
              background: color-mix(in srgb, var(--dg-bg) 35%, transparent); }
   .dg-proc span { font-weight: 650; }
+  .dg-open { position: absolute; left: 6px; right: 6px; z-index: 0; pointer-events: none; overflow: hidden; padding: 4px 9px;
+             border: 1.5px dashed color-mix(in srgb, var(--ok) 50%, transparent); border-radius: 10px;
+             background: color-mix(in srgb, var(--ok) 6%, transparent); color: var(--ok); font-size: .74rem; }
+  .dg-open span { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
+  .dg-open span .ic { width: 12px; height: 12px; }
+  .dg-open small { display: block; font-size: .7rem; font-weight: 600; opacity: .85; font-variant-numeric: tabular-nums; }
+  .dg-open.short { display: flex; align-items: center; gap: 8px; padding: 0 9px; }
+  .dg-open.short small { display: inline; }
   .dg-proc small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .dg-blk { position: absolute; left: 6px; right: 6px; z-index: 1; border-radius: 10px; border: 0; cursor: pointer;
@@ -8591,19 +8629,28 @@ function dayCard(a, top, height, len = a.durationMin) {
   return `<button type="button" class="dg-ev ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
       title="${esc(`${a.time} to ${a.endTime} · ${a.guestName} · ${a.service}${canMove(a) ? ' · Drag to move' : ''}`)}">
     <span class="tm">${cardTime(salonMinutes(a.startsAt), len)}</span>
-    <span class="svc">${esc(a.service)}</span>
+    <span class="svc">${esc(a.service)}${len < a.durationMin ? ' · Start' : ''}</span>
     <b>${esc(a.guestName)}</b>
     ${a.guestPhone ? `<span class="ln m">${esc(showPhone(a.guestPhone))}</span>` : ''}
     <div class="st">${cardMarks(a)}</div>
   </button>`;
 }
 
-/** The Finish of a color after its processing break: the same appointment. */
+/**
+ * The Finish of a color after its processing break: the same appointment,
+ * drawn as fully as its Start (2026-11-09: it was one short line, so the
+ * second half of a color read as something else), with its own times.
+ */
 function partCard(a, top, height, label, start, len) {
-  const cls = [a.checkedInAt && a.status === 'booked' ? 'here' : '',
+  const cls = [height < DG_SHORT ? 'short' : '', a.checkedInAt && a.status === 'booked' ? 'here' : '',
     a.status === 'completed' ? 'done' : '', a.status === 'no_show' ? 'noshow' : '', canMove(a) ? 'dg-mv' : ''].join(' ');
-  return `<button type="button" class="dg-ev short dg-part ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
-      title="${esc(`${label} · ${a.guestName} · ${a.service}`)}">${start != null ? `<span class="tm">${cardTime(start, len)}</span>` : ''}<b>${esc(label)} · ${esc(a.guestName)}</b></button>`;
+  return `<button type="button" class="dg-ev dg-part ${cls}" data-ref="${esc(a.ref)}" style="top:${top}px;height:${height}px"
+      title="${esc(`${label} · ${start != null ? `${exactClock(start)} to ${exactClock(start + len)} · ` : ''}${a.guestName} · ${a.service}`)}">
+    ${start != null ? `<span class="tm">${cardTime(start, len)}</span>` : ''}
+    <span class="svc">${esc(a.service)} · ${esc(label)}</span>
+    <b>${esc(a.guestName)}</b>
+    ${a.guestPhone ? `<span class="ln m">${esc(showPhone(a.guestPhone))}</span>` : ''}
+  </button>`;
 }
 
 /**
@@ -8752,6 +8799,24 @@ function renderDiary(d) {
   };
   // A block on the whole salon (no stylist) is drawn in every column.
   const salonBlocks = blocks.filter((b) => !b.stylistSlug);
+  // Open time (asked for 2026-11-09): within their hours, between their
+  // visits and blocks, from now on, a soft band saying how long. The
+  // pointer passes through, so a click books that time as any empty time
+  // does. Google busy time is taken out too, as online booking does.
+  const openBands = (t, own) => {
+    const shifts = t.stylistSlug && d.hours ? d.hours[t.stylistSlug] : null;
+    if (!shifts?.length) return '';
+    const busy = (t.busy || []).map((x) => (x.allDay ? { s: 0, e: 24 * 60 } : { startsAt: x.startsAt, endsAt: x.endsAt }));
+    // Where the flexible lunch sits now is left out too, so its band and an
+    // open band never lie on top of each other (it moves if a booking needs it).
+    const l = d.lunch?.[t.stylistSlug];
+    const blk = [...blocks.filter((b) => !b.stylistSlug || b.stylistSlug === t.stylistSlug), ...busy, ...(l ? [{ s: l[0], e: l[1] }] : [])];
+    return openGaps(shifts, d.date, d.today, own, blk).map(([s0, e0]) => {
+      const h = px(e0) - px(s0) - 3;
+      return `<div class="dg-open${h < 34 ? ' short' : ''}" style="top:${px(s0) + 1}px;height:${Math.max(14, h)}px" aria-hidden="true">
+        <span>${ic('plus')}Open · ${esc(gapLen(e0 - s0))}</span><small>${esc(exactClock(s0))} - ${esc(exactClock(e0))}</small></div>`;
+    }).join('');
+  };
 
   // Without the lanes, what belongs to nobody connected still has to show:
   // a booking with a stylist who has not connected (Dina, Micah, Tami and
@@ -8819,7 +8884,7 @@ function renderDiary(d) {
     // Somebody who takes no appointments has no stylist row, so their
     // column books with whoever is free.
     return `<div class="dg-col dg-c1${i ? '' : ' dg-tfirst'}" data-stylist="${esc(t.stylistSlug || '')}" style="height:${height}px">
-      <span class="ghost" aria-hidden="true"></span>${pastBand}${offHours(t.stylistSlug, t.name)}${lunchBand(t.stylistSlug)}
+      <span class="ghost" aria-hidden="true"></span>${pastBand}${offHours(t.stylistSlug, t.name)}${lunchBand(t.stylistSlug)}${openBands(t, own)}
       ${t.error ? `<div class="dg-gerr">${esc(t.error)}</div>` : ''}${busy}${offs}${own.map(apptCard).join('')}${nowLine}</div>`;
   }).join('');
   const extraHtml = [...extra.values()].map((x) => {
@@ -9945,6 +10010,13 @@ $('calendar').onclick = (e) => {
   if (ev) { openAppt(monthData.appointments.find((a) => a.ref === ev.dataset.ref)); return; }
   const dayBtn = e.target.closest('button[data-day]');
   if (dayBtn) { setView('day', dayBtn.dataset.day); return; }
+  // An open slot books straight into its time, with its stylist when it has one.
+  const gap = e.target.closest('[data-gap-date]');
+  if (gap) {
+    if (noCals) { toast('Create a calendar first.'); return; }
+    openBooking(null, { date: gap.dataset.gapDate, minutes: Number(gap.dataset.gapMin), stylist: gap.dataset.gapStylist || undefined });
+    return;
+  }
   const cell = e.target.closest('[data-add]');
   if (cell && noCals) { toast('Create a calendar first.'); return; }
   if (cell) openBooking(null, { date: cell.dataset.add });
@@ -9994,11 +10066,101 @@ async function loadWeek(start, { quiet = false } = {}) {
     const got = await Promise.all(months.map((m) => api(`/api/staff/diary?month=${encodeURIComponent(m)}`)));
     if (seq !== weekSeq) return;
     const appointments = noCals ? [] : got.flatMap((g) => g.appointments).filter((a) => a.date >= start && a.date <= end);
-    renderWeek({ ...got[0], appointments, start });
+    // A week across two months has both months' blocks (diary.js sends them
+    // for a month since 2026-11-09, for the open time between visits).
+    const ids = new Set();
+    const blocks = got.flatMap((g) => g.blocks || []).filter((b) => !ids.has(b.id) && ids.add(b.id));
+    renderWeek({ ...got[0], appointments, blocks, start });
   } catch (err) {
     if (quiet || seq !== weekSeq || err.message === 'signed out') return;
     $('calendar').innerHTML = emptyState({ icon: 'info', title: 'Couldn’t load this week', text: err.message });
   }
+}
+
+/* ───────────── Open time and a color's parts (asked for 2026-11-09) ─────────────
+   "Clearly show available time gaps between appointments so we can easily
+   see open slots", and "for Color services, make sure both sections are
+   displayed". A visit with a processing break is its Start, the Processing
+   (the stylist is free) and its Finish, each at its own time, in the Week
+   views as on the Day view, so another client booked into the processing
+   sits between the two halves as it does in Envision. */
+
+/** A visit's parts in minutes on the salon's clock: whole, or start / proc / finish. */
+function visitParts(a) {
+  const s0 = salonMinutes(a.startsAt);
+  const breaks = a.status === 'cancelled' ? [] : [...(a.breaks || [])].sort((x, y) => x[0] - y[0]);
+  if (!breaks.length) return [{ kind: 'whole', s: s0, e: s0 + a.durationMin }];
+  const out = [];
+  let t = 0;
+  for (const [at, len] of breaks) {
+    out.push({ kind: t ? 'cont' : 'start', s: s0 + t, e: s0 + at });
+    out.push({ kind: 'proc', s: s0 + at, e: s0 + at + len });
+    t = at + len;
+  }
+  out.push({ kind: 'finish', s: s0 + t, e: s0 + a.durationMin });
+  return out;
+}
+const PART_LABEL = { start: 'Start', cont: 'Continues', finish: 'Finish' };
+/** Minutes a gap has to be to be worth showing: shorter than any service. */
+const GAP_MIN = 15;
+/**
+ * One stylist's open time on a date: their working hours, less every visit
+ * of theirs (whole, processing included: a processing break is shown on its
+ * own as "Processing · free") and every block on them or the whole salon,
+ * and from now on for today (nothing for a day gone). [[from, to]] minutes.
+ * The same three things availability.js offers times from, so an open slot
+ * here is time the booking form can fill (a service still has to fit it).
+ */
+function openGaps(shifts, date, today, appts, blocks) {
+  if (!shifts?.length || date < today) return [];
+  const taken = [
+    ...appts.filter((a) => a.status !== 'cancelled').map((a) => {
+      const s0 = salonMinutes(a.startsAt);
+      return [s0, s0 + a.durationMin];
+    }),
+    ...blocks.map((b) => (b.s != null ? [b.s, b.e] : [minutesOn(b.startsAt, date), minutesOn(b.endsAt, date)])),
+  ].filter(([x, y]) => y > x).sort((x, y) => x[0] - y[0]);
+  let floor = 0;
+  if (date === today) floor = Math.ceil(salonMinutes(new Date().toISOString()) / 5) * 5;
+  const out = [];
+  for (const [open, close] of [...shifts].sort((x, y) => x[0] - y[0])) {
+    let at = Math.max(open, floor);
+    for (const [x, y] of taken) {
+      if (y <= at) continue;
+      if (x >= close) break;
+      if (x - at >= GAP_MIN) out.push([at, x]);
+      at = Math.max(at, y);
+    }
+    if (close - at >= GAP_MIN) out.push([at, close]);
+  }
+  return out;
+}
+const gapLen = (m) => (m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m} min`);
+/** Who works on a date in the Week payload (diary.js weekHours), with their shifts. */
+function workingOn(d, iso) {
+  const wd = new Date(`${iso}T12:00:00`).getDay();
+  return Object.entries(d.weekHours || {})
+    .map(([slug, x]) => ({ slug, name: x.name, shifts: x.days[wd] || [] }))
+    .filter((x) => x.shifts.length);
+}
+/** The open time on a date, per stylist working: [{slug, name, s, e}]. */
+function dayGaps(d, iso, list) {
+  const out = [];
+  for (const w of workingOn(d, iso)) {
+    const mine = list.filter((a) => a.stylistSlug === w.slug);
+    const blk = (d.blocks || []).filter((b) => (!b.stylistSlug || b.stylistSlug === w.slug)
+      && minutesOn(b.endsAt, iso) > minutesOn(b.startsAt, iso));
+    for (const [s0, e0] of openGaps(w.shifts, iso, d.today, mine, blk)) out.push({ slug: w.slug, name: w.name, s: s0, e: e0 });
+  }
+  return out;
+}
+/** An open slot as a button that books straight into it. */
+function gapButton(g, iso, cls, named, style = '') {
+  const who = named && g.name ? ` · ${g.name.split(' ')[0]}` : '';
+  const label = `Open · ${exactClock(g.s)} - ${exactClock(g.e)}`;
+  return `<button type="button" class="${cls}" data-gap-date="${esc(iso)}" data-gap-min="${g.s}" data-gap-stylist="${esc(g.slug || '')}"${style ? ` style="${style}"` : ''}
+    title="${esc(`${label} (${gapLen(g.e - g.s)} open${g.name ? ` with ${g.name}` : ''}). Click to book this time.`)}">
+    <span class="gp-t">${ic('plus')}<b>Open</b> ${esc(exactClock(g.s))} - ${esc(exactClock(g.e))}${esc(who)}</span><small>${esc(gapLen(g.e - g.s))}</small></button>`;
 }
 
 function renderWeek(d) {
@@ -10019,16 +10181,40 @@ function renderWeek(d) {
     return `<button class="cal-ev wk-ev ${off ? 'off' : ''}${mv}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
               title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><i>${cardTime(salonMinutes(a.startsAt), a.durationMin)}</i><b>${esc(a.guestName)}</b><span>${esc(a.service)}${a.stylist ? ` · ${esc(a.stylist)}` : ''}</span></button>`;
   };
+  // A part of a color (2026-11-09): its own times, and Start or Finish
+  // beside the service. Only the Start drags, so a visit moves by its head.
+  const partChip = (a, p) => {
+    const title = `${exactClock(p.s)} to ${exactClock(p.e)} · ${a.guestName} · ${a.service} (${PART_LABEL[p.kind]}) with ${a.stylist}`;
+    const mv = p.kind === 'start' && canMove(a) ? ' cal-mv' : '';
+    return `<button class="cal-ev wk-ev wk-part ${p.kind}${mv}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
+              title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><i>${cardTime(p.s, p.e - p.s)}</i><b>${p.kind === 'finish' ? '<em>Finish</em> ' : ''}${esc(a.guestName)}</b><span>${esc(a.service)} · ${PART_LABEL[p.kind]}${a.stylist ? ` · ${esc(a.stylist)}` : ''}</span></button>`;
+  };
+  const procRow = (a, p) => `<div class="wk-proc" title="${esc(`${a.guestName}'s color processing, ${exactClock(p.s)} to ${exactClock(p.e)}. ${a.stylist || 'The stylist'} is free for another client.`)}">
+      <span>Processing · ${esc(exactClock(p.s))} - ${esc(exactClock(p.e))}</span><small>${esc(a.guestName.split(' ')[0])}'s color · stylist free</small></div>`;
   const days = Array.from({ length: 7 }, (_, i) => addDays(d.start, i));
   if (!WK_LIST.matches) { renderWeekGrid(d, days, byDate); return; }
   $('calendar').innerHTML = `<div class="cal wk"><div class="wk-grid">${days.map((iso) => {
     const dt = new Date(`${iso}T12:00:00`);
-    const list = byDate.get(iso) || [];
+    const all = byDate.get(iso) || [];
     const shut = Array.isArray(d.salonWeek) && d.salonWeek[dt.getDay()] === null;
+    // The day as a timeline: every visit (a color as its parts), each
+    // processing break, and the open time between, in time order.
+    const named = workingOn(d, iso).length > 1;
+    const rows = [];
+    for (const a of all) {
+      for (const p of visitParts(a)) {
+        if (p.kind === 'whole') rows.push({ t: p.s, r: 1, html: chip(a) });
+        else if (p.kind === 'proc') rows.push({ t: p.s, r: 0, html: procRow(a, p) });
+        else rows.push({ t: p.s, r: 1, html: partChip(a, p) });
+      }
+    }
+    for (const g of dayGaps(d, iso, all)) rows.push({ t: g.s, r: 2, html: gapButton(g, iso, 'wk-gap', named) });
+    rows.sort((x, y) => x.t - y.t || x.r - y.r);
+    const list = rows.map((x) => x.html);
     return `<div class="cal-cell ${iso === d.today ? 'today' : ''} ${iso < d.today ? 'past' : ''} ${shut ? 'shut' : ''}" data-add="${iso}"
         title="Click to add an appointment on ${esc(dayLabel(iso))}">
       <button type="button" class="cal-n wk-n" data-day="${iso}" title="Open this day"><span>${esc(DOW[dt.getDay()])}</span><b>${dt.getDate()}</b></button>
-      <div class="wk-list">${list.length ? list.map(chip).join('') : `<span class="wk-free">${shut ? 'Closed' : 'No appointments'}</span>`}</div>
+      <div class="wk-list">${list.length ? list.join('') : `<span class="wk-free">${shut ? 'Closed' : 'No appointments'}</span>`}</div>
     </div>`;
   }).join('')}</div></div>
   <p class="cal-hint">Click any day to add an appointment. Click the date to see that day by stylist. Drag an appointment to another day to move it.</p>`;
@@ -10073,23 +10259,31 @@ function renderWeekGrid(d, days, byDate) {
   const hours = [];
   for (let m = from; m < to; m += 60) hours.push(`<span style="top:${px(m)}px">${clock(m)}</span>`);
   const nowMin = salonMinutes(new Date().toISOString());
-  const card = (a, lane, lanes) => {
-    const s0 = salonMinutes(a.startsAt);
+  const card = (a, lane, lanes, p = null) => {
+    const part = p && p.kind !== 'whole' ? p : null;
+    const s0 = part ? part.s : salonMinutes(a.startsAt);
+    const len = part ? part.e - part.s : a.durationMin;
     const off = a.status === 'cancelled';
-    const mv = canMove(a) ? ' cal-mv' : '';
-    const h = Math.max(22, (a.durationMin / 60) * WK_HOUR - 5);
-    const title = `${exactClock(s0)} to ${exactClock(s0 + a.durationMin)} · ${a.guestName} · ${a.service}${a.stylist ? ` with ${a.stylist}` : ''}${off ? ' (cancelled)' : ''}`;
+    const mv = canMove(a) && (!part || part.kind === 'start') ? ' cal-mv' : '';
+    const h = Math.max(22, (len / 60) * WK_HOUR - 5);
+    const title = `${exactClock(s0)} to ${exactClock(s0 + len)} · ${a.guestName} · ${a.service}${part ? ` (${PART_LABEL[part.kind]})` : ''}${a.stylist ? ` with ${a.stylist}` : ''}${off ? ' (cancelled)' : ''}`;
     const pos = `top:${px(s0) + 1}px;height:${h}px;left:calc(${(lane / lanes) * 100}% + 3px);width:calc(${100 / lanes}% - 6px)`;
-    return `<button class="cal-ev wk-ev wkt-ev${off ? ' off' : ''}${h < 44 ? ' short' : ''}${mv}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
-      style="${pos}" title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><i>${esc(shortClock(s0))}${h < 44 ? '' : ` - ${esc(shortClock(s0 + a.durationMin))}`}</i><b>${esc(a.guestName)}</b><span>${esc(a.service)}${a.stylist ? ` · ${esc(a.stylist)}` : ''}</span></button>`;
+    return `<button class="cal-ev wk-ev wkt-ev${off ? ' off' : ''}${h < 44 ? ' short' : ''}${part ? ` wk-part ${part.kind}` : ''}${mv}" data-ref="${esc(a.ref)}" data-date="${esc(a.date)}"
+      style="${pos}" title="${esc(title + (mv ? ' · Drag to another day to move' : ''))}"><i>${esc(shortClock(s0))}${h < 44 ? '' : ` - ${esc(shortClock(s0 + len))}`}</i><b>${part?.kind === 'finish' ? '<em>Finish</em> ' : ''}${esc(a.guestName)}</b><span>${esc(a.service)}${part ? ` · ${PART_LABEL[part.kind]}` : ''}${a.stylist ? ` · ${esc(a.stylist)}` : ''}</span></button>`;
   };
   const cols = days.map((iso) => {
     const dt = new Date(`${iso}T12:00:00`);
     const shut = Array.isArray(d.salonWeek) && d.salonWeek[dt.getDay()] === null;
     // Side by side where two overlap, a lane each, as the Day view's
     // Unassigned column does.
-    const list = (byDate.get(iso) || []).filter((a) => a.status !== 'cancelled')
-      .map((a) => ({ a, s: salonMinutes(a.startsAt), e: salonMinutes(a.startsAt) + a.durationMin }))
+    // A color is its Start and Finish, laid out on their own, so a visit
+    // booked into its processing sits beside nothing (2026-11-09).
+    const live = (byDate.get(iso) || []).filter((a) => a.status !== 'cancelled');
+    const procs = [];
+    const list = live.flatMap((a) => visitParts(a).filter((p) => {
+      if (p.kind === 'proc') { procs.push({ a, ...p }); return false; }
+      return true;
+    }).map((p) => ({ a, p, s: p.s, e: p.e })))
       .sort((x, y) => x.s - y.s || y.e - x.e);
     const placed = [];
     let group = [];
@@ -10104,11 +10298,27 @@ function renderWeekGrid(d, days, byDate) {
     }
     close();
     const past = iso < d.today ? height : iso === d.today ? Math.max(0, Math.min(height, px(nowMin))) : 0;
+    const procBands = procs.map((p) => `<div class="wkt-proc" style="top:${px(p.s) + 1}px;height:${Math.max(14, px(p.e) - px(p.s) - 3)}px"
+      title="${esc(`${p.a.guestName}'s color processing, ${exactClock(p.s)} to ${exactClock(p.e)}: the stylist is free.`)}"><span>Processing</span></div>`).join('');
+    // Open time as a band that books into it; one stylist that day books
+    // with them, several leave the stylist to the booking form.
+    const gaps = dayGaps(d, iso, live);
+    const crew = new Set(gaps.map((g) => g.slug));
+    const merged = crew.size > 1 ? (() => {
+      const u = [];
+      for (const g of [...gaps].sort((x, y) => x.s - y.s)) {
+        const last = u[u.length - 1];
+        if (last && g.s <= last.e) last.e = Math.max(last.e, g.e); else u.push({ s: g.s, e: g.e, slug: '', name: '' });
+      }
+      return u;
+    })() : gaps;
+    const gapBands = merged.map((g) => gapButton(g, iso, `wkt-gap${px(g.e) - px(g.s) < 40 ? ' short' : ''}`, false,
+      `top:${px(g.s) + 1}px;height:${Math.max(16, px(g.e) - px(g.s) - 3)}px`)).join('');
     const now = iso === d.today && nowMin >= from && nowMin <= to ? `<div class="dg-now" style="top:${px(nowMin)}px" aria-hidden="true"></div>` : '';
     return `<div class="cal-cell wkt-col ${iso === d.today ? 'today' : ''} ${iso < d.today ? 'past' : ''} ${shut ? 'shut' : ''}" data-add="${iso}"
         style="height:${height}px" title="Click to add an appointment on ${esc(dayLabel(iso))}">
       ${past ? `<div class="wkt-past" style="height:${past}px"></div>` : ''}
-      ${placed.map((it) => card(it.a, it.lane, it.lanes)).join('')}${now}</div>`;
+      ${gapBands}${procBands}${placed.map((it) => card(it.a, it.lane, it.lanes, it.p)).join('')}${now}</div>`;
   }).join('');
   const heads = days.map((iso) => {
     const dt = new Date(`${iso}T12:00:00`);

@@ -2082,6 +2082,30 @@ made that way are real: name them ZZ and remove them.
     is sent again. Up to 500 at a time, this salon's rows only.
     `tests/karen-history-delete.integration.test.js`.
 
+- **Open time and both halves of a color on Appt. Book** (asked for
+  2026-11-09, with screenshots of the Week list beside Envision's day).
+  `visitParts` (console) splits a visit with breaks into start, proc and
+  finish; the **Week list** (phone) is now a timeline per day of those
+  parts, each processing as a dashed "Processing · <times>" row, and the
+  open time between, sorted by time, so a client booked into a processing
+  sits between its Start and Finish as in Envision; the **Week grid**
+  lays out the parts on their own (no false overlap lane), draws the
+  processing as a dashed band, and the **Day** Finish card is now a full
+  card (times, service · Finish, name, phone; it was one short line), the
+  Start's service reading "· Start". Only the Start drags. **Open time**
+  (`openGaps`, `dayGaps`): a stylist's hours less their visits (whole,
+  processing included: it is shown as its own row), blocks (theirs and the
+  salon's) and, on the Day view, Google busy time and the flexible lunch,
+  from now on, 15 minutes or more; green dashed (`--ok`), with its times
+  and length. Week rows and bands are buttons (`data-gap-*`) that open New
+  appointment on that date with that stylist; Day bands let the click
+  through to the column, which books that time. diary.js now sends a
+  month's `blocks` too and `weekHours` (`{slug: {name, days: [7 x
+  [[from, to]]]}}`, the stylists the book shows, within the viewer's
+  chair); `loadWeek` merges both months' blocks. With several stylists
+  working one day the Week grid merges their open time into one band with
+  no stylist preset; the Week list names each slot's stylist.
+
 - **K18/Olaplex Treatment** (asked for 2026-11-06) is Bond Repair's name
   now (migration 054; slug `bond-repair` kept, so bookings, prices and
   stylists stay). ensure-schema's 052 line, which renamed it on every cold
