@@ -3965,6 +3965,9 @@
   .hm-card { display: flex; flex-direction: column; min-height: 0; }
   .hm-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 16px; }
   .hm-head h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+  /* New clients by source's period switch, at the head's right (2026-11-10). */
+  .hm-head .hm-range { margin-left: auto; align-self: center; }
+  .hm-head .hm-range button { padding: 4px 11px; font-size: .78rem; white-space: nowrap; }
   .hm-about { font-size: var(--fs-sm); color: var(--muted); }
   .hm-empty { margin: auto 0; padding: 28px 0; text-align: center; font-size: var(--fs-sm); color: var(--muted); }
   .hm-note { margin: 12px 0 0; font-size: .76rem; color: var(--muted); }
@@ -8222,8 +8225,11 @@ function widgetHtml(item, i) {
     </div></div>`;
   }
   const c = chartData(item.id);
+  // New clients by source: Last week, Last month, Last 3 months (2026-11-10).
+  const range = item.id === 'sources' ? `<div class="seg hm-range" role="group" aria-label="Period">${SRC_RANGES.map(([k, l]) =>
+    `<button type="button" data-src-range="${k}" aria-pressed="${k === srcRange}">${l}</button>`).join('')}</div>` : '';
   return `<div class="hm-w${size}" data-i="${i}">${strip}<div class="card hm-card">
-    <div class="hm-head"><h2>${esc(w.title)}</h2><span class="hm-about">${esc(c.sub || w.about)}</span></div>
+    <div class="hm-head"><h2>${esc(w.title)}</h2><span class="hm-about">${esc(c.sub || w.about)}</span>${range}</div>
     ${c.total ? chartHtml(item.view, c) : `<p class="hm-empty">Nothing to show yet. This fills in as appointments are booked.</p>`}
     ${c.note ? `<p class="hm-note">${esc(c.note)}</p>` : ''}
   </div></div>`;
@@ -8241,13 +8247,20 @@ function chartData(id) {
       note: ch.value.unpriced ? `${ch.value.unpriced} appointment${ch.value.unpriced === 1 ? '' : 's'} without a price ${ch.value.unpriced === 1 ? 'is' : 'are'} left out, never guessed.` : '',
     };
   }
-  const pts = ch[id] || [];
+  // The card's chosen period; an older server without sourcesBy gives 30 days.
+  const pts = (id === 'sources' && ch.sourcesBy?.[srcRange]) || ch[id] || [];
   const unit = id === 'sources' ? ['client', 'clients'] : ['appointment', 'appointments'];
   return {
     points: pts, fmt: count, tipFmt: (n) => `${count(n)} ${n === 1 ? unit[0] : unit[1]}`,
     total: pts.some((p) => p.value > 0),
+    ...(id === 'sources' && ch.sourcesBy ? { sub: `Where new clients came from, ${SRC_RANGES.find(([k]) => k === srcRange)[2]}.` } : {}),
   };
 }
+
+/** New clients by source's periods: [key, button, the line under the title]; kept per browser. */
+const SRC_RANGES = [['week', 'Last week', 'last 7 days'], ['month', 'Last month', 'last 30 days'], ['quarter', 'Last 3 months', 'last 90 days']];
+let srcRange = (() => { try { return localStorage.getItem('ss-src-range') || 'month'; } catch { return 'month'; } })();
+if (!SRC_RANGES.some(([k]) => k === srcRange)) srcRange = 'month';
 
 /** A clean top for the axis: 1, 2, 2.5 or 5 times a power of ten. */
 function niceMax(max) {
@@ -8374,6 +8387,13 @@ function editStrip(item, i, w) {
 }
 
 $('hmGrid').addEventListener('click', (e) => {
+  const rb = e.target.closest('[data-src-range]');
+  if (rb) {
+    srcRange = rb.dataset.srcRange;
+    try { localStorage.setItem('ss-src-range', srcRange); } catch { /* this visit only */ }
+    renderHome();
+    return;
+  }
   const up = e.target.closest('.coming button[data-date]');
   if (up && !homeEditing) {
     // Opens the appointment itself on Appt. Book, on its day, not just the

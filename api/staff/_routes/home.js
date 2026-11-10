@@ -22,7 +22,9 @@
  *   layout      the dashboard as the admin arranged it (home-layout.js), and
  *   charts      the series its graphics draw, all counted here too:
  *               ahead (next 14 days), visits and value (last 12 weeks),
- *               services, stylists, sources (last 30 days), weekdays (90).
+ *               services, stylists, sources (last 30 days), weekdays (90),
+ *               and sourcesBy: sources for the last 7, 30 and 90 days
+ *               (week, month, quarter), the card's three ranges.
  *               "Kept" means not cancelled and not a no-show.
  *
  * PATCH /api/staff/home { layout }: save the arrangement. The admin only
@@ -106,13 +108,19 @@ async function charts(tenant, now, mine = null, userId = null) {
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8`,
       [tenant.id, since30.toISO(), mine],
     ),
+    // New clients by source for the card's three ranges at once (asked for
+    // 2026-11-10: Last week, Last month, Last 3 months), so switching
+    // between them on the card needs no second request.
     query(
-      `SELECT COALESCE(NULLIF(trim(c.source), ''), 'Not recorded') AS k, count(*)::int AS n
+      `SELECT COALESCE(NULLIF(trim(c.source), ''), 'Not recorded') AS k,
+              count(*) FILTER (WHERE c.created_at >= $5::timestamptz)::int AS week,
+              count(*) FILTER (WHERE c.created_at >= $2::timestamptz)::int AS month,
+              count(*)::int AS quarter
          FROM contacts c
-        WHERE c.tenant_id = $1::uuid AND c.created_at >= $2::timestamptz
+        WHERE c.tenant_id = $1::uuid AND c.created_at >= $6::timestamptz
           AND ${clientInChairSql('c', '$3', '$4')}
-        GROUP BY 1 ORDER BY 2 DESC LIMIT 8`,
-      [tenant.id, since30.toISO(), mine, userId],
+        GROUP BY 1`,
+      [tenant.id, since30.toISO(), mine, userId, now.minus({ days: 7 }).toISO(), since90.toISO()],
     ),
     query(
       `SELECT extract(dow FROM a.starts_at AT TIME ZONE $2::text)::int AS k, count(*)::int AS n
@@ -133,6 +141,10 @@ async function charts(tenant, now, mine = null, userId = null) {
   const kinds = { cuts: 'Cuts', color: 'Color', treatments: 'Treatments', styling: 'Styling' };
   const list = (rows, name = (k) => k) => rows.map((r) => ({ key: String(r.k), label: name(r.k), value: r.n }));
   const unpriced = weeks.rows.reduce((t, r) => t + r.unpriced, 0);
+  // Each range its own top eight, largest first; a source with none in it is left out.
+  const byRange = (key) => sources.rows.filter((r) => r[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 8)
+    .map((r) => ({ key: String(r.k), label: r.k, value: r[key] }));
+  const sourcesBy = { week: byRange('week'), month: byRange('month'), quarter: byRange('quarter') };
 
   return {
     layout: layoutOf(layoutRow.rows[0]?.layout),
@@ -146,7 +158,9 @@ async function charts(tenant, now, mine = null, userId = null) {
       },
       services: list(services.rows, (k) => kinds[k] || String(k).replace(/^./, (c) => c.toUpperCase())),
       stylists: list(stylists.rows),
-      sources: list(sources.rows),
+      // `sources` stays the last 30 days, for anything that reads it as before.
+      sources: sourcesBy.month,
+      sourcesBy,
       weekdays: fill(weekdays.rows, [1, 2, 3, 4, 5, 6, 0], (k) => DAYS[k]),
     },
   };

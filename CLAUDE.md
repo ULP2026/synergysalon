@@ -432,8 +432,11 @@ made that way are real: name them ZZ and remove them.
   `DEFAULT_LAYOUT` (the two figures and Coming up as before, with Booked
   ahead and Services between them). Every chart's numbers are counted in
   `home.js` (`charts()`): booked ahead 14 days, visits and booked value per
-  week for 12 weeks, services, stylists and new-client sources over 30 days,
-  busiest weekdays over 90; "kept" is not cancelled and not a no-show, and
+  week for 12 weeks, services, stylists and new-client sources over 30 days
+  (New clients by source has a Last week / Last month / Last 3 months
+  switch since 2026-11-10: `charts.sourcesBy` carries all three, rolling 7,
+  30 and 90 days, from one query; the choice is per browser,
+  `ss-src-range`), busiest weekdays over 90; "kept" is not cancelled and not a no-show, and
   an appointment with no price is left out of value and said, never
   guessed. Charts are plain HTML/SVG in the console's periwinkle (`--viz`,
   `#7d88d6` in dark mode, both run through the dataviz palette check), one
