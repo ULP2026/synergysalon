@@ -445,8 +445,14 @@ made that way are real: name them ZZ and remove them.
   says it: `booked_via = 'karen'`, else `channel = 'staff'`, else website),
   how many are a first visit (as Coming up counts it), and the bookings
   themselves, newest first, opening on Appt. Book like Coming up's rows.
-  Cancelled bookings are left out of the total and said under it. Counted
-  in `newBookings()` in `home.js`. Because Customize is unreachable, a
+  Cancelled bookings are left out of the total and said under it (a count
+  line, not a list). Appointments copied in from Envision are left out
+  altogether (their notes say "Imported from Envision", `NOT_IMPORTED`):
+  their `created_at` is the day they were copied, so 40 of them would read
+  as a rush of bookings in the week of Nov 6. A future import must keep
+  that line. Test (ZZ) bookings count until they are deleted. Counted
+  in `newBookings()` in `home.js`, pinned by
+  `tests/new-bookings.integration.test.js`. Because Customize is unreachable, a
   saved layout could never gain it, so `withNewBookings()` in
   `home-layout.js` puts it after the figures on every Home that lacks it,
   an appointment with no price is left out of value and said, never

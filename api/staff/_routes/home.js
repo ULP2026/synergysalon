@@ -81,6 +81,15 @@ const FIRST_VISIT = `(a.contact_id IS NOT NULL AND NOT EXISTS (
 const NEW_BOOKINGS_LIST = 60;
 
 /**
+ * Appointments copied in from Envision are not new bookings: they were made
+ * in Envision, and their created_at is the day they were copied (40 of them
+ * on 2026-11-06), so they would read as a rush of bookings that week and
+ * month. The import marks each one in its notes (see the Envision note in
+ * CLAUDE.md); a future import must keep that line or this counts it.
+ */
+const NOT_IMPORTED = "position('Imported from Envision' in a.notes) = 0";
+
+/**
  * Bookings made today, this week (from Monday) and this month, counted
  * exactly in SQL, and the newest of them listed for the card. Periods are
  * on the salon's clock and go by when the booking was made.
@@ -99,7 +108,8 @@ export async function newBookings(tenant, now, mine) {
          SELECT a.created_at, a.status::text = 'cancelled' AS cancelled,
                 ${BOOKED_FROM} AS src, ${FIRST_VISIT} AS first
            FROM appointments a
-          WHERE a.tenant_id = $1::uuid AND a.created_at >= $2::timestamptz ${OWN(6)})
+          WHERE a.tenant_id = $1::uuid AND a.created_at >= $2::timestamptz
+            AND ${NOT_IMPORTED} ${OWN(6)})
        SELECT p.k,
               count(*) FILTER (WHERE NOT b.cancelled)::int AS total,
               count(*) FILTER (WHERE NOT b.cancelled AND b.src = 'website')::int AS website,
@@ -116,10 +126,11 @@ export async function newBookings(tenant, now, mine) {
       `SELECT a.ref, a.created_at, a.starts_at, a.guest_name, s.name AS stylist,
               ${visitNameSql()} AS service, ${BOOKED_FROM} AS src, ${FIRST_VISIT} AS first
          FROM appointments a
-         JOIN stylists s ON s.id = a.stylist_id
-         JOIN services v ON v.id = a.service_id
+         -- LEFT, so every booking the counts include is also listed.
+         LEFT JOIN stylists s ON s.id = a.stylist_id
+         LEFT JOIN services v ON v.id = a.service_id
         WHERE a.tenant_id = $1::uuid AND a.created_at >= $2::timestamptz
-          AND a.status::text <> 'cancelled' ${OWN(3)}
+          AND a.status::text <> 'cancelled' AND ${NOT_IMPORTED} ${OWN(3)}
         ORDER BY a.created_at DESC
         LIMIT ${NEW_BOOKINGS_LIST}`,
       [tenant.id, from.toISO(), mine],
@@ -264,6 +275,9 @@ async function charts(tenant, now, mine = null, userId = null) {
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
+    // New bookings reads booked_via (036): make sure it is there even when
+    // Home is the first thing a cold function serves. Once per function.
+    await ensureSchema();
     const tenant = await tenantForUser(user);
     const zone = tenant.timezone;
     const now = DateTime.now().setZone(zone);
