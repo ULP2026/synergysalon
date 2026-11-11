@@ -437,6 +437,18 @@ made that way are real: name them ZZ and remove them.
   switch since 2026-11-10: `charts.sourcesBy` carries all three, rolling 7,
   30 and 90 days, from one query; the choice is per browser,
   `ss-src-range`), busiest weekdays over 90; "kept" is not cancelled and not a no-show, and
+  **New bookings** (asked for 2026-11-11: "exactly how many new clients
+  booked"): bookings *made* today, this week (from Monday) or this month on
+  the salon's clock, whatever day they are for, with a Today / This week /
+  This month switch (per browser, `ss-nb-range`). It shows the total, the
+  split by who booked (Website, Karen, Front desk, as the appointment window
+  says it: `booked_via = 'karen'`, else `channel = 'staff'`, else website),
+  how many are a first visit (as Coming up counts it), and the bookings
+  themselves, newest first, opening on Appt. Book like Coming up's rows.
+  Cancelled bookings are left out of the total and said under it. Counted
+  in `newBookings()` in `home.js`. Because Customize is unreachable, a
+  saved layout could never gain it, so `withNewBookings()` in
+  `home-layout.js` puts it after the figures on every Home that lacks it,
   an appointment with no price is left out of value and said, never
   guessed. Charts are plain HTML/SVG in the console's periwinkle (`--viz`,
   `#7d88d6` in dark mode, both run through the dataviz palette check), one

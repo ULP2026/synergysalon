@@ -30,3 +30,20 @@ test('nothing stored, or something unreadable, is the default', () => {
 test('a layout that is not a list is refused', () => {
   assert.throws(() => layoutFrom({ id: 'today' }), /could not be read/);
 });
+
+test('New bookings joins a saved layout after the figures, once', async () => {
+  const { withNewBookings } = await import('../api/_lib/home-layout.js');
+  const nb = { id: 'bookings', view: 'list', size: 'full' };
+  const saved = [
+    { id: 'today', view: 'number', size: 'half' },
+    { id: 'clients30', view: 'number', size: 'half' },
+    { id: 'upcoming', view: 'list', size: 'full' },
+  ];
+  assert.deepEqual(withNewBookings(saved), [saved[0], saved[1], nb, saved[2]]);
+  // Already there, wherever the admin put it: left alone.
+  const placed = [saved[2], nb, saved[0]];
+  assert.deepEqual(withNewBookings(placed), placed);
+  // No figures: it goes first.
+  assert.deepEqual(withNewBookings([saved[2]]), [nb, saved[2]]);
+  assert.ok(DEFAULT_LAYOUT.some((x) => x.id === 'bookings'));
+});

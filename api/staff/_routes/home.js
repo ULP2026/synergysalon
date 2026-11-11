@@ -26,6 +26,13 @@
  *               and sourcesBy: sources for the last 7, 30 and 90 days
  *               (week, month, quarter), the card's three ranges.
  *               "Kept" means not cancelled and not a no-show.
+ *   newBookings bookings made today, this week and this month on the
+ *               salon's clock (when they were booked, not when they are
+ *               for), by who made them (website, Karen, front desk) and how
+ *               many are a client's first visit; plus the bookings
+ *               themselves, newest first. Asked for 2026-11-11, to see
+ *               exactly how many new clients booked. Cancelled ones are
+ *               counted apart, not in the total.
  *
  * PATCH /api/staff/home { layout }: save the arrangement. The admin only
  * (canManageTeam), because it changes Home for the whole team.
@@ -36,7 +43,7 @@ import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.j
 import { query } from '../../_lib/db.js';
 import { ensureSchema } from '../../_lib/ensure-schema.js';
 import {
-  DEFAULT_LAYOUT, layoutFrom, layoutOf, WIDGETS,
+  DEFAULT_LAYOUT, layoutFrom, layoutOf, WIDGETS, withNewBookings,
 } from '../../_lib/home-layout.js';
 import {
   HttpError, handler, json, readJson,
@@ -57,6 +64,94 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
  * for 2026-11-03, scope.js): $n is the chair's stylist ids, NULL for all.
  */
 const OWN = (n) => `AND ($${n}::uuid[] IS NULL OR a.stylist_id = ANY($${n}::uuid[]))`;
+
+/**
+ * Who made a booking, as the appointment window says it (bookedLabel in
+ * contacts.js): Karen, else the front desk, else the client on the website.
+ */
+const BOOKED_FROM = `CASE WHEN a.booked_via = 'karen' THEN 'karen'
+                          WHEN a.channel::text = 'staff' THEN 'desk' ELSE 'website' END`;
+
+/** First visit, as Coming up counts it: nothing earlier for this guest that was kept. */
+const FIRST_VISIT = `(a.contact_id IS NOT NULL AND NOT EXISTS (
+  SELECT 1 FROM appointments p
+   WHERE p.contact_id = a.contact_id AND p.id <> a.id
+     AND p.status <> 'cancelled' AND p.starts_at < a.starts_at))`;
+
+const NEW_BOOKINGS_LIST = 60;
+
+/**
+ * Bookings made today, this week (from Monday) and this month, counted
+ * exactly in SQL, and the newest of them listed for the card. Periods are
+ * on the salon's clock and go by when the booking was made.
+ */
+export async function newBookings(tenant, now, mine) {
+  const since = {
+    today: now.startOf('day'),
+    week: now.startOf('week'),
+    month: now.startOf('month'),
+  };
+  // The week can start in last month: look back to whichever is earlier.
+  const from = since.week < since.month ? since.week : since.month;
+  const [counts, rows] = await Promise.all([
+    query(
+      `WITH b AS (
+         SELECT a.created_at, a.status::text = 'cancelled' AS cancelled,
+                ${BOOKED_FROM} AS src, ${FIRST_VISIT} AS first
+           FROM appointments a
+          WHERE a.tenant_id = $1::uuid AND a.created_at >= $2::timestamptz ${OWN(6)})
+       SELECT p.k,
+              count(*) FILTER (WHERE NOT b.cancelled)::int AS total,
+              count(*) FILTER (WHERE NOT b.cancelled AND b.src = 'website')::int AS website,
+              count(*) FILTER (WHERE NOT b.cancelled AND b.src = 'karen')::int AS karen,
+              count(*) FILTER (WHERE NOT b.cancelled AND b.src = 'desk')::int AS desk,
+              count(*) FILTER (WHERE NOT b.cancelled AND b.first)::int AS first,
+              count(*) FILTER (WHERE b.cancelled)::int AS cancelled
+         FROM (VALUES ('today', $3::timestamptz), ('week', $4::timestamptz), ('month', $5::timestamptz)) AS p(k, since)
+         LEFT JOIN b ON b.created_at >= p.since
+        GROUP BY p.k`,
+      [tenant.id, from.toISO(), since.today.toISO(), since.week.toISO(), since.month.toISO(), mine],
+    ),
+    query(
+      `SELECT a.ref, a.created_at, a.starts_at, a.guest_name, s.name AS stylist,
+              ${visitNameSql()} AS service, ${BOOKED_FROM} AS src, ${FIRST_VISIT} AS first
+         FROM appointments a
+         JOIN stylists s ON s.id = a.stylist_id
+         JOIN services v ON v.id = a.service_id
+        WHERE a.tenant_id = $1::uuid AND a.created_at >= $2::timestamptz
+          AND a.status::text <> 'cancelled' ${OWN(3)}
+        ORDER BY a.created_at DESC
+        LIMIT ${NEW_BOOKINGS_LIST}`,
+      [tenant.id, from.toISO(), mine],
+    ),
+  ]);
+
+  const zone = tenant.timezone;
+  const blank = { total: 0, website: 0, karen: 0, desk: 0, first: 0, cancelled: 0 };
+  const by = Object.fromEntries(counts.rows.map((r) => [r.k, {
+    total: r.total, website: r.website, karen: r.karen, desk: r.desk, first: r.first, cancelled: r.cancelled,
+  }]));
+  return {
+    counts: { today: by.today || blank, week: by.week || blank, month: by.month || blank },
+    items: rows.rows.map((r) => {
+      const made = DateTime.fromJSDate(new Date(r.created_at)).setZone(zone);
+      const at = DateTime.fromJSDate(new Date(r.starts_at)).setZone(zone);
+      return {
+        ref: r.ref,
+        date: at.toISODate(),
+        when: at.toFormat("ccc, LLL d, h:mm a ZZZZ"),
+        booked: made.toFormat('LLL d, h:mm a'),
+        guestName: r.guest_name,
+        service: r.service,
+        stylist: r.stylist,
+        from: r.src,
+        firstVisit: r.first,
+        // Which of the card's periods it falls in, so switching needs no new request.
+        periods: Object.keys(since).filter((k) => made >= since[k]),
+      };
+    }),
+  };
+}
 
 /** Every day or week in the range, with 0 where nothing was counted. */
 function fill(rows, keys, label) {
@@ -147,7 +242,7 @@ async function charts(tenant, now, mine = null, userId = null) {
   const sourcesBy = { week: byRange('week'), month: byRange('month'), quarter: byRange('quarter') };
 
   return {
-    layout: layoutOf(layoutRow.rows[0]?.layout),
+    layout: withNewBookings(layoutOf(layoutRow.rows[0]?.layout)),
     charts: {
       ahead: fill(ahead.rows, dayKeys, dayLabel),
       visits: fill(weeks.rows, weekKeys, weekLabel),
@@ -177,7 +272,7 @@ export default handler({
     const since = now.minus({ days: 30 }).toISO();
     const mine = chairIds(await chairOf(user));
 
-    const [clients, today, upcoming, past, dash, appts30] = await Promise.all([
+    const [clients, today, upcoming, past, dash, appts30, booked] = await Promise.all([
       // Served is a visit that happened. Contacts the website saved for a
       // booking never made used to count here too, which read as clients
       // the salon had not actually seen.
@@ -230,6 +325,7 @@ export default handler({
             AND a.starts_at >= $2::timestamptz AND a.starts_at <= now() ${OWN(3)}`,
         [tenant.id, since, mine],
       ),
+      newBookings(tenant, now, mine),
     ]);
 
     const t = today.rows[0];
@@ -257,6 +353,7 @@ export default handler({
         };
       }),
       past: past.rows[0].n,
+      newBookings: booked,
       layout: dash.layout,
       charts: dash.charts,
       widgets: WIDGETS,

@@ -27,6 +27,11 @@ export const WIDGETS = {
     title: 'Coming up', views: ['list'],
     about: 'The next six booked appointments.',
   },
+  // Asked for 2026-11-11: exactly how many new bookings came in, and from where.
+  bookings: {
+    title: 'New bookings', views: ['list'],
+    about: 'Bookings made today, this week or this month: website, Karen or front desk, and first visits.',
+  },
   ahead: {
     title: 'Booked ahead', views: ['bar', 'table'],
     about: 'Appointments on each of the next 14 days.',
@@ -62,6 +67,7 @@ export const WIDGETS = {
 export const DEFAULT_LAYOUT = [
   { id: 'today', view: 'number', size: 'half' },
   { id: 'clients30', view: 'number', size: 'half' },
+  { id: 'bookings', view: 'list', size: 'full' },
   { id: 'ahead', view: 'bar', size: 'half' },
   { id: 'services', view: 'bars', size: 'half' },
   { id: 'upcoming', view: 'list', size: 'full' },
@@ -85,6 +91,18 @@ export function layoutFrom(value) {
     });
   }
   return out;
+}
+
+/**
+ * New bookings is on every Home (asked for 2026-11-11). Customize has been
+ * gone from the console since 2026-10-26, so a salon's saved layout could
+ * never gain it: it goes in after the figures unless the layout has it.
+ */
+export function withNewBookings(layout) {
+  if (layout.some((x) => x.id === 'bookings')) return layout;
+  let at = 0;
+  layout.forEach((x, i) => { if (x.view === 'number') at = i + 1; });
+  return [...layout.slice(0, at), { id: 'bookings', view: 'list', size: 'full' }, ...layout.slice(at)];
 }
 
 /** What is stored, or the default; a stored layout that no longer reads falls back. */
