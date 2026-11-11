@@ -5,6 +5,7 @@
 import { randomInt, timingSafeEqual } from 'node:crypto';
 
 import { REF_ALPHABET, REF_LENGTH } from './config.js';
+import { emailProblem } from './email-check.js';
 
 export function json(res, status, body) {
   res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -67,14 +68,15 @@ export function requireString(value, field, { max = 200, min = 1 } = {}) {
 }
 
 /**
- * Deliberately permissive. The confirmation email is the real test of an
- * address, and a clever regex mostly rejects valid addresses people own.
+ * Still deliberately permissive about the shape (a clever regex mostly
+ * rejects valid addresses people own), but the ending must exist and the big
+ * providers' slips are named (email-check.js, 2026-11-12): "gmail.conm" used
+ * to pass here and "send" fine.
  */
 export function requireEmail(value, field = 'Email') {
   const s = requireString(value, field, { max: 254 });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) {
-    throw new HttpError(400, `${field} does not look like an email address.`);
-  }
+  const problem = emailProblem(s);
+  if (problem) throw new HttpError(400, field === 'Email' ? problem : `${field}: ${problem}`, 'BAD_EMAIL');
   return s.toLowerCase();
 }
 

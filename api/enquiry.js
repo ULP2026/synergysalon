@@ -25,9 +25,10 @@ import { previewAllowed } from './_lib/preview.js';
 import { hasColumn, query, transaction } from './_lib/db.js';
 import { saveContactMessage, sendOptInConfirmation } from './_lib/contact-form.js';
 import { calendarUrl, sendConfirmation, sendContactNotice } from './_lib/email.js';
+import { emailProblem } from './_lib/email-check.js';
 import { mirrorToGoogle } from './_lib/google-mirror.js';
 import {
-  handler, json, readJson, requireString,
+  HttpError, handler, json, readJson, requireString,
 } from './_lib/http.js';
 import { tenantForRequest } from './_lib/tenant.js';
 
@@ -117,7 +118,9 @@ const clean = (v, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) 
  */
 export function settledEmail(value) {
   const s = clean(value, 254).toLowerCase();
-  return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(s) ? s : '';
+  // Nor is one with a slip in it ("gmail.conm", 2026-11-12): that is the same
+  // as unfinished, and is said to the guest when they press Book Me Now.
+  return emailProblem(s) ? '' : s;
 }
 
 /**
@@ -212,6 +215,14 @@ export default handler({
     const email = settledEmail(body.email);
     const phone = settledPhone(body.phone);
     const sessionId = sessionIdFrom(body.sessionId);
+    // Something is in the email box that is not an address yet: half typed,
+    // or with a slip in it ("gmail.conm"). The booking waits for it (below),
+    // or a guest would be booked with no email and never hear a word; and on
+    // "Book Me Now!" the guest is told what is wrong, so they can fix it.
+    const emailWaiting = Boolean(clean(body.email, 254)) && !email;
+    if (body.complete && emailWaiting) {
+      throw new HttpError(400, emailProblem(clean(body.email, 254)) || 'Please check your email address.', 'BAD_EMAIL');
+    }
 
     // Nothing to attach a person to yet, and nothing this session has already
     // created. Saying so is cheaper than storing a record nobody can be
@@ -291,7 +302,7 @@ export default handler({
       // The cost is booking for someone who fills the last step and walks
       // away. That shows up in the diary where the salon can cancel it, which
       // is the better failure of the two.
-      if (!serviceSlug || !start || !(ONLINE_BOOKING || preview)) {
+      if (!serviceSlug || !start || !(ONLINE_BOOKING || preview) || emailWaiting) {
         return { contactId, booked: null };
       }
 

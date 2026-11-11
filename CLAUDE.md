@@ -248,6 +248,26 @@ was then rejected by CENTRO with a permanent 422, which killed the appointment
 push attached to it. A detail is only stored or sent once it is whole: a
 half-typed address is not a worse email, it is not an email yet.
 
+**An email must be able to receive mail** (2026-11-12, after a Nov 2 test
+booking to "...@gmail.conm" showed Sent). `emailProblem` in
+`api/_lib/email-check.js` is the one check: the shape as before, an ending
+on IANA's list (`api/_lib/tlds.js`, 1,436 endings; refresh it from
+data.iana.org a few times a year) with the likely one offered (".conm":
+"Did you mean …@gmail.com?"), and the big providers' slips by name
+(gmail.co, gmial.com, hotmial.com, …; a list, because "close to gmail.com"
+would refuse mail.com). `requireEmail` (public booking, sign-in, team,
+reply-to), `settledEmail` (the survey) and the desk's `/api/staff/book`
+(optional there, but checked when typed; it had no check) all use it,
+code `BAD_EMAIL`. The survey **holds the booking while the email box
+holds anything that is not an address yet** (`emailWaiting` in
+enquiry.js), or a guest with a slip would be booked with no email and
+never hear a word; Book Me Now then answers 400 with the reason, which
+the adapter passes through `ss-bk-result` as `error` and the popup shows
+on step 6 instead of "We couldn't reach the salon" (all nine pages).
+`tests/email-check.test.js`, `tests/email-check.integration.test.js`.
+Still owed: Sent History showing Failed when the provider bounces an
+address after sending (needs Resend's bounce webhook).
+
 The console says nothing about syncing: the "Not synced yet" and "Sync
 failed" chips, the Home note about today's bookings and the "here and in the
 CRM" wording on deletes all went with the push. `/api/cron/sync` keeps its

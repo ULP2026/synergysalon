@@ -15,6 +15,7 @@ import { assertClientInChair, bookableSlug, chairOf } from '../../_lib/scope.js'
 import { createBooking } from '../../_lib/booking.js';
 import { query, transaction } from '../../_lib/db.js';
 import { sendConfirmation } from '../../_lib/email.js';
+import { emailProblem } from '../../_lib/email-check.js';
 import { mirrorToGoogle } from '../../_lib/google-mirror.js';
 import { at, enqueue } from '../../_lib/scheduled.js';
 import {
@@ -41,6 +42,11 @@ export default handler({
       let guestName = typeof body.name === 'string' ? body.name.trim() : '';
       let guestEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
       let guestPhone = optionalPhone(body.phone);
+      // Still optional at the desk, but one typed in must be able to receive
+      // mail (2026-11-12): there was no check here at all, so "gmail.conm"
+      // was booked and its confirmation "sent" into nothing.
+      const emailIssue = guestEmail ? emailProblem(guestEmail) : null;
+      if (emailIssue) throw new HttpError(400, emailIssue, 'BAD_EMAIL');
 
       // Booking from a contact card: take their details rather than making
       // the front desk retype them, and mistype them.
