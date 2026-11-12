@@ -113,11 +113,15 @@ export async function newBookings(tenant, now, mine) {
       [tenant.id, from.toISO(), since.today.toISO(), since.week.toISO(), since.month.toISO(), mine],
     ),
     query(
-      `SELECT a.ref, a.created_at, a.starts_at, a.guest_name, s.name AS stylist,
+      `SELECT a.ref, a.created_at, a.starts_at,
+              -- The client's name as it is now (Luis, 2026-11-13: a doubled
+              -- last name typed at booking stayed on Home after it was fixed).
+              COALESCE(NULLIF(btrim(ct.name), ''), a.guest_name) AS guest_name, s.name AS stylist,
               ${visitNameSql()} AS service, ${BOOKED_FROM} AS src, ${FIRST_VISIT} AS first
          FROM appointments a
          JOIN stylists s ON s.id = a.stylist_id
          JOIN services v ON v.id = a.service_id
+         LEFT JOIN contacts ct ON ct.id = a.contact_id
         WHERE a.tenant_id = $1::uuid AND a.created_at >= $2::timestamptz
           AND a.status::text <> 'cancelled' ${OWN(3)}
         ORDER BY a.created_at DESC
@@ -299,7 +303,8 @@ export default handler({
       ),
       query(
         `SELECT a.ref, a.starts_at, a.duration_min, a.channel, a.checked_in_at,
-                a.guest_name, s.name AS stylist, ${visitNameSql()} AS service,
+                COALESCE(NULLIF(btrim(ct.name), ''), a.guest_name) AS guest_name,
+                s.name AS stylist, ${visitNameSql()} AS service,
                 COALESCE(a.price_cents, v.price_cents) AS price_cents,
                 -- First visit: nothing earlier for this guest that was kept.
                 NOT EXISTS (SELECT 1 FROM appointments p
@@ -308,6 +313,7 @@ export default handler({
            FROM appointments a
            JOIN stylists s ON s.id = a.stylist_id
            JOIN services v ON v.id = a.service_id
+           LEFT JOIN contacts ct ON ct.id = a.contact_id
           WHERE a.tenant_id = $1::uuid AND a.status = 'booked' AND a.starts_at > now() ${OWN(2)}
           ORDER BY a.starts_at
           LIMIT ${UPCOMING}`,

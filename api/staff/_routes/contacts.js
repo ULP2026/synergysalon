@@ -1077,6 +1077,17 @@ export default handler({
         ],
       );
       if (!rows[0]) throw new HttpError(404, 'That client no longer exists.');
+      // Each booking keeps the name it was made under (guest_name), which
+      // the emails, texts and Google copies use. A booking still under the
+      // old name follows the correction (Luis, 2026-11-13: "Kristine
+      // Dorfner Dorfner"); updated_at lets the Google copy catch up.
+      if (before[0] && before[0].name !== name) {
+        await client.query(
+          `UPDATE appointments SET guest_name = $3, updated_at = now()
+            WHERE tenant_id = $1 AND contact_id = $2 AND guest_name = $4`,
+          [tenant.id, id, name, before[0].name],
+        );
+      }
       return { ...rows[0], was: before[0] || {} };
     });
     await logChanges(query, tenant.id, id, user,
