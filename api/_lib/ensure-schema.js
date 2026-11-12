@@ -438,6 +438,11 @@ ON CONFLICT DO NOTHING`,
   `CREATE UNIQUE INDEX IF NOT EXISTS email_messages_one_answer ON email_messages (answers) WHERE answers IS NOT NULL`,
   `CREATE INDEX IF NOT EXISTS email_messages_thread ON email_messages (thread_id, created_at)`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS karen_email_on boolean NOT NULL DEFAULT true`,
+  // 061: the salon's own Stripe, linked by "Connect with Stripe".
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_account_id text`,
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_livemode boolean`,
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_connected_at timestamptz`,
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_connected_by uuid`,
 ];
 
 let done = null;

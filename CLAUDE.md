@@ -1900,6 +1900,12 @@ made that way are real: name them ZZ and remove them.
   `tests/reassign.integration.test.js`.
 
 - **The round of 2026-11-05** (asked for):
+  - **Payroll payouts are switched off since 2026-11-13** (Luis: payouts,
+    booth rent and commission are Synergy App 2.0). `STRIPE_SECRET_KEY` is
+    now the app's own *platform* key (below), so payroll.js asks
+    `payoutsOn()`, which also needs `STRIPE_PAYOUTS=on`; without that
+    switch, setting the key would have paid stylists out of the platform's
+    balance. Leave it unset until 2.0 is designed.
   - **Payroll is real, through Stripe Connect.** Money's "Cash out" card is
     now **Payroll** (`#cashCard`, `renderPayroll()`), and the separate
     "Payroll · Coming soon" card is gone. It shows the balance of earned
@@ -2582,3 +2588,42 @@ must stay that way: anything committed here is served publicly.
   moves until its appointments and client list are exported and imported.
 - FK Screamer is referenced but never published, so it 404s on every page and
   falls back to Anton. Harmless, still worth removing.
+
+- **Connect with Stripe: the salon's own Stripe** (Synergy App 1.0, asked
+  for 2026-11-13: "connect like Centro does", the priority being Dina's
+  Stripe). Settings, Money opens with a **Stripe** card for the owner and
+  admins (`canManageTeam`): **Connect with Stripe** is a plain link to
+  `/api/staff/stripe?start=1` (`_routes/stripe.js`, through the staff
+  router), which sends them to Stripe Connect's own sign-in
+  (`connect.stripe.com/oauth/authorize`, `scope=read_write`), where they
+  sign in to the salon's existing Stripe account or make one. Stripe sends
+  them back to `/api/staff/stripe?code=&state=`; the state is signed
+  (`SESSION_SECRET`, else `TOKEN_KEY`), names the person and the salon, runs
+  out in 15 minutes, and the person back must be signed in as them. The
+  code is swapped (`/oauth/token`), the account read back through the
+  platform, and only its id is kept (`tenants.stripe_account_id`,
+  `stripe_livemode`, `stripe_connected_at`, `stripe_connected_by`, 061,
+  also in ensure-schema; 061 because unshipped step1-leftovers holds 059
+  and 060). Stripe's keys for the account are never stored: the platform
+  key with `Stripe-Account` (`call(..., { account })` in stripe.js) is how
+  saved cards and no-show fees will be made in the salon's own Stripe.
+  Then Settings, Money comes back with `?salon-stripe=connected|cancelled|error&why=`
+  and a toast. The card shows the account's name and email, Connected, or
+  "Finish setup in Stripe" (charges not enabled yet), or "Needs attention"
+  (the platform cannot read it), with Disconnect (in place, then
+  `/oauth/deauthorize`). **The app's own Stripe account is the platform**,
+  not the salon's (as LeadConnector's is for Centro), agreed by Luis.
+  **Needs, in Vercel Production:** `STRIPE_SECRET_KEY` (the platform's
+  secret key) and `STRIPE_CLIENT_ID` (its Connect client id, `ca_...`),
+  typed straight into Vercel, and in the platform's Stripe dashboard:
+  Connect switched on, OAuth for Standard accounts on, and
+  `https://app.synergysalon.com/api/staff/stripe` listed as a redirect
+  URI. Until both variables are set the card says "Coming soon". Test
+  mode first: test keys and test client id, Dina's test connection, then
+  the live pair. `tests/salon-stripe.integration.test.js`.
+  Next (Luis's 1.0 brief, decisions in memory): a card saved at every
+  booking (website survey's last screen; a link for desk, phone and Karen
+  bookings; the card on file reused), a No-Show Fee in Salon Settings
+  (default $25, Luis's figure), charged only when staff mark or confirm a
+  no-show at least 20 minutes after the start, not cancelled or checked
+  in, idempotent, with Try again on a failure.

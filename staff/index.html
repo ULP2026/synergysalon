@@ -3334,6 +3334,19 @@
     .svc .svc-time .svc-f:not(.tr-price)::after { content: none; }
     .svc .svc-time .svc-f input { padding-right: 6px; }
   }
+  /* Money, the salon's Stripe (2026-11-13). The button is Stripe's own
+     colour, as Centro shows it, so it reads as Stripe's sign-in. */
+  .sst-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+             margin: 14px 0 4px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raise); }
+  .sst-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .sst-mark { width: 40px; height: 40px; border-radius: 10px; background: #635bff; color: #fff; display: grid; place-items: center;
+              font: 800 1.15rem/1 system-ui, sans-serif; flex: none; }
+  .sst-who b { display: block; overflow-wrap: anywhere; }
+  .sst-who small { display: block; color: var(--muted); }
+  .sst-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  a.btn.sst-go { background: #635bff; border-color: #635bff; color: #fff; text-decoration: none; }
+  a.btn.sst-go:hover { opacity: .9; }
+  .sst-note { margin: 10px 0 0; }
   /* Money, Subscription (2026-11-02). */
   .sub-plan { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
               margin: 14px 0 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raise); }
@@ -4731,6 +4744,13 @@
                2026-11-03; it was on Home from 2026-10-24, and on Marketing
                before that). Owners, admins and managers only, as the tab is,
                and on the server; filled by renderFinance(). -->
+          <!-- The salon's Stripe (Synergy App 1.0, asked for 2026-11-13: "connect
+               like Centro does"): Connect with Stripe opens Stripe's own
+               sign-in, the owner approves, and the salon's own account is
+               linked (api/staff/_routes/stripe.js). Owner and admins only;
+               renderSalonStripe(). Saved cards and no-show fees will use it. -->
+          <section class="acard sst-card hidden" id="stripeCard" aria-labelledby="sstTitle"></section>
+
           <section class="acard hm-fin hidden" id="homeFin" aria-label="Finance"></section>
 
           <!-- Payroll (2026-11-05; "Cash out" from 2026-11-04, renamed on
@@ -7611,6 +7631,82 @@ function setMyWorkOpen(open) {
 }
 $('myWorkToggle').onclick = () => setMyWorkOpen(!$('myWorkCard').classList.contains('open'));
 
+// The salon's own Stripe, linked by Connect with Stripe (2026-11-13).
+let salonStripe = null;
+const SST_HEAD = `<h2 class="ahead" id="sstTitle"><svg class="ic"><use href="#i-card"/></svg>Stripe</h2>
+  <p class="asub">The salon's own Stripe account, where clients' saved cards and no-show fees will go.</p>`;
+async function renderSalonStripe() {
+  const host = $('stripeCard');
+  if (!me?.user?.canManageTeam) { host.classList.add('hidden'); return; }
+  host.classList.remove('hidden');
+  if (!salonStripe) host.innerHTML = SST_HEAD + skeleton(1);
+  try {
+    salonStripe = await api('/api/staff/stripe');
+  } catch (err) {
+    if (err.message === 'signed out') return;
+    host.innerHTML = `${SST_HEAD}<p class="muted small">${esc(err.message)}</p>`;
+    return;
+  }
+  paintSalonStripe();
+}
+
+function paintSalonStripe() {
+  const host = $('stripeCard');
+  const s = salonStripe || {};
+  // A plain link, not a fetch: Stripe's sign-in is a page of its own, and
+  // the session cookie rides along to /api/staff/stripe and back.
+  const go = '<a class="btn sst-go" id="sstGo" href="/api/staff/stripe?start=1">Connect with <b>Stripe</b></a>';
+  if (!s.connected) {
+    host.innerHTML = `${SST_HEAD}
+      <div class="sst-row">
+        <div class="sst-who"><span class="sst-mark" aria-hidden="true">S</span>
+          <span><b>Not connected</b><small>Sign in to the salon's Stripe account, or make one. It takes a few minutes.</small></span></div>
+        <div class="sst-acts">${s.configured ? go : '<span class="chip">Coming soon</span>'}</div>
+      </div>
+      <p class="small muted sst-note">${s.configured
+        ? 'Stripe opens its own page. Connecting charges nothing, and the app never sees your bank details.'
+        : 'Stripe is not set up on this site yet. Once it is, this button opens Stripe\'s sign-in.'}</p>`;
+    return;
+  }
+  const ok = s.chargesEnabled;
+  const badge = s.problem ? '<span class="chip warn">Needs attention</span>'
+    : ok ? '<span class="chip ok">Connected</span>'
+      : '<span class="chip warn">Finish setup in Stripe</span>';
+  const when = s.connectedAt ? fmtWhen(s.connectedAt, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  const by = [when && `Connected ${when}`, s.connectedBy && `by ${s.connectedBy}`, s.livemode === false && '(test mode)']
+    .filter(Boolean).join(' ');
+  host.innerHTML = `${SST_HEAD}
+    <div class="sst-row">
+      <div class="sst-who"><span class="sst-mark" aria-hidden="true">S</span>
+        <span><b>${esc(s.name || 'Stripe account')}</b><small>${esc([s.email, by].filter(Boolean).join(' · '))}</small></span></div>
+      <div class="sst-acts">${badge}
+        <button type="button" class="btn quiet sm" id="sstOff">Disconnect</button></div>
+    </div>
+    ${s.problem ? `<p class="small sst-note">${esc(s.problem)} Press Disconnect, then Connect with Stripe again.</p>`
+      : ok ? '' : '<p class="small sst-note">Stripe needs a few more details before this account can take payments. Sign in at stripe.com to finish.</p>'}`;
+  $('sstOff').onclick = confirmSalonStripeOff;
+}
+
+// Disconnect asks once, in place, rather than in a window.
+function confirmSalonStripeOff() {
+  const acts = $('sstOff').parentElement;
+  acts.innerHTML = `<span class="small">Disconnect the salon's Stripe?</span>
+    <button type="button" class="btn sm" id="sstOffYes">Disconnect</button>
+    <button type="button" class="btn quiet sm" id="sstOffNo">Keep</button>`;
+  $('sstOffNo').onclick = paintSalonStripe;
+  $('sstOffYes').onclick = async () => {
+    $('sstOffYes').disabled = true;
+    try {
+      salonStripe = await api('/api/staff/stripe', { method: 'POST', body: JSON.stringify({ action: 'disconnect' }) });
+      toast('The salon\'s Stripe is disconnected.');
+    } catch (err) {
+      if (err.message === 'signed out') return;
+      toast(err.message, 'bad');
+    }
+    paintSalonStripe();
+  };
+}
+
 async function renderFinance() {
   // On Money, above Subscription, since 2026-11-03 (Home before that), for
   // owners, admins and managers only; anybody else never sees the card (and
@@ -7621,6 +7717,7 @@ async function renderFinance() {
   const own = !me?.user?.canAdmin;
   host.classList.remove('hidden');
   $('subCard').classList.toggle('hidden', !me?.user?.canManageTeam);
+  renderSalonStripe();
   renderPayroll();
   const periods = [['month', 'This month'], ['last', 'Last month'], ['30', 'Last 30 days'], ['year', 'This year']];
   host.innerHTML = `
@@ -17825,9 +17922,15 @@ async function start(landing) {
   // Payroll on Money, and a fresh setup link if the old one expired.
   const fromStripe = new URLSearchParams(location.search).get('stripe');
   if (fromStripe && target === 'settings') setTab = 'payment';
+  // Back from Connect with Stripe (stripe.js): Money, and what happened.
+  const salonBack = new URLSearchParams(location.search).get('salon-stripe');
+  const salonWhy = new URLSearchParams(location.search).get('why') || '';
+  if (salonBack && target === 'settings') setTab = 'payment';
   go(target, { push: false });
   if (fromStripe === 'return') toast('Welcome back! Checking your Stripe account…');
   if (fromStripe === 'refresh') setTimeout(() => payrollLink('connect'), 400);
+  if (salonBack === 'connected') toast('Stripe is connected! The salon\'s account is linked.', 'good');
+  else if (salonBack) toast(salonWhy || 'Stripe was not connected.', salonBack === 'cancelled' ? '' : 'bad');
   document.fonts?.ready.then(() => moveRing(true));
   let flyHome = false;
   try { flyHome = sessionStorage.getItem('ss-karen-home') === '1'; } catch { /* private window */ }

@@ -37,7 +37,7 @@ import { HttpError, handler, json, readJson } from '../../_lib/http.js';
 import { chairOf, seesAll } from '../../_lib/scope.js';
 import {
   StripeError, accountLink, accountState, createAccount, createTransfer, findTransfer, getAccount, getTransfer, loginLink,
-  stripeReady,
+  payoutsOn,
 } from '../../_lib/stripe.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 
@@ -135,7 +135,7 @@ async function storedAccount(user) {
 }
 
 async function stripeOf(acctId) {
-  if (!stripeReady()) return { configured: false, connected: false, ready: false };
+  if (!payoutsOn()) return { configured: false, connected: false, ready: false };
   if (!acctId) return { configured: true, connected: false, ready: false };
   try {
     return { configured: true, ...accountState(await getAccount(acctId)) };
@@ -189,7 +189,7 @@ function said(err) {
 }
 
 async function cashOut(user, tenant, body) {
-  if (!stripeReady()) throw new HttpError(503, 'Payouts are not switched on for the salon yet.', 'NOT_CONFIGURED');
+  if (!payoutsOn()) throw new HttpError(503, 'Payouts are not switched on for the salon yet.', 'NOT_CONFIGURED');
   const { acct } = await storedAccount(user);
   if (!acct) throw new HttpError(409, 'Connect your Stripe account first, so the money has somewhere to go.', 'NO_ACCOUNT');
   const state = await stripeOf(acct);
@@ -276,7 +276,7 @@ async function cashOut(user, tenant, body) {
  * the money goes back to the balance. Run when Payroll opens.
  */
 async function settleStuck(user) {
-  if (!stripeReady()) return;
+  if (!payoutsOn()) return;
   const { rows } = await query(
     `SELECT r.id, r.amount_cents, r.created_at < now() - interval '10 minutes' AS old,
             to_jsonb(s) ->> 'stripe_account_id' AS acct
@@ -329,7 +329,7 @@ export default handler({
     const action = String(body.action || '');
 
     if (action === 'connect') {
-      if (!stripeReady()) throw new HttpError(503, 'Payouts are not switched on for the salon yet.', 'NOT_CONFIGURED');
+      if (!payoutsOn()) throw new HttpError(503, 'Payouts are not switched on for the salon yet.', 'NOT_CONFIGURED');
       let { acct, email, name } = await storedAccount(user);
       if (!acct) {
         const made = await createAccount({ email, name, staffUserId: user.id, tenantId: tenant.id })
@@ -351,7 +351,7 @@ export default handler({
 
     if (action === 'dashboard') {
       const { acct } = await storedAccount(user);
-      if (!acct || !stripeReady()) throw new HttpError(409, 'Connect your Stripe account first.');
+      if (!acct || !payoutsOn()) throw new HttpError(409, 'Connect your Stripe account first.');
       const link = await loginLink(acct).catch((err) => { throw new HttpError(502, said(err)); });
       return json(res, 200, { url: link.url });
     }

@@ -14,6 +14,10 @@
  * touching Stripe.
  */
 const API = 'https://api.stripe.com/v1';
+// Stripe Connect's sign-in ("Connect with Stripe", as Centro does it): the
+// salon's own, existing Stripe account is linked to the app's platform
+// account (2026-11-13). It answers on its own host, not the API's.
+const CONNECT = 'https://connect.stripe.com';
 
 let transport = null;
 
@@ -22,6 +26,22 @@ export function setStripeTransport(fn) { transport = fn; }
 
 export function stripeReady() {
   return Boolean(transport || process.env.STRIPE_SECRET_KEY);
+}
+
+/**
+ * Payroll's payouts, kept off until Synergy App 2.0 (Luis, 2026-11-13).
+ * STRIPE_SECRET_KEY is now the app's own platform key, there so salons can
+ * connect their Stripe; without this switch, setting it would have turned
+ * Cash Out on and paid stylists out of the platform's balance. It takes
+ * STRIPE_PAYOUTS=on as well. Tests drive payroll through a stand-in.
+ */
+export function payoutsOn() {
+  return Boolean(transport) || (Boolean(process.env.STRIPE_SECRET_KEY) && process.env.STRIPE_PAYOUTS === 'on');
+}
+
+/** "Connect with Stripe" needs the platform's key and its Connect client id (ca_...). */
+export function connectReady() {
+  return Boolean(transport) || Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_CLIENT_ID);
 }
 
 /** Stripe's form encoding, nested keys included (capabilities[transfers][requested]). */
@@ -45,14 +65,22 @@ export class StripeError extends Error {
   }
 }
 
-async function call(method, path, params = null, { idempotencyKey = null } = {}) {
+/**
+ * One request. `connect` sends it to Stripe Connect's host (the stand-in
+ * sees the path as `connect:/oauth/token`); `account` makes it on a
+ * connected account's behalf (the Stripe-Account header), which is how the
+ * salon's own cards and charges will live in the salon's own Stripe.
+ */
+async function call(method, path, params = null, { idempotencyKey = null, connect = false, account = null } = {}) {
   const headers = {};
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
-  if (transport) return transport(method, path, params, headers);
+  if (account) headers['Stripe-Account'] = account;
+  if (transport) return transport(method, connect ? `connect:${path}` : path, params, headers);
   const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new StripeError('Payouts are not switched on yet.', { code: 'not_configured' });
+  if (!key) throw new StripeError('Stripe is not set up on this site yet.', { code: 'not_configured' });
+  const base = connect ? CONNECT : API;
   const body = params && method !== 'GET' ? encode(params) : null;
-  const url = params && method === 'GET' ? `${API}${path}?${encode(params)}` : `${API}${path}`;
+  const url = params && method === 'GET' ? `${base}${path}?${encode(params)}` : `${base}${path}`;
   const res = await fetch(url, {
     method,
     headers: {
@@ -67,6 +95,10 @@ async function call(method, path, params = null, { idempotencyKey = null } = {})
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const e = data.error || {};
+    // Connect's sign-in answers errors as { error: 'invalid_grant', error_description }.
+    if (typeof data.error === 'string') {
+      throw new StripeError(data.error_description || `Stripe answered ${res.status}.`, { status: res.status, code: data.error });
+    }
     throw new StripeError(e.message || `Stripe answered ${res.status}.`, { status: res.status, code: e.code || null, type: e.type || null });
   }
   return data;
@@ -139,5 +171,55 @@ export function accountState(acct) {
     needsInfo: !ready,
     // "Chase ••••6789": enough to know where the money goes, nothing more.
     bank: bank ? `${bank.bank_name || (bank.object === 'card' ? bank.brand : 'Bank')} ••••${bank.last4}` : null,
+  };
+}
+
+// ── The salon's own Stripe, linked by "Connect with Stripe" ──────────────
+
+/**
+ * Stripe's own sign-in page, where the owner signs in to the salon's
+ * existing Stripe account (or makes one) and approves the link. `state` is
+ * signed by the caller and comes back unchanged; `redirectUri` must be one
+ * listed in the platform's Connect settings, or Stripe refuses it.
+ */
+export function connectUrl({ state, redirectUri, email }) {
+  const q = new URLSearchParams({
+    response_type: 'code',
+    client_id: process.env.STRIPE_CLIENT_ID || 'ca_test',
+    scope: 'read_write',
+    state,
+    redirect_uri: redirectUri,
+  });
+  if (email) q.set('stripe_user[email]', email);
+  return `${CONNECT}/oauth/authorize?${q}`;
+}
+
+/**
+ * The code Stripe sent back, swapped for the linked account's id. Stripe
+ * also returns keys for that account; they are not kept: the platform's own
+ * key with the account's id (Stripe-Account) does everything the app needs.
+ */
+export async function exchangeConnectCode(code) {
+  const t = await call('POST', '/oauth/token', { grant_type: 'authorization_code', code }, { connect: true });
+  if (!t?.stripe_user_id) throw new StripeError('Stripe did not say which account was connected.', { code: 'no_account' });
+  return { account: t.stripe_user_id, livemode: Boolean(t.livemode) };
+}
+
+/** Unlinks the salon's account from the platform (Disconnect). */
+export function deauthorizeAccount(account) {
+  return call('POST', '/oauth/deauthorize', {
+    client_id: process.env.STRIPE_CLIENT_ID || 'ca_test', stripe_user_id: account,
+  }, { connect: true });
+}
+
+/** What Settings shows about the salon's account: its name, and whether it can take payments. */
+export function salonAccountState(acct) {
+  if (!acct) return null;
+  const bp = acct.business_profile || {};
+  return {
+    name: acct.settings?.dashboard?.display_name || bp.name || acct.email || null,
+    email: acct.email || null,
+    chargesEnabled: Boolean(acct.charges_enabled),
+    detailsSubmitted: Boolean(acct.details_submitted),
   };
 }
