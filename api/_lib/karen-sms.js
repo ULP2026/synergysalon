@@ -37,6 +37,7 @@ import { createBooking } from './booking.js';
 import { ONLINE_BOOKING } from './config.js';
 import { EXCLUSION_VIOLATION, query, transaction } from './db.js';
 import { sendCancellation, sendConfirmation, sendKarenAlert, sendReschedule } from './email.js';
+import { emailProblem } from './email-check.js';
 import { mirrorToGoogle } from './google-mirror.js';
 import { canManageTeam } from './auth.js';
 import { aiReply, karenAi } from './karen-ai.js';
@@ -839,6 +840,10 @@ async function deskBook(ctx, service, p) {
     if (!own[0]) return { say: 'You have no chair to book into yet, so I can\'t book this one. The salon owner can set that up.', state: {} };
     p = { ...p, stylist: own[0].slug };
   }
+  // clientFor checked it when proposed; checked again here, since what
+  // carries it out is the proposal as stored.
+  const slip = p.email ? emailProblem(p.email) : null;
+  if (slip) return { say: `I didn't book it: ${slip} Send me the right address, or just their phone number, and I'll set it up again.`, state: {} };
   let appt;
   try {
     appt = await inTx(ctx.db, (client) => createBooking(client, tenant, {
@@ -876,6 +881,10 @@ async function deskBook(ctx, service, p) {
  */
 export async function clientFor(ctx, { name, phone, email }) {
   const cleanEmail = String(email || '').trim().toLowerCase();
+  // The same check as the desk's (email-check.js, 2026-11-12): a typed slip
+  // is put back to the team member before anything is proposed.
+  const slip = cleanEmail ? emailProblem(cleanEmail) : null;
+  if (slip) return { error: `${slip} Ask them for the right address, or propose again with just their phone number.` };
   const cleanPhone = phoneKey(phone || '') ? prettyPhone(phoneKey(phone)) : '';
   if (cleanEmail || cleanPhone) return { contactId: null, phone: cleanPhone, email: cleanEmail };
   const { rows } = await ctx.db.query(
@@ -891,6 +900,22 @@ export async function clientFor(ctx, { name, phone, email }) {
 
 async function bookIt(ctx, service, start, name, { stylistSlug = null, offerAgain = true } = {}) {
   const { tenant, who, key } = ctx;
+  // The confirmation goes to the email on file, else the one they wrote
+  // from, whichever can receive mail (email-check.js, 2026-11-12). An online
+  // booking must carry an email (the database refuses one without), so with
+  // neither Karen says why and sends them to the salon: before, a slip like
+  // "gmail.conm" was booked and "sent", and no email at all was a bare error.
+  const onFile = String(who.email || '').trim().toLowerCase();
+  const guestEmail = [onFile, String(ctx.email || '').trim().toLowerCase()].find((e) => e && !emailProblem(e)) || '';
+  if (!guestEmail) {
+    const phone = tenant.phone ? ` at ${prettyPhone(tenant.phone) || tenant.phone}` : '';
+    return {
+      say: onFile
+        ? `I couldn't book that yet: the email we have for you, ${onFile}, doesn't look right, and your confirmation goes there. Please call the salon${phone} and they'll book you and fix it.`
+        : `I couldn't book that yet: there's no email on file for your confirmation. Please call the salon${phone} and they'll book you.`,
+      state: {},
+    };
+  }
   let appt;
   try {
     appt = await inTx(ctx.db, (client) => createBooking(client, tenant, {
@@ -898,7 +923,7 @@ async function bookIt(ctx, service, start, name, { stylistSlug = null, offerAgai
       stylistSlug,
       start,
       guestName: name,
-      guestEmail: who.email || ctx.email || '',
+      guestEmail,
       guestPhone: byEmail(ctx) ? (who.phone || '') : (prettyPhone(key) || ''),
       contactId: who.kind === 'client' ? who.id : null,
       notes: byEmail(ctx) ? 'Booked by email with Karen.' : 'Booked by text with Karen.',

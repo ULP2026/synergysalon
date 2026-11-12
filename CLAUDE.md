@@ -265,6 +265,16 @@ never hear a word; Book Me Now then answers 400 with the reason, which
 the adapter passes through `ss-bk-result` as `error` and the popup shows
 on step 6 instead of "We couldn't reach the salon" (all nine pages).
 `tests/email-check.test.js`, `tests/email-check.integration.test.js`.
+**Karen's bookings too** (2026-11-12, karen-sms.js): a team member's typed
+client email is checked in `clientFor` (the model is told the slip and asks
+again) and again in `deskBook`; a client's own booking (`bookIt`) goes to
+the email on file, else the one they wrote from, whichever passes, and
+with neither Karen says why and sends them to the salon, since an online
+booking must carry an email (`appointments_check1`). Before, "gmail.conm"
+on file was booked to, and a client with no email at all hit a bare
+database error. `tests/karen-email-check.integration.test.js`.
+The provider slips include gmail, yahoo, hotmail, outlook, icloud and aol
+on .co, .cm and .om, generated, since those endings are real.
 Still owed: Sent History showing Failed when the provider bounces an
 address after sending (needs Resend's bounce webhook).
 

@@ -24,18 +24,20 @@ const COMMON_ENDINGS = ['com', 'net', 'org', 'edu', 'gov', 'us', 'co', 'io', 'in
  * alone lets them through.
  */
 const SLIPS = {
-  'gmail.co': 'gmail.com', 'gmail.cm': 'gmail.com', 'gmail.om': 'gmail.com', 'gmial.com': 'gmail.com',
-  'gmai.com': 'gmail.com', 'gmal.com': 'gmail.com', 'gamil.com': 'gmail.com', 'gnail.com': 'gmail.com',
-  'gmaill.com': 'gmail.com', 'gmaul.com': 'gmail.com', 'gmeil.com': 'gmail.com', 'gmil.com': 'gmail.com',
-  'gmali.com': 'gmail.com',
-  'yahoo.co': 'yahoo.com', 'yaho.com': 'yahoo.com', 'yahooo.com': 'yahoo.com', 'yhoo.com': 'yahoo.com',
-  'yahho.com': 'yahoo.com', 'tahoo.com': 'yahoo.com',
-  'hotmail.co': 'hotmail.com', 'hotmial.com': 'hotmail.com', 'hotmal.com': 'hotmail.com',
-  'hotmai.com': 'hotmail.com', 'hotmil.com': 'hotmail.com', 'hotmaill.com': 'hotmail.com',
-  'hotnail.com': 'hotmail.com',
-  'outlook.co': 'outlook.com', 'outlok.com': 'outlook.com', 'outllok.com': 'outlook.com', 'outloo.com': 'outlook.com',
-  'icloud.co': 'icloud.com', 'iclod.com': 'icloud.com', 'icoud.com': 'icloud.com', 'icluod.com': 'icloud.com',
-  'aol.co': 'aol.com',
+  // The big providers on the country endings a slip lands on: Colombia (.co),
+  // Cameroon (.cm) and Oman (.om) are real, so the ending check lets them by
+  // (yahoo.cm and friends got through until QC found them, 2026-11-12).
+  ...Object.fromEntries(['gmail', 'yahoo', 'hotmail', 'outlook', 'icloud', 'aol']
+    .flatMap((p) => ['co', 'cm', 'om'].map((e) => [`${p}.${e}`, `${p}.com`]))),
+  'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gmal.com': 'gmail.com', 'gamil.com': 'gmail.com',
+  'gnail.com': 'gmail.com', 'gmaill.com': 'gmail.com', 'gmaul.com': 'gmail.com', 'gmeil.com': 'gmail.com',
+  'gmil.com': 'gmail.com', 'gmali.com': 'gmail.com',
+  'yaho.com': 'yahoo.com', 'yahooo.com': 'yahoo.com', 'yhoo.com': 'yahoo.com', 'yahho.com': 'yahoo.com',
+  'tahoo.com': 'yahoo.com',
+  'hotmial.com': 'hotmail.com', 'hotmal.com': 'hotmail.com', 'hotmai.com': 'hotmail.com', 'hotmil.com': 'hotmail.com',
+  'hotmaill.com': 'hotmail.com', 'hotnail.com': 'hotmail.com',
+  'outlok.com': 'outlook.com', 'outllok.com': 'outlook.com', 'outloo.com': 'outlook.com',
+  'iclod.com': 'icloud.com', 'icoud.com': 'icloud.com', 'icluod.com': 'icloud.com',
 };
 
 /** Edits between two short strings, a swap of neighbours counting as one ("cmo" for "com"). */

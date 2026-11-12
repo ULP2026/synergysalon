@@ -29,6 +29,14 @@ test('the big providers\' usual slips are caught', () => {
   assert.match(emailProblem('maria@gmial.com'), /Did you mean maria@gmail\.com\?/);
   assert.match(emailProblem('maria@hotmial.com'), /Did you mean maria@hotmail\.com\?/);
   assert.match(emailProblem('maria@yahooo.com'), /Did you mean maria@yahoo\.com\?/);
+  // On real country endings, so only the provider list catches them (QC, 2026-11-12).
+  for (const [slip, right] of [['yahoo.cm', 'yahoo.com'], ['hotmail.cm', 'hotmail.com'], ['outlook.cm', 'outlook.com'],
+    ['aol.cm', 'aol.com'], ['icloud.om', 'icloud.com'], ['gmail.om', 'gmail.com'], ['aol.co', 'aol.com']]) {
+    assert.match(emailProblem(`maria@${slip}`), new RegExp(`Did you mean maria@${right.replace('.', '\\.')}\\?`), slip);
+  }
+  // A real address on those endings is not a provider slip.
+  assert.equal(emailProblem('maria@empresa.co'), null);
+  assert.equal(emailProblem('maria@company.cm'), null);
 });
 
 test('not the shape of an address at all', () => {
