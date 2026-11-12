@@ -3101,6 +3101,25 @@
     .grn .grn-item, .grn .grn-item.icon-only { padding: 9px 9px; }
     .grn .grn-pill { gap: 2px; padding: 8px 6px; }
   }
+  /* The menu 15% bigger on a phone (Luis, 2026-11-13): icons 19 to 22px and
+     every button, the bar's padding and the gaps scaled with them, measured
+     before and after at 360, 390 and 600px. The ring stays 2px outside the
+     current button as it was (top and bottom follow the bar's padding).
+     Scoped to .grn and after the rules above, so it wins at each width. */
+  @media (max-width: 639px) {
+    .grn .grn-ic { width: 22px; height: 22px; }
+    .grn .grn-pill { gap: 7px; padding: 9.5px 11.5px; }
+    .grn .grn-ring { top: 7.5px; bottom: 7.5px; }
+    .grn .grn-item { padding: 11.5px 23px; }
+    .grn .grn-item.icon-only { padding: 11.5px 16px; }
+  }
+  @media (max-width: 420px) {
+    .grn .grn-item, .grn .grn-item.icon-only { padding: 10px 12.5px; }
+  }
+  @media (max-width: 389px) {
+    .grn .grn-pill { gap: 2px; padding: 9.5px 7px; }
+    .grn .grn-item, .grn .grn-item.icon-only { padding: 10px; }
+  }
   .grn-me .me-pic { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; flex: none; background: var(--peri-pale);
                     box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(205, 196, 246, .9); }
   .grn-me .me-pic img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
