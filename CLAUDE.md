@@ -725,6 +725,20 @@ made that way are real: name them ZZ and remove them.
   opacity .9, and only the page's one primary carries `--cta-glow` (capped at
   RocketOS's gold-glow strength). Ambient page light stays at about 5%.
 
+- **Karen** ("Call Karen", every page) is a scripted chat, not a language
+  model, so her "permissions" are what the script offers and what the server
+  allows. Since 2026-11-12 she does the work herself instead of pointing at
+  the screens: books, **cancels an appointment** (any staff login, as the
+  Appt. Book card's Cancel), and, for owners, admins and managers only
+  (`me.user.canAdmin`, the server's `CAN_DELETE`), **deletes a ticket** or
+  **deletes a client**. Typed ("delete ticket K7M2PQ", "cancel Jane's
+  appointment", "delete client Jane Doe") or from the menu chips. She finds
+  the client by name or the ticket by reference, shows it, and asks "Delete
+  this ticket? Yes / No" (or "Cancel this appointment?", or "Delete <name>?
+  This can't be undone") before calling the same endpoints as the screens.
+  Anyone else asking to delete is told only those roles can; the server
+  refuses them regardless. `tests/karen-actions-ui.test.js` pins this.
+
 ## Small screens
 
 Checked on 2026-10-22 at 375, 390, 768 and 1440px against the real console

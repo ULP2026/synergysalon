@@ -7048,6 +7048,12 @@ $('karenForm').onsubmit = (e) => {
   const ask = karenAsk;
   const moved = () => { $('karenChips').innerHTML = ''; karenAsk = null; };
   if (/^(start over|restart|reset|start again|new booking|from the top)\b/.test(t)) { kStart(); return; }
+  // Cancel or delete, asked for at any point: before kControl, which would
+  // otherwise read "cancel Jane's appointment" as "stop this booking".
+  // Yes or No to a cancel or delete goes to that question first, so "cancel
+  // it" or "yes, delete the ticket" answers it instead of starting over.
+  if (ask?.key === 'jobconfirm' && (KAREN_YES.test(t) || KAREN_NO.test(t))) { moved(); ask.fn(t, raw); return; }
+  if (kJobFrom(t, raw)) { moved(); return; }
   // Things said at any point that are not answers: back, cancel, wait, thanks.
   const control = kControl(t, ask);
   if (control === 'moved') { moved(); return; }
@@ -7162,8 +7168,10 @@ function kParseTime(t, strict = false) {
 function kControl(t, ask) {
   if (/^(back|go back|previous|undo|oops)\b|\bgo back\b|\bprevious (question|step)\b/.test(t)) { kBack(ask?.key); return 'moved'; }
   if (/^(cancel|stop|never ?mind|forget it|quit|exit)\b/.test(t) && !karen.done) {
+    const wasJob = karen.job;
     kReset();
-    kSay("<p>No problem, I've stopped that booking. Is there anything else I can help with?</p>");
+    kSay(wasJob ? "<p>No problem, I've left everything as it was. Is there anything else I can help with?</p>"
+      : "<p>No problem, I've stopped that booking. Is there anything else I can help with?</p>");
     kMenu();
     return 'moved';
   }
@@ -7232,6 +7240,7 @@ function kAside(t, ask) {
 
 /** One step back: undo the last answer and ask its question again. */
 function kBack(key) {
+  if (karen.job) { kJobStop(); return; }
   const undo = {
     service: () => { karen.kind = null; },
     extras: () => {
@@ -7263,6 +7272,7 @@ function kReset() {
     kind: null, svc: null, extras: [], extrasAsked: false, multi: false, pendingKinds: [],
     stylist: null, date: null, time: null, wantTime: null,
     name: '', phone: null, email: null, days: null, daysKey: '', done: false,
+    job: null,   // 'cancel' | 'ticket' | 'client' while cancelling or deleting
   };
 }
 
@@ -7288,9 +7298,15 @@ function kMenu() {
     { label: 'Help me book an appointment', solid: true, run: kBook },
     { label: 'What services do you offer?', run: kServices },
     { label: 'Who can I book with?', run: kTeam },
+    { label: 'Cancel an appointment', run: () => kJob('cancel') },
+    // Offered only to those the server lets delete; it refuses anyone else.
+    ...(kCanDelete() ? [
+      { label: 'Delete a ticket', run: () => kJob('ticket') },
+      { label: 'Delete a client', run: () => kJob('client') },
+    ] : []),
   ], (t) => {
     if (/^(hi|hey|hello|yo|good (morning|afternoon|evening))\b/.test(t) && t.split(/\s+/).length <= 3) {
-      kSay('<p>Hi there! I can book an appointment, or tell you about our services and team.</p>');
+      kSay(`<p>Hi there! I can book or cancel an appointment${kCanDelete() ? ', delete a ticket or a client' : ''}, or tell you about our services and team.</p>`);
       return 'keep';
     }
     if (/servic|offer|menu/.test(t) && !/book/.test(t)) { kServices(); return true; }
@@ -7778,6 +7794,271 @@ function kTeam() {
     if (/\b(yes|book|ok|sure)\b/.test(t) || kFindStylist(t) || kFindServices(t).length || kFindKind(t)) { kBookFrom(t); return true; }
     return false;
   }, 'Say "book" to start, or tap an option below.', 'menu');
+}
+
+// ── cancel and delete, on request ────────────────────────────────────────
+//
+// Karen does these herself rather than pointing at the Appt. Book card or
+// the client's profile (asked for 2026-11-12). She calls the same endpoints
+// those screens call, so the server's rules stand whatever the chat offers:
+// cancelling is open to any staff login, as the card's Cancel button is;
+// deleting a ticket or a client is for owners, admins and managers
+// (CAN_DELETE in appointment.js and contacts.js, me.user.canAdmin here).
+// Every one asks first, with Yes and No, because none can be taken back
+// from the chat.
+
+const KAREN_JOBS = {
+  cancel: { ask: 'Cancel this appointment?', done: 'cancelled' },
+  ticket: { ask: 'Delete this ticket?', done: 'deleted' },
+  client: { ask: '', done: 'deleted' },
+};
+const KAREN_YES = /^(y|yes|yep|yeah|yup|sure|ok|okay|confirm|do it|go ahead|please do|delete( it)?|cancel it)\b/;
+const KAREN_NO = /^(n|no|nope|nah|don'?t|keep( it)?|leave it|not now)\b/;
+const kCanDelete = () => Boolean(me?.user?.canAdmin);
+
+/** A ticket reference in what was typed: six of newRef's characters, with a digit or in capitals. */
+function kFindRef(raw) {
+  for (const w of String(raw).match(/\b[0-9A-Za-z]{6}\b/g) || []) {
+    const up = w.toUpperCase();
+    if ([...up].every((ch) => '23456789BCDFGHJKLMNPQRSTVWXYZ'.includes(ch)) && (/\d/.test(w) || w === up)) return up;
+  }
+  return null;
+}
+
+/** "cancel Jane Doe's appointment" -> "Jane Doe": what is left once the command is taken out. */
+function kJobName(raw, ref) {
+  let s = String(raw);
+  if (ref) s = s.replace(new RegExp(`\\b${ref}\\b`, 'i'), ' ');
+  s = s.replace(/['’]s\b/g, ' ')
+    .replace(/\b(please|pls|can|could|would|will|you|karen|i|want|need|to|go|ahead|and|cancel|delete|remove|erase|get|rid|of|the|a|an|this|that|their|his|her|my|appointments?|appts?|bookings?|tickets?|visits?|clients?|customers?|contacts?|records?|profiles?|for|with|named|called|ref(erence)?|number|#)\b/gi, ' ')
+    .replace(/[^\p{L}\p{N}' .-]/gu, ' ').replace(/\s+/g, ' ').trim();
+  return s.length >= 2 ? s : '';
+}
+
+/** Whether this message asks to cancel or delete something, and if so, start on it. */
+function kJobFrom(t, raw) {
+  const ref = kFindRef(raw);
+  const appt = /\b(appointments?|appts?|bookings?|tickets?|visits?)\b/;
+  const client = /\b(clients?|customers?|contacts?|records?|profiles?)\b/;
+  let job = null;
+  if (/\b(delete|remove|erase|get rid of)\b/.test(t)) {
+    if (appt.test(t) || ref) job = 'ticket';
+    else if (client.test(t)) job = 'client';
+  } else if (/\bcancel\b/.test(t) && (appt.test(t) || ref || /\bcancel\b.+\bfor\b/.test(t))) {
+    job = 'cancel';
+  }
+  if (!job) return false;
+  kJob(job, { ref: job === 'client' ? null : ref, name: kJobName(raw, ref) });
+  return true;
+}
+
+function kJobStop() {
+  kReset();
+  kSay("<p>No problem, I've left everything as it was. Anything else?</p>");
+  kMenu();
+}
+
+function kJob(job, { ref = null, name = '' } = {}) {
+  kReset();
+  if (job !== 'cancel' && !kCanDelete()) {
+    kSay(`<p>Sorry, only an owner, admin or manager can delete ${job === 'client' ? 'a client' : 'a ticket'}, `
+      + 'so I can\'t do that from your login. I can cancel an appointment instead, if that helps.</p>');
+    kMenu();
+    return;
+  }
+  karen.job = job;
+  if (ref) { kJobTicket(ref); return; }
+  if (name) { kJobFind(name); return; }
+  kJobAskWho();
+}
+
+function kJobAskWho(lead = '') {
+  const job = karen.job;
+  kSay(`<p>${lead || kPick(['Sure.', 'Of course.'])} Who is the client? Type their name${job === 'client' ? '' : ' or the ticket reference'}.</p>`);
+  kAsk([{ label: 'Never mind', run: kJobStop }], (t, raw) => {
+    const r = job !== 'client' && kFindRef(raw);
+    if (r) { kJobTicket(r); return true; }
+    const q = raw.trim();
+    if (q.length < 2) return false;
+    kJobFind(q);
+    return true;
+  }, `Type the client's name${job === 'client' ? '' : ' or the ticket reference'}.`, 'job');
+}
+
+async function kJobFind(q) {
+  const run = karenRun;
+  let list;
+  try {
+    list = (await api(`/api/staff/contacts?${new URLSearchParams({ q, limit: '6' })}`)).contacts || [];
+  } catch (err) {
+    if (run !== karenRun || err.message === 'signed out') return;
+    kSay(`<p>Sorry, I couldn't search the clients: ${esc(err.message)}</p>`);
+    kJobAskWho('Shall we try again?');
+    return;
+  }
+  if (run !== karenRun) return;
+  if (!list.length) { kJobAskWho(`I couldn't find a client called "${esc(q)}".`); return; }
+  const exact = list.filter((c) => c.name.trim().toLowerCase() === q.trim().toLowerCase());
+  if (list.length === 1 || exact.length === 1) { kJobClient(exact[0] || list[0]); return; }
+  kSay(`<p>I found a few clients matching "${esc(q)}". Which one?</p>`);
+  const label = (c) => `${c.name}${c.phone ? ` · ${c.phone}` : c.email ? ` · ${c.email}` : ''}`;
+  kAsk([...list.map((c) => ({ label: label(c), run: () => kJobClient(c) })), { label: 'None of these', run: () => kJobAskWho('Okay.') }],
+    (t) => {
+      const hit = list.filter((c) => c.name.toLowerCase() === t || label(c).toLowerCase() === t);
+      if (hit.length === 1) { kJobClient(hit[0]); return true; }
+      return false;
+    }, 'Tap the client below, or "None of these".', 'job');
+}
+
+async function kJobClient(c) {
+  const run = karenRun;
+  const job = karen.job;
+  if (job === 'client') { kJobConfirmClient(c); return; }
+  let detail;
+  try {
+    detail = await api(`/api/staff/contacts?id=${encodeURIComponent(c.id)}`);
+  } catch (err) {
+    if (run !== karenRun || err.message === 'signed out') return;
+    kSay(`<p>Sorry, I couldn't open ${esc(c.name)}: ${esc(err.message)}</p>`);
+    kJobAskWho('Shall we try again?');
+    return;
+  }
+  if (run !== karenRun) return;
+  const now = Date.now();
+  const all = detail.appointments || [];
+  // Cancelling is for what is still to come; deleting can be any ticket,
+  // the coming ones first, then the most recent.
+  const list = job === 'cancel'
+    ? all.filter((a) => a.status === 'booked' && new Date(a.startsAt) >= now)
+      .sort((x, y) => new Date(x.startsAt) - new Date(y.startsAt))
+    : [...all.filter((a) => new Date(a.startsAt) >= now).sort((x, y) => new Date(x.startsAt) - new Date(y.startsAt)),
+      ...all.filter((a) => new Date(a.startsAt) < now)];
+  if (!list.length) {
+    kSay(`<p>${esc(c.name)} has no ${job === 'cancel' ? 'upcoming appointments to cancel' : 'tickets'}.</p>`);
+    kAsk([
+      { label: 'Someone else', solid: true, run: () => kJobAskWho('Okay.') },
+      { label: 'Never mind', run: kJobStop },
+    ], null, '', 'job');
+    return;
+  }
+  if (list.length === 1) { kJobTicket(list[0].ref); return; }
+  const when = (a) => fmtWhen(a.startsAt, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const shown = list.slice(0, 6);
+  kSay(`<p>${esc(c.name)} has ${list.length} ${job === 'cancel' ? 'upcoming appointments' : 'tickets'}. Which one?</p>`);
+  kAsk([...shown.map((a) => ({ label: `${when(a)} · ${a.service}${a.status !== 'booked' ? ` (${a.status.replace('_', '-')})` : ''}`, run: () => kJobTicket(a.ref) })),
+    { label: 'Never mind', run: kJobStop }], (t, raw) => {
+    const r = kFindRef(raw);
+    if (r && list.some((a) => a.ref === r)) { kJobTicket(r); return true; }
+    return false;
+  }, 'Tap the one you mean, or type its reference.', 'job');
+}
+
+/** Show the ticket, then ask Yes or No before cancelling or deleting it. */
+async function kJobTicket(ref) {
+  const run = karenRun;
+  const job = karen.job;
+  let tk;
+  try {
+    tk = await api(`/api/staff/appointment?ref=${encodeURIComponent(ref)}`);
+  } catch (err) {
+    if (run !== karenRun || err.message === 'signed out') return;
+    kJobAskWho(/no appointment/i.test(err.message) ? `I couldn't find ticket ${esc(ref)}.` : `Sorry, I couldn't open ${esc(ref)}: ${esc(err.message)}`);
+    return;
+  }
+  if (run !== karenRun) return;
+  if (job === 'cancel' && tk.status === 'cancelled') {
+    kSay(`<p>${esc(tk.ref)} for ${esc(tk.guestName || 'that client')} is already cancelled.</p>`);
+    kAsk([{ label: 'Someone else', solid: true, run: () => kJobAskWho('Okay.') }, { label: 'Never mind', run: kJobStop }], null, '', 'job');
+    return;
+  }
+  const row = (k, v) => (v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '');
+  const card = `<div class="kd-card"><dl>${row('Reference', tk.ref)}${row('Client', tk.guestName)}${row('Service', tk.service)}`
+    + `${row('With', tk.stylist)}${row('When', `${kDate(tk.date)}, ${tk.time}`)}${row('Status', tk.status.replace('_', '-'))}</dl></div>`;
+  kSay(`${card}<p>${KAREN_JOBS[job].ask}</p>`);
+  kJobConfirm(() => kJobDoTicket(tk));
+}
+
+function kJobConfirmClient(c) {
+  kSay(`<p>Delete <b>${esc(c.name)}</b>${c.phone ? ` (${esc(c.phone)})` : ''}? This can't be undone`
+    + `${c.nextVisit ? ', and their upcoming appointments are cancelled with them' : ''}.</p>`);
+  kJobConfirm(() => kJobDoClient(c));
+}
+
+function kJobConfirm(yes) {
+  kAsk([
+    { label: 'Yes', solid: true, run: yes },
+    { label: 'No', run: kJobStop },
+  ], (t) => {
+    if (KAREN_NO.test(t)) { kJobStop(); return true; }
+    if (KAREN_YES.test(t)) { yes(); return true; }
+    return false;
+  }, 'Tap Yes or No.', 'jobconfirm');
+}
+
+/** Whatever page is open shows the change without a reload. */
+function kRefreshPage() {
+  if (page === 'appointments') refreshDiary();
+  else if (page === 'home') loadHome();
+  else if (page === 'clients') loadContacts();
+  if (person?.contact?.id && $('personDlg').open) reloadPerson();
+}
+
+function kJobAfter() {
+  kAsk([
+    { label: 'Something else', solid: true, run: kStart },
+    { label: "That's all", run: () => { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); kAsk([{ label: 'Close', run: () => closeDialog($('karenDlg')) }]); } },
+  ], (t) => {
+    if (/\b(no|that'?s all|done|bye|close)\b/.test(t)) { kSay("<p>Happy to help! I'm here whenever you need me.</p>"); return 'keep'; }
+    return false;
+  }, 'Tap "Something else", or "That\'s all".', 'done');
+}
+
+function kJobFailed(err, retry) {
+  kSay(`<p>Sorry, that didn't go through: ${esc(err.message)}</p>`);
+  kAsk([{ label: 'Try again', solid: true, run: retry }, { label: 'Never mind', run: kJobStop }], null, '', 'job');
+}
+
+async function kJobDoTicket(tk) {
+  const run = karenRun;
+  const job = karen.job;
+  const action = job === 'cancel' ? 'cancel' : 'delete';
+  kSay(job === 'cancel' ? '<p>Cancelling it now…</p>' : '<p>Deleting it now…</p>');
+  try {
+    await api('/api/staff/appointment', { method: 'POST', body: JSON.stringify({ ref: tk.ref, action }) });
+  } catch (err) {
+    if (run !== karenRun || err.message === 'signed out') return;
+    kJobFailed(err, () => kJobDoTicket(tk));
+    return;
+  }
+  if (run !== karenRun) return;
+  karen.done = true;
+  kSay(`<p class="kd-ok"><svg class="ic"><use href="#i-check"/></svg>Done. ${esc(tk.ref)} for ${esc(tk.guestName || 'the client')} is ${KAREN_JOBS[job].done}.</p>`
+    + (job === 'cancel' ? `<p>The time is free again${tk.guestEmail ? `, and ${esc(tk.guestEmail)} is being emailed that it's cancelled` : ''}.</p>` : ''));
+  toast(job === 'cancel' ? `Appointment ${tk.ref} cancelled.` : `Appointment ${tk.ref} deleted.`);
+  kRefreshPage();
+  kJobAfter();
+}
+
+async function kJobDoClient(c) {
+  const run = karenRun;
+  kSay('<p>Deleting them now…</p>');
+  let r;
+  try {
+    r = await api('/api/staff/contacts', { method: 'DELETE', body: JSON.stringify({ id: c.id }) });
+  } catch (err) {
+    if (run !== karenRun || err.message === 'signed out') return;
+    kJobFailed(err, () => kJobDoClient(c));
+    return;
+  }
+  if (run !== karenRun) return;
+  karen.done = true;
+  const n = Number(r?.cancelled) || 0;
+  kSay(`<p class="kd-ok"><svg class="ic"><use href="#i-check"/></svg>Done. ${esc(c.name)} is deleted.</p>`
+    + (n ? `<p>Their ${n === 1 ? 'upcoming appointment was' : `${n} upcoming appointments were`} cancelled, and the times are free again.</p>` : ''));
+  toast(`${c.name} was deleted.`);
+  if (person?.contact?.id === c.id && $('personDlg').open) closeDialog($('personDlg'));
+  kRefreshPage();
+  kJobAfter();
 }
 
 $('karenBtnPic').src = KAREN_PIC;
