@@ -1352,12 +1352,12 @@ made that way are real: name them ZZ and remove them.
   **Every email the app sends** (booking confirmation, reminder, reschedule,
   cancellation and the team welcome) comes from `noreply@synergysalon.com`
   (`SENDER` in `email.js`, `FROM_EMAIL` overrides), asked for 2026-10-15.
-  The root domain is **not** verified in Resend, so until it is, Resend
-  refuses that sender and `send()` retries from `noreply@` on
-  `BOOKING_FROM_EMAIL`'s domain (`FALLBACK`, today
-  `noreply@noreply.synergysalon.com`), logging why. `BOOKING_FROM_EMAIL` now
-  only says which domain is verified. Verify synergysalon.com in Resend and
-  the fallback stops being used.
+  The root domain **is verified** in the salon's Resend since 2026-11-12
+  (DKIM `resend._domainkey`, CNAMEs `send` and `rsend` at GoDaddy, added by
+  hand; Google's MX, SPF and DMARC on `@` untouched), so mail goes out from
+  it. If Resend ever refuses that sender, `send()` still retries from
+  `noreply@` on `BOOKING_FROM_EMAIL`'s domain (`FALLBACK`,
+  `noreply@noreply.synergysalon.com`, also still verified), logging why.
   Replies go to `shopFrom().replyTo` (`admin@synergysalon.com` since
   2026-11-06, asked for; `hair@synergysalon.com` before), which is a
   different address on purpose and not a Resend domain.
@@ -1387,9 +1387,10 @@ made that way are real: name them ZZ and remove them.
   `karen_threads` under `email:<address>`, `KAREN_EMAIL_PROMPT`), and a YES
   on the first line of a reply carries out what she proposed, as by text.
   The signature is added by code. She sends as the inbox
-  (`sendKarenEmail`), which needs the root domain verified in Resend;
-  until then Resend refuses it and she sends from the fallback with
-  Reply-To the inbox. Settings, Karen AI, Email Inbox (the admin only)
+  (`sendKarenEmail`), from admin@synergysalon.com since the root domain
+  was verified (2026-11-12, checked live: signed-by synergysalon.com,
+  inbox not spam); if Resend refused it she would send from the fallback
+  with Reply-To the inbox. Settings, Karen AI, Email Inbox (the admin only)
   lists it all, with the switch (`tenants.karen_email_on`).
 - Appt. Book shows only appointments of a client who still exists (since
   2026-10-31, `ct.id IS NOT NULL` in `diary.js`): deleting a client
