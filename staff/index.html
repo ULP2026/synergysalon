@@ -1675,7 +1675,12 @@
   /* The details scroll; the header and the actions stay in view. */
   dialog.tkt { max-width: 560px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
   dialog.tkt[open] { display: flex; flex-direction: column; }
-  .tkt-body { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -6px 14px; padding: 0 6px; }
+  /* Sized from its content and allowed to shrink, never from a zero basis:
+     flex: 1 (a 0% basis) in a window with only a max-height collapsed to
+     nothing in older iPhone Safari (Luis, 2026-11-13), leaving the name and
+     Delete Ticket with nothing between them. */
+  .tkt-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0 -6px 14px; padding: 0 6px; }
+  dialog.tkt > .ad-mini, dialog.tkt > .tkt-div, dialog.tkt > .ad-head { flex: none; }
   .tkt-sec { margin: 0 0 14px; }
   .tkt-h { margin: 0 0 8px; font-size: var(--fs-xs); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .tkt-scroll { overflow-x: auto; }
@@ -5359,9 +5364,12 @@
     <div style="flex:1;min-width:0"><h2 id="adName"></h2><div class="chips" id="adChips" style="margin-top:4px"></div></div>
     <button type="button" class="iconbtn lg" id="adClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
+  <!-- The actions sit above the scrolling part (Luis, 2026-11-13): on his
+       iPhone the ticket showed only the name, the chip and Delete Ticket,
+       with Check in and No Show squeezed out with the details. -->
+  <div class="ad-mini" id="adMini"></div>
+  <hr class="tkt-div" id="adDiv">
   <div class="tkt-body">
-    <div class="ad-mini" id="adMini"></div>
-    <hr class="tkt-div" id="adDiv">
     <dl class="ad-dl" id="adBody"></dl>
     <section class="tkt-sec" aria-labelledby="adLinesH"><h3 class="tkt-h" id="adLinesH">Services</h3><div id="adLines"></div></section>
     <section class="tkt-sec" aria-labelledby="adPayH"><h3 class="tkt-h" id="adPayH">Payment</h3><div id="adPay"></div></section>
