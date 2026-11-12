@@ -330,7 +330,7 @@ export async function history(tenant, cursor, { kind = null, q = null, chair = n
   const { rows } = await query(
     `SELECT m.id, m.kind, m.to_name, m.to_email, m.sent_at, m.sent_at::text AS at, a.ref,
             to_jsonb(m) ->> 'subject' AS subject,
-            COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status
+            COALESCE(to_jsonb(m) ->> 'status', 'sent') AS status, to_jsonb(m) ->> 'error' AS error
        FROM message_sends m
        LEFT JOIN appointments a ON a.id = m.appointment_id
        LEFT JOIN contacts c ON c.id = COALESCE((to_jsonb(m) ->> 'contact_id')::uuid, a.contact_id)
@@ -358,6 +358,8 @@ export async function history(tenant, cursor, { kind = null, q = null, chair = n
       subject: r.subject || null,
       // A send the provider refused is on the log too (037), marked.
       status: r.status === 'failed' ? 'failed' : 'sent',
+      // Why it failed (refused, or bounced later: email-bounce.js), on hover.
+      error: r.status === 'failed' ? (r.error || null) : null,
     })),
     next: rows.length > HISTORY_PAGE && last ? `${last.at}|${last.id}` : null,
   };

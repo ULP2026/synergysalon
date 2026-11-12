@@ -2339,12 +2339,14 @@
               background: linear-gradient(var(--card), var(--card)) padding-box,
                           conic-gradient(from var(--kd-a), #6f7bd8, #e07ac4, #4fc0cc, #9aa3f0, #6f7bd8) border-box;
               /* A slow, soft opening (Rec 3e, Luis's Oct 21 recording; 2026-11-12):
-                 0.7s rising from a little lower and smaller, where every other
-                 window takes 0.22s. Closing stays quick (dialog.closing). */
-              animation: kd-open .7s cubic-bezier(.16, 1, .3, 1), kd-spin 6s linear infinite, kd-glow 6s ease-in-out infinite; }
+                 0.8s rising from a little lower and smaller, where every other
+                 window takes 0.22s. A plain ease, not a snappy out-curve: that
+                 measured as done by 0.25s and read as no change. Closing stays
+                 quick (dialog.closing). */
+              animation: kd-open .8s ease, kd-spin 6s linear infinite, kd-glow 6s ease-in-out infinite; }
   @keyframes kd-open { from { opacity: 0; transform: translateY(28px) scale(.92); filter: blur(4px); }
                        60% { opacity: 1; filter: blur(0); } }
-  dialog.kd[open]::backdrop { animation: fade .6s var(--ease); }
+  dialog.kd[open]::backdrop { animation: fade .7s ease; }
   @keyframes kd-spin { to { --kd-a: 360deg; } }
   @keyframes kd-glow {
     0%, 100% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 16px 1px rgba(125, 136, 214, .7), 0 0 64px 10px rgba(125, 136, 214, .55); }
@@ -7295,7 +7297,7 @@ function paintMailLog(note) {
       <button type="button" class="kc-row" role="listitem" data-sent="${esc(s.id)}" data-hxid="${esc(s.id)}" aria-label="Open the ${esc(what)} sent to ${esc(s.name)}">
         ${HX_BOX}<span class="kc-ic" aria-hidden="true">${ic(a ? a.icon : 'mail')}</span>
         <span style="min-width:0"><b>${esc(s.name)}</b><small>${esc([what, s.email].filter(Boolean).join(' · '))}</small></span>
-        <span class="kc-r">${s.status === 'failed' ? '<span class="chip warn">Failed</span>' : ''}
+        <span class="kc-r">${s.status === 'failed' ? `<span class="chip warn" title="${esc(s.error || 'Not delivered')}">Failed</span>` : ''}
           <time datetime="${esc(s.sentAt)}" title="${esc(when)}">${esc(when)}</time></span>
       </button>`;
   };

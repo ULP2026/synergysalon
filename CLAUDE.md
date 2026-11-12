@@ -2177,8 +2177,8 @@ made that way are real: name them ZZ and remove them.
   - **No "Change picture" link** under the name in the team and profile
     window (Rec 1b): the picture with its camera badge opens the same
     window.
-  - **Karen's window opens slowly** (Rec 3e): `kd-open`, 0.7s rising from
-    a little lower and smaller, the veil 0.6s; every other window still
+  - **Karen's window opens slowly** (Rec 3e): `kd-open`, 0.8s (plain ease)
+    rising from a little lower and smaller, the veil 0.7s; every other window still
     0.22s, closing still quick, none for reduced motion.
   - **A bounce turns an email Failed.** `send` in email.js keeps Resend's
     id on the logged row (`message_sends.provider_id`, 060, also in
