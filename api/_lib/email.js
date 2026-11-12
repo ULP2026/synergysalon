@@ -288,13 +288,15 @@ async function send(shop, to, subject, content) {
     html: layout(content, shop),
     text: plain(content, shop),
   };
-  let { error } = await resend.emails.send(message);
+  let { data, error } = await resend.emails.send(message);
   if (error && senderAddress(SENDER) !== FALLBACK) {
     console.warn(`Resend refused ${senderAddress(SENDER)} (${error.message}); sending from ${FALLBACK}`);
-    ({ error } = await resend.emails.send({ ...message, from: fromFor(shop, FALLBACK) }));
+    ({ data, error } = await resend.emails.send({ ...message, from: fromFor(shop, FALLBACK) }));
   }
   if (error) throw new Error(`Resend refused the message: ${error.message}`);
-  return { sent: true };
+  // Resend's id, kept on the log row so a later bounce can mark it Failed
+  // (email-bounce.js).
+  return { sent: true, id: data?.id || null };
 }
 
 /** "Maria" out of "Maria Lopez", and "there" out of nothing at all. */
@@ -540,15 +542,17 @@ export async function sendInvite({ name, email, link, appUrl, expiresDays, invit
   const shop = shopFrom(tenant);
   if (!automationOn(INVITE_KIND, tenant)) return { skipped: true, off: true };
   const { kind, app, subject, content } = inviteMessage({ name, email, link, appUrl, expiresDays, invitedBy, stage, step }, shop);
-  const log = async (status, error = null) => {
+  const log = async (status, error = null, providerId = null) => {
     if (!tenant?.id) return;
     try {
-      await query(
+      const { rows } = await query(
         `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email, subject, status, error, contact_id, body)
-         VALUES ($1::uuid, $2::text, NULL, $3::text, $4::text, $5::text, $6::text, $7::text, NULL, $8::text)`,
+         VALUES ($1::uuid, $2::text, NULL, $3::text, $4::text, $5::text, $6::text, $7::text, NULL, $8::text)
+         RETURNING id`,
         [tenant.id, kind, name || null, email, subject, status, error ? String(error).slice(0, 500) : null,
           JSON.stringify({ name, email, appUrl: app, expiresDays, invitedBy: invitedBy || null, stage, step })],
       );
+      await keepProviderId(rows[0]?.id, providerId);
     } catch (err) {
       console.warn('message_sends insert failed', kind, err.message);
     }
@@ -560,7 +564,7 @@ export async function sendInvite({ name, email, link, appUrl, expiresDays, invit
     await log('failed', err.message);
     throw err;
   }
-  if (out.sent) await log('sent');
+  if (out.sent) await log('sent', null, out.id);
   return { ...out, kind };
 }
 
@@ -969,6 +973,17 @@ export function automationOn(kind, tenant = {}) {
 }
 
 /**
+ * Resend's id on a logged row (060), so its bounce webhook finds it. Its own
+ * statement after the insert, best-effort: a database without 060 keeps
+ * logging exactly as before.
+ */
+async function keepProviderId(rowId, providerId) {
+  if (!rowId || !providerId) return;
+  await query('UPDATE message_sends SET provider_id = $2::text WHERE id = $1', [rowId, providerId])
+    .catch((err) => { if (err.code !== '42703') console.warn('message_sends provider id', err.message); });
+}
+
+/**
  * Write down that a guest was emailed.
  *
  * Best-effort, like the sending itself: the message has already left, and
@@ -978,19 +993,21 @@ export function automationOn(kind, tenant = {}) {
  * which is deliberate -- the feature is a count on a page, and it is not
  * worth taking the booking path down for.
  */
-async function record(kind, appt, tenant, { subject = null, status = 'sent', error = null } = {}) {
+async function record(kind, appt, tenant, { subject = null, status = 'sent', error = null, providerId = null } = {}) {
   if (!tenant?.id) return;
   const base = [tenant.id, kind, appt.id ?? null, appt.guest_name ?? null, appt.guest_email];
   try {
     // With its subject, whether it went, and the client (037), so their
     // Activity lists every email they were sent, failed ones included.
-    await query(
+    const { rows } = await query(
       `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email,
                                   subject, status, error, contact_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-               COALESCE($9::uuid, (SELECT contact_id FROM appointments WHERE id = $3::uuid)))`,
+               COALESCE($9::uuid, (SELECT contact_id FROM appointments WHERE id = $3::uuid)))
+       RETURNING id`,
       [...base, subject, status, error ? String(error).slice(0, 500) : null, appt.contact_id ?? null],
     );
+    await keepProviderId(rows[0]?.id, providerId);
   } catch (err) {
     // A database without 037: the row as it was always written, for a sent
     // one (a failure was never logged before it).
@@ -1048,7 +1065,7 @@ async function sendMessage(kind, appt, tenant, extra) {
     await record(kind, appt, tenant, { subject, status: 'failed', error: err.message });
     throw err;
   }
-  if (out.sent) await record(kind, appt, tenant, { subject });
+  if (out.sent) await record(kind, appt, tenant, { subject, providerId: out.id });
   return out;
 }
 
@@ -1082,14 +1099,16 @@ export function staffEmailContent({ subject, text, toName, fromName }) {
 export async function sendStaffEmail({ to, toName, subject, text, fromName, contactId }, tenant = {}) {
   const shop = shopFrom(tenant);
   const { content } = staffEmailContent({ subject, text, toName, fromName });
-  const log = async (status, error = null) => {
+  const log = async (status, error = null, providerId = null) => {
     try {
-      await query(
+      const { rows } = await query(
         `INSERT INTO message_sends (tenant_id, kind, appointment_id, to_name, to_email, subject, status, error, contact_id, body)
-         VALUES ($1::uuid, 'direct', NULL, $2::text, $3::text, $4::text, $5::text, $6::text, $7::uuid, $8::text)`,
+         VALUES ($1::uuid, 'direct', NULL, $2::text, $3::text, $4::text, $5::text, $6::text, $7::uuid, $8::text)
+         RETURNING id`,
         [tenant.id, toName || null, to, subject, status, error ? String(error).slice(0, 500) : null, contactId || null,
           JSON.stringify({ text, fromName: fromName || null })],
       );
+      await keepProviderId(rows[0]?.id, providerId);
     } catch (err) {
       console.warn('message_sends insert failed', 'direct', err.message);
     }
@@ -1101,7 +1120,7 @@ export async function sendStaffEmail({ to, toName, subject, text, fromName, cont
     await log('failed', err.message);
     throw err;
   }
-  if (out.sent) await log('sent');
+  if (out.sent) await log('sent', null, out.id);
   return out;
 }
 

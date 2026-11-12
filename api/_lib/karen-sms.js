@@ -41,6 +41,7 @@ import { emailProblem } from './email-check.js';
 import { mirrorToGoogle } from './google-mirror.js';
 import { canManageTeam } from './auth.js';
 import { aiReply, karenAi } from './karen-ai.js';
+import { karenInstructions } from './karen-instructions.js';
 import { logKaren } from './karen-log.js';
 import { toGsm } from './sms-length.js';
 import { logClientText } from './client-texts.js';
@@ -442,7 +443,11 @@ async function facts(ctx) {
   );
   // The team books as the desk does, so online booking being paused does
   // not stop them; clients follow ONLINE_BOOKING.
-  return { services, stylists, upcoming: await upcoming(ctx), bookingOpen: ONLINE_BOOKING || ctx.who.kind === 'staff' };
+  return {
+    services, stylists, upcoming: await upcoming(ctx), bookingOpen: ONLINE_BOOKING || ctx.who.kind === 'staff',
+    // The owner's notes for her (Settings, Karen AI), after her own rules.
+    instructions: await karenInstructions(tenant.id, db),
+  };
 }
 
 async function alert(ctx, { reason, summary, transcript }) {

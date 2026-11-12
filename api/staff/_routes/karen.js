@@ -34,6 +34,7 @@ import { HttpError, handler, json, readJson } from '../../_lib/http.js';
 import { karenAi } from '../../_lib/karen-ai.js';
 import { confirm, dropProposal, propose } from '../../_lib/karen-actions.js';
 import { karenCalls } from '../../_lib/karen-calls.js';
+import { KAREN_INSTRUCTIONS_MAX, cleanInstructions } from '../../_lib/karen-instructions.js';
 import { emailLastReceived, emailThread, emailThreads } from '../../_lib/karen-email.js';
 import { deskReply } from '../../_lib/karen-desk.js';
 import { karenPeople, karenThread, logKaren } from '../../_lib/karen-log.js';
@@ -42,7 +43,9 @@ import { tenantForUser } from '../../_lib/tenant.js';
 
 async function settings(req, tenantId) {
   const { rows } = await query(
-    "SELECT to_jsonb(tenants) ->> 'karen_phone' AS karen_phone, phone FROM tenants WHERE id = $1::uuid",
+    `SELECT to_jsonb(tenants) ->> 'karen_phone' AS karen_phone, phone,
+            to_jsonb(tenants) ->> 'karen_instructions' AS karen_instructions
+       FROM tenants WHERE id = $1::uuid`,
     [tenantId],
   );
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
@@ -51,6 +54,9 @@ async function settings(req, tenantId) {
     phone: rows[0]?.karen_phone || '',
     pretty: prettyPhone(rows[0]?.karen_phone),
     salonPhone: rows[0]?.phone || '',
+    // Karen's special instructions (Rec 2e): the owner's notes she reads.
+    instructions: cleanInstructions(rows[0]?.karen_instructions),
+    instructionsMax: KAREN_INSTRUCTIONS_MAX,
     // Texts are answered only once the provider's token is in Vercel, which
     // is what proves a text really came from that number.
     texting: Boolean(process.env.TWILIO_AUTH_TOKEN),
@@ -217,6 +223,19 @@ export default handler({
       }
       await query('UPDATE tenants SET karen_email_on = $2 WHERE id = $1::uuid', [tenant.id, body.emailOn]);
       return json(res, 200, { on: body.emailOn });
+    }
+    // Karen's special instructions (Rec 2e, 2026-11-12). Owner and admins
+    // only, like the rest of this PATCH; empty clears them.
+    if (typeof body.instructions === 'string') {
+      if (body.instructions.trim().length > KAREN_INSTRUCTIONS_MAX) {
+        throw new HttpError(400, `Keep Karen's instructions under ${KAREN_INSTRUCTIONS_MAX} characters.`);
+      }
+      if (!await hasColumn('tenants', 'karen_instructions')) {
+        throw new HttpError(409, "Karen's instructions are not switched on for this salon yet.", 'NOT_MIGRATED');
+      }
+      await query('UPDATE tenants SET karen_instructions = $2 WHERE id = $1::uuid',
+        [tenant.id, cleanInstructions(body.instructions) || null]);
+      return json(res, 200, await settings(req, tenant.id));
     }
     const raw = typeof body.phone === 'string' ? body.phone.trim() : '';
     const key = phoneKey(raw);

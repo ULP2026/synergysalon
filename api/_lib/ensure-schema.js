@@ -438,6 +438,11 @@ ON CONFLICT DO NOTHING`,
   `CREATE UNIQUE INDEX IF NOT EXISTS email_messages_one_answer ON email_messages (answers) WHERE answers IS NOT NULL`,
   `CREATE INDEX IF NOT EXISTS email_messages_thread ON email_messages (thread_id, created_at)`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS karen_email_on boolean NOT NULL DEFAULT true`,
+  // 059: Karen's special instructions, written by the owner on Settings, Karen AI.
+  'ALTER TABLE tenants ADD COLUMN IF NOT EXISTS karen_instructions text',
+  // 060: Resend's id on each logged email, so a bounce turns it Failed.
+  'ALTER TABLE message_sends ADD COLUMN IF NOT EXISTS provider_id text',
+  'CREATE INDEX IF NOT EXISTS message_sends_provider ON message_sends (provider_id) WHERE provider_id IS NOT NULL',
   // 061: the salon's own Stripe, linked by "Connect with Stripe".
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_account_id text`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_livemode boolean`,

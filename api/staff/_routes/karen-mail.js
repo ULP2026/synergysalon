@@ -10,10 +10,12 @@
  * app look at mail Resend really received for this account. Its signature
  * would need the raw body, which Vercel has usually parsed by now.
  *
- * In Resend: Webhooks, Add endpoint, this address, event email.received.
+ * In Resend: Webhooks, Add endpoint, this address, events email.received
+ * and email.bounced (the second marks the email Failed, email-bounce.js).
  * Answered after the work is done, so a failure is a 500 and Resend tries
  * again; a retry of one already handled is a duplicate and does nothing.
  */
+import { BOUNCE_EVENTS, handleBounce } from '../../_lib/email-bounce.js';
 import { json, readJson } from '../../_lib/http.js';
 import { fetchReceived, handleEmail, normalize, tenantForEmail } from '../../_lib/karen-email.js';
 
@@ -21,6 +23,16 @@ export default async function karenMail(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
   let event;
   try { event = await readJson(req); } catch { return json(res, 400, { error: 'Expected JSON.' }); }
+  // A bounce turns the logged email Failed (email-bounce.js), on the same
+  // endpoint: tick email.bounced on this webhook in Resend.
+  if (BOUNCE_EVENTS.has(event?.type)) {
+    try {
+      return json(res, 200, await handleBounce(event));
+    } catch (err) {
+      console.error('bounce failed', event.data?.email_id, err.message);
+      return json(res, 500, { error: 'Could not check that bounce yet.' });
+    }
+  }
   if (event?.type !== 'email.received') return json(res, 200, { ignored: true });
   const id = event.data?.email_id || event.data?.id;
   try {

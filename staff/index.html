@@ -2338,7 +2338,13 @@
               border: 3px solid transparent;
               background: linear-gradient(var(--card), var(--card)) padding-box,
                           conic-gradient(from var(--kd-a), #6f7bd8, #e07ac4, #4fc0cc, #9aa3f0, #6f7bd8) border-box;
-              animation: dlg-zoom .22s var(--ease), kd-spin 6s linear infinite, kd-glow 6s ease-in-out infinite; }
+              /* A slow, soft opening (Rec 3e, Luis's Oct 21 recording; 2026-11-12):
+                 0.7s rising from a little lower and smaller, where every other
+                 window takes 0.22s. Closing stays quick (dialog.closing). */
+              animation: kd-open .7s cubic-bezier(.16, 1, .3, 1), kd-spin 6s linear infinite, kd-glow 6s ease-in-out infinite; }
+  @keyframes kd-open { from { opacity: 0; transform: translateY(28px) scale(.92); filter: blur(4px); }
+                       60% { opacity: 1; filter: blur(0); } }
+  dialog.kd[open]::backdrop { animation: fade .6s var(--ease); }
   @keyframes kd-spin { to { --kd-a: 360deg; } }
   @keyframes kd-glow {
     0%, 100% { box-shadow: 0 24px 60px -24px rgba(20, 20, 60, .45), 0 0 16px 1px rgba(125, 136, 214, .7), 0 0 64px 10px rgba(125, 136, 214, .55); }
@@ -2403,6 +2409,10 @@
   .kd-chip:focus-visible, .kd-send:focus-visible { outline: 2px solid var(--periwinkle); outline-offset: 2px; }
   .kd-kept { margin: 0; padding: 0 14px 10px; background: var(--card); font-size: .7rem; color: var(--faint); text-align: center; }
   .ka-sec.kh { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .ka-sec.ka-ins { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
+  #kaInsText { width: 100%; min-height: 112px; resize: vertical; font: inherit; line-height: 1.45; }
+  .ka-ins-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+  .ka-ins-act { display: inline-flex; align-items: center; gap: 12px; margin-left: auto; }
   /* Message History: the people on the left, a conversation on the right;
      on a phone, one then the other. */
   /* A set height with one row that may shrink (minmax(0, 1fr)), so each side
@@ -2543,7 +2553,7 @@
   @media (max-width: 520px) {
     dialog.kd { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; border-radius: 0; }
   }
-  @media (prefers-reduced-motion: reduce) { .kd-msg, .kd-chip, dialog.kd, .kd-head { animation: none; } .kd-typing i { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .kd-msg, .kd-chip, dialog.kd, .kd-head, dialog.kd[open]::backdrop { animation: none; } .kd-typing i { animation: none; } }
 
   .ka-sec h3 { margin: 6px 0 12px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
   .ka-num { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px;
@@ -4659,6 +4669,25 @@
             tomorrow?"). A call is greeted and put through to the salon.
           </p>
         </section>
+        <!-- Special instructions for Karen (Rec 2e, Luis's Oct 21 recording;
+             2026-11-12): the owner's notes, read into every one of her
+             prompts (by text, email and in the app) after her own rules.
+             Everybody reads them; the owner and admins change them. -->
+        <section class="ka-sec ka-ins" id="kaIns">
+          <h3>Special Instructions for Karen</h3>
+          <p class="small muted" style="margin:0 0 10px;max-width:62ch">
+            Tell Karen anything about the salon she should know when she talks to clients and the team.
+            She reads it before every reply, by text, by email and here in the app. It can't change her
+            rules: she still asks before booking, moving or cancelling, and never makes up prices.
+          </p>
+          <textarea id="kaInsText" rows="5" maxlength="2000" aria-label="Special instructions for Karen"
+            placeholder="For example: Ask new clients how they heard about us. Suggest a consultation before corrective color."></textarea>
+          <div class="ka-ins-foot">
+            <span id="kaInsNote" class="small muted"></span>
+            <span class="ka-ins-act"><span id="kaInsCount" class="small muted"></span>
+              <button type="button" class="btn primary" id="kaInsSave">Save instructions</button></span>
+          </div>
+        </section>
         <!-- Message History (asked for 2026-10-31): Karen's inbox, the
              owner's only. Everyone on the team who has talked to her, in the
              app or by text, and each one's whole conversation. -->
@@ -4934,7 +4963,9 @@
             aria-label="Username" pattern="@?[A-Za-z0-9._\-]{3,32}" title="3 to 32 letters, numbers, dots, dashes or underscores"></div>
           <button type="button" class="md-pen" data-edit="username" aria-label="Edit username" title="Edit username"><svg class="ic"><use href="#i-edit"/></svg></button>
         </div>
-        <div class="links"><button type="button" id="memberPicPick">Change picture</button></div>
+        <!-- No "Change picture" link under the name (Rec 1b, Luis's Oct 21
+             recording; removed 2026-11-12): the picture itself, with its
+             camera badge, opens the same window. -->
       </div>
     </header>
     <div class="md-body">
@@ -5820,7 +5851,7 @@ const I18N_ES = {
   'Chat History': 'Historial de chats', 'Email Inbox': 'Bandeja de correo', 'Call History': 'Historial de llamadas', 'Sent History': 'Historial de envíos',
   'Who this automation emailed and texted, newest first.': 'A quién envió esta automatización correos y textos, del más reciente al más antiguo.',
   'Billing': 'Facturación', 'Payroll': 'Nómina', 'Coming soon': 'Próximamente', 'Coming Soon': 'Próximamente',
-  'Phone Number Settings': 'Configuración del número', "Karen's number": 'Número de Karen', 'Message History': 'Historial de mensajes',
+  'Phone Number Settings': 'Configuración del número', 'Special Instructions for Karen': 'Instrucciones especiales para Karen', 'Save instructions': 'Guardar instrucciones', 'The salon owner writes these.': 'Las escribe el dueño del salón.', "Karen's number": 'Número de Karen', 'Message History': 'Historial de mensajes',
   'Personal information': 'Información personal', 'Role': 'Rol', 'Connect your tools': 'Conecta tus herramientas',
   'Services & pricing': 'Servicios y precios', 'Working hours': 'Horario de trabajo', 'Available Hours': 'Horario disponible', 'Special Instructions When Booking Clients': 'Instrucciones especiales al reservar clientes', 'Change picture': 'Cambiar foto',
   'Upload a photo': 'Subir una foto', 'Choose an avatar': 'Elegir un avatar', 'Remove picture': 'Quitar foto',
@@ -14771,7 +14802,6 @@ async function openMember(who) {
   }
   $('memberNotes').disabled = Boolean(viewOnly);
   $('memberPic').disabled = Boolean(viewOnly || noLogin);
-  $('memberPicPick').classList.toggle('hidden', Boolean(viewOnly || noLogin));
 
   $('memberCreate').classList.toggle('hidden', Boolean(m));
   // No password field to require any more: a new member chooses their own
@@ -14865,7 +14895,6 @@ $('memberDlg').addEventListener('click', (e) => {
   input.focus();
   input.select();
 });
-$('memberPicPick').onclick = openPicDlg;
 $('picUpload').onclick = () => $('memberPicFile').click();
 $('picAvatars').onclick = () => {
   const open = $('memberAvatars').classList.toggle('hidden') === false;
@@ -16212,6 +16241,7 @@ function paintKarenNumber() {
 }
 
 function paintKarenSettings(k) {
+  paintKarenInstructions(k);
   // Saving a new number here changes the one under Call Karen at once.
   if (me?.salon) { me.salon.karenPhone = k.pretty || ''; paintKarenNumber(); }
   $('kaNumber').innerHTML = k.pretty ? `<a href="tel:${esc(k.phone)}">${esc(k.pretty)}</a>` : 'No number connected yet';
@@ -16220,6 +16250,37 @@ function paintKarenSettings(k) {
     : k.texting ? 'Connected: Karen answers texts and calls to this number.'
     : 'Saved. Karen starts answering once TWILIO_AUTH_TOKEN is added in Vercel.';
 }
+
+/**
+ * Special Instructions for Karen (Rec 2e, 2026-11-12). The owner and admins
+ * write them (PATCH /api/staff/karen {instructions}); anyone else reads them
+ * greyed. Saved only on the button, since every word goes into her prompt.
+ */
+function paintKarenInstructions(k) {
+  const box = $('kaInsText');
+  const max = k.instructionsMax || 2000;
+  box.maxLength = max;
+  if (document.activeElement !== box) box.value = k.instructions || '';
+  box.disabled = Boolean(k.readOnly);
+  $('kaInsSave').hidden = Boolean(k.readOnly);
+  $('kaInsNote').textContent = k.readOnly ? 'The salon owner writes these.' : '';
+  const count = () => { $('kaInsCount').textContent = `${box.value.length} / ${max}`; };
+  box.oninput = count;
+  count();
+}
+$('kaInsSave').onclick = async () => {
+  const btn = $('kaInsSave');
+  btn.disabled = true;
+  try {
+    paintKarenInstructions(await api('/api/staff/karen', { method: 'PATCH', body: JSON.stringify({ instructions: $('kaInsText').value }) }));
+    $('kaInsText').value = $('kaInsText').value.trim();
+    markSaved(btn);
+  } catch (err) {
+    if (err.message !== 'signed out') toast(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+};
 
 // ── Appearance ───────────────────────────────────────────────────────────
 //

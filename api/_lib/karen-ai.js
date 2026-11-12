@@ -28,6 +28,7 @@
  * rather than imported, because that file calls this one.
  */
 import { hoursLines } from './hours.js';
+import { instructionsBlock } from './karen-instructions.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { DateTime } from 'luxon';
 
@@ -381,6 +382,7 @@ export async function aiReply(ctx, st, deps, client) {
   const system = [
     { type: 'text', text: ctx.channel === 'email' ? EMAIL : STATIC, cache_control: { type: 'ephemeral' } },
     { type: 'text', text: details(ctx, info, { ...state, pending: st.pending || null }) },
+    ...[instructionsBlock(info.instructions)].filter(Boolean),
   ];
 
   for (let round = 0; round < ROUNDS; round += 1) {

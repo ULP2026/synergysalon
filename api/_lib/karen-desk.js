@@ -33,6 +33,7 @@ import { CLIENT_PRICES, ONLINE_BOOKING } from './config.js';
 import { pool, query } from './db.js';
 import { GOOGLE_CONNECTED_SQL } from './google-busy.js';
 import { KAREN_MODEL, KAREN_PERSONALITY } from './karen-ai.js';
+import { instructionsBlock, karenInstructions } from './karen-instructions.js';
 import { APP_GUIDE } from './karen-knowledge.js';
 import { assertClientInChair, chairIds, chairOf, clientInChairSql } from './scope.js';
 import { flexLunchOn } from './timing.js';
@@ -517,6 +518,8 @@ export async function deskReply(ctx, client, db = null) {
   const system = [
     { type: 'text', text: STATIC, cache_control: { type: 'ephemeral' } },
     { type: 'text', text: details },
+    // The owner's notes for her (Settings, Karen AI), after her own rules.
+    ...[instructionsBlock(await karenInstructions(tenant.id, { query: q }))].filter(Boolean),
   ];
 
   for (let round = 0; round < ROUNDS; round += 1) {

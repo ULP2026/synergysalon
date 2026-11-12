@@ -2163,6 +2163,33 @@ made that way are real: name them ZZ and remove them.
   start, carries the new name. The survey, both label maps, the pages'
   menus, the Treatments page's heading and the service lists say it too.
 
+- **Step 1 leftovers and bounces** (2026-11-12, from Luis's Oct 21
+  recordings and QC 90140280925611):
+  - **Special Instructions for Karen** (Rec 2e): a box on Settings, Karen
+    AI under her number, `tenants.karen_instructions` (059, also in
+    ensure-schema), 2,000 characters, `GET`/`PATCH /api/staff/karen
+    {instructions}` (the owner and admins write, everyone reads greyed).
+    `karen-instructions.js` puts it into every Karen's prompt after her
+    own rules (by text and email through `facts` in karen-sms.js, in the
+    app in karen-desk.js), framed as notes that cannot change them: she
+    still only proposes, times come from the diary, no prices.
+    `tests/karen-instructions.integration.test.js`.
+  - **No "Change picture" link** under the name in the team and profile
+    window (Rec 1b): the picture with its camera badge opens the same
+    window.
+  - **Karen's window opens slowly** (Rec 3e): `kd-open`, 0.7s rising from
+    a little lower and smaller, the veil 0.6s; every other window still
+    0.22s, closing still quick, none for reduced motion.
+  - **A bounce turns an email Failed.** `send` in email.js keeps Resend's
+    id on the logged row (`message_sends.provider_id`, 060, also in
+    ensure-schema) and `/api/staff/karen-mail` also takes `email.bounced`
+    (`email-bounce.js`): it asks Resend for that email and marks the row
+    Failed, with the bounce reason, only if Resend says bounced, failed or
+    suppressed, so a forged call cannot fail a delivered email. Needs
+    email.bounced ticked on the Resend webhook. Emails sent before this
+    have no id and stay as they were.
+    `tests/email-bounce.integration.test.js`.
+
 ## Small screens
 
 Checked on 2026-10-22 at 375, 390, 768 and 1440px against the real console
