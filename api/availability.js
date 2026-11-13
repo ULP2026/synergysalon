@@ -32,7 +32,7 @@ export default handler({
 
     const client = await pool().connect();
     try {
-      const { service, visit, stylists, days } = await availableSlots(client, tenant, {
+      const { service, visit, stylists, days, open } = await availableSlots(client, tenant, {
         serviceSlug, stylistSlug, extraServiceSlugs, fromDate: from, toDate: to,
         centro: false,   // our own hours, not a third party's
         google: true,    // what a guest is offered leaves out Google busy time
@@ -51,6 +51,11 @@ export default handler({
         days: days.map((d) => ({
           date: d.date,
           slots: d.slots.map(({ start, stylists: who }) => ({ start, stylists: who })),
+          // The working day, as minutes from midnight on the salon's clock
+          // (2026-11-13): the survey draws that day as a column, greys the
+          // times that are taken, and shows where the visit would fall.
+          // Hours only, never who or what fills them.
+          open: open[d.date] || null,
         })),
       });
     } finally {

@@ -104,7 +104,31 @@
     + '.bk-cal { margin-bottom: 1rem; }'
     + '.bk-done-actions > a, .bk-done-actions > button { white-space: nowrap; }'
     + '@media (max-width: 640px) { .bk-done-actions { flex-wrap: nowrap; width: 100%; }'
-    + ' .bk-done-actions > a, .bk-done-actions > button { flex: 1 1 0; min-width: 0; justify-content: center; } }';
+    + ' .bk-done-actions > a, .bk-done-actions > button { flex: 1 1 0; min-width: 0; justify-content: center; } }'
+    // Service details as big buttons, laid out like the first step's (Luis,
+    // 2026-11-13): one full-width row each, as tall as "What brings you in?".
+    + '.bk-group .bk-grid { grid-template-columns: 1fr; gap: .5rem; }'
+    + '.bk-group .bk-opt { min-height: 4rem; padding: .75rem 1rem; }'
+    // Availability (Luis, 2026-11-13): the calendar on the left and the day
+    // as one column on the right, taken times greyed, and a small bar of the
+    // day showing where the visit falls. Stacked on a phone.
+    + '.bk-modal .bk-time[data-ss-taken] { text-decoration: none; background: #f1f1f4; color: #b4b4bd; }'
+    + '.ss-daypv { margin: .5rem 0 0; }'
+    + '.ss-daypv-t { display: block; font-size: .8125rem; font-weight: 600; color: #1E1F5C; margin-bottom: .375rem; }'
+    + '.ss-daypv-bar { position: relative; display: block; height: .5rem; border-radius: 99px; background: #e9eaf3; overflow: hidden; }'
+    + '.ss-daypv-bar i { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: #5560A6; }'
+    + '.ss-daypv-x { display: flex; justify-content: space-between; font-size: .6875rem; color: #5b5b6b; margin-top: .25rem; }'
+    + '@media (min-width: 720px) {'
+    + ' .bk-panel:has(.bk-cal) { max-width: 46rem; }'
+    + ' .bk-step:has(> .bk-cal) { display: grid; grid-template-columns: minmax(0, 1fr) 13rem; column-gap: 1.25rem; align-items: start; }'
+    + ' .bk-step:has(> .bk-cal) > * { grid-column: 1 / -1; }'
+    + ' .bk-step:has(> .bk-cal) > .bk-cal { grid-column: 1; grid-row: 3 / span 4; margin-bottom: 0; }'
+    + ' .bk-step:has(> .bk-cal) > .bk-mini, .bk-step:has(> .bk-cal) > .ss-daypv,'
+    + ' .bk-step:has(> .bk-cal) > .bk-times, .bk-step:has(> .bk-cal) > .bk-empty { grid-column: 2; margin-top: 1.25rem; }'
+    + ' .bk-step:has(> .bk-cal) > .ss-daypv, .bk-step:has(> .bk-cal) > .bk-times { margin-top: .5rem; }'
+    + ' .bk-modal .bk-step:has(> .bk-cal) > .bk-times { grid-template-columns: 1fr; gap: .375rem; max-height: 22rem; overflow-y: auto; padding-right: .25rem; }'
+    + ' .bk-modal .bk-step:has(> .bk-cal) .bk-time { min-height: 2.5rem; }'
+    + '}';
   setInterval(function () {
     if (!document.head || document.getElementById('ss-bk-polish')) return;
     var st = document.createElement('style');
@@ -293,7 +317,7 @@
     'tami vomaro': 'tami', 'kim batarlis': 'kim'
   };
 
-  var avail = { key: '', days: null, loading: false };
+  var avail = { key: '', days: null, loading: false, open: {}, dur: 0 };
 
   function primaryService(a) {
     var list = (a || current()).services;
@@ -367,7 +391,11 @@
         avail.key = key;
         avail.note = d.note || '';
         avail.days = {};
+        // The working day and the visit's length, for the day column.
+        avail.open = {};
+        avail.dur = (d.service && d.service.durationMin) || 0;
         d.days.forEach(function (day) {
+          if (day.open) avail.open[day.date] = day.open;
           avail.days[day.date] = day.slots.map(function (s) {
             // Render each free slot the way the wizard writes its own labels,
             // so they can be compared as text without parsing either side.
@@ -443,17 +471,61 @@
     var iso2 = current().dateISO;
     if (iso2) {
       var free = avail.days[iso2] || [];
+      var win = avail.open[iso2];
       document.querySelectorAll('.bk-modal .bk-time').forEach(function (b) {
         var label = text(b).replace(/\s+/g, ' ').toUpperCase();
-        // Hidden, not crossed out: the survey offers a wide grid and only
-        // the times the Synergy Calendar can honour are shown.
         if (free.indexOf(label) === -1) {
           b.disabled = true;
           b.setAttribute('data-ss-taken', '1');
-          b.style.display = 'none';
+          // The day as a column (Luis, 2026-11-13): a time inside the
+          // stylist's hours that is taken stays, greyed, saying nothing about
+          // why; one outside their hours is not part of the day at all.
+          var m = minutesOf(label);
+          var inDay = win && m != null && m >= win[0] && m < win[1];
+          b.style.display = inDay ? '' : 'none';
         }
       });
+      dayPreview(iso2, win);
     }
+  }
+
+  // "1:30 PM" as minutes from midnight, or null.
+  function minutesOf(label) {
+    var t = /^(\d{1,2}):(\d{2})\s*([AP])M$/.exec(String(label).trim().toUpperCase());
+    if (!t) return null;
+    return (Number(t[1]) % 12 + (t[3] === 'P' ? 12 : 0)) * 60 + Number(t[2]);
+  }
+  function clockOf(m) {
+    var h = Math.floor(m / 60), mm = m % 60;
+    return ((h + 11) % 12 + 1) + (mm ? ':' + String(mm).padStart(2, '0') : '') + (h < 12 ? 'a' : 'p');
+  }
+
+  // A small bar of the working day under the date, with the guest's visit on
+  // it once they pick a time (Luis, 2026-11-13: "a very small preview of where
+  // in the day their appointment is going to fall"). Redrawn with the step.
+  function dayPreview(iso, win) {
+    var mini = document.querySelector('.bk-modal .bk-mini');
+    var bar = document.querySelector('.bk-modal .ss-daypv');
+    if (!mini || !win || !(win[1] > win[0])) { if (bar) bar.remove(); return; }
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'ss-daypv';
+      mini.insertAdjacentElement('afterend', bar);
+    }
+    var a = current();
+    var start = a.dateISO === iso ? minutesOf(a.time) : null;
+    var span = win[1] - win[0];
+    var block = '';
+    var say = 'Pick a time to see where it falls in the day.';
+    if (start != null && avail.dur) {
+      var from = Math.max(0, start - win[0]), len = Math.min(avail.dur, win[1] - start);
+      block = '<i style="left:' + (from / span * 100).toFixed(2) + '%;width:' + Math.max(2, len / span * 100).toFixed(2) + '%"></i>';
+      say = 'Your visit: ' + clockOf(start) + ' to ' + clockOf(start + avail.dur);
+    }
+    var html = '<span class="ss-daypv-t">' + say + '</span>'
+      + '<span class="ss-daypv-bar" aria-hidden="true">' + block + '</span>'
+      + '<span class="ss-daypv-x" aria-hidden="true"><span>' + clockOf(win[0]) + '</span><span>' + clockOf(win[1]) + '</span></span>';
+    if (bar.innerHTML !== html) bar.innerHTML = html;
   }
 
   var syncing = false;
@@ -472,6 +544,17 @@
   // again. That is how the survey went on showing its own made-up times.
   new MutationObserver(syncAvailability)
     .observe(document, { childList: true, subtree: true });
+
+  // Picking a time only changes the button's class, which the observer above
+  // does not see, so the day bar is redrawn from the tap itself, once the
+  // survey has published the new time.
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest || !e.target.closest('.bk-modal .bk-time')) return;
+    setTimeout(function () {
+      var iso = current().dateISO;
+      if (iso && avail.days) dayPreview(iso, avail.open[iso]);
+    }, 80);
+  }, true);
 })();
 </script>
 <!-- ss-seo:start -->
