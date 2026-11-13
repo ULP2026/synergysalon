@@ -5777,7 +5777,7 @@ const I18N_ES = {
   'Salon Appts. Today': 'Citas de hoy en el salón', 'Salon Appt. Today': 'Cita de hoy en el salón',
   'My Appts. Today': 'Mis citas de hoy', 'My Appt. Today': 'Mi cita de hoy',
   'Clients Served': 'Clientes atendidos', 'Client Served': 'Cliente atendido',
-  'Coming up': 'Próximas citas', 'See all appointments': 'Ver todas las citas', 'First visit': 'Primera visita',
+  'Coming up': 'Próximas citas', 'See all appointments': 'Ver todas las citas', 'First visit': 'Primera visita', 'New client': 'Cliente nuevo',
   'Customize': 'Personalizar', 'Customize Dashboard': 'Personalizar Panel', 'Customizing Dashboard': 'Personalizando Panel',
   'Add widget': 'Agregar widget', 'Add a widget': 'Agregar un widget', 'Reset': 'Restablecer',
   'Booked ahead': 'Reservado por adelantado', 'Appointments on each of the next 14 days.': 'Citas en cada uno de los próximos 14 días.',
@@ -5792,7 +5792,7 @@ const I18N_ES = {
   // New bookings on Home (2026-11-11).
   'New bookings': 'Reservas nuevas', 'This week': 'Esta semana', 'Website': 'Sitio web', 'Returning': 'Recurrente',
   'new booking': 'reserva nueva', 'new bookings': 'reservas nuevas',
-  'first-time client': 'cliente nuevo', 'first-time clients': 'clientes nuevos',
+  'first-time client': 'cliente nuevo', 'first-time clients': 'clientes nuevos', 'new client': 'cliente nuevo', 'new clients': 'clientes nuevos',
   'Reload the page to see new bookings.': 'Recarga la página para ver las reservas nuevas.',
   // 2026-11-05: Appt. Book's Week, Payroll and Need Help?.
   'Total hours': 'Horas totales', 'A week, after the lunch break': 'Por semana, sin el almuerzo',
@@ -8475,13 +8475,13 @@ function bookingsCard(h, w) {
         <li><b>${c.website}</b><span>Website</span></li>
         <li><b>${c.karen}</b><span>Karen</span></li>
         <li><b>${c.desk}</b><span>Front desk</span></li>
-        <li class="nb-first"><b>${c.first}</b><span>${c.first === 1 ? 'first-time client' : 'first-time clients'}</span></li>
+        <li class="nb-first"><b>${c.first}</b><span>${c.first === 1 ? 'new client' : 'new clients'}</span></li>
       </ul>
     </div>`;
   const list = items.length ? `<ul class="coming nb-list">${items.map((a) => `
     <li><button type="button" data-date="${esc(a.date)}" data-ref="${esc(a.ref)}" aria-label="${esc(`${a.guestName}, ${a.when}`)}">
       <span class="cu-main">
-        <span class="nb-tags"><span class="cu-tag${a.firstVisit ? ' first' : ''}">${a.firstVisit ? 'First visit' : 'Returning'}</span><span class="nb-from">${esc(NB_FROM[a.from] || 'Website')}</span></span>
+        <span class="nb-tags"><span class="cu-tag${a.firstVisit ? ' first' : ''}">${a.firstVisit ? 'New client' : 'Returning'}</span><span class="nb-from">${esc(NB_FROM[a.from] || 'Website')}</span></span>
         <b class="cu-name">${esc(a.guestName)}</b>
         <span class="cu-what">${esc(a.service)} · with ${esc(a.stylist)}</span>
         <span class="nb-made">Booked ${esc(a.booked)}</span>
@@ -8590,7 +8590,8 @@ function upcomingHtml(h) {
   }
   // One row per appointment, the reference's shape: a tag, who, what, and
   // on the right when, with a way in.
-  const tag = (a) => (a.firstVisit ? 'First visit' : a.online ? 'Online booking' : 'Booked');
+  // "New client", not "First visit" (Luis, 2026-11-13).
+  const tag = (a) => (a.firstVisit ? 'New client' : a.online ? 'Online booking' : 'Booked');
   return `<ul class="coming">${h.upcoming.map((a) => `
     <li><button type="button" data-date="${esc(a.date)}" data-ref="${esc(a.ref)}" aria-label="${esc(`${a.guestName}, ${a.when}`)}">
       <span class="cu-main">
