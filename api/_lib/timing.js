@@ -66,6 +66,12 @@ export function timingKey(service) {
  * and guessing its end would sell time the stylist does not have.
  */
 function parts(p, minBreak = 0) {
+  // "No break" (2026-11-13): one block, no processing gap, and the salon's
+  // minimum break does not apply, because the stylist said there is none.
+  if (p?.noBreak) {
+    const d = mins(p.duration, 5, 720);
+    return d ? { durationMin: d, breaks: [] } : null;
+  }
   const start = mins(p?.start, 5, 480);
   const finish = mins(p?.finish, 5, 480);
   if (start == null || finish == null) return null;
@@ -82,6 +88,11 @@ function parts(p, minBreak = 0) {
  * highlights: {...}, duration }, cuts: { duration }, ... }).
  */
 export function ownTiming(details, service) {
+  // This one service's own Start, Break and Finish, or its "No break"
+  // (2026-11-13), beat everything else: the stylist timed this service itself.
+  const item = details?.items?.[service.slug];
+  const itemParts = item && (item.noBreak || (item.start != null && item.finish != null)) ? parts(item) : null;
+  if (itemParts) return itemParts;
   const base = kindTiming(details, service);
   // This one service's own length (asked for 2026-11-02, typed beside it in
   // the team window) beats the kind's figure. A processing break of the kind

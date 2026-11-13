@@ -126,9 +126,16 @@ const minutesFrom = (v, lo, hi, what) => {
   return n;
 };
 
-/** Start, Break and Finish, or nulls; a Break needs a Start and a Finish around it. */
+/**
+ * Start, Break and Finish, or nulls; a Break needs a Start and a Finish
+ * around it. Or "No break" (Luis, 2026-11-13): one block of minutes, kept
+ * as { noBreak: true, duration }, with no processing gap in it.
+ */
 function partsFrom(p, label) {
   const src = p && typeof p === 'object' ? p : {};
+  if (src.noBreak === true) {
+    return { noBreak: true, duration: minutesFrom(src.duration, 5, 720, `${label} Minutes`) };
+  }
   const start = minutesFrom(src.start, 5, 480, `${label} Start`);
   const pause = minutesFrom(src.break, 0, 240, `${label} Break`);
   const finish = minutesFrom(src.finish, 5, 480, `${label} Finish`);
@@ -138,7 +145,8 @@ function partsFrom(p, label) {
   return { start, break: pause, finish };
 }
 
-const total = (p) => (p.start != null && p.finish != null ? p.start + (p.break || 0) + p.finish : null);
+const total = (p) => (p.noBreak ? p.duration ?? null
+  : p.start != null && p.finish != null ? p.start + (p.break || 0) + p.finish : null);
 
 /** Dollars and cents, or null for none. */
 function priceFrom(v) {
@@ -300,8 +308,9 @@ export function servicesFrom(value) {
       // The three parts are the length; a total typed beside them is not a
       // second opinion.
       duration = total(color) ?? duration;
+      // "No break" on the Color row keeps its single figure as the length.
       out[k] = {
-        on, price, duration, ...color,
+        on, price, duration: color.noBreak ? color.duration : duration, ...color,
         highlights: { ...highlights, duration: total(highlights) },
         partial: { ...partial, duration: total(partial) },
       };
@@ -328,6 +337,13 @@ export function servicesFrom(value) {
   for (const [slug, v] of Object.entries(srcItems).slice(0, 300)) {
     if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug) || !v || typeof v !== 'object') continue;
     const item = { on: v.on !== false, duration: minutesFrom(v.duration, 5, 720, 'A service duration') };
+    // A color service's own Start, Break and Finish, or its "No break"
+    // (Luis, 2026-11-13: every color service timed in its own three parts).
+    if (v.noBreak === true || v.start != null || v.break != null || v.finish != null) {
+      const p = partsFrom(v, 'A color service');
+      if (p.noBreak) { item.noBreak = true; item.duration = p.duration ?? item.duration; }
+      else if (p.start != null || p.finish != null) Object.assign(item, { start: p.start, break: p.break, finish: p.finish });
+    }
     // A price of its own: a stylist's own services (045) carry one, since
     // nothing else prices them. Beats the kind's price (timing.js, ownPrice).
     const price = priceFrom(v.price);

@@ -480,6 +480,8 @@ BEGIN
     UPDATE services SET active = false WHERE id = r.id;
   END LOOP;
 END $$`,
+  // 063: Biolage Highlights off the menu (2026-11-13), switched off, not deleted.
+  "UPDATE services SET active = false WHERE slug = 'biolage-highlights' AND active",
   // 061: the salon's own Stripe, linked by "Connect with Stripe".
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_account_id text`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_livemode boolean`,

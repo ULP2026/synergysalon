@@ -3345,6 +3345,13 @@
   .svc .svc-time .tr-price input { padding-right: 10px; }
   .svc .svc-time .svc-f:not(.tr-price)::after { content: "min"; position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
                                                color: var(--muted); font-size: .72rem; pointer-events: none; }
+  /* "No break" (2026-11-13): small and quiet under the name; ticked, the row
+     is one Minutes box and Break and Finish step aside. */
+  .svc .svc-time .tr { grid-template-areas: "nm st br fi tot pr" "nb . . . . ."; }
+  .svc .svc-time .tr-nb { grid-area: nb; display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 0 28px;
+                          font-size: .7rem; color: var(--muted); cursor: pointer; justify-self: start; }
+  .svc .svc-time .tr-nb input { width: 14px; height: 14px; margin: 0; }
+  .svc .svc-time .tr.nobrk [data-f=break], .svc .svc-time .tr.nobrk [data-f=finish] { visibility: hidden; }
   .svc .svc-time .tot { grid-area: tot; font-size: .82rem; font-weight: 600; color: var(--ink); text-align: right; white-space: nowrap; }
   .svc .svc-time .tot small { display: none; }
   .svc .tot-f::after { content: none; }
@@ -3354,7 +3361,9 @@
   @container (max-width: 620px) {
     .svc .svc-time .tr-h { display: none; }
     .svc .svc-time .tr { grid-template-columns: repeat(3, minmax(0, 1fr));
-                         grid-template-areas: "nm nm nm" "st br fi" "tot pr pr"; row-gap: 8px; padding: 10px; }
+                         grid-template-areas: "nm nm nm" "nb nb nb" "st br fi" "tot pr pr"; row-gap: 8px; padding: 10px; }
+    .svc .svc-time .tr-nb { margin-top: -4px; }
+    .svc .svc-time .tr.nobrk [data-f=break], .svc .svc-time .tr.nobrk [data-f=finish] { display: none; }
     .svc .svc-time .svc-f > span { position: static; width: auto; height: auto; clip: auto; display: block;
                                    font-size: .68rem; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
     .svc .svc-time [data-f=break] > span { color: var(--link); }
@@ -13968,10 +13977,13 @@ const minsLabel = (n) => (n ? `${Math.floor(n / 60) ? `${Math.floor(n / 60)}h` :
  */
 /** A dollar figure for a price box: two decimals, or empty. */
 const priceVal = (v) => (v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v).toFixed(2) : '');
-function timeRow(group, label, p = {}, on, { sub = '', svc = null, item = {}, kindPrice = null } = {}) {
-  const field = (f, name, min, max, ph) => `<label class="svc-f${f === 'break' ? ' brk' : ''}" data-f="${f}"><span>${name}</span>
-      <input type="number" min="${min}" max="${max}" step="5" inputmode="numeric" placeholder="${ph}"
-        data-t="${group}.${f}" aria-label="${esc(`${label} ${name.toLowerCase()} in minutes`)}" value="${p[f] ?? ''}" ${on ? '' : 'disabled'}></label>`;
+function timeRow(group, label, p = {}, on, { sub = '', svc = null, item = {}, kindPrice = null, ph = '30' } = {}) {
+  // "No break" (Luis, 2026-11-13): the row is one block of minutes, no
+  // processing gap; Start reads Minutes and holds the whole length.
+  const nb = Boolean(p.noBreak);
+  const field = (f, name, min, max) => `<label class="svc-f${f === 'break' ? ' brk' : ''}" data-f="${f}"><span>${name}</span>
+      <input type="number" min="${min}" max="${f === 'start' && nb ? 720 : max}" step="5" inputmode="numeric" placeholder="${ph}"
+        data-t="${group}.${f}" aria-label="${esc(`${label} ${name.toLowerCase()} in minutes`)}" value="${(f === 'start' && nb ? p.duration : p[f]) ?? ''}" ${on ? '' : 'disabled'}></label>`;
   // Partial and Full Highlights are services as well as timings (2026-11-05):
   // their row carries the service's own tick and price, read with the list's
   // (.svc-it), so they are not listed twice.
@@ -13992,14 +14004,22 @@ function timeRow(group, label, p = {}, on, { sub = '', svc = null, item = {}, ki
     : `<span class="tr-nm"><b>${esc(label)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>
        <label class="svc-f price tr-price"><span>Price</span><input type="number" min="0" max="10000" step="0.01" inputmode="decimal" placeholder="0.00"
          data-kp="${group}" aria-label="${esc(label)} price" value="${priceVal(kindPrice)}" ${on ? '' : 'disabled'}></label>`;
-  return `<div class="tr" data-group="${group}">${name}
-      ${field('start', 'Start', 5, 480, '30')}${field('break', 'Break', 0, 240, '30')}${field('finish', 'Finish', 5, 480, '30')}
+  return `<div class="tr${nb ? ' nobrk' : ''}" data-group="${group}">${name}
+      ${field('start', nb ? 'Minutes' : 'Start', 5, 480)}${field('break', 'Break', 0, 240)}${field('finish', 'Finish', 5, 480)}
+      <label class="tr-nb"><input type="checkbox" data-nb ${nb ? 'checked' : ''} ${on ? '' : 'disabled'}
+        aria-label="${esc(label)}: no break, one block of time"><span>No break</span></label>
       <span class="tot" data-tot="${group}"><small>Total</small>${minsLabel(timeTotal(p))}</span></div>`;
+}
+/** A row's figures as typed, "No break" included, for its total. */
+function trParts(tr) {
+  const p = Object.fromEntries([...tr.querySelectorAll('input[data-t]')].map((i) => [i.dataset.t.split('.')[1], i.value]));
+  return tr.querySelector('[data-nb]')?.checked ? { noBreak: true, duration: p.start } : p;
 }
 /** Partial and Full Highlights: the two services shown as Color's fields, not in its list. */
 const FIELD_SVCS = { partial: 'partial-highlights', highlights: 'full-highlights' };
 const timeTotal = (p) => {
   const n = (v) => (v === '' || v == null ? null : Number(v));
+  if (p.noBreak) return n(p.duration) || null;
   const [a, b, c] = [n(p.start), n(p.break), n(p.finish)];
   return a && c ? a + (b || 0) + c : null;
 };
@@ -14020,7 +14040,7 @@ function svcDefaultMins(row, svc) {
   const parts = (g) => {
     const tr = row.querySelector(`.tr[data-group="${g}"]`);
     if (!tr) return null;
-    return timeTotal(Object.fromEntries([...tr.querySelectorAll('input[data-t]')].map((i) => [i.dataset.t.split('.')[1], i.value])));
+    return timeTotal(trParts(tr));
   };
   if (row.dataset.svc === 'color') {
     if (/partial/i.test(svc.name) && HIGHLIGHTISH.test(svc.name)) return parts('partial') || parts('highlights') || svc.durationMin || null;
@@ -14060,18 +14080,26 @@ function paintServices(services = {}, own = []) {
     // there is kept. Partial and Full are services too: their tick and price
     // are on their row, and they are not repeated in the list below.
     const fieldSvc = (g) => list.find((x) => x.slug === FIELD_SVCS[g]) || null;
+    // Every color service in its own Start, Break and Finish (Luis,
+    // 2026-11-13), with its tick and price, under the three rows above;
+    // empty, it is timed by them as before (timing.js).
+    const colorRows = key === 'color' ? list.filter((x) => !Object.values(FIELD_SVCS).includes(x.slug))
+      .map((x) => timeRow(`svc:${x.slug}`, x.name, items[x.slug] || {}, v.on, { svc: x, item: items[x.slug] || {}, kindPrice: v.price, ph: '' }))
+      .join('') : '';
     const timing = key === 'color' ? `<div class="svc-time">
           <div class="tr-h" aria-hidden="true"><span></span><span>Start</span><span>Break</span><span>Finish</span><span>Total</span><span>Price</span></div>
-          ${timeRow('color', 'Color', v, v.on, { sub: 'Single process, gloss and corrective', kindPrice: v.price })}
+          ${timeRow('color', 'Color', v, v.on, { sub: 'For any color service below left empty', kindPrice: v.price })}
           ${timeRow('partial', 'Partial Highlights', v.partial || {}, v.on, { svc: fieldSvc('partial'), item: items[FIELD_SVCS.partial] || {}, kindPrice: v.price })}
-          ${timeRow('highlights', 'Full Highlights', v.highlights || {}, v.on, { svc: fieldSvc('highlights'), item: items[FIELD_SVCS.highlights] || {}, kindPrice: v.price, sub: 'Also times balayage and Biolage' })}
-          <p class="hint">Minutes. Break is processing time, when you are free for another client. These time any color service below that has no minutes of its own.</p>
+          ${timeRow('highlights', 'Full Highlights', v.highlights || {}, v.on, { svc: fieldSvc('highlights'), item: items[FIELD_SVCS.highlights] || {}, kindPrice: v.price })}
+          ${colorRows}
+          <p class="hint">Minutes. Break is processing time, when you are free for another client. Tick No break for a service done in one go. A service left empty is timed by the Color row (Full Highlights for balayage).</p>
         </div>` : '';
     // Each service its own price (asked for 2026-11-04: pricing sits under
     // the services, not the kind). A kind's old single price is carried into
     // every service of it that has none yet, shown here so it can be
     // changed, and saved per service from then on.
-    const rows = list.filter((x) => key !== 'color' || !Object.values(FIELD_SVCS).includes(x.slug)).map((x) => {
+    // Color's services are timed rows above now; the other kinds keep the list.
+    const rows = list.filter(() => key !== 'color').map((x) => {
       const it = items[x.slug] || {};
       const ticked = it.on !== false;
       // Color's services show the Color price as their hint, not as a
@@ -14089,7 +14117,7 @@ function paintServices(services = {}, own = []) {
         </div>`;
     }).join('');
     const body = `<div class="svc-fold"><div class="svc-bd" id="svcb-${key}"${v.on ? '' : ' inert'}>${timing}
-        ${list.length ? `<div class="svc-list">
+        ${key === 'color' ? '' : list.length ? `<div class="svc-list">
           <div class="svc-it-h"><span>Service</span><span>Price</span><span>Minutes</span></div>${rows}
           <p class="hint">${key === 'color' ? 'A service with no price of its own is booked at the Color price above.' : 'Each service has its own price.'} Untick a service this person does not do. Leave Minutes empty to use ${key === 'color' ? 'the color timing above' : "the salon's usual time"}.</p>
         </div>` : '<p class="hint">No services of this kind on the menu yet.</p>'}
@@ -14285,7 +14313,7 @@ $('memberSvcs').oninput = (e) => {
   const group = e.target.dataset.t?.split('.')[0];
   if (!group) return;
   const row = e.target.closest('.tr');
-  const p = Object.fromEntries([...row.querySelectorAll('input[data-t]')].map((i) => [i.dataset.t.split('.')[1], i.value]));
+  const p = trParts(row);
   row.querySelector('.tot').innerHTML = `<small>Total</small>${esc(minsLabel(timeTotal(p)))}`;
   if (group === 'color') {
     const tot = e.target.closest('.svc').querySelector('[data-f=total]');
@@ -14340,6 +14368,19 @@ $('memberSvcs').onclick = (e) => {
 };
 $('memberSvcs').addEventListener('change', (e) => {
   if (e.target.type !== 'checkbox') return;
+  if (e.target.matches('[data-nb]')) {
+    const tr = e.target.closest('.tr');
+    const nb = e.target.checked;
+    tr.classList.toggle('nobrk', nb);
+    const start = tr.querySelector('[data-f=start]');
+    start.querySelector('span').textContent = nb ? 'Minutes' : 'Start';
+    const input = start.querySelector('input');
+    input.max = nb ? '720' : '480';
+    // One block of the whole length: what Start, Break and Finish added up to.
+    if (nb && !input.value) { const t = timeTotal(Object.fromEntries([...tr.querySelectorAll('input[data-t]')].map((i) => [i.dataset.t.split('.')[1], i.value]))); if (t) input.value = String(t); }
+    tr.querySelector('.tot').innerHTML = `<small>Total</small>${esc(minsLabel(timeTotal(trParts(tr))))}`;
+    return;
+  }
   const it = e.target.closest('.svc-it');
   if (!it) return;
   it.classList.toggle('unticked', !e.target.checked);
@@ -14731,10 +14772,13 @@ function readServices() {
     const kept = row.dataset.dur === '' || row.dataset.dur == null ? null : num(row.dataset.dur);
     v.duration = row.dataset.svc === 'color' || !its.length ? kept : null;
     // Color: Start, Break and Finish for color, partial and full highlights.
+    const svcParts = {};
     for (const tr of row.querySelectorAll('.svc-time .tr')) {
-      const p = {};
+      let p = {};
       for (const i of tr.querySelectorAll('input[data-t]')) p[i.dataset.t.split('.')[1]] = num(i.value);
-      if (tr.dataset.group === 'color') Object.assign(v, p);
+      if (tr.querySelector('[data-nb]')?.checked) p = { noBreak: true, duration: p.start };
+      if (tr.dataset.group.startsWith('svc:')) svcParts[tr.dataset.group.slice(4)] = p;
+      else if (tr.dataset.group === 'color') Object.assign(v, p);
       else v[tr.dataset.group] = p;
     }
     out[row.dataset.svc] = v;
@@ -14745,6 +14789,8 @@ function readServices() {
         on: it.querySelector('input[type=checkbox]').checked,
         duration: num(it.querySelector('[data-it=duration]').value),
         price: num(it.querySelector('[data-it=price]').value),
+        // A color service's own Start, Break and Finish, or "No break".
+        ...(svcParts[it.dataset.item] || {}),
       };
     }
   }
