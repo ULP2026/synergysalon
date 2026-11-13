@@ -4878,6 +4878,7 @@
 
       <section class="bw-pane" data-step="service" hidden>
         <h3 class="bw-q" id="bookServiceQ">Which service?</h3>
+        <p class="bw-have" id="bookServiceHint" hidden>Choose one</p>
         <div class="bw-list" id="bookServices"></div>
         <div class="bw-visit" id="bookVisit" hidden>
           <h4 class="bw-sub">This visit</h4>
@@ -12084,6 +12085,10 @@ $('contactForm').onsubmit = async (e) => {
 const BOOK_KINDS = [['color', 'Color'], ['treatments', 'Treatments'], ['cuts', 'Cuts'], ['styling', 'Styling']];
 const bookKindOf = (s) => (BOOK_KINDS.some(([k]) => k === s.category) ? s.category : 'other');
 const bookKindLabel = (k) => (BOOK_KINDS.find(([x]) => x === k) || [k, 'Other'])[1];
+// One Color and one Cut per visit, as on the website's survey (asked for
+// 2026-11-13): picking another replaces the one before. Treatments and
+// Styling still take several.
+const BOOK_SINGLE = ['color', 'cuts'];
 const bookTimeLabel = (iso) => new Date(iso).toLocaleTimeString(LOCALE, {
   hour: 'numeric', minute: '2-digit', timeZone: me.salon.timezone,
 });
@@ -12204,6 +12209,7 @@ function paintBookKinds() {
 
 function paintBookServices() {
   $('bookServiceQ').textContent = `Which ${bookKindLabel(bookKind).toLowerCase()} service?`;
+  $('bookServiceHint').hidden = !BOOK_SINGLE.includes(bookKind);
   const taken = new Set(bookLines.map((s) => s.slug));
   const can = new Set(bookAddable().map((s) => s.slug));
   const list = me.services.filter((s) => bookKindOf(s) === bookKind && (taken.has(s.slug) || can.has(s.slug)));
@@ -12594,7 +12600,13 @@ $('bookServices').onclick = (e) => {
   if (!b) return;
   const at = bookLines.findIndex((s) => s.slug === b.dataset.service);
   const s = at < 0 && me.services.find((x) => x.slug === b.dataset.service);
+  const single = s && BOOK_SINGLE.includes(bookKindOf(s));
+  const was = single ? bookLines.findIndex((x) => bookKindOf(x) === bookKindOf(s)) : -1;
+  // Tapping the chosen Color or Cut leaves it chosen, as on the website;
+  // the X on the visit's line still takes it off.
+  if (at >= 0 && BOOK_SINGLE.includes(bookKindOf(bookLines[at]))) return;
   if (at >= 0) bookLines.splice(at, 1);
+  else if (was >= 0) bookLines.splice(was, 1, s);   // in its place, so the visit's order holds
   else if (s) bookLines.push(s);
   note($('bookNote'), '');
   paintBookServices();
