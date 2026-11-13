@@ -114,8 +114,8 @@ export function avatarStyleFrom(value) {
 /** Pricing describes how a stylist charges; owners and managers set it. */
 const CAN_PRICE = ['owner', 'admin', 'manager'];
 
-/** The four kinds of work, in the order the salon lists them. */
-export const SERVICE_KINDS = ['cuts', 'treatments', 'color', 'styling'];
+/** The kinds of work, in the order the salon lists them (Skin since 2026-11-13). */
+export const SERVICE_KINDS = ['cuts', 'treatments', 'color', 'styling', 'skin'];
 
 const minutesFrom = (v, lo, hi, what) => {
   if (v === '' || v == null) return null;

@@ -12083,7 +12083,7 @@ $('contactForm').onsubmit = async (e) => {
  * stylist is answered, so it opens on the kind of service, and the clicked
  * time is chosen for them when it fits.
  */
-const BOOK_KINDS = [['color', 'Color'], ['treatments', 'Treatments'], ['cuts', 'Cuts'], ['styling', 'Styling']];
+const BOOK_KINDS = [['color', 'Color'], ['treatments', 'Treatments'], ['cuts', 'Cuts'], ['styling', 'Styling'], ['skin', 'Skin']];
 const bookKindOf = (s) => (BOOK_KINDS.some(([k]) => k === s.category) ? s.category : 'other');
 const bookKindLabel = (k) => (BOOK_KINDS.find(([x]) => x === k) || [k, 'Other'])[1];
 // One Color and one Cut per visit, as on the website's survey (asked for
@@ -12728,12 +12728,14 @@ const KAREN_KINDS = {
   treatments: /treatment|keratin|olaplex|k18|bond|scalp|brazilian/,
   cuts: /\bcuts?\b|haircut|trim|bang/,
   styling: /styl|blow ?out|updo|bridal|special event|extension/,
+  skin: /\bwax|eyebrow|brows?\b|\blip\b|skin/,
 };
 const KAREN_KIND_HELP = {
   color: 'all-over color, highlights, balayage, toners',
   treatments: 'keratin, bond repair, scalp care',
   cuts: 'haircuts and trims',
   styling: 'blowouts, updos, extensions',
+  skin: 'eyebrow and lip waxing',
 };
 const KAREN_WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const KAREN_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -13934,6 +13936,8 @@ const SERVICE_KINDS = [
   ['treatments', 'Treatments', 'Keratin, bond repair, conditioning, masks, scalp'],
   ['color', 'Color', 'Color, partial and full highlights, balayage'],
   ['styling', 'Styling', 'Blowouts, updos and consultations'],
+  // A fifth kind (Luis, 2026-11-13), apart from Styling.
+  ['skin', 'Skin', 'Eyebrow and lip waxing'],
 ];
 
 let memberPicFallback = null;  // the salon's portrait of them, if there is one

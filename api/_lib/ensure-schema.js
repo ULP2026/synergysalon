@@ -443,6 +443,43 @@ ON CONFLICT DO NOTHING`,
   // 060: Resend's id on each logged email, so a bounce turns it Failed.
   'ALTER TABLE message_sends ADD COLUMN IF NOT EXISTS provider_id text',
   'CREATE INDEX IF NOT EXISTS message_sends_provider ON message_sends (provider_id) WHERE provider_id IS NOT NULL',
+  // 062: Skin, a fifth kind, with Eyebrow Wax and Lip Wax (2026-11-13);
+  // a stylist's own services of those names move onto them, once.
+  `INSERT INTO services (tenant_id, slug, name, category, blurb, duration_min, buffer_min, price_cents, consult_first, sort_order)
+SELECT t.id, x.slug, x.name, 'skin', x.blurb, 15, 5, NULL, false, x.sort
+  FROM tenants t
+ CROSS JOIN (VALUES ('eyebrow-wax', 'Eyebrow Wax', 'Brow shaping', 80),
+                    ('lip-wax', 'Lip Wax', 'Lip hair removal', 81)) AS x(slug, name, blurb, sort)
+ WHERE t.slug = 'synergy'
+ON CONFLICT (tenant_id, slug) DO NOTHING`,
+  `DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT s.id, s.slug, s.tenant_id, s.owner_staff_id AS uid,
+           CASE lower(btrim(s.name)) WHEN 'eyebrow wax' THEN 'eyebrow-wax' ELSE 'lip-wax' END AS to_slug
+      FROM services s
+     WHERE s.owner_staff_id IS NOT NULL AND s.active
+       AND lower(btrim(s.name)) IN ('eyebrow wax', 'lip wax')
+       AND EXISTS (SELECT 1 FROM services v WHERE v.tenant_id = s.tenant_id AND v.slug IN ('eyebrow-wax', 'lip-wax'))
+  LOOP
+    UPDATE staff_users u
+       SET services = jsonb_set(
+             jsonb_set(
+               jsonb_set(COALESCE(u.services, '{}'::jsonb), '{items}', COALESCE(u.services -> 'items', '{}'::jsonb), true),
+               '{skin}', COALESCE(u.services -> 'skin', '{}'::jsonb) || '{"on": true}'::jsonb, true),
+             ARRAY['items', r.to_slug],
+             COALESCE(u.services -> 'items' -> r.slug, '{}'::jsonb) || '{"on": true}'::jsonb, true)
+     WHERE u.id = r.uid;
+    INSERT INTO stylist_services (stylist_id, service_id)
+    SELECT ss.stylist_id, v.id
+      FROM stylist_services ss
+      JOIN services v ON v.tenant_id = r.tenant_id AND v.slug = r.to_slug
+     WHERE ss.service_id = r.id
+    ON CONFLICT DO NOTHING;
+    UPDATE services SET active = false WHERE id = r.id;
+  END LOOP;
+END $$`,
   // 061: the salon's own Stripe, linked by "Connect with Stripe".
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_account_id text`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_livemode boolean`,

@@ -21,8 +21,9 @@
 import { isAgency } from './auth.js';
 import { HttpError } from './http.js';
 
-/** The four switches in the team dialog are the four service categories. */
-export const SERVICE_KINDS = ['cuts', 'treatments', 'color', 'styling'];
+/** The switches in the team dialog are the service categories: Skin was
+ *  added as a fifth on 2026-11-13 (Luis), for eyebrow and lip waxing. */
+export const SERVICE_KINDS = ['cuts', 'treatments', 'color', 'styling', 'skin'];
 
 const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
