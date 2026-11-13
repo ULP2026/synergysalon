@@ -2655,3 +2655,36 @@ must stay that way: anything committed here is served publicly.
   (default $25, Luis's figure), charged only when staff mark or confirm a
   no-show at least 20 minutes after the start, not cancelled or checked
   in, idempotent, with Try again on a failure.
+
+- **Luis's video of 2026-11-13** (a 5-minute walk through Dina's app and
+  the website, transcribed):
+  - Home says **New client**, not "First visit" (count: "new clients").
+    Who is new is unchanged; Envision clients read as new until their
+    history is imported (asked for in the same video; the import is still
+    held).
+  - **Skin**, a fifth kind (`SERVICE_KINDS` in roster.js, profile.js and
+    the console, `BOOK_KINDS`, Karen's kinds), with **Eyebrow Wax** and
+    **Lip Wax** on the salon's list (062, also in ensure-schema; 15 min
+    estimates, no price). A stylist's own services of those names move onto
+    them once: price and minutes into `services.items`, Skin on, the chair
+    offering the new ones, the old ones switched off.
+  - **Biolage Highlights** off the menu (063, also in ensure-schema) and off
+    the website's service lists and JSON-LD; Biolage the brand stays.
+  - **Every color service in its own Start, Break and Finish**: under the
+    Color, Partial and Full Highlights rows, Balayage, Single Process, Gloss
+    or Toner and Corrective each have a row (`svc:<slug>` in `timeRow`),
+    saved in `services.items[slug]` as `start/break/finish`; they beat
+    everything in `ownTiming`, and left empty a service is timed as before.
+    **No break**: a small tick on every row, saved as `{ noBreak: true,
+    duration }`, one block with no processing gap (`parts()` in timing.js;
+    Single Process's minimum 45 break does not apply).
+  - **Gallery** on the website opens instagram.com/synergythesalon (it was
+    a disabled link; no gallery page exists).
+  - **Website booking**: step 4's choices are full-width buttons like step
+    1's; step 5 from 720px is the calendar on the left and the day as one
+    column on the right (popup 46rem), taken times inside the stylist's
+    hours greyed (no names), times outside them left out, and a small bar
+    of the working day showing "Your visit: 1:30p to 2:30p" (`dayPreview`
+    in the booking adapter; `/api/availability` sends each day's `open`).
+    The CSS is in `ss-bk-polish`; the Gallery link and Biolage removals are
+    in the template, so **a new export undoes them**: re-apply.
