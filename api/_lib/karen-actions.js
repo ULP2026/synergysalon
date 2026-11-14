@@ -21,6 +21,7 @@ import crypto from 'node:crypto';
 import { DateTime } from 'luxon';
 
 import { applyAppointmentAction } from '../staff/_routes/appointment.js';
+import { CHANGE_TYPES, checkChange, runChange } from './karen-changes.js';
 import { query } from './db.js';
 import { automationOn, sendConfirmation, sendReminder } from './email.js';
 import { chairIds, chairOf } from './scope.js';
@@ -90,6 +91,7 @@ function actionBar(action, a) {
  * reason, and nothing is kept.
  */
 export async function propose({ tenant, user, db = null }, input) {
+  if (CHANGE_TYPES.includes(input.type)) return proposeChange({ tenant, user, db }, input);
   const zone = tenant.timezone;
   const isEmail = input.type === 'send_email';
   const kind = isEmail ? String(input.kind || '') : null;
@@ -144,6 +146,42 @@ export async function propose({ tenant, user, db = null }, input) {
   };
 }
 
+/** Keep a proposal as this person's one pending action. */
+async function keep({ tenant, user, db }, proposal) {
+  const q = db ? db.query.bind(db) : query;
+  await q(
+    `INSERT INTO karen_threads (tenant_id, phone, state, updated_at)
+     VALUES ($1::uuid, $2, $3::jsonb, now())
+     ON CONFLICT (tenant_id, phone) DO UPDATE SET state = EXCLUDED.state, updated_at = now()`,
+    [tenant.id, keyFor(user), JSON.stringify({ proposal })],
+  );
+}
+
+/**
+ * A move, a price, a note, a block, hours or a stylist's services
+ * (karen-changes.js, 2026-11-14): checked there, kept here like the rest,
+ * and shown as the same card.
+ */
+async function proposeChange(ctx, input) {
+  const out = await checkChange(ctx, input);
+  if (out.error || out.nothing) return out;
+  const proposal = {
+    id: crypto.randomUUID(),
+    type: input.type,
+    payload: out.payload,
+    title: out.title,
+    lines: out.lines,
+    note: out.note || null,
+    at: new Date().toISOString(),
+  };
+  await keep(ctx, proposal);
+  return {
+    proposal: { id: proposal.id, title: proposal.title, lines: proposal.lines, note: proposal.note },
+    will: proposal.lines,
+    skipped: out.skipped || [],
+  };
+}
+
 /** Drop whatever this person had pending (they said something else). */
 export async function dropProposal({ tenant, user, db = null }) {
   const q = db ? db.query.bind(db) : query;
@@ -167,6 +205,8 @@ export async function confirm({ tenant, user, db = null }, id) {
   if (Date.now() - new Date(p.at).getTime() > TTL_MIN * 60_000) {
     return { say: `That was set up more than ${TTL_MIN} minutes ago, so I haven't done it. Ask me again and I'll check it fresh.`, done: false };
   }
+
+  if (CHANGE_TYPES.includes(p.type)) return runChange({ tenant, user, db }, p.type, p.payload);
 
   const zone = tenant.timezone;
   const { rows: appts } = await rowsFor(tenant, p.refs, db, user);

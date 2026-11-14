@@ -44,6 +44,134 @@ import {
 } from '../../_lib/timing.js';
 import { visitNameSql } from '../../_lib/visit.js';
 
+/**
+ * Put a lunch or a block on a stylist: the Block time window on Appt. Book
+ * and Karen (karen-actions.js, once the person confirms) both come here.
+ *
+ * Three ways to say when (2026-11-14, after Dina asked Karen to "block off
+ * my book on November 26th, 27th and 28th" and found no way to do it in the
+ * app either):
+ *   { date, allDay: true }: the stylist's whole working day, from their
+ *     earliest start to their latest finish that weekday. A day they do not
+ *     work is refused: nothing there is bookable to block.
+ *   { date, from, to }: "HH:MM" to "HH:MM" on that day.
+ *   { start, minutes }: as the day grid always sent.
+ * Anyone but the owner blocks only their own chair (scope.js). `dry` checks
+ * it and says when it would be, saving nothing (Karen's proposal).
+ */
+export async function addBlock(tenant, user, body, db = null, { dry = false } = {}) {
+  const q = db ? db.query.bind(db) : query;
+  const zone = tenant.timezone;
+  const kind = body.kind === 'lunch' ? 'lunch' : 'block';
+  const slug = requireString(body.stylist, 'Stylist', { max: 60 });
+  const chair = await chairOf(user, db);
+  if (chair && !chair.slugs.includes(slug)) throw new HttpError(403, 'You can only block your own time.');
+  const { rows: [st] } = await q(
+    'SELECT id, name FROM stylists WHERE tenant_id = $1::uuid AND slug = $2::text',
+    [tenant.id, slug],
+  );
+  if (!st) throw new HttpError(404, 'No such stylist.');
+
+  let start;
+  let minutes;
+  const hhmm = /^([01]?\d|2[0-3]):([0-5]\d)$/;
+  const atTime = (day, t, what) => {
+    const m = String(t || '').trim().match(hhmm);
+    if (!m) throw new HttpError(400, `${what} must be a time like 09:30.`);
+    return day.set({ hour: Number(m[1]), minute: Number(m[2]), second: 0, millisecond: 0 });
+  };
+  if (body.date) {
+    const day = DateTime.fromISO(requireDate(body.date, 'Date'), { zone });
+    if (!day.isValid) throw new HttpError(400, 'That date is not valid.');
+    if (body.allDay) {
+      const { rows: [h] } = await q(
+        `SELECT to_char(min(starts_at), 'HH24:MI') AS a, to_char(max(ends_at), 'HH24:MI') AS b
+           FROM stylist_hours WHERE stylist_id = $1::uuid AND weekday = $2::int`,
+        [st.id, day.weekday % 7],
+      );
+      if (!h?.a) {
+        throw new HttpError(409, `${st.name} doesn't work on ${day.toFormat('cccc')}s, so nothing on ${day.toFormat('LLL d')} can be booked anyway.`);
+      }
+      start = atTime(day, h.a, 'Start');
+      minutes = Math.round(atTime(day, h.b, 'End').diff(start, 'minutes').minutes);
+    } else {
+      start = atTime(day, body.from, 'From');
+      minutes = Math.round(atTime(day, body.to, 'To').diff(start, 'minutes').minutes);
+      if (minutes <= 0) throw new HttpError(400, 'A block has to end after it starts.');
+    }
+  } else {
+    start = DateTime.fromISO(requireString(body.start, 'Start', { max: 40 }), { zone });
+    if (!start.isValid) throw new HttpError(400, 'Start must be a date and time.');
+    minutes = Math.round(Number(body.minutes));
+  }
+  if (!Number.isFinite(minutes) || minutes < 15 || minutes > 16 * 60) {
+    throw new HttpError(400, 'A block is between 15 minutes and 16 hours.');
+  }
+  const reason = kind === 'lunch'
+    ? 'Lunch'
+    : (String(body.reason || '').trim().slice(0, 120) || 'Blocked');
+  if (dry) {
+    return { id: null, kind, stylist: st.name, stylistId: st.id, reason, startsAt: start.toISO(), endsAt: start.plus({ minutes }).toISO(), minutes };
+  }
+
+  const { rows } = await q(
+    `INSERT INTO time_off (tenant_id, stylist_id, during, reason)
+     VALUES ($1::uuid, $2::uuid,
+             tstzrange($3::timestamptz, $3::timestamptz + make_interval(mins => $4::int), '[)'), $5::text)
+     RETURNING id`,
+    [tenant.id, st.id, start.toISO(), minutes, reason],
+  );
+  const id = rows[0].id;
+  const endsAt = start.plus({ minutes });
+  // A copy in the stylist's Google Calendar when they signed in with
+  // Google, so their phone shows the time as taken too. The block is
+  // saved either way: Google being slow or refusing never undoes it, and
+  // the answer does not wait for Google (waitUntil finishes the copy).
+  if (googleConfigured()) waitUntil((async () => {
+    const { rows: who } = await query(
+      `SELECT u.id FROM stylists s ${chairLoginJoin('s', 'u')}
+        WHERE s.tenant_id = $1::uuid AND s.slug = $2::text
+          AND (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL`,
+      [tenant.id, slug],
+    ).catch(() => ({ rows: [] }));
+    for (const u of who) {
+      await pushBlock(u.id, { id, reason, startsAt: start.toISO(), endsAt: endsAt.toISO() }, zone, tenant.name)
+        .catch((err) => console.error('google block copy failed', id, err.message));
+    }
+  })());
+  return { id, kind, stylist: st.name, reason, startsAt: start.toISO(), endsAt: endsAt.toISO(), minutes };
+}
+
+/**
+ * Take a lunch or block off again (Appt. Book, and Karen once confirmed).
+ * Anyone but the owner removes only their own, never a salon closure.
+ */
+export async function removeBlock(tenant, user, rawId, db = null) {
+  const q = db ? db.query.bind(db) : query;
+  const id = Number(rawId);
+  if (!Number.isInteger(id) || id < 1) throw new HttpError(400, 'Block is not valid.');
+  // Which Google copies it has, read first: the rows that name them go
+  // with the block. They are taken out of Google after the answer.
+  const { rows: copies } = await q(
+    `SELECT g.staff_user_id, g.event_id, g.calendar_id FROM google_blocks g
+       JOIN time_off t ON t.id = g.time_off_id
+      WHERE g.time_off_id = $1::int AND t.tenant_id = $2::uuid`,
+    [id, tenant.id],
+  ).catch(() => ({ rows: [] }));
+  const chair = await chairOf(user, db);
+  const { rowCount } = await q(
+    `DELETE FROM time_off WHERE id = $1::int AND tenant_id = $2::uuid
+        AND ($3::uuid[] IS NULL OR stylist_id = ANY($3::uuid[]))`,
+    [id, tenant.id, chairIds(chair)],
+  );
+  if (!rowCount) throw new HttpError(404, 'That block is already gone.');
+  if (copies.length) {
+    waitUntil(Promise.all(copies.map((c) => dropBlock(c.staff_user_id, c.event_id, c.calendar_id)
+      .catch((err) => console.error('google block removal failed', id, err.message)))));
+  }
+  return { ok: true, id };
+}
+
 export default handler({
   async GET(req, res) {
     const user = await requireStaff(req);
@@ -378,50 +506,8 @@ export default handler({
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
-
-    const kind = body.kind === 'lunch' ? 'lunch' : 'block';
-    const slug = requireString(body.stylist, 'Stylist', { max: 60 });
-    const start = DateTime.fromISO(requireString(body.start, 'Start', { max: 40 }), { zone: tenant.timezone });
-    if (!start.isValid) throw new HttpError(400, 'Start must be a date and time.');
-    const minutes = Math.round(Number(body.minutes));
-    if (!Number.isFinite(minutes) || minutes < 15 || minutes > 12 * 60) {
-      throw new HttpError(400, 'A block is between 15 minutes and 12 hours.');
-    }
-    const reason = kind === 'lunch'
-      ? 'Lunch'
-      : (String(body.reason || '').trim().slice(0, 120) || 'Blocked');
-    // Anyone but the owner blocks only their own time.
-    const chair = await chairOf(user);
-    if (chair && !chair.slugs.includes(slug)) throw new HttpError(403, 'You can only block your own time.');
-
-    const { rows } = await query(
-      `INSERT INTO time_off (tenant_id, stylist_id, during, reason)
-       SELECT $1::uuid, s.id,
-              tstzrange($3::timestamptz, $3::timestamptz + make_interval(mins => $4::int), '[)'),
-              $5::text
-         FROM stylists s WHERE s.tenant_id = $1::uuid AND s.slug = $2::text
-       RETURNING id`,
-      [tenant.id, slug, start.toISO(), minutes, reason],
-    );
-    if (!rows[0]) throw new HttpError(404, 'No such stylist.');
-    // A copy in the stylist's Google Calendar when they signed in with
-    // Google, so their phone shows the time as taken too. The block is
-    // saved either way: Google being slow or refusing never undoes it, and
-    // the answer does not wait for Google (waitUntil finishes the copy).
-    if (googleConfigured()) waitUntil((async () => {
-      const { rows: who } = await query(
-        `SELECT u.id FROM stylists s ${chairLoginJoin('s', 'u')}
-          WHERE s.tenant_id = $1::uuid AND s.slug = $2::text
-            AND (to_jsonb(u) ->> 'google_refresh_token') IS NOT NULL`,
-        [tenant.id, slug],
-      ).catch(() => ({ rows: [] }));
-      for (const u of who) {
-        await pushBlock(u.id, {
-          id: rows[0].id, reason, startsAt: start.toISO(), endsAt: start.plus({ minutes }).toISO(),
-        }, tenant.timezone, tenant.name).catch((err) => console.error('google block copy failed', rows[0].id, err.message));
-      }
-    })());
-    return json(res, 201, { ok: true, id: rows[0].id, kind });
+    const block = await addBlock(tenant, user, body);
+    return json(res, 201, { ok: true, ...block });
   },
 
   async DELETE(req, res) {
@@ -429,28 +515,6 @@ export default handler({
     const user = await requireStaff(req);
     const tenant = await tenantForUser(user);
     const body = await readJson(req);
-    const id = Number(body.id);
-    if (!Number.isInteger(id) || id < 1) throw new HttpError(400, 'Block is not valid.');
-    // Which Google copies it has, read first: the rows that name them go
-    // with the block. They are taken out of Google after the answer.
-    const { rows: copies } = await query(
-      `SELECT g.staff_user_id, g.event_id, g.calendar_id FROM google_blocks g
-         JOIN time_off t ON t.id = g.time_off_id
-        WHERE g.time_off_id = $1::int AND t.tenant_id = $2::uuid`,
-      [id, tenant.id],
-    ).catch(() => ({ rows: [] }));
-    // Anyone but the owner removes only their own blocks, never a closure.
-    const chair = await chairOf(user);
-    const { rowCount } = await query(
-      `DELETE FROM time_off WHERE id = $1::int AND tenant_id = $2::uuid
-          AND ($3::uuid[] IS NULL OR stylist_id = ANY($3::uuid[]))`,
-      [id, tenant.id, chairIds(chair)],
-    );
-    if (!rowCount) throw new HttpError(404, 'That block is already gone.');
-    if (copies.length) {
-      waitUntil(Promise.all(copies.map((c) => dropBlock(c.staff_user_id, c.event_id, c.calendar_id)
-        .catch((err) => console.error('google block removal failed', id, err.message)))));
-    }
-    return json(res, 200, { ok: true, id });
+    return json(res, 200, await removeBlock(tenant, user, body.id));
   },
 });

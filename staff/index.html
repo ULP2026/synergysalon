@@ -596,6 +596,12 @@
   .toolbar .dv-when .summary { display: block; margin: 0; font-size: var(--fs-sm); color: var(--muted); line-height: 1.35; text-align: left; }
   /* The view dropdown, a field like the others, on the right. */
   .dv-view { position: relative; flex: none; display: block; margin: 0; }
+  .dv-right { display: flex; align-items: center; gap: 8px; flex: none; }
+  .dv-block { height: 42px; padding: 0 16px; font-size: .95rem; gap: 6px; }
+  .dv-block .ic { width: 16px; height: 16px; }
+  .blk-day { display: flex; align-items: center; gap: 8px; margin: 2px 0 14px; font-size: var(--fs-sm); font-weight: 500; color: var(--ink); cursor: pointer; }
+  .blk-day input { width: 18px; height: 18px; margin: 0; accent-color: var(--indigo); }
+  .blk-day span { margin: 0; line-height: 18px; }
   /* Clients' Filters and Sort (2026-11-06): pills like the view dropdown. */
   .cl-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -6px 0 12px; }
   .cl-filt { position: relative; }
@@ -711,6 +717,8 @@
     .toolbar.dv-bar { flex-wrap: wrap; }
     .dv-left { width: 100%; }
     .dv-view, .dv-view select { width: 100%; }
+    .dv-right { width: 100%; }
+    .dv-right .dv-view { flex: 1; }
   }
   /* The date picker: two months side by side under the calendar button. */
   .dp { position: fixed; z-index: 900; width: 640px; max-width: calc(100vw - 32px); background: var(--card); color: var(--ink);
@@ -4475,6 +4483,10 @@
               <span class="summary" id="dayHeading"></span>
             </div>
           </div>
+          <div class="dv-right">
+          <!-- Block time (2026-11-14): the window had no way in since a click
+               on the grid went straight to New appointment (2026-10-22). -->
+          <button type="button" class="btn quiet dv-block" id="blockBtn"><svg class="ic"><use href="#i-ban"/></svg>Block time</button>
           <!-- A dropdown since 2026-11-05 (asked for; it was three buttons). -->
           <label class="dv-view">
             <span class="sr-only">Calendar view</span>
@@ -4485,6 +4497,7 @@
             </select>
             <svg class="ic" aria-hidden="true"><use href="#i-down"/></svg>
           </label>
+          </div>
         </div>
         <!-- Kept for renderCalBar(), which stays hidden: the shop's calendars
              are on /staff/calendars, and one list is enough. -->
@@ -5487,16 +5500,17 @@
   <form method="dialog" id="blockForm">
     <h2 id="blockTitle">Block time</h2>
     <div id="blockNote" class="note bad hidden"></div>
-    <p class="small muted" id="blockWhen" style="margin:-8px 0 16px"></p>
+    <p class="small muted" id="blockWhen" style="margin:-8px 0 16px">Nothing can be booked in this time, online, at the desk or by Karen.</p>
     <div class="two">
+      <label><span>Stylist</span><select name="stylist" id="blockWho" required></select></label>
       <label><span>Type</span>
-        <select name="kind"><option value="lunch">Lunch</option><option value="block">Block (not bookable)</option></select></label>
-      <label><span>How long</span>
-        <select name="minutes">
-          <option value="15">15 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option>
-          <option value="60" selected>1 hour</option><option value="90">1&frac12; hours</option><option value="120">2 hours</option>
-          <option value="180">3 hours</option><option value="240">4 hours</option><option value="480">All day (8 hours)</option>
-        </select></label>
+        <select name="kind"><option value="block">Block (not bookable)</option><option value="lunch">Lunch</option></select></label>
+    </div>
+    <label><span>Date</span><input type="date" name="date" required></label>
+    <label class="blk-day"><input type="checkbox" name="allDay" id="blockAllDay"><span>Their whole working day</span></label>
+    <div class="two" id="blockTimes">
+      <label><span>From</span><input type="time" name="from" step="900" value="10:00"></label>
+      <label><span>To</span><input type="time" name="to" step="900" value="11:00"></label>
     </div>
     <label id="blockReasonField"><span>Reason (optional)</span><input name="reason" maxlength="120" placeholder="Training, doctor, school run"></label>
     <div class="dlg-actions">
@@ -9992,48 +10006,69 @@ $('apptDlg').addEventListener('click', (e) => {
 });
 
 // ── lunch and blocks ──────────────────────────────────────────────────────
-let blockFor = null;
-function openBlock(slug, mins, kind) {
-  blockFor = { slug, mins };
+/**
+ * Block time (2026-11-14): one window for a few hours or a whole working
+ * day, for any stylist the person can see (their own chair, or everyone for
+ * the owner; the server checks too). From the toolbar's button it opens on
+ * the day on screen; from the grid, at the time clicked.
+ */
+function openBlock(slug, mins, kind = 'block') {
   const f = $('blockForm');
   f.reset();
   note($('blockNote'), '');
+  const people = (me.stylists || []).filter((x) => x.active !== false);
+  $('blockWho').innerHTML = people.map((x) => `<option value="${esc(x.slug)}">${esc(x.name)}</option>`).join('');
+  const shown = diaryData?.team?.map((x) => x.stylistSlug).filter(Boolean) || [];
+  f.elements.stylist.value = slug || shown.find((x) => people.some((y) => y.slug === x)) || people[0]?.slug || '';
+  const today = salonToday();
+  f.elements.date.value = day && day >= today ? day : today;
+  f.elements.date.min = today;
   f.elements.kind.value = kind;
-  f.elements.minutes.value = kind === 'lunch' ? '60' : '60';
-  $('blockTitle').textContent = kind === 'lunch' ? 'Add lunch' : 'Block time';
-  const who = (me.stylists.find((s) => s.slug === slug) || {}).name || '';
-  $('blockWhen').textContent = `${who}, ${dayLabel(day)} from ${clock(mins)}. Nothing can be booked over it.`;
-  $('blockReasonField').classList.toggle('hidden', kind === 'lunch');
+  const hm = (m) => `${kPad(Math.floor(m / 60))}:${kPad(m % 60)}`;
+  if (mins != null) { f.elements.from.value = hm(mins); f.elements.to.value = hm(Math.min(mins + 60, 23 * 60 + 45)); }
+  paintBlockForm();
   openDialog($('blockDlg'));
 }
-$('blockForm').elements.kind.onchange = (e) => {
-  $('blockReasonField').classList.toggle('hidden', e.target.value === 'lunch');
-  $('blockTitle').textContent = e.target.value === 'lunch' ? 'Add lunch' : 'Block time';
-};
+function paintBlockForm() {
+  const f = $('blockForm');
+  const lunch = f.elements.kind.value === 'lunch';
+  if (lunch) f.elements.allDay.checked = false;
+  $('blockAllDay').closest('label').classList.toggle('hidden', lunch);
+  $('blockTimes').classList.toggle('hidden', f.elements.allDay.checked);
+  $('blockReasonField').classList.toggle('hidden', lunch);
+  $('blockTitle').textContent = lunch ? 'Add lunch' : 'Block time';
+}
+$('blockBtn').onclick = () => openBlock(null, null, 'block');
+$('blockForm').elements.kind.onchange = paintBlockForm;
+$('blockAllDay').onchange = paintBlockForm;
 $('blockForm').onsubmit = async (e) => {
   if (e.submitter?.value !== 'save') return;
   e.preventDefault();
   if (dgDemo) { closeDialog($('blockDlg')); toast('This is the sample day, so nothing changes.'); return; }
   const f = new FormData(e.target);
-  const hh = String(Math.floor(blockFor.mins / 60)).padStart(2, '0');
-  const mm = String(blockFor.mins % 60).padStart(2, '0');
+  const allDay = Boolean(f.get('allDay'));
+  if (!allDay && (!f.get('from') || !f.get('to') || f.get('to') <= f.get('from'))) {
+    note($('blockNote'), 'Pick a start and an end after it, or tick "Their whole working day".');
+    return;
+  }
   try {
-    await api('/api/staff/diary', {
+    const b = await api('/api/staff/diary', {
       method: 'POST',
       body: JSON.stringify({
-        stylist: blockFor.slug, start: `${day}T${hh}:${mm}`, minutes: Number(f.get('minutes')),
-        kind: f.get('kind'), reason: f.get('reason'),
+        stylist: f.get('stylist'), date: f.get('date'), kind: f.get('kind'), reason: f.get('reason'),
+        ...(allDay ? { allDay: true } : { from: f.get('from'), to: f.get('to') }),
       }),
     });
     closeDialog($('blockDlg'));
-    await loadDay(day);
+    toast(`${b.kind === 'lunch' ? 'Lunch' : 'Blocked'}: ${b.stylist}, ${dateLabel(minutesDate(b.startsAt))}, ${clock(salonMinutes(b.startsAt))} to ${clock(salonMinutes(b.endsAt))}.`);
+    refreshDiary();
   } catch (err) { note($('blockNote'), err.message); }
 };
 async function removeBlock(b) {
   if (dgDemo) { toast('This is the sample day, so nothing changes.'); return; }
   try {
     await api('/api/staff/diary', { method: 'DELETE', body: JSON.stringify({ id: b.id }) });
-    await loadDay(day);
+    refreshDiary();
   } catch (err) { fail(err); }
 }
 
@@ -12857,7 +12892,7 @@ const KAREN_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 's
 const KAREN_MULTI = /more than (one|1)|\b(two|2|three|3|several|multiple|a few) (services|things|treatments)\b|\bboth\b|another service|more services|\bcombo\b|\bcombine\b|\badd (on|another|a|an)\b|\bas well\b|\balso\b|\bplus\b/;
 let karen = null;                     // what has been chosen so far
 let karenQueue = Promise.resolve();   // Karen speaks one message at a time
-let karenAsk = null;                  // the question standing: { fn, hint, key }
+let karenAsk = null;                  // the question standing: { fn, hint, key, chips }
 let karenRun = 0;                     // a new conversation silences the old one
 
 const kWait = (ms) => new Promise((r) => { setTimeout(r, ms); });
@@ -12914,7 +12949,7 @@ function kAsk(chips, expect = null, hint = '', key = '') {
   const run = karenRun;
   karenQueue = karenQueue.then(() => {
     if (run !== karenRun) return;
-    karenAsk = { fn: expect, hint, key };
+    karenAsk = { fn: expect, hint, key, chips };
     $('karenChips').innerHTML = chips.map((c, i) =>
       `<button type="button" class="kd-chip${c.solid ? ' solid' : ''}" data-i="${i}" style="animation-delay:${i * 30}ms">${esc(c.label)}</button>`).join('');
     $('karenChips').onclick = (e) => {
@@ -12957,7 +12992,7 @@ $('karenForm').onsubmit = (e) => {
   $('karenText').value = '';
   kFit();
   kMe(raw);
-  const t = raw.toLowerCase().replace(/[’`]/g, "'");
+  const t = kClean(raw);
   const ask = karenAsk;
   const moved = () => { $('karenChips').innerHTML = ''; karenAsk = null; };
   if (/^(start over|restart|reset|start again|new booking|from the top)\b/.test(t)) { kStart(); return; }
@@ -12977,6 +13012,18 @@ $('karenForm').onsubmit = (e) => {
   // like a basic chatbot.
   const idle = !ask || ask.key === 'menu' || ask.key === 'confirm';
   if (karenAiOn && idle) { kAskAi(raw, t, ask?.key === 'confirm' ? null : ask); return; }
+  kRules(raw, t, ask);
+};
+
+/**
+ * Her rules, for a reply the AI is not reading: an answer to the step in
+ * progress, or anything at all while the AI is unavailable. Also where a
+ * message goes when the AI turns out to be off (2026-11-14): it used to be
+ * answered "Sorry, I'm not sure I followed" instead of being read.
+ */
+function kRules(raw, t, ask) {
+  const moved = () => { $('karenChips').innerHTML = ''; karenAsk = null; };
+  const idle = !ask || ask.key === 'menu' || ask.key === 'confirm';
   // Things said at any point that are not answers: back, cancel, wait, thanks.
   const control = kControl(t, ask);
   if (control === 'moved') { moved(); return; }
@@ -12997,8 +13044,98 @@ $('karenForm').onsubmit = (e) => {
   // Mid-booking only a real question goes to it; a mistyped answer to the
   // step (a phone number too short) gets the step's own hint instead.
   if (karenAiOn && (idle || kIsQuestion(t))) { kAskAi(raw, t, ask); return; }
+  // Otherwise her AI reads it against the step's own choices, typos and
+  // all ("Thatsall"), and the step runs the one it means as a tap would.
+  if (karenAiOn && ask?.chips?.length) { kInterpret(raw, t, ask); return; }
   kSorry(ask);
-};
+}
+
+/**
+ * A typed reply the step's rules could not place, read by her AI against
+ * the step's choices (2026-11-14: "Thatsall" got "I'm not sure what you
+ * mean there"). A choice runs exactly as if it had been tapped; a new
+ * request or a question goes to her as a message; anything else gets the
+ * step's own hint, as before.
+ */
+async function kInterpret(raw, t, ask) {
+  const run = karenRun;
+  const chips = ask.chips;
+  let out = null;
+  try {
+    out = await api('/api/staff/karen', {
+      method: 'POST',
+      body: JSON.stringify({ interpret: { question: ask.hint || '', options: chips.map((c) => c.label), text: raw } }),
+    });
+  } catch (err) {
+    if (err?.code === 'NO_AI') karenAiOn = false;
+  }
+  if (run !== karenRun || karenAsk !== ask) return;
+  const c = Number.isInteger(out?.choice) ? chips[out.choice] : null;
+  if (c) {
+    $('karenChips').innerHTML = '';
+    karenAsk = null;
+    c.run();
+    return;
+  }
+  if (out?.other && karenAiOn) { kAskAi(raw, t, ask); return; }
+  kSorry(ask);
+}
+
+/**
+ * Typed fast, on a phone (2026-11-14): the slips people make, put right
+ * before the rules read a reply. Words run together ("thatsall",
+ * "nevermind", "bookit"), common misspellings of days, yes and no, cancel
+ * and appointment, and "womens" for Women's (the rules compare words, and
+ * "womens" is not "women s"). What is still not understood goes to her AI.
+ */
+const KAREN_FIXES = [
+  [/\bthat'?s?\s*(all|it|everything|everythin)\b/g, "that's $1"],
+  [/\bthat\s*(all|it)\b/g, "that's $1"],
+  [/\b(nevermind|nvm|nm)\b/g, 'never mind'],
+  [/\b(tmrw|tmr|tmrow|tomorow|tommorow|tommorrow|tomorrw|tomoro|2morrow|2moro|tmw)\b/g, 'tomorrow'],
+  [/\b(tdy|tody|todya|2day)\b/g, 'today'],
+  [/\b(mondy|monady|mnday)\b/g, 'monday'],
+  [/\b(tuesdy|teusday|tusday|tuseday)\b/g, 'tuesday'],
+  [/\b(wensday|wendsday|wednsday|wedensday|wednesay|wedsday|wednessday)\b/g, 'wednesday'],
+  [/\b(thursdy|thrusday|thurday|thursady)\b/g, 'thursday'],
+  [/\b(firday|fridy|frday|fiday)\b/g, 'friday'],
+  [/\b(satuday|saturdy|satruday|satarday|saterday)\b/g, 'saturday'],
+  [/\b(sundy|sunady|sundat)\b/g, 'sunday'],
+  [/^(yea|ya|yah|yeh|yess+|yse|ys|yesh)\b/, 'yes'],
+  [/^(noo+|naw|nop)\b/, 'no'],
+  [/\bbookit\b/g, 'book it'],
+  [/\b(cancle|cancell|cancl|cnacel|canel|cancal)\b/g, 'cancel'],
+  [/\b(appt|apt|appointmnet|apointment|appoinment|appoitment|appointmet)(s?)\b/g, 'appointment$2'],
+  [/\b(pls|plz)\b/g, 'please'],
+  [/\b(womens|womans)\b/g, "women's"],
+  [/\bmens\b/g, "men's"],
+  [/\bgoahead\b/g, 'go ahead'],
+  [/\bstartover\b/g, 'start over'],
+  [/\s{2,}/g, ' '],
+];
+function kClean(raw) {
+  let t = String(raw).toLowerCase().replace(/[’`]/g, "'").trim();
+  for (const [re, to] of KAREN_FIXES) t = t.replace(re, to);
+  return t;
+}
+
+/** Letters apart, for a near miss on a name ("balyage", "hilights", "dinna"). */
+function kNear(a, b) {
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i += 1) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const here = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = here;
+    }
+  }
+  return row[b.length];
+}
+/** A typed word close enough to this name's word: one slip, two in a long word. */
+const kClose = (typed, word) => word.length >= 4 && typed.length >= 3 && kNear(typed, word) <= (word.length >= 8 ? 2 : 1);
 
 function kSorry(ask) {
   kSay(`<p>${kPick(["Hmm, I didn't quite get that.", "Sorry, I'm not sure I followed.", "I'm not sure what you mean there."])} `
@@ -13036,7 +13173,14 @@ function kFindServices(t, pool = kOffered()) {
   if (whole.length) return whole;
   // A word that names a kind is the kind: "color" is Color, not Color & Cut.
   if (Object.values(KAREN_KINDS).some((re) => re.test(t))) return [];
-  return pool.filter((s) => kNorm(s.name).trim().split(' ').some((w) => w.length > 4 && n.includes(` ${w} `)));
+  const byWord = pool.filter((s) => kNorm(s.name).trim().split(' ').some((w) => w.length > 4 && n.includes(` ${w} `)));
+  if (byWord.length) return byWord;
+  // A slip in a distinctive word ("balyage", "hilights"): one service only,
+  // so a near miss never picks between two.
+  const typed = n.trim().split(' ');
+  const near = pool.filter((s) => kNorm(s.name).trim().split(' ')
+    .some((w) => w.length > 4 && typed.some((x) => kClose(x, w))));
+  return near.length === 1 ? near : [];
 }
 const kFindService = (t, pool) => kFindServices(t, pool)[0] || null;
 function kFindKinds(t, pool = kOffered()) {
@@ -13044,8 +13188,13 @@ function kFindKinds(t, pool = kOffered()) {
 }
 const kFindKind = (t, pool) => kFindKinds(t, pool)[0] || null;
 function kFindStylist(t, list = me.stylists || []) {
-  return list.find((s) => t.includes(s.name.toLowerCase()))
-    || list.find((s) => kWord(s.name.toLowerCase().split(/\s+/)[0]).test(t)) || null;
+  const exact = list.find((s) => t.includes(s.name.toLowerCase()))
+    || list.find((s) => kWord(s.name.toLowerCase().split(/\s+/)[0]).test(t));
+  if (exact) return exact;
+  // "Dinna", "micha": a slip in a first name, when it points at one person.
+  const typed = kNorm(t).trim().split(' ');
+  const near = list.filter((s) => typed.some((x) => kClose(x, s.name.toLowerCase().split(/\s+/)[0])));
+  return near.length === 1 ? near[0] : null;
 }
 
 /** "today", "tomorrow", "friday", "next tuesday", "oct 28", "10/28", "the 5th". */
@@ -13847,7 +13996,7 @@ async function kAskAi(raw, t, ask) {
     // A booking: the steps take over from what was asked, offering only
     // real free times.
     if (data.handoff?.type === 'book') {
-      const req = String(data.handoff.request || raw).toLowerCase().replace(/[’`]/g, "'");
+      const req = kClean(data.handoff.request || raw);
       kBookFrom(req);
       return;
     }
@@ -13859,7 +14008,8 @@ async function kAskAi(raw, t, ask) {
     return;
   }
   b.remove();
-  if (res?.status === 503) karenAiOn = false;
+  // No AI (no key, or switched off): the same message through her rules.
+  if (res?.status === 503) { karenAiOn = false; kRules(raw, t, karenAsk); return; }
   // Her rules, as before the AI: the calendar if it was about that.
   if (kIsLookup(t)) { kLookup(t, ask); return; }
   if (res && res.status !== 503) {
@@ -13904,8 +14054,10 @@ async function kDecide(id, yes) {
   kScroll();
   // So a follow-up ("and tomorrow's?") knows what was done.
   karenAiLog.push({ role: 'user', text: yes ? 'Confirm' : 'Cancel' }, { role: 'assistant', text: say });
-  // Whatever changed shows on the open page.
+  // Whatever changed shows on the open page; hours and services are in
+  // me, which the booking steps and New appointment read.
   if (yes && page === 'appointments') refreshDiary();
+  if (yes) api('/api/staff/me').then((m) => { me = m; }).catch(() => {});
   kMenu();
 }
 

@@ -569,6 +569,51 @@ made that way are real: name them ZZ and remove them.
   split. Payment is "Not recorded" and there are no transactions: nothing
   records payments until Stripe. Check in, no-show, cancel, done, reopen
   and delete stay on it. Staff move a visit by dragging it (below).
+- **Karen gets things done, and reads typos** (asked for 2026-11-14, from
+  screenshots of Dina's chat: "Thatsall" got "I'm not sure what you mean",
+  and "block off my book on November 26th, 27th and 28th" got "I can't add
+  blocks myself" and directions to a button that did not exist).
+  - **Block time** is back on Appt. Book: a button beside the Day/Week/Month
+    dropdown (`#blockBtn`) opens `#blockDlg` with stylist, date, From/To or
+    "Their whole working day", Block or Lunch, reason. The window had had no
+    way in since 2026-10-22, when a click on the grid started going straight
+    to New appointment. `addBlock` in diary.js (also POST
+    `/api/staff/diary`, which now takes `{date, from, to}` or `{date,
+    allDay}` beside the old `{start, minutes}`) works out a whole day from
+    the stylist's own hours that weekday and refuses a day they do not work;
+    `removeBlock` is the DELETE. Both keep the own-chair rule.
+  - **Karen's new proposals** (`api/_lib/karen-changes.js`, wired through
+    karen-actions.js `propose`/`confirm`, same card, same one-reply and
+    15-minute life): `move` (checked with the Move window's `moveTimes`;
+    a busy time returns that day's free times as runs; `moveAppointment`
+    on Confirm, `notify` as asked), `price` (`setVisitPrice`, owner, admin
+    and manager), `note` (a dated, signed line on the appointment's
+    notes), `block` (many days at once, `addBlock` with `dry` for the card,
+    a count of visits already in the time), `unblock`, `hours` (only the
+    weekdays named are replaced, through `readHours`), `service` (a
+    stylist's own price, minutes or offering per service, through
+    `servicesFrom`, then `syncStylist` or `syncStandalone`; color minutes
+    stay in Start/Break/Finish). Each `check` saves nothing; each `run`
+    goes through the app's own function, which checks again. karen-desk.js
+    has the tools (`propose_move`, `propose_visit_price`,
+    `propose_appointment_note`, `propose_block`, `propose_remove_blocks`,
+    `propose_hours`, `propose_service_changes`) and two read-only look-ups
+    (`blocks`, `stylist_services`); it still holds no SQL that writes.
+    Still not hers: salon settings, the team, a client's own details or
+    profile notes, the salon's menu, deleting. Cards say "$65, now $80":
+    the local test database is WIN1252 and refuses "→".
+  - **Typos.** The prompt tells her to read through slips and shorthand. In
+    the console, `kClean` fixes the common ones before the steps' rules
+    read a reply (`KAREN_FIXES`: "thatsall", "nevermind", "tmrw",
+    misspelt weekdays, "yea", "cancle", "appt", "womens"), and `kNear`/
+    `kClose` let a one-letter slip in a service or first name match when
+    it points at one thing. A reply the step still cannot place, while her
+    AI is on, goes to `kInterpret`: POST `/api/staff/karen {interpret}`
+    (`interpretReply`, Haiku) answers which of the step's chips it means,
+    and that chip runs as if tapped; "other" goes to her as a message.
+  - With her AI unavailable (503), the message that found out used to get
+    "Sorry, I'm not sure I followed"; it now goes through her rules
+    (`kRules`). `tests/karen-changes.integration.test.js`.
 - **The price on the ticket is typed by the desk** (asked for 2026-11-14,
   from a screenshot of a Perm at $77). A pencil beside Services
   (`#adPriceEd`, `priceEdit`) turns each line's price into a box, the total

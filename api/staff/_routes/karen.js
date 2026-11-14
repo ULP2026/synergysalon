@@ -10,6 +10,7 @@
  *          in the app). Replies {say, proposal, handoff}. 503 NO_AI without
  *          a key, and the console falls back to its rules.
  *   POST   {confirm: id} / {decline: id}  carry out, or drop, the action
+ *   POST   {interpret: {question, options, text}}  which choice a typed reply means
  *          she got ready (karen-actions.js); only the person it was got
  *          ready for, within fifteen minutes, and only the latest one.
  *   POST   {log: [{role, text, at}]}  keep what was said in the app's chat,
@@ -36,7 +37,7 @@ import { confirm, dropProposal, propose } from '../../_lib/karen-actions.js';
 import { karenCalls } from '../../_lib/karen-calls.js';
 import { KAREN_INSTRUCTIONS_MAX, cleanInstructions } from '../../_lib/karen-instructions.js';
 import { emailLastReceived, emailThread, emailThreads } from '../../_lib/karen-email.js';
-import { deskReply } from '../../_lib/karen-desk.js';
+import { deskReply, interpretReply } from '../../_lib/karen-desk.js';
 import { karenPeople, karenThread, logKaren } from '../../_lib/karen-log.js';
 import { phoneKey, prettyPhone } from '../../_lib/karen-sms.js';
 import { tenantForUser } from '../../_lib/tenant.js';
@@ -176,6 +177,21 @@ export default handler({
         return json(res, 200, { say: 'No problem, I left it.', done: false });
       }
       return json(res, 200, await confirm({ tenant, user }, body.confirm.slice(0, 64)));
+    }
+    // Which choice of a booking step a typed reply means (karen-desk.js).
+    if (body.interpret && typeof body.interpret === 'object') {
+      const ai = karenAi();
+      if (!ai) throw new HttpError(503, "Karen's AI is not connected.", 'NO_AI');
+      const { question: asked, options, text } = body.interpret;
+      if (!Array.isArray(options) || !options.length || typeof text !== 'string' || !text.trim()) {
+        throw new HttpError(400, 'Nothing to read.');
+      }
+      try {
+        return json(res, 200, await interpretReply(ai, { question: String(asked || ''), options: options.map(String), text }));
+      } catch (err) {
+        console.error('karen interpret failed', err);
+        throw new HttpError(502, "Karen couldn't read that just now.", 'AI_FAILED');
+      }
     }
     const question = typeof body.question === 'string' ? body.question.trim().slice(0, 1000) : '';
     if (!question) throw new HttpError(400, 'Ask Karen a question.');
