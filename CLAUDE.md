@@ -569,6 +569,21 @@ made that way are real: name them ZZ and remove them.
   split. Payment is "Not recorded" and there are no transactions: nothing
   records payments until Stripe. Check in, no-show, cancel, done, reopen
   and delete stay on it. Staff move a visit by dragging it (below).
+- **The price on the ticket is typed by the desk** (asked for 2026-11-14,
+  from a screenshot of a Perm at $77). A pencil beside Services
+  (`#adPriceEd`, `priceEdit`) turns each line's price into a box, the total
+  adding up as it is typed, then Save price: `POST /api/staff/appointment
+  {action: 'price', prices: [cents...]}` (`setVisitPrice`), one per line of
+  an itemized visit, written into `appointments.services` and `price_cents`
+  as their sum. As at booking, a visit is priced only when every line is:
+  some typed and some empty is refused, all empty clears it. A visit from
+  before itemizing takes `{total}` only (its one line's box, else the Total
+  row), never an invented split. Owners, admins, managers and the agency
+  login only (the price is what Home, Finance and Payroll count), on the
+  server and by hiding the pencil. Each change is a `visit_price` row in
+  `contact_changes`, "Appointment price changed" on the client's Admin
+  activity ("Kids' Cut $35, Gloss $30 → ..."). Nothing is sent: clients
+  are not shown prices. `tests/ticket-price.integration.test.js`.
 - **Moving an appointment** (asked for 2026-11-02, and again the same day
   when a drag did not work for the salon): two ways, both for any booking
   still `booked` (`canMove`), one from earlier today included, to any time

@@ -199,6 +199,7 @@ const CHANGE_TITLE = {
   sms_ok: 'Text messages',
   card_on_file: 'Card on file',
   source: 'Source updated',
+  visit_price: 'Appointment price changed',
 };
 const STATUS_WORD = { new: 'New', contacted: 'Contacted', booked: 'Booked', won: 'Client', lost: 'Lost' };
 function changeLine(ch) {

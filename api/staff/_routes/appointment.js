@@ -4,6 +4,7 @@
  *
  *   check_in | undo_check_in | complete | no_show | cancel | reopen | delete
  *   move ({ start, stylist? }): dragged to a new time or chair on Appt. Book
+ *   price ({ prices } or { total }): the price typed on the ticket
  *
  * Cancelling is the only action that gives the slot back. A completed or
  * no-show appointment still occupied the stylist's time, and letting the
@@ -18,7 +19,7 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots } from '../../_lib/availability.js';
-import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
+import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { chairOf, inChair } from '../../_lib/scope.js';
 import { EXCLUSION_VIOLATION, query, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle, removeGoogleCopies } from '../../_lib/google-mirror.js';
@@ -29,6 +30,7 @@ import {
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
 import { visitLines, visitLinesSql, visitNameSql } from '../../_lib/visit.js';
+import { logChanges } from './contacts.js';
 
 /** Same bar as deleting a contact: this removes history outright. */
 const CAN_DELETE = ['owner', 'admin', 'manager'];
@@ -224,6 +226,91 @@ export async function applyAppointmentAction(tenant, user, ref, action) {
 }
 
 /**
+ * The price typed on the ticket (asked for 2026-11-14: "manually edit the
+ * price here"). What a stylist entered in their settings is what a visit is
+ * booked at; the desk can now say what it actually came to.
+ *
+ * An itemized visit (031) takes one price per service, `prices`, in cents,
+ * in the ticket's order; the total is their sum, and, as when a visit is
+ * booked (combineServices), it is priced only when every service is: some
+ * typed and some left empty is refused rather than a total that quietly
+ * counts the empty ones as nothing. All empty clears the price. A visit
+ * booked before itemizing takes only its `total`, since how that split
+ * between its services was never recorded.
+ *
+ * The price is what Home, Finance and Payroll count, so it is kept to the
+ * people who see the salon's money (owner, admin, manager, the agency
+ * login), and every change is written on the client's Admin activity with
+ * who made it. Clients are never shown it (CLIENT_PRICES), so nothing is
+ * sent.
+ */
+const MAX_CENTS = 10_000_00;
+function readCents(v, what) {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 0 || n > MAX_CENTS) {
+    throw new HttpError(400, `${what} must be an amount from $0 to $${(MAX_CENTS / 100).toLocaleString('en-US')}.`);
+  }
+  return n;
+}
+const dollars = (c) => (c == null ? 'not priced' : `$${(c / 100).toFixed(c % 100 ? 2 : 0)}`);
+
+export async function setVisitPrice(tenant, user, ref, body) {
+  if (!CAN_DELETE.includes(user.role) && !canManageTeam(user)) {
+    throw new HttpError(403, 'Only an owner, an admin or a manager can change a price.');
+  }
+  await transaction(async (client) => {
+    const { rows } = await client.query(
+      `SELECT a.id, a.contact_id, a.price_cents, ${visitLinesSql()} AS lines, ${visitNameSql()} AS service_name
+         FROM appointments a JOIN services v ON v.id = a.service_id
+        WHERE a.ref = $1::text AND a.tenant_id = $2::uuid
+        FOR NO KEY UPDATE OF a`,
+      [ref, tenant.id],
+    );
+    const appt = rows[0];
+    if (!appt) throw new HttpError(404, 'No appointment with that reference.');
+    const saved = Array.isArray(appt.lines) && appt.lines.length ? appt.lines : null;
+    const name = (l) => String(l?.name || 'Service');
+
+    let total;
+    let before;
+    let after;
+    if (saved) {
+      if (!Array.isArray(body.prices) || body.prices.length !== saved.length) {
+        throw new HttpError(400, 'Give a price for each service on the visit.');
+      }
+      const cents = body.prices.map((v, i) => readCents(v, `The price of ${name(saved[i])}`));
+      const typed = cents.filter((c) => c != null);
+      if (typed.length && typed.length !== cents.length) {
+        throw new HttpError(400, 'Give every service a price, or leave them all empty.');
+      }
+      total = typed.length ? typed.reduce((a, b) => a + b, 0) : null;
+      const lines = saved.map((l, i) => ({ ...l, priceCents: cents[i] }));
+      await client.query(
+        'UPDATE appointments SET services = $2::jsonb, price_cents = $3::int, updated_at = now() WHERE id = $1',
+        [appt.id, JSON.stringify(lines), total],
+      );
+      const say = (ls) => ls.map((l) => `${name(l)} ${dollars(Number.isFinite(l?.priceCents) ? l.priceCents : null)}`).join(', ');
+      before = say(saved);
+      after = say(lines);
+    } else {
+      total = readCents(body.total, 'The total');
+      await client.query(
+        'UPDATE appointments SET price_cents = $2::int, updated_at = now() WHERE id = $1',
+        [appt.id, total],
+      );
+      before = `${appt.service_name} ${dollars(appt.price_cents)}`;
+      after = `${appt.service_name} ${dollars(total)}`;
+    }
+    if (appt.contact_id && before !== after) {
+      await logChanges(client.query.bind(client), tenant.id, appt.contact_id, user,
+        [{ field: 'visit_price', old: before, new: after }]);
+    }
+  });
+  return ticketFor(tenant, ref);
+}
+
+/**
  * Move a booking to a new time, and to another stylist if it was dropped in
  * their column (Appt. Book's drag and drop, 2026-11-02).
  *
@@ -405,6 +492,7 @@ export default handler({
     const ref = requireString(body.ref, 'Reference', { max: 16 }).toUpperCase();
     const action = requireString(body.action, 'Action', { max: 20 });
     await assertMyAppointment(user, tenant, ref, { toStylist: action === 'move' ? body.stylist || null : null });
+    if (action === 'price') return json(res, 200, await setVisitPrice(tenant, user, ref, body));
     if (action === 'move') {
       // Notifying is the default; only an explicit false keeps it quiet.
       const notify = body.notify !== false;

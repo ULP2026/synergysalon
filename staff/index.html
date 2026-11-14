@@ -1691,6 +1691,19 @@
   .tkt-lines tfoot th, .tkt-lines tfoot td { border-bottom: 0; font-weight: 650; color: var(--ink); }
   .tkt-pay { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: var(--fs-sm); }
   .tkt-hint { margin: 8px 0 0; font-size: var(--fs-xs); color: var(--muted); }
+  /* The price typed on the ticket (2026-11-14). */
+  .tkt-hrow { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+  .tkt-hrow .tkt-h { margin: 0; }
+  .tkt-hrow .px-pen { width: 28px; height: 28px; margin-left: 0; }
+  .tkt-pin { display: inline-flex; align-items: center; gap: 2px; justify-content: flex-end; }
+  .tkt-lines td:has(> .tkt-pin) { padding-top: 4px; padding-bottom: 4px; }
+  .tkt-lines tr:has(.tkt-pin) > * { vertical-align: middle; }
+  .tkt-pin input { width: 92px; height: 32px; min-height: 0; padding: 4px 8px; text-align: right; font: inherit; font-variant-numeric: tabular-nums;
+                   border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
+  .tkt-pin input:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: transparent; }
+  .tkt-pin input[aria-invalid="true"] { border-color: var(--warn); }
+  .tkt-pacts { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .tkt-pacts .tkt-perr { margin-right: auto; font-size: var(--fs-xs); color: var(--warn); }
 
   @media (max-width: 860px) {
     dialog.xl { width: 100%; max-width: none; height: 100dvh; max-height: none; border-radius: 0; margin: 0; }
@@ -5381,7 +5394,7 @@
   <hr class="tkt-div" id="adDiv">
   <div class="tkt-body">
     <dl class="ad-dl" id="adBody"></dl>
-    <section class="tkt-sec" aria-labelledby="adLinesH"><h3 class="tkt-h" id="adLinesH">Services</h3><div id="adLines"></div></section>
+    <section class="tkt-sec" aria-labelledby="adLinesH"><div class="tkt-hrow"><h3 class="tkt-h" id="adLinesH">Services</h3><span id="adPriceEd"></span></div><div id="adLines"></div></section>
     <section class="tkt-sec" aria-labelledby="adPayH"><h3 class="tkt-h" id="adPayH">Payment</h3><div id="adPay"></div></section>
   </div>
   <div class="ad-acts" id="adActs"></div>
@@ -9771,6 +9784,7 @@ let ticketSeq = 0;
 function openAppt(a) { if (a) openTicket(a.ref, a); }
 async function openTicket(ref, seed = null) {
   const seq = ++ticketSeq;
+  priceEdit = null;
   paintTicket(seed || { ref, guestName: '', status: 'booked', loading: true });
   openDialog($('apptDlg'));
   if (dgDemo && seed) return;
@@ -9799,13 +9813,102 @@ function ticketLines(a) {
   const single = lines.length === 1;
   const price = (l) => (l.priceCents != null && (a.itemized || single) ? esc(money(l.priceCents / 100))
     : single && a.price != null ? esc(money(a.price)) : dash);
+  // Editing (the pencil by Services): one box per service on an itemized
+  // visit, the total updating as they are typed; a visit from before
+  // itemizing has only its total to change, in the one line's box when it
+  // has one service, else in the Total row.
+  const ed = priceEdit === a.ref;
+  const perLine = ed && (a.itemized || single);
+  const box = (i, cents, label) => `<span class="tkt-pin">$<input type="text" inputmode="decimal" autocomplete="off" data-tp-in="${i}"
+      value="${cents == null ? '' : esc((cents / 100).toFixed(2))}" aria-label="${esc(label)}" placeholder="0.00"></span>`;
+  const lineCents = (l) => (l.priceCents != null && (a.itemized || single) ? l.priceCents
+    : single && a.price != null ? Math.round(a.price * 100) : null);
+  const totalCell = ed && !perLine ? box('total', a.price == null ? null : Math.round(a.price * 100), 'Total price')
+    : `<span id="tpTotal">${a.price == null ? '<span class="muted">Not priced</span>' : esc(money(a.price))}</span>`;
   return `<div class="tkt-scroll"><table class="tkt-lines">
       <thead><tr><th scope="col">Service</th><th scope="col" class="num">Qty</th><th scope="col">Time</th><th scope="col" class="num">Price</th></tr></thead>
-      <tbody>${lines.map((l) => `<tr><td>${esc(l.name)}</td><td class="num muted">1</td><td class="muted">${l.durationMin ? esc(`${l.durationMin} min`) : ''}</td><td class="num">${price(l)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><th scope="row" colspan="3">Total${single ? '' : ` · ${lines.length} services`}</th><td class="num">${a.price == null ? '<span class="muted">Not priced</span>' : esc(money(a.price))}</td></tr></tfoot>
+      <tbody>${lines.map((l, i) => `<tr><td>${esc(l.name)}</td><td class="num muted">1</td><td class="muted">${l.durationMin ? esc(`${l.durationMin} min`) : ''}</td><td class="num">${perLine ? box(i, lineCents(l), `Price of ${l.name}`) : price(l)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><th scope="row" colspan="3">Total${single ? '' : ` · ${lines.length} services`}</th><td class="num">${totalCell}</td></tr></tfoot>
     </table></div>
-    ${!a.itemized && !single ? '<p class="tkt-hint">Booked before visits were itemized, so only the total is known.</p>' : ''}`;
+    ${!a.itemized && !single ? '<p class="tkt-hint">Booked before visits were itemized, so only the total is known.</p>' : ''}
+    ${ed ? `<div class="tkt-pacts"><span class="tkt-perr" id="tpErr" role="alert"></span>
+      <button type="button" class="btn quiet sm" data-tp="cancel">Cancel</button>
+      <button type="button" class="btn sm" data-tp="save">Save price</button></div>` : ''}`;
 }
+
+/**
+ * The ticket's price, typed by the desk (asked for 2026-11-14). Kept to the
+ * people who see the salon's money, as the server keeps it (setVisitPrice):
+ * the price is what Home, Finance and Payroll count.
+ */
+let priceEdit = null;
+const canPrice = () => Boolean(me?.user?.canAdmin || me?.user?.canManageTeam);
+/** "$77", "77.5", "1,200" -> cents; '' -> null; anything else -> NaN. */
+function centsOf(v) {
+  const t = String(v || '').replace(/[$,\s]/g, '');
+  if (!t) return null;
+  if (!/^\d+(\.\d{0,2})?$/.test(t)) return NaN;
+  return Math.round(Number(t) * 100);
+}
+function priceBoxes() { return [...$('adLines').querySelectorAll('input[data-tp-in]')]; }
+/** The total as the boxes now add up, under them while typing. */
+function paintPriceTotal() {
+  const out = $('tpTotal');
+  if (!out) return;
+  const c = priceBoxes().map((x) => centsOf(x.value));
+  out.innerHTML = c.some((v) => Number.isNaN(v)) ? '<span class="muted">–</span>'
+    : c.every((v) => v == null) ? '<span class="muted">Not priced</span>'
+      : c.some((v) => v == null) ? '<span class="muted">Price every service</span>'
+        : esc(money(c.reduce((x, y) => x + y, 0) / 100));
+}
+async function savePrice() {
+  const a = apptOpen;
+  if (!a) return;
+  const boxes = priceBoxes();
+  const cents = boxes.map((x) => centsOf(x.value));
+  let bad = false;
+  boxes.forEach((x, i) => { const no = Number.isNaN(cents[i]); x.setAttribute('aria-invalid', String(no)); bad ||= no; });
+  const err = (m) => { const e = $('tpErr'); if (e) e.textContent = m; };
+  if (bad) { err('Type an amount, like 77 or 77.50.'); return; }
+  const isTotal = boxes[0]?.dataset.tpIn === 'total' || (!a.itemized && boxes.length === 1);
+  if (!isTotal && cents.some((c) => c == null) && cents.some((c) => c != null)) {
+    err('Give every service a price, or leave them all empty.'); return;
+  }
+  if (dgDemo) { priceEdit = null; paintTicket(a); toast('This is the sample day, so nothing changes.'); return; }
+  const btn = $('adLines').querySelector('[data-tp="save"]');
+  if (btn) btn.disabled = true;
+  try {
+    const t = await api('/api/staff/appointment', {
+      method: 'POST',
+      body: JSON.stringify(isTotal ? { ref: a.ref, action: 'price', total: cents[0] } : { ref: a.ref, action: 'price', prices: cents }),
+    });
+    priceEdit = null;
+    if ($('apptDlg').open && apptOpen?.ref === a.ref) paintTicket(t);
+    toast('Price saved.');
+    if ($('personDlg').open && person) reloadPerson();
+    if (page === 'appointments') refreshDiary();
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    err(e.message);
+  }
+}
+$('adLines').addEventListener('input', (e) => {
+  if (!e.target.matches('input[data-tp-in]')) return;
+  e.target.removeAttribute('aria-invalid');
+  if ($('tpErr')) $('tpErr').textContent = '';
+  paintPriceTotal();
+});
+$('adLines').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.matches('input[data-tp-in]')) { e.preventDefault(); savePrice(); }
+});
+$('apptDlg').addEventListener('click', (e) => {
+  const tp = e.target.closest('[data-tp]');
+  if (!tp || !apptOpen) return;
+  if (tp.dataset.tp === 'save') { savePrice(); return; }
+  priceEdit = tp.dataset.tp === 'edit' ? apptOpen.ref : null;
+  paintTicket(apptOpen);
+  if (priceEdit) priceBoxes()[0]?.focus();
+});
 
 /** What was paid. Nothing is recorded by the app yet, and it says so. */
 function ticketPayment(a) {
@@ -9845,7 +9948,10 @@ function paintTicket(a) {
       : bookedByLabel(a).replace(/^Booked by /, ''))),
     row('Notes', a.notes ? `<span style="white-space:pre-line">${esc(a.notes)}</span>` : ''),
   ].join('');
+  if (priceEdit && priceEdit !== a.ref) priceEdit = null;
   $('adLines').innerHTML = ticketLines(a);
+  $('adPriceEd').innerHTML = !a.loading && canPrice() && priceEdit !== a.ref
+    ? `<button type="button" class="px-pen" data-tp="edit" aria-label="Edit the price" title="Edit the price">${ic('edit')}</button>` : '';
   $('adPay').innerHTML = ticketPayment(a);
   const b = (act, label, cls = 'quiet') => `<button type="button" class="btn ${cls} sm" data-ad="${act}">${esc(label)}</button>`;
   if (a.loading) { for (const id of ['adMini', 'adActs']) $(id).innerHTML = ''; $('adDiv').hidden = true; return; }
