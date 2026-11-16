@@ -5,6 +5,7 @@
  *   check_in | undo_check_in | complete | no_show | cancel | reopen | delete
  *   move ({ start, stylist? }): dragged to a new time or chair on Appt. Book
  *   price ({ prices } or { total }): the price typed on the ticket
+ *   services ({ services: [slug...] }): add, remove or change the visit's services
  *
  * Cancelling is the only action that gives the slot back. A completed or
  * no-show appointment still occupied the stylist's time, and letting the
@@ -21,7 +22,7 @@ import { DateTime } from 'luxon';
 import { availableSlots } from '../../_lib/availability.js';
 import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { chairOf, inChair } from '../../_lib/scope.js';
-import { EXCLUSION_VIOLATION, query, transaction } from '../../_lib/db.js';
+import { EXCLUSION_VIOLATION, hasColumn, query, transaction } from '../../_lib/db.js';
 import { mirrorToGoogle, removeGoogleCopies } from '../../_lib/google-mirror.js';
 import { sendCancellation, sendReschedule } from '../../_lib/email.js';
 import { at, cancelFor, enqueue } from '../../_lib/scheduled.js';
@@ -106,6 +107,9 @@ export async function ticketFor(tenant, ref, db = null) {
     guestEmail: r.contact_email || r.guest_email,
     service: lines.map((l) => l.name).join(' + '),
     lines,
+    // Which services they are, for editing them on the ticket: the itemized
+    // list's own, else the visit's first service.
+    serviceSlugs: saved ? saved.map((l) => l?.slug).filter(Boolean) : [r.service_slug],
     itemized: Boolean(saved),
     totalCents: r.price_cents,
     price: r.price_cents == null ? null : r.price_cents / 100,
@@ -367,6 +371,154 @@ async function moveSlots(client, tenant, current, date, slug) {
   }
 }
 
+/**
+ * Change the services on a booked visit from its ticket (2026-11-16, ClickUp
+ * 1k58pwrcvmy item 2: "not able to change a service or add a service onto a
+ * ticket"; and item 4's "adding it to the ticket later does not close off the
+ * time needed").
+ *
+ * The visit is worked out again exactly as a new booking with these services
+ * would be (availableSlots: the stylist's own minutes, color's Start, Break
+ * and Finish, every service end to end), with the same stylist at the same
+ * start, and has to fit there: their hours, other bookings, blocks and the
+ * lunch, by the desk's rules. So a longer visit really holds the extra time
+ * on the book, and one that would run into the next client is refused with
+ * nothing changed. The no-overlap constraint has the last word.
+ *
+ * A visit already under way (checked in, its start passed) cannot be asked
+ * of availableSlots, which offers nothing earlier than now. Then only what
+ * is added after now has to be free: the visit's span from now on must miss
+ * blocks and closures and finish inside the stylist's shift, and the
+ * constraint guards the other bookings.
+ *
+ * Prices: a service that stays keeps the price on the ticket (typed by the
+ * desk, or as booked); a new one takes its stylist's price; the visit is
+ * priced only when every service is, as at booking. Nothing is sent to the
+ * client, as with a price change; the stylist's Google copy follows.
+ */
+const MAX_VISIT_SERVICES = 6;   // availableSlots takes the first and five more
+
+export async function setVisitServices(tenant, user, ref, body) {
+  const slugs = Array.isArray(body.services)
+    ? [...new Set(body.services.map((x) => String(x || '').trim()).filter(Boolean))] : [];
+  if (!slugs.length) {
+    throw new HttpError(400, 'Keep at least one service on the visit. To call it off, cancel the appointment.');
+  }
+  if (slugs.length > MAX_VISIT_SERVICES) {
+    throw new HttpError(400, `A visit can have up to ${MAX_VISIT_SERVICES} services.`);
+  }
+
+  const result = await transaction(async (client) => {
+    const current = (await client.query(`${MOVABLE_SQL} FOR NO KEY UPDATE OF a`, [ref, tenant.id])).rows[0];
+    if (!current) throw new HttpError(404, 'No appointment with that reference.');
+    if (current.status !== 'booked') {
+      throw new HttpError(409, current.status === 'cancelled'
+        ? 'That appointment is cancelled. Reopen it before changing its services.'
+        : 'That visit is closed, so its services stay as they were.');
+    }
+    const saved = Array.isArray(current.lines) && current.lines.length ? current.lines : null;
+    const before = (saved || [{ slug: current.service_slug, name: current.service_name }]);
+    if (before.map((l) => l.slug).join(',') === slugs.join(',')) return { changed: false };
+
+    const startsAt = DateTime.fromJSDate(new Date(current.starts_at)).setZone(tenant.timezone);
+    const started = startsAt <= DateTime.now();
+    let found;
+    try {
+      found = await availableSlots(client, tenant, {
+        serviceSlug: slugs[0],
+        extraServiceSlugs: slugs.slice(1),
+        stylistSlug: current.stylist_slug,
+        // Under way: today only gives the visit's length; the fit is below.
+        fromDate: started ? DateTime.now().setZone(tenant.timezone).toISODate() : startsAt.toISODate(),
+        toDate: started ? DateTime.now().setZone(tenant.timezone).toISODate() : startsAt.toISODate(),
+        excludeAppointmentId: current.id,
+        minLeadMin: 0,
+      });
+    } catch (err) {
+      // A service that is off, or one this stylist does not do.
+      if (err.status === 404) {
+        throw new HttpError(409, err.message === 'That stylist does not offer this service.'
+          || err.message === 'That stylist does not offer all of these services.'
+          ? `${current.stylist_name} does not do ${slugs.length > 1 ? 'all of these services' : 'that service'}.`
+          : err.message);
+      }
+      throw err;
+    }
+    const visit = found.visits.get(current.stylist_id);
+    if (!visit) throw new HttpError(409, `${current.stylist_name} does not do all of these services.`);
+    const endsAt = startsAt.plus({ minutes: visit.durationMin });
+    const tooLong = `${current.stylist_name} is not free for that. With these services the visit would run to ${endsAt.toFormat('h:mm a')}, into another booking, a block or past their hours.`;
+
+    if (!started) {
+      const fits = found.days.flatMap((d) => d.slots)
+        .some((x) => DateTime.fromISO(x.start).toMillis() === startsAt.toMillis() && x.stylistIds.includes(current.stylist_id));
+      if (!fits) throw new HttpError(409, tooLong);
+    } else if (visit.durationMin > current.duration_min) {
+      // Only the time added has to be free: from where the visit ended
+      // (or now, if later) to its new end, inside the stylist's shift that
+      // day and clear of blocks. Other bookings are the constraint's.
+      const mins = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+      const { rows: shifts } = await client.query(
+        'SELECT starts_at, ends_at FROM stylist_hours WHERE stylist_id = $1::uuid AND weekday = $2::int',
+        [current.stylist_id, startsAt.weekday % 7],
+      );
+      const startMin = startsAt.hour * 60 + startsAt.minute;
+      const endMin = startMin + visit.durationMin;
+      if (!shifts.some((sh) => mins(sh.starts_at) <= startMin && endMin <= mins(sh.ends_at))) {
+        throw new HttpError(409, tooLong);
+      }
+      const oldEnd = startsAt.plus({ minutes: current.duration_min });
+      const { rows: off } = await client.query(
+        `SELECT 1 FROM time_off
+          WHERE tenant_id = $1::uuid AND (stylist_id = $2::uuid OR stylist_id IS NULL)
+            AND during && tstzrange(least(greatest(now(), $3::timestamptz), $4::timestamptz), $4::timestamptz, '[)')
+          LIMIT 1`,
+        [tenant.id, current.stylist_id, oldEnd.toISO(), endsAt.toISO()],
+      );
+      if (off.length) throw new HttpError(409, tooLong);
+    }
+
+    // What the ticket already says a staying service costs wins over the
+    // stylist's figure: the desk may have typed it.
+    const kept = new Map((saved || []).map((l) => [l.slug, l.priceCents ?? null]));
+    const lines = visit.lines.map((l) => (kept.has(l.slug) ? { ...l, priceCents: kept.get(l.slug) } : l));
+    const priced = lines.every((l) => Number.isFinite(l.priceCents));
+    const total = priced ? lines.reduce((t, l) => t + l.priceCents, 0) : null;
+    const ids = new Map([found.service, ...found.extras].map((v) => [v.slug, v.id]));
+
+    try {
+      await client.query(
+        `UPDATE appointments
+            SET service_id = $2::uuid, duration_min = $3::int, buffer_min = $4::int,
+                price_cents = $5::int, breaks = $6::jsonb,
+                during = tstzrange(starts_at, starts_at + make_interval(mins => $3::int + $4::int), '[)'),
+                updated_at = now()
+          WHERE id = $1::uuid AND status = 'booked'`,
+        [current.id, ids.get(lines[0].slug), visit.durationMin, visit.bufferMin || 0, total,
+          JSON.stringify(visit.breaks || [])],
+      );
+    } catch (err) {
+      if (err.code === EXCLUSION_VIOLATION) throw new HttpError(409, tooLong);
+      throw err;
+    }
+    if (await hasColumn('appointments', 'services', client)) {
+      await client.query('UPDATE appointments SET services = $2::jsonb WHERE id = $1::uuid',
+        [current.id, JSON.stringify(lines)]);
+    }
+    if (current.contact_id) {
+      const say = (ls) => ls.map((l) => l.name).join(' + ');
+      await logChanges(client.query.bind(client), tenant.id, current.contact_id, user,
+        [{ field: 'visit_services', old: say(before), new: say(lines) }]);
+    }
+    return { changed: true, id: current.id };
+  });
+
+  if (result.changed) {
+    await mirrorToGoogle({ appointmentId: result.id }).catch((err) => console.error('google mirror deferred for', ref, err));
+  }
+  return ticketFor(tenant, ref);
+}
+
 /** GET ?ref=&times=YYYY-MM-DD[&stylist=]: where the Move window can put it. */
 export async function moveTimes(tenant, ref, date, slug) {
   return transaction(async (client) => {
@@ -493,6 +645,7 @@ export default handler({
     const action = requireString(body.action, 'Action', { max: 20 });
     await assertMyAppointment(user, tenant, ref, { toStylist: action === 'move' ? body.stylist || null : null });
     if (action === 'price') return json(res, 200, await setVisitPrice(tenant, user, ref, body));
+    if (action === 'services') return json(res, 200, await setVisitServices(tenant, user, ref, body));
     if (action === 'move') {
       // Notifying is the default; only an explicit false keeps it quiet.
       const notify = body.notify !== false;

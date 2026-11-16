@@ -654,6 +654,30 @@ made that way are real: name them ZZ and remove them.
   `contact_changes`, "Appointment price changed" on the client's Admin
   activity ("Kids' Cut $35, Gloss $30 → ..."). Nothing is sent: clients
   are not shown prices. `tests/ticket-price.integration.test.js`.
+- **Changing a ticket's services, and several of one kind** (2026-11-16,
+  ClickUp 1k58pwrcvmy items 2 and 3, from Sydaria's report). **Edit
+  services** beside Services on a booked ticket (`svcEdit`, `svcDraft`,
+  `ticketSvcEditor`): each service with an X, "Add a service" (what the
+  visit's stylist does, by kind), Save services: `POST
+  /api/staff/appointment {action: 'services', services: [slug...]}`
+  (`setVisitServices`). The visit is worked out again as a booking with
+  those services would be (`availableSlots`, the stylist's own timing, end
+  to end), same stylist and start, and must fit there by the desk's rules,
+  so the added time is really held on the book; else 409 and nothing
+  changes. A visit already under way (start passed) is checked by hand
+  instead, since availableSlots offers nothing before now: only the added
+  time, inside the shift and clear of `time_off`; the no-overlap
+  constraint covers other bookings. A price on a service that stays is
+  kept (the desk may have typed it); a new one takes the stylist's; priced
+  only when every line is. `visit_services` on the client's Admin
+  activity ("Appointment services changed"), the Google copy follows,
+  nothing is sent to the client. Anyone who can open the ticket (their
+  chair, or all for the owner), like Move. The ticket now carries
+  `serviceSlugs`. **New appointment takes several services of any kind**:
+  the 2026-11-13 rule (`BOOK_SINGLE`, commit 4ff1cc0) that a second Color
+  or Cut replaced the first was the reported "adding a service cancels the
+  first one", and is gone; tapping a chosen service takes it off. The
+  website survey is unchanged (item 5). `tests/ticket-services.integration.test.js`.
 - **Moving an appointment** (asked for 2026-11-02, and again the same day
   when a drag did not work for the salon): two ways, both for any booking
   still `booked` (`canMove`), one from earlier today included, to any time

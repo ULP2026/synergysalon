@@ -1712,6 +1712,11 @@
   .tkt-pin input[aria-invalid="true"] { border-color: var(--warn); }
   .tkt-pacts { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   .tkt-pacts .tkt-perr { margin-right: auto; font-size: var(--fs-xs); color: var(--warn); }
+  #adPriceEd { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .tkt-hrow .tkt-svcbtn { margin-left: auto; height: 30px; padding: 0 10px; gap: 4px; white-space: nowrap; }
+  .tkt-hrow .tkt-svcbtn .ic { width: 14px; height: 14px; }
+  .tkt-svcadd { display: grid; gap: 4px; margin-top: 10px; font-size: var(--fs-xs); font-weight: 600; }
+  .tkt-svcadd select { width: 100%; }
 
   @media (max-width: 860px) {
     dialog.xl { width: 100%; max-width: none; height: 100dvh; max-height: none; border-radius: 0; margin: 0; }
@@ -4913,7 +4918,6 @@
 
       <section class="bw-pane" data-step="service" hidden>
         <h3 class="bw-q" id="bookServiceQ">Which service?</h3>
-        <p class="bw-have" id="bookServiceHint" hidden>Choose one</p>
         <div class="bw-list" id="bookServices"></div>
         <div class="bw-visit" id="bookVisit" hidden>
           <h4 class="bw-sub">This visit</h4>
@@ -9799,6 +9803,7 @@ function openAppt(a) { if (a) openTicket(a.ref, a); }
 async function openTicket(ref, seed = null) {
   const seq = ++ticketSeq;
   priceEdit = null;
+  svcEdit = null;
   paintTicket(seed || { ref, guestName: '', status: 'booked', loading: true });
   openDialog($('apptDlg'));
   if (dgDemo && seed) return;
@@ -9816,6 +9821,7 @@ async function openTicket(ref, seed = null) {
 /** Every service on the visit, its time and price, and the total. */
 function ticketLines(a) {
   if (a.loading) return skeleton(2);
+  if (svcEdit === a.ref) return ticketSvcEditor(a);
   // Every service of the visit (asked for 2026-10-31), each its own line
   // with how many, how long and what it was priced at when booked. A visit
   // of one service that predates itemizing is still that service at the
@@ -9856,6 +9862,89 @@ function ticketLines(a) {
  * the price is what Home, Finance and Payroll count.
  */
 let priceEdit = null;
+
+/**
+ * Edit services on a ticket (2026-11-16, ClickUp 1k58pwrcvmy item 2): take
+ * a service off, add one the visit's stylist does, then Save services. The
+ * server works the visit out again as a booking would and refuses it, with
+ * nothing changed, if the longer visit would run into something
+ * (setVisitServices). Prices that stay keep what the ticket says.
+ */
+let svcEdit = null;     // the ref being edited
+let svcDraft = [];      // [{ slug, name }] in the ticket's order
+function svcStart(a) {
+  const bySlug = new Map(me.services.map((s) => [s.slug, s]));
+  const byName = new Map(me.services.map((s) => [s.name, s]));
+  const slugs = a.itemized && a.serviceSlugs?.length ? a.serviceSlugs
+    : String(a.service || '').split(' + ').map((n) => byName.get(n)?.slug).filter(Boolean);
+  svcDraft = (slugs.length ? slugs : a.serviceSlugs || []).map((slug) => ({ slug, name: bySlug.get(slug)?.name || slug }));
+  svcEdit = a.ref;
+  priceEdit = null;
+}
+/** Services this visit's stylist does that are not on it yet, by kind. */
+function svcAddable(a) {
+  const st = (me.stylists || []).find((x) => x.slug === a.stylistSlug);
+  const taken = new Set(svcDraft.map((x) => x.slug));
+  return me.services.filter((s) => !taken.has(s.slug)
+    && (!st || !Array.isArray(st.services) || st.services.includes(s.slug)));
+}
+function ticketSvcEditor(a) {
+  const add = svcAddable(a);
+  const groups = BOOK_KINDS.map(([k, label]) => [label, add.filter((s) => bookKindOf(s) === k)])
+    .concat([['Other', add.filter((s) => bookKindOf(s) === 'other')]]).filter(([, l]) => l.length);
+  return `<div class="tk-lines">${svcDraft.map((s, i) => `<div class="tk-line"><span><b>${esc(s.name)}</b></span>`
+      + `<button type="button" class="tk-x" data-ts-remove="${i}" aria-label="Remove ${esc(s.name)}"${svcDraft.length < 2 ? ' disabled title="A visit keeps at least one service. To call it off, cancel the appointment."' : ''}>`
+      + `<svg class="ic"><use href="#i-x"/></svg></button></div>`).join('')}</div>
+    ${groups.length && svcDraft.length < 6 ? `<label class="tkt-svcadd"><span>Add a service</span><select id="tsAdd">
+      <option value="">Choose a service</option>
+      ${groups.map(([label, l]) => `<optgroup label="${esc(label)}">${l.map((s) => `<option value="${esc(s.slug)}">${esc(s.name)}</option>`).join('')}</optgroup>`).join('')}
+    </select></label>` : ''}
+    <p class="tkt-hint">The visit keeps its start time and stylist. Its length is worked out again, and the time it needs is held on the book.</p>
+    <div class="tkt-pacts"><span class="tkt-perr" id="tsErr" role="alert"></span>
+      <button type="button" class="btn quiet sm" data-ts="cancel">Cancel</button>
+      <button type="button" class="btn sm" data-ts="save">Save services</button></div>`;
+}
+async function saveServices() {
+  const a = apptOpen;
+  if (!a) return;
+  const err = (m) => { const e = $('tsErr'); if (e) e.textContent = m; };
+  if (!svcDraft.length) { err('Keep at least one service.'); return; }
+  if (dgDemo) { svcEdit = null; paintTicket(a); toast('This is the sample day, so nothing changes.'); return; }
+  const btn = $('adLines').querySelector('[data-ts="save"]');
+  if (btn) btn.disabled = true;
+  try {
+    const t = await api('/api/staff/appointment', {
+      method: 'POST',
+      body: JSON.stringify({ ref: a.ref, action: 'services', services: svcDraft.map((x) => x.slug) }),
+    });
+    svcEdit = null;
+    if ($('apptDlg').open && apptOpen?.ref === a.ref) paintTicket(t);
+    toast(`Services saved. The visit now runs ${t.time} to ${t.endTime}.`);
+    if ($('personDlg').open && person) reloadPerson();
+    if (page === 'appointments') refreshDiary();
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    err(e.message);
+  }
+}
+$('apptDlg').addEventListener('click', (e) => {
+  if (!apptOpen) return;
+  const rm = e.target.closest('[data-ts-remove]');
+  if (rm) { svcDraft.splice(Number(rm.dataset.tsRemove), 1); $('adLines').innerHTML = ticketLines(apptOpen); return; }
+  const ts = e.target.closest('[data-ts]');
+  if (!ts) return;
+  if (ts.dataset.ts === 'save') { saveServices(); return; }
+  if (ts.dataset.ts === 'edit') svcStart(apptOpen); else svcEdit = null;
+  paintTicket(apptOpen);
+  if (svcEdit) $('tsAdd')?.focus();
+});
+$('apptDlg').addEventListener('change', (e) => {
+  if (e.target.id !== 'tsAdd' || !apptOpen || !e.target.value) return;
+  const s = me.services.find((x) => x.slug === e.target.value);
+  if (s) svcDraft.push({ slug: s.slug, name: s.name });
+  $('adLines').innerHTML = ticketLines(apptOpen);
+  $('tsAdd')?.focus();
+});
 const canPrice = () => Boolean(me?.user?.canAdmin || me?.user?.canManageTeam);
 /** "$77", "77.5", "1,200" -> cents; '' -> null; anything else -> NaN. */
 function centsOf(v) {
@@ -9920,6 +10009,7 @@ $('apptDlg').addEventListener('click', (e) => {
   if (!tp || !apptOpen) return;
   if (tp.dataset.tp === 'save') { savePrice(); return; }
   priceEdit = tp.dataset.tp === 'edit' ? apptOpen.ref : null;
+  if (priceEdit) svcEdit = null;
   paintTicket(apptOpen);
   if (priceEdit) priceBoxes()[0]?.focus();
 });
@@ -9964,8 +10054,13 @@ function paintTicket(a) {
   ].join('');
   if (priceEdit && priceEdit !== a.ref) priceEdit = null;
   $('adLines').innerHTML = ticketLines(a);
-  $('adPriceEd').innerHTML = !a.loading && canPrice() && priceEdit !== a.ref
-    ? `<button type="button" class="px-pen" data-tp="edit" aria-label="Edit the price" title="Edit the price">${ic('edit')}</button>` : '';
+  if (svcEdit && svcEdit !== a.ref) svcEdit = null;
+  $('adPriceEd').innerHTML = a.loading || svcEdit === a.ref ? '' : [
+    canPrice() && priceEdit !== a.ref
+      ? `<button type="button" class="px-pen" data-tp="edit" aria-label="Edit the price" title="Edit the price">${ic('edit')}</button>` : '',
+    a.status === 'booked' && priceEdit !== a.ref
+      ? `<button type="button" class="btn quiet sm tkt-svcbtn" data-ts="edit" title="Add, remove or change the services on this visit">${ic('plus')}Edit services</button>` : '',
+  ].join('');
   $('adPay').innerHTML = ticketPayment(a);
   const b = (act, label, cls = 'quiet') => `<button type="button" class="btn ${cls} sm" data-ad="${act}">${esc(label)}</button>`;
   if (a.loading) { for (const id of ['adMini', 'adActs']) $(id).innerHTML = ''; $('adDiv').hidden = true; return; }
@@ -12236,10 +12331,10 @@ $('contactForm').onsubmit = async (e) => {
 const BOOK_KINDS = [['color', 'Color'], ['treatments', 'Treatments'], ['cuts', 'Cuts'], ['styling', 'Styling'], ['skin', 'Skin']];
 const bookKindOf = (s) => (BOOK_KINDS.some(([k]) => k === s.category) ? s.category : 'other');
 const bookKindLabel = (k) => (BOOK_KINDS.find(([x]) => x === k) || [k, 'Other'])[1];
-// One Color and one Cut per visit, as on the website's survey (asked for
-// 2026-11-13): picking another replaces the one before. Treatments and
-// Styling still take several.
-const BOOK_SINGLE = ['color', 'cuts'];
+// Every kind takes several services on one visit (2026-11-16, ClickUp
+// 1k58pwrcvmy item 3): a single color and partial highlights are done at the
+// same sitting. From 2026-11-13 picking a second Color or Cut replaced the
+// first, which read as the app cancelling the service already chosen.
 const bookTimeLabel = (iso) => new Date(iso).toLocaleTimeString(LOCALE, {
   hour: 'numeric', minute: '2-digit', timeZone: me.salon.timezone,
 });
@@ -12360,7 +12455,6 @@ function paintBookKinds() {
 
 function paintBookServices() {
   $('bookServiceQ').textContent = `Which ${bookKindLabel(bookKind).toLowerCase()} service?`;
-  $('bookServiceHint').hidden = !BOOK_SINGLE.includes(bookKind);
   const taken = new Set(bookLines.map((s) => s.slug));
   const can = new Set(bookAddable().map((s) => s.slug));
   const list = me.services.filter((s) => bookKindOf(s) === bookKind && (taken.has(s.slug) || can.has(s.slug)));
@@ -12751,13 +12845,8 @@ $('bookServices').onclick = (e) => {
   if (!b) return;
   const at = bookLines.findIndex((s) => s.slug === b.dataset.service);
   const s = at < 0 && me.services.find((x) => x.slug === b.dataset.service);
-  const single = s && BOOK_SINGLE.includes(bookKindOf(s));
-  const was = single ? bookLines.findIndex((x) => bookKindOf(x) === bookKindOf(s)) : -1;
-  // Tapping the chosen Color or Cut leaves it chosen, as on the website;
-  // the X on the visit's line still takes it off.
-  if (at >= 0 && BOOK_SINGLE.includes(bookKindOf(bookLines[at]))) return;
+  // A service not on the visit joins it; one already on it comes off.
   if (at >= 0) bookLines.splice(at, 1);
-  else if (was >= 0) bookLines.splice(was, 1, s);   // in its place, so the visit's order holds
   else if (s) bookLines.push(s);
   note($('bookNote'), '');
   paintBookServices();

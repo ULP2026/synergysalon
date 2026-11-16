@@ -200,6 +200,7 @@ const CHANGE_TITLE = {
   card_on_file: 'Card on file',
   source: 'Source updated',
   visit_price: 'Appointment price changed',
+  visit_services: 'Appointment services changed',
 };
 const STATUS_WORD = { new: 'New', contacted: 'Contacted', booked: 'Booked', won: 'Client', lost: 'Lost' };
 function changeLine(ch) {
