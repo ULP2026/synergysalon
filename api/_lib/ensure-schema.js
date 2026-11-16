@@ -12,6 +12,7 @@
  */
 import { query } from './db.js';
 import { GOOGLE_OPTIONAL_STYLISTS } from './config.js';
+import { DROP_CLEAN_DOWNS_ONCE } from './clean-down.js';
 
 const STATEMENTS = [
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS username text',
@@ -487,6 +488,10 @@ END $$`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_livemode boolean`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_connected_at timestamptz`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_connected_by uuid`,
+  // 064: back-to-back bookings (2026-11-16). Every clean-down to 0, and
+  // visits not yet over lose theirs; once per database (clean-down.js).
+  // Last, after every statement above that adds a service.
+  DROP_CLEAN_DOWNS_ONCE,
 ];
 
 let done = null;

@@ -346,7 +346,32 @@ the server (`body.services` on `/api/enquiry`, `&with=` on
 offers every one: the guest's time is all of them end to end with the
 clean-downs between, the last clean-down after (`combineServices`), priced
 only when every part has a price. Moving it keeps its own length and breaks
-(`length` on `availableSlots`).
+(`length` on `availableSlots`). Every clean-down is 0 since 2026-11-16
+(below), so in practice a visit is exactly its services back to back.
+
+**Back to back: no clean-down** (customer report, 2026-11-16, ClickUp
+1k58pwrcvmy: "I can't book the next appointment at the time the previous
+one ends"). The gap was each service's clean-down, `services.buffer_min`,
+seeded with the menu (5 to 15 minutes; Perm 15, so a Perm ending at 12:00
+held Dina until 12:15) and never shown or set anywhere in the app. It held
+the stylist after every visit (`cleanDown` in availability.js), was stored
+in each appointment's `during` and so enforced by the no-overlap
+constraint too; inside another visit's processing break it was skipped on
+purpose (the stylist goes back to a client who never left), which is why
+the salon saw no gap there. Migration 064 (also ensure-schema,
+`DROP_CLEAN_DOWNS_ONCE` in `api/_lib/clean-down.js`) sets every one to 0,
+the column default to 0, and takes it off visits not yet over (past ones
+keep theirs; `updated_at` is untouched so Google copies are not re-sent).
+It runs once per database: the column comment is the marker, so a
+clean-down given to a service on purpose later is kept; it waits at most 3
+seconds for the services table on a busy cold start and tries again on the
+next. The code that honours a clean-down is unchanged. What blocks is still
+the whole service time (breaks aside), and the no-overlap constraint still
+refuses any overlap. `tests/booking-gap.integration.test.js` runs the
+report's case with ZZ data (12:00 refused before, booked after; 11:45
+still refused by the app and by the database; processing as before).
+The two older tests that expected a clean-down inside a multi-service visit
+(processing-breaks, synergy-calendar) now expect none.
 
 **A booking is as long as the stylist says the work takes** (asked for
 2026-10-17). Each stylist's own figures in their team window (Duration per

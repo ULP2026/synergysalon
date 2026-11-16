@@ -165,14 +165,15 @@ test("bookings are as long as the stylist says the work takes, alone and togethe
     assert.equal(single.duration_min, 30 + 45 + 30);
     assert.deepEqual(single.breaks, [[30, 45]]);
 
-    // A cut then a balayage, one appointment: 30, the cut's 10-minute
-    // clean-down, then 165, the processing 30 + 10 + 60 = 100 minutes in.
+    // A cut then a balayage, one appointment: 30, then 165 straight after
+    // (no clean-down between since 2026-11-16, clean-down.js), the
+    // processing 30 + 60 = 90 minutes in.
     await c.query('DELETE FROM appointments WHERE ref = ANY($1)', [[cut.ref, single.ref]]);
     const both = await book(c, tenant, 'womens-cut', at(9), 'ZZ Both', { extraServiceSlugs: ['balayage'] });
-    assert.equal(both.duration_min, 30 + 10 + 165);
-    assert.deepEqual(both.breaks, [[100, 45]]);
-    // Its Break is open: 10:40 to 11:25 holds a bang trim, which is a Cut,
-    // so 30 minutes with Dina and 5 to clean down.
+    assert.equal(both.duration_min, 30 + 165);
+    assert.deepEqual(both.breaks, [[90, 45]]);
+    // Its Break is open: 10:30 to 11:15 holds a bang trim, which is a Cut,
+    // so 30 minutes with Dina.
     assert.ok((await slotsFor(c, tenant, day, 'bang-trim')).has(at(10, 45).toMillis()));
 
     // A stylist who has typed nothing is booked at the table's length.

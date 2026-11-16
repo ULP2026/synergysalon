@@ -221,19 +221,20 @@ test('several services are one appointment, long enough for all of them', { skip
     await seedStylists(c, tenant);
     const day = tuesday(tenant.timezone);
 
-    // Cut (60 + 10 clean-down) then blowout (45 + 10): 115 minutes of the
-    // guest's time, the last clean-down after, no price while either is unpriced.
+    // Cut (60) then blowout (45): 105 minutes of the guest's time, back to
+    // back with no clean-down between or after (every clean-down is 0 since
+    // 2026-11-16, clean-down.js), no price while either is unpriced.
     const ask = (extra, stylist = 'dina', length = null) => availableSlots(c, tenant, {
       serviceSlug: 'womens-cut', extraServiceSlugs: extra, stylistSlug: stylist, length,
       fromDate: day.toISODate(), toDate: day.toISODate(),
     });
     const both = await ask(['blowouts']);
-    assert.equal(both.visit.durationMin, 115);
-    assert.equal(both.visit.bufferMin, 10);
+    assert.equal(both.visit.durationMin, 105);
+    assert.equal(both.visit.bufferMin, 0);
     assert.equal(both.visit.priceCents, null);
-    // Tuesday closes at 3: the last start that finishes by then is 1:00.
-    assert.ok(hasAt(both.days, day.set({ hour: 13 })));
-    assert.ok(!hasAt(both.days, day.set({ hour: 13, minute: 15 })));
+    // Tuesday closes at 3: the last start that finishes by then is 1:15.
+    assert.ok(hasAt(both.days, day.set({ hour: 13, minute: 15 })));
+    assert.ok(!hasAt(both.days, day.set({ hour: 13, minute: 30 })));
     assert.ok(hasAt((await ask([])).days, day.set({ hour: 14 })), 'a cut alone still fits at 2');
 
     // Booked online, so Dina needs a Google Calendar connected (empty here).
@@ -243,11 +244,11 @@ test('several services are one appointment, long enough for all of them', { skip
       serviceSlug: 'womens-cut', extraServiceSlugs: ['blowouts'], stylistSlug: 'dina',
       start: day.set({ hour: 13 }).toISO(), guestName: 'ZZ Two services', guestPhone: '8135550100', guestEmail: 'zz@example.com', channel: 'online',
     });
-    assert.equal(appt.duration_min, 115);
+    assert.equal(appt.duration_min, 105);
 
-    // Moving it keeps its own length: 1:15 is refused, as it would run late.
-    const move = await ask([], 'dina', { durationMin: 115, bufferMin: 10 });
-    assert.ok(!hasAt(move.days, day.set({ hour: 13, minute: 15 })));
+    // Moving it keeps its own length: 1:30 is refused, as it would run late.
+    const move = await ask([], 'dina', { durationMin: 105, bufferMin: 0 });
+    assert.ok(!hasAt(move.days, day.set({ hour: 13, minute: 30 })));
 
     // A stylist who does not offer every service is not offered at all.
     await c.query(

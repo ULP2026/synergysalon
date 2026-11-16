@@ -107,8 +107,9 @@ CREATE TABLE services (
   -- calculation, so a wrong number here sells a slot that cannot be honoured.
   duration_min  integer NOT NULL CHECK (duration_min > 0),
   -- Clean-down after the guest leaves. Blocks the diary, never shown as part
-  -- of the appointment.
-  buffer_min    integer NOT NULL DEFAULT 15 CHECK (buffer_min >= 0),
+  -- of the appointment. 0 since 2026-11-16: the salon books back to back
+  -- (clean-down.js); a service given one on purpose keeps it.
+  buffer_min    integer NOT NULL DEFAULT 0 CHECK (buffer_min >= 0),
   -- NULL means no published price. Wrong prices are worse than none, so the
   -- front end says "priced at consultation" rather than inventing one.
   price_cents   integer CHECK (price_cents IS NULL OR price_cents >= 0),
