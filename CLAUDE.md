@@ -363,6 +363,16 @@ rinses both together, `colorBlock` is the one place to change. Visits
 already booked keep their length. New appointment's "About" shows the
 server's length once the times load (`bookLen`; the lines added up before).
 `tests/two-colors.integration.test.js`, `tests/timing.test.js`.
+**The website survey takes a second color** (2026-11-17, item 5, proposal
+on the card). Step 4's Color question was one answer only (`bkSingle`,
+2026-11-13); now Single Process can be added to one of Partial
+Highlights, Full Highlights or Balayage (those three swap with each
+other), "Other" stands alone, and the hint reads "Choose one. Single
+Process can be added to any of the others." (`bkColorBase`,
+`bkColorOther`, `bkSvc` in the template of all nine pages). Cuts still
+takes one. The adapter already sent every pick, so the server books both
+as one visit, sharing the processing break. It is in the template, so
+**a new export undoes it** unless Claude Design has it too.
 
 **Back to back: no clean-down** (customer report, 2026-11-16, ClickUp
 1k58pwrcvmy: "I can't book the next appointment at the time the previous
