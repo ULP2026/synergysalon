@@ -349,6 +349,21 @@ only when every part has a price. Moving it keeps its own length and breaks
 (`length` on `availableSlots`). Every clean-down is 0 since 2026-11-16
 (below), so in practice a visit is exactly its services back to back.
 
+**Two colors, one processing break** (2026-11-17, ClickUp 1k58pwrcvmy item
+4, proposal on the card). Two or more color services that each have a
+processing break (Start, Break, Finish) are not end to end: `colorBlock` in
+availability.js does every Start one after the other (the second inside the
+first's Break), then each Finish as soon as its color has processed for at
+least its own Break, the one ready first going first; where the stylist waits
+is a break the book can sell. Single Process 45/45/45 with a 30/30/30 color
+is 165 minutes (break 75 to 90), not 225. A color with no break (Gloss on
+"No break", a table-timed one) and a cut stay end to end around the block.
+Finishes are kept one each (books long rather than short); if the salon
+rinses both together, `colorBlock` is the one place to change. Visits
+already booked keep their length. New appointment's "About" shows the
+server's length once the times load (`bookLen`; the lines added up before).
+`tests/two-colors.integration.test.js`, `tests/timing.test.js`.
+
 **Back to back: no clean-down** (customer report, 2026-11-16, ClickUp
 1k58pwrcvmy: "I can't book the next appointment at the time the previous
 one ends"). The gap was each service's clean-down, `services.buffer_min`,

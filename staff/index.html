@@ -12375,7 +12375,12 @@ function bookAddable() {
 const bookQuery = () => (bookLines.length
   ? { service: bookLines[0].slug, with: bookLines.slice(1).map((s) => s.slug).join(',') } : null);
 const bookVisitName = () => bookLines.map((s) => s.name).join(' + ');
-const bookVisitMins = () => bookLines.reduce((n, s) => n + s.durationMin, 0);
+// The visit's length as the server works it out once its times are asked
+// for (two colors share a processing break, 2026-11-17, so it can be shorter
+// than the lines added up); the lines added up until then.
+const bookLen = new Map();
+const bookLenKey = () => { const q = bookQuery(); return q ? `${q.service}|${q.with || ''}|${$('bookStylist').value}` : ''; };
+const bookVisitMins = () => bookLen.get(bookLenKey()) ?? bookLines.reduce((n, s) => n + s.durationMin, 0);
 /** "from $N" only when every service has a price: a part-priced total would be a guess. */
 const bookVisitPrice = () => (bookLines.length && bookLines.every((s) => s.price != null)
   ? bookLines.reduce((n, s) => n + Number(s.price), 0) : null);
@@ -12480,9 +12485,13 @@ function paintBookLines() {
   $('bookAdd').hidden = !bookAddable().length;
 }
 
+const paintBookHint = () => {
+  $('bookWhenHint').innerHTML = `Free times for <b>${esc(bookVisitName())}</b>, about ${esc(bookMins(bookVisitMins()))}.`;
+};
+
 function paintBookWhen() {
   if (!bookMonth) bookMonth = $('bookDate').value.slice(0, 7);
-  $('bookWhenHint').innerHTML = `Free times for <b>${esc(bookVisitName())}</b>, about ${esc(bookMins(bookVisitMins()))}.`;
+  paintBookHint();
   loadBookTimes();
 }
 
@@ -12589,10 +12598,12 @@ async function bookMonthDays(month) {
     const first = bookYmd(y, m, 1);
     const last = bookYmd(y, m, new Date(y, m, 0).getDate());
     const from = first < today ? today : first;
+    const lenKey = bookLenKey();   // as asked, not as it may be when the answer comes
     const ask = from > last ? Promise.resolve({}) : api('/api/staff/availability?' + new URLSearchParams({
       service: q.service, stylist: $('bookStylist').value, date: from, to: last, ...(q.with ? { with: q.with } : {}),
     })).then((d) => {
       bookOpen.set(key, d.open || {});
+      if (d.service?.durationMin) bookLen.set(lenKey, d.service.durationMin);
       return Object.fromEntries(d.days.map((x) => [x.date, x.slots]));
     });
     bookCache.set(key, ask);
@@ -12611,6 +12622,8 @@ async function loadBookTimes() {
   try {
     const days = await bookMonthDays(month);
     if (key !== bookKey($('bookDate').value.slice(0, 7)) || BOOK_STEPS[bookStep] !== 'when') return;   // something changed meanwhile
+    paintBookHint();
+    paintBookLines();
     paintBookTimes(days);
   } catch (err) {
     $('bookTimes').innerHTML = '<p class="bw-empty">Could not load times.</p>';

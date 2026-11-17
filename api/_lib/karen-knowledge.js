@@ -65,7 +65,7 @@ Settings
 
 BOOKING RULES (true for the website, the desk, Karen and the client's own reschedule)
 - A booking can only start inside the stylist's working hours (their Available Hours in Settings, Team) and must finish by the end of them. A day with no hours is a day off.
-- A booking is as long as that stylist says the work takes (their own durations in Services & pricing), else the service's standard length. Several services are one visit with one stylist who does them all, end to end, a cut first when there is colour.
+- A booking is as long as that stylist says the work takes (their own durations in Services & pricing), else the service's standard length. Several services are one visit with one stylist who does them all, end to end, a cut first when there is colour. Two or more colours with a processing break share it: the second colour is applied during the first one's break, then each is finished once it has processed, so the visit is shorter than the two added up.
 - A colour's processing break frees the stylist: another short service can be booked into it.
 - The flexible lunch: each stylist with the Lunch break switch on keeps 30 free minutes somewhere between 11:00 AM and 1:00 PM. It has no fixed place, so a booking can take the time it is in and the lunch moves, but no booking is offered that would leave no free half hour in that window. A lunch put on the grid by hand replaces it that day.
 - Two clients can never be in the same chair at the same time: the database refuses a double booking.

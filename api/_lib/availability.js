@@ -50,6 +50,9 @@ export async function loadService(client, tenantId, slug) {
  * A cut booked with a color goes first, whichever was picked first: the
  * color is rinsed and finished last (the salon's order, 2026-10-20), and a
  * cut after it would undo the finish.
+ *
+ * Two or more colors that each have a processing break are the exception to
+ * end to end (2026-11-17): they share the break (colorBlock below).
  */
 export function combineServices(primary, extras = []) {
   const given = [primary, ...extras];
@@ -59,9 +62,20 @@ export function combineServices(primary, extras = []) {
   const last = all[all.length - 1];
   const breaks = [];
   let t = 0;
-  all.forEach((v, i) => {
-    for (const [at, len] of v.breaks || []) breaks.push([t + at, len]);
-    t += v.duration_min + (i < all.length - 1 ? v.buffer_min || 0 : 0);
+  // Two or more colors with a processing break share it (asked for
+  // 2026-11-17, ClickUp 1k58pwrcvmy item 4): the second is applied while the
+  // first develops, not after it. They are done as one block where the first
+  // of them would have been; everything else stays end to end around it.
+  const overlaid = all.filter(sharesBreak);
+  const steps = overlaid.length > 1
+    ? [...all.slice(0, all.indexOf(overlaid[0])).filter((v) => !sharesBreak(v)),
+      { block: overlaid },
+      ...all.slice(all.indexOf(overlaid[0])).filter((v) => !sharesBreak(v))]
+    : all;
+  steps.forEach((v, i) => {
+    const step = v.block ? colorBlock(v.block) : { durationMin: v.duration_min, breaks: v.breaks || [] };
+    for (const [at, len] of step.breaks) breaks.push([t + at, len]);
+    t += step.durationMin + (i < steps.length - 1 && !v.block ? v.buffer_min || 0 : 0);
   });
   const priced = all.every((v) => v.price_cents != null);
   return {
@@ -76,6 +90,37 @@ export function combineServices(primary, extras = []) {
     })),
     breaks: cleanBreaks(breaks, t),
   };
+}
+
+/** A color timed as Start, one Break, Finish: one whose break can be shared. */
+function sharesBreak(v) {
+  return v.category === 'color' && (v.breaks || []).length === 1;
+}
+
+/**
+ * Several colors in one sitting: every Start one after the other (the second
+ * inside the first's Break), then each Finish as soon as its color has
+ * processed for at least its own Break, the one ready first going first.
+ * Wherever the stylist is left waiting is a processing break, so the book can
+ * still sell it. A Start longer than the Break before it only makes that
+ * color process longer, never shorter: its Break is a minimum.
+ *
+ * Finishes are kept apart, one each: books long rather than short. If the
+ * salon rinses both together, this is the one place to say so.
+ */
+function colorBlock(colors) {
+  let t = 0;
+  const ready = colors.map((v, i) => {
+    const [at, len] = v.breaks[0];
+    t += at;
+    return { i, ready: t + len, finish: v.duration_min - at - len };
+  });
+  const breaks = [];
+  for (const c of [...ready].sort((a, b) => a.ready - b.ready || a.i - b.i)) {
+    if (c.ready > t) breaks.push([t, c.ready - t]);
+    t = Math.max(t, c.ready) + c.finish;
+  }
+  return { durationMin: t, breaks };
 }
 
 /**

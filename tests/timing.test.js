@@ -180,3 +180,32 @@ test('the Color price is the price of any color service with none of its own', (
   assert.equal(ownPrice(details, balayage), 15000, 'its own price wins');
   assert.equal(ownPrice({ color: { on: true } }, single), null, 'never invented');
 });
+
+test('two colors share the processing break: the second is applied while the first develops', () => {
+  const color = (slug, s, b, f) => ({
+    slug, name: slug, category: 'color', duration_min: s + b + f, breaks: [[s, b]], buffer_min: 0, price_cents: null,
+  });
+  // 45/45/45 and 30/30/30: Starts 0-45 and 45-75, open 75-90, Finishes 90-135 and 135-165.
+  const two = combineServices(color('single', 45, 45, 45), [color('partial', 30, 30, 30)]);
+  assert.equal(two.durationMin, 165, 'not 225 end to end');
+  assert.deepEqual(two.breaks, [[75, 15]]);
+  assert.deepEqual(two.lines.map((l) => l.durationMin), [135, 90], 'each line keeps its own time');
+  // Two 45/45/45: the stylist is busy throughout, 180 not 270.
+  const same = combineServices(color('a', 45, 45, 45), [color('b', 45, 45, 45)]);
+  assert.equal(same.durationMin, 180);
+  assert.deepEqual(same.breaks, []);
+  // A second Start longer than the first Break: the first color processes
+  // longer (60, its 45 is a minimum), never shorter.
+  const long = combineServices(color('single', 45, 45, 45), [color('full', 60, 40, 30)]);
+  assert.equal(long.durationMin, 180);
+  assert.deepEqual(long.breaks, []);
+  // The one ready first is finished first: a short second color overtakes.
+  const quick = combineServices(color('slow', 30, 90, 30), [color('fast', 15, 15, 15)]);
+  // Starts 0-30, 30-45; fast ready 60, slow ready 120.
+  // Open 45-60, fast finish 60-75, open 75-120, slow finish 120-150.
+  assert.equal(quick.durationMin, 150);
+  assert.deepEqual(quick.breaks, [[45, 15], [75, 45]]);
+  // One color alone is unchanged.
+  assert.deepEqual(combineServices(color('single', 45, 45, 45)).breaks, [[45, 45]]);
+  assert.equal(combineServices(color('single', 45, 45, 45)).durationMin, 135);
+});
