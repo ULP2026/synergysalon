@@ -19,7 +19,7 @@
  */
 import { DateTime } from 'luxon';
 
-import { availableSlots } from '../../_lib/availability.js';
+import { MAX_VISIT_SERVICES, availableSlots } from '../../_lib/availability.js';
 import { assertSameOrigin, canManageTeam, requireStaff } from '../../_lib/auth.js';
 import { chairOf, inChair } from '../../_lib/scope.js';
 import { EXCLUSION_VIOLATION, hasColumn, query, transaction } from '../../_lib/db.js';
@@ -30,6 +30,9 @@ import {
   HttpError, handler, json, readJson, requireDate, requireString,
 } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
+import {
+  LUNCH, cleanBreaks, flexLunchOn, lunchGap, workSpans,
+} from '../../_lib/timing.js';
 import { visitLines, visitLinesSql, visitNameSql } from '../../_lib/visit.js';
 import { logChanges } from './contacts.js';
 
@@ -396,7 +399,68 @@ async function moveSlots(client, tenant, current, date, slug) {
  * priced only when every service is, as at booking. Nothing is sent to the
  * client, as with a price change; the stylist's Google copy follows.
  */
-const MAX_VISIT_SERVICES = 6;   // availableSlots takes the first and five more
+
+/**
+ * The flexible lunch for a visit already under way. availableSlots asks it
+ * of every time it offers (half an hour free somewhere in 11 to 1, timing.js),
+ * but a visit in the chair is not asked of availableSlots, so the same rule
+ * is applied here by hand: if the stylist could still take lunch with the
+ * visit as it was, they must still be able to with it as it will be. Where
+ * the day already left no lunch, or one was put on the grid by hand, or it
+ * is switched off, nothing is stopped, as in availableSlots. Only the window
+ * from now on counts: lunch time already gone cannot be given back.
+ */
+export async function lunchStillFits(client, tenant, current, startsAt, visit, now = Date.now()) {
+  const { rows: [who] } = await client.query(
+    `SELECT COALESCE(to_jsonb(u) -> 'services', to_jsonb(s) -> 'service_details', '{}'::jsonb) AS details
+       FROM stylists s LEFT JOIN staff_users u ON u.id = s.staff_user_id
+      WHERE s.id = $1::uuid`,
+    [current.stylist_id],
+  );
+  if (!flexLunchOn(who?.details)) return true;
+
+  const day = startsAt.startOf('day');
+  const dayStart = day.toISO();
+  const dayEnd = day.plus({ days: 1 }).toISO();
+  const [{ rows: shifts }, { rows: booked }, { rows: off }] = await Promise.all([
+    client.query('SELECT starts_at, ends_at FROM stylist_hours WHERE stylist_id = $1::uuid AND weekday = $2::int',
+      [current.stylist_id, startsAt.weekday % 7]),
+    client.query(
+      `SELECT starts_at, duration_min, to_jsonb(a) -> 'breaks' AS breaks
+         FROM appointments a
+        WHERE stylist_id = $1::uuid AND status = 'booked' AND id <> $2::uuid
+          AND during && tstzrange($3::timestamptz, $4::timestamptz, '[)')`,
+      [current.stylist_id, current.id, dayStart, dayEnd]),
+    client.query(
+      `SELECT stylist_id, lower(during) AS a, upper(during) AS b, reason
+         FROM time_off
+        WHERE tenant_id = $1::uuid AND (stylist_id = $2::uuid OR stylist_id IS NULL)
+          AND during && tstzrange($3::timestamptz, $4::timestamptz, '[)')`,
+      [tenant.id, current.stylist_id, dayStart, dayEnd]),
+  ]);
+  if (off.some((r) => r.stylist_id && /lunch/i.test(r.reason || ''))) return true;
+
+  const mins = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+  const at = (m) => day.plus({ minutes: m }).toMillis();
+  const windows = shifts.map((sh) => [
+    Math.max(at(Math.max(LUNCH.from, mins(sh.starts_at))), now),
+    at(Math.min(LUNCH.to, mins(sh.ends_at))),
+  ]).filter(([a, b]) => b > a);
+  if (!windows.length) return true;
+
+  const spansOf = (from, v) => workSpans(v).map(([a, b]) => [from + a * 60_000, from + b * 60_000]);
+  const taken = [
+    ...booked.flatMap((r) => spansOf(+new Date(r.starts_at),
+      { durationMin: r.duration_min, breaks: cleanBreaks(r.breaks, r.duration_min) })),
+    ...off.map((r) => [+new Date(r.a), +new Date(r.b)]),
+  ];
+  const from = startsAt.toMillis();
+  const len = LUNCH.minutes * 60_000;
+  const before = lunchGap(windows, [...taken, ...spansOf(from,
+    { durationMin: current.duration_min, breaks: cleanBreaks(current.breaks, current.duration_min) })], len);
+  if (before == null) return true;   // no lunch to keep: the day had already used it
+  return lunchGap(windows, [...taken, ...spansOf(from, visit)], len) != null;
+}
 
 export async function setVisitServices(tenant, user, ref, body) {
   const slugs = Array.isArray(body.services)
@@ -476,6 +540,9 @@ export async function setVisitServices(tenant, user, ref, body) {
         [tenant.id, current.stylist_id, oldEnd.toISO(), endsAt.toISO()],
       );
       if (off.length) throw new HttpError(409, tooLong);
+    }
+    if (started && !(await lunchStillFits(client, tenant, current, startsAt, visit))) {
+      throw new HttpError(409, `${current.stylist_name} would have no half hour left for lunch between 11 and 1 with these services. Take one off, or put their lunch on the grid by hand.`);
     }
 
     // What the ticket already says a staying service costs wins over the

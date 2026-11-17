@@ -15,7 +15,7 @@
  */
 import { requireStaff } from '../../_lib/auth.js';
 import { bookableSlug } from '../../_lib/scope.js';
-import { availableSlots } from '../../_lib/availability.js';
+import { availableSlots, visitExtras } from '../../_lib/availability.js';
 import { pool } from '../../_lib/db.js';
 import { HttpError, handler, json, requireDate, requireId } from '../../_lib/http.js';
 import { tenantForUser } from '../../_lib/tenant.js';
@@ -36,9 +36,7 @@ export default handler({
     const to = url.searchParams.get('to') ? requireDate(url.searchParams.get('to'), 'End date') : date;
     const span = (Date.parse(to) - Date.parse(date)) / 86_400_000;
     if (!(span >= 0 && span <= 42)) throw new HttpError(400, 'Ask for six weeks at most, ending after it starts.');
-    const extraServiceSlugs = String(url.searchParams.get('with') || '')
-      .split(',').map((x) => x.trim()).filter(Boolean).slice(0, 5)
-      .map((x) => requireId(x, 'Service'));
+    const extraServiceSlugs = visitExtras(url.searchParams.get('with')).map((x) => requireId(x, 'Service'));
 
     const client = await pool().connect();
     try {

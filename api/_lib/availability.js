@@ -21,6 +21,26 @@ import {
   LUNCH, cleanBreaks, cleanDown, flexLunchOn, lunchGap, timedService, workSpans,
 } from './timing.js';
 
+/**
+ * The most services one visit takes: the first and five more. Asked of
+ * everywhere the desk books, so a seventh is refused with a reason rather
+ * than dropped without a word, as it was in New appointment.
+ */
+export const MAX_VISIT_SERVICES = 6;
+
+/**
+ * A visit's other services as asked for (a list, or "a,b,c"), refused when
+ * there are more than the visit takes, never cut short quietly.
+ */
+export function visitExtras(raw) {
+  const list = [...new Set((Array.isArray(raw) ? raw : String(raw || '').split(','))
+    .map((x) => String(x).trim()).filter(Boolean))];
+  if (list.length > MAX_VISIT_SERVICES - 1) {
+    throw new HttpError(400, `A visit can have up to ${MAX_VISIT_SERVICES} services.`);
+  }
+  return list;
+}
+
 /** Luxon counts Monday as 1 and Sunday as 7; the schema counts Sunday as 0. */
 function weekdayOf(dt) {
   return dt.weekday % 7;
@@ -269,7 +289,7 @@ export async function availableSlots(client, tenant, {
   // The other services of the same visit: the stylist has to offer every one
   // of them, and the slot has to fit them all.
   const extras = [];
-  for (const slug of [...new Set(extraServiceSlugs)].filter((x) => x && x !== serviceSlug).slice(0, 5)) {
+  for (const slug of [...new Set(extraServiceSlugs)].filter((x) => x && x !== serviceSlug).slice(0, MAX_VISIT_SERVICES - 1)) {
     extras.push(await loadService(client, tenant.id, slug));
   }
   let stylists = await loadStylists(client, tenant.id, service.id, stylistSlug);

@@ -693,6 +693,16 @@ made that way are real: name them ZZ and remove them.
   or Cut replaced the first was the reported "adding a service cancels the
   first one", and is gone; tapping a chosen service takes it off. The
   website survey is unchanged (item 5). `tests/ticket-services.integration.test.js`.
+  Review fixes (2026-11-17): a visit under way is held to the flexible
+  lunch too (`lunchStillFits` in appointment.js: if the stylist could still
+  take half an hour in 11 to 1 before the change, they must after it; a
+  hand-placed lunch, the switch off or a day already without one stops
+  nothing, as in `availableSlots`). A visit takes **6 services at most**
+  everywhere the desk books (`MAX_VISIT_SERVICES`, `visitExtras` in
+  availability.js): New appointment stops at six and says so (`BOOK_MAX`),
+  and `/api/staff/book` and `/api/staff/availability` refuse a seventh with
+  400 where they used to drop it silently. The test file closes its pool
+  once, in `test.after`.
 - **Moving an appointment** (asked for 2026-11-02, and again the same day
   when a drag did not work for the salon): two ways, both for any booking
   still `booked` (`canMove`), one from earlier today included, to any time

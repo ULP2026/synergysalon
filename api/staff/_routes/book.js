@@ -12,6 +12,7 @@
  */
 import { assertSameOrigin, requireStaff } from '../../_lib/auth.js';
 import { assertClientInChair, bookableSlug, chairOf } from '../../_lib/scope.js';
+import { visitExtras } from '../../_lib/availability.js';
 import { createBooking } from '../../_lib/booking.js';
 import { query, transaction } from '../../_lib/db.js';
 import { sendConfirmation } from '../../_lib/email.js';
@@ -70,9 +71,7 @@ export default handler({
         serviceSlug: requireId(body.service, 'Service'),
         // The visit's other services, for one stylist end to end (Karen's
         // "anything else in the same visit?"); none, as before, when absent.
-        extraServiceSlugs: (Array.isArray(body.with) ? body.with : String(body.with || '').split(','))
-          .map((x) => String(x).trim()).filter(Boolean).slice(0, 5)
-          .map((x) => requireId(x, 'Service')),
+        extraServiceSlugs: visitExtras(body.with).map((x) => requireId(x, 'Service')),
         stylistSlug,
         start: requireString(body.start, 'Appointment time', { max: 40 }),
         guestName,

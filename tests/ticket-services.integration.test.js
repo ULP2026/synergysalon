@@ -16,7 +16,7 @@ import { DateTime } from 'luxon';
 import { createBooking } from '../api/_lib/booking.js';
 import { pool } from '../api/_lib/db.js';
 import {
-  applyAppointmentAction, setVisitPrice, setVisitServices, ticketFor,
+  applyAppointmentAction, lunchStillFits, setVisitPrice, setVisitServices, ticketFor,
 } from '../api/staff/_routes/appointment.js';
 import { contactDetail } from '../api/staff/_routes/contacts.js';
 
@@ -199,7 +199,62 @@ test('a visit already under way can still be added to, inside the shift and clea
     assert.equal(t.durationMin, 105);
   } finally {
     await cleanup();
-    await pool().end();
-    globalThis.__synergyPool = undefined;
   }
+});
+
+test('a visit under way keeps the flexible lunch: a service that would take it is refused', { skip }, async () => {
+  await cleanup();
+  try {
+    const { tenant, dina } = await setup(pool());
+    await pool().query("UPDATE stylists SET service_details = '{\"lunch\": true}' WHERE id = $1", [dina]);
+    const at = (h, m = 0) => DAY.set({ hour: h, minute: m });
+    // Another ZZ client 11:30 to 1:00: the only half hour left for lunch is 11:00 to 11:30.
+    await pool().query(
+      `INSERT INTO appointments (tenant_id, ref, stylist_id, service_id, starts_at, duration_min, buffer_min,
+                                 during, guest_name, guest_phone, manage_token, channel)
+       SELECT $1, 'ZZTSVL', $2, v.id, $3::timestamptz, 90, 0,
+              tstzrange($3::timestamptz, $3::timestamptz + interval '90 minutes'), 'ZZ Lunch Neighbour',
+              '8135550138', 'tok-zztsvl', 'staff'
+         FROM services v WHERE v.tenant_id = $1 AND v.slug = 'zz-cut'`,
+      [tenant.id, dina, at(11, 30).toISO()],
+    );
+    // The visit in the chair, 10:00 to 11:00, asked about at 10:15.
+    const current = { id: '00000000-0000-0000-0000-000000000000', stylist_id: dina, duration_min: 60, breaks: [] };
+    const now = at(10, 15).toMillis();
+    const asks = (min) => lunchStillFits(pool(), tenant, current, at(10), { durationMin: min, breaks: [] }, now);
+    assert.equal(await asks(60), true, 'as it is, lunch fits at 11:00');
+    assert.equal(await asks(75), false, 'to 11:15 leaves a quarter hour: refused');
+    assert.equal(await asks(90), false, 'to 11:30 takes the lunch: refused');
+    assert.equal(await asks(45), true, 'shorter only gives time back');
+    // A lunch put on the grid by hand, or the switch off: nothing is stopped.
+    await pool().query(
+      "INSERT INTO time_off (tenant_id, stylist_id, during, reason) VALUES ($1, $2, tstzrange($3::timestamptz, $4::timestamptz), 'Lunch')",
+      [tenant.id, dina, at(13).toISO(), at(13, 30).toISO()],
+    );
+    assert.equal(await asks(90), true, 'a hand-placed lunch stands instead');
+    await pool().query('DELETE FROM time_off WHERE stylist_id = $1', [dina]);
+    await pool().query("UPDATE stylists SET service_details = '{\"lunch\": false}' WHERE id = $1", [dina]);
+    assert.equal(await asks(90), true, 'lunch switched off');
+    // A day that had already used the lunch up is not held to it.
+    await pool().query("UPDATE stylists SET service_details = '{\"lunch\": true}' WHERE id = $1", [dina]);
+    assert.equal(await lunchStillFits(pool(), tenant, { ...current, duration_min: 90 }, at(10),
+      { durationMin: 120, breaks: [] }, now), true);
+  } finally {
+    await cleanup();
+  }
+});
+
+test('a visit takes six services at most, at the desk and on the ticket', { skip }, async () => {
+  const { visitExtras } = await import('../api/_lib/availability.js');
+  assert.deepEqual(visitExtras('a,b,c,d,e'), ['a', 'b', 'c', 'd', 'e']);
+  assert.deepEqual(visitExtras(['a', 'a', ' b ']), ['a', 'b'], 'repeats count once');
+  assert.throws(() => visitExtras('a,b,c,d,e,f'), (err) => err.status === 400 && /up to 6 services/.test(err.message));
+  await assert.rejects(setVisitServices({ id: null }, OWNER, 'ZZNONE', { services: ['1', '2', '3', '4', '5', '6', '7'] }),
+    refused(400, /up to 6 services/));
+});
+
+// One pool for every test in this file, closed once they have all finished.
+test.after(async () => {
+  await pool().end().catch(() => {});
+  globalThis.__synergyPool = undefined;
 });
