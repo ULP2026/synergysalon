@@ -113,13 +113,19 @@ published. Repoint them at `/assets/<uuid>` or the real routes, and check every
 `#anchor` still exists on the page it now lands on.
 
 **The home page's four service cards** ("Four Things, All Done At Master
-Level", asked for 2026-11-18) open their pages: Color `/hair-color-valrico`,
+Level", asked for 2026-11-17) open their pages: Color `/hair-color-valrico`,
 Treatments `/hair-treatments-valrico`, Cuts `/haircuts-valrico`, Styling
 `/hair-styling-valrico`. Each card is one `<a class="svc">` holding its arrow,
 so the whole card and the arrow both go there; the desktop marquee repeats
 the four twice more (`.group.clone`), so there are twelve hrefs to set. They
 all said `#properties` (the section itself). "See all services" under them
-still does: /services does not exist. An export brings `#properties` back.
+opens the site's own Services menu, since /services does not exist (Luis's
+choice, 2026-11-17): from 992px it scrolls to the top and gives the menu
+bar's Services link focus, which opens the dropdown (a click elsewhere
+closes it); below, where the menu bar is hidden, it opens the drawer at
+Services. A capture-phase listener in `boot()` (after the in-page anchor
+scroll, which it stops for that button); its href stays `#properties`. An
+export brings `#properties` back on the cards and drops the listener.
 
 ## Booking
 
