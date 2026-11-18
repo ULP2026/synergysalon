@@ -127,6 +127,23 @@ Services. A capture-phase listener in `boot()` (after the in-page anchor
 scroll, which it stops for that button); its href stays `#properties`. An
 export brings `#properties` back on the cards and drops the listener.
 
+**The Services menu's categories open their pages** (asked for 2026-11-18,
+all nine pages with the menu, Riverview and its three copies included).
+Color, Treatments, Cuts and Styling were buttons that only switched the
+panel (`.mm-tab`) and, in the phone drawer, plain headings (`.dsub-head`),
+so clicking one did nothing. A capture-phase listener at the very top of
+`boot()` (marked `mm-cat-links`; before boot() waits on GSAP or returns
+early on the service pages, so it runs everywhere) sends a click on either
+to the page of that category's own "Visit the ... Service Page" link
+(`.mm-cta`, `.dsub-cta`), so no address is written twice. Hover and focus
+still preview a category's services; on a touch screen wide enough for the
+menu bar, the first tap goes straight to the page (accepted). Tab does not
+reach the dropdown at all, on the live site before this as well; that was
+left alone. The item names (Highlights & Foils, Special Event & Updos,
+Extensions) predate the 2026-11-05 menu and were left as they are on
+request. An export drops the listener: re-apply it, or add it in Claude
+Design.
+
 ## Booking
 
 Postgres owns the diary. **Nothing is sent to CENTRO (GoHighLevel) any more**
