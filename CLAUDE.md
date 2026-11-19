@@ -2701,6 +2701,16 @@ must stay that way: anything committed here is served publicly.
   and the hours as two pieces of text, so `ss-hours` changes only the
   hours piece. Writing the hours into the "Open today " piece showed them
   twice ("9a to 6p9a to 6p", fixed 2026-11-07).
+  **Moved on 2026-11-19** (asked for): the open/closed line now sits
+  above the hero's Call button, not under Book Online, and reads "Salon
+  is currently open" (green dot) or "Salon is currently closed" (grey
+  dot): `.hero-now[data-ss-now]` at the top of every `.hero-book` (the
+  service pages' `.sv-ctas` copies too), painted by the same `paintNow`
+  in `ss-earliest`. The `.nav-now` rules under `.hero-bar` are left but
+  match nothing. The fold badge reads **"Complimentary consultation,
+  always."** (the PMC's own words for the consultation-first promise; it
+  said "Consultation first. Always."). Both are in the template: a new
+  export undoes them.
 
 - **Online booking is live again (2026-11-06, asked for).** The
   `ss-booking-paused` block is gone from all nine pages and
@@ -2827,5 +2837,10 @@ must stay that way: anything committed here is served publicly.
     hours greyed (no names), times outside them left out, and a small bar
     of the working day showing "Your visit: 1:30p to 2:30p" (`dayPreview`
     in the booking adapter; `/api/availability` sends each day's `open`).
+    Since 2026-11-19 (asked for) it says "Pick a time." over the empty
+    bar, and once a time is picked the bar goes and only "Your visit: ..."
+    stays. Continue and Book Me Now! (`.bk-next`) lift 2px with a deeper
+    shadow on hover, eased (none disabled or for reduced motion), also in
+    `ss-bk-polish`.
     The CSS is in `ss-bk-polish`; the Gallery link and Biolage removals are
     in the template, so **a new export undoes them**: re-apply.
