@@ -135,10 +135,11 @@ domain, so its header, drawer and footer logos (the footer one was a bare
 image) and join's thank-you logo say `https://synergysalon.com/` in full.
 **The home page's testimonials are FishHawk's** (same day): the one GSAP
 marquee of `.rcard`s (`.tmq`) is replaced, in place right under the fold,
-by FishHawk's `rv-rq-sec` block (heading, two `.rq-row`s running in
-opposite directions, the five reviews as FishHawk words them) with its
-CSS copied in, and the "Read all our reviews on Google" link kept under
-them. The section keeps `id="testimonials"` for the Reviews links; the
+by FishHawk's `rv-rq-sec` block (two `.rq-row`s running in opposite
+directions, the five reviews as FishHawk words them) with its CSS copied
+in. Later the same day, on request, it lost FishHawk's heading
+("Testimonials", "Clients Who Keep Coming Back") and the "Read all our
+reviews on Google" link: the home shows the two rows of cards only. The section keeps `id="testimonials"` for the Reviews links; the
 `reviews` array and the marquee script stay, unused (the script finds no
 `.tmq-track`). An export undoes both: re-apply.
 
