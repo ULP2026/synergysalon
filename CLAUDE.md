@@ -127,6 +127,21 @@ Services. A capture-phase listener in `boot()` (after the in-page anchor
 scroll, which it stops for that button); its href stays `#properties`. An
 export brings `#properties` back on the cards and drops the listener.
 
+**Every logo opens the homepage** (asked for 2026-11-20). The header,
+drawer and footer logos on the home, Riverview, Brandon, FishHawk and
+scalp pages said `#top` (scroll to the top of the same page); they are
+`/` now, as on the four service pages. join.synergysalon.com is its own
+domain, so its header, drawer and footer logos (the footer one was a bare
+image) and join's thank-you logo say `https://synergysalon.com/` in full.
+**The home page's testimonials are FishHawk's** (same day): the one GSAP
+marquee of `.rcard`s (`.tmq`) is replaced, in place right under the fold,
+by FishHawk's `rv-rq-sec` block (heading, two `.rq-row`s running in
+opposite directions, the five reviews as FishHawk words them) with its
+CSS copied in, and the "Read all our reviews on Google" link kept under
+them. The section keeps `id="testimonials"` for the Reviews links; the
+`reviews` array and the marquee script stay, unused (the script finds no
+`.tmq-track`). An export undoes both: re-apply.
+
 **The Services menu's categories open their pages** (asked for 2026-11-18,
 all nine pages with the menu, Riverview and its three copies included).
 Color, Treatments, Cuts and Styling were buttons that only switched the
