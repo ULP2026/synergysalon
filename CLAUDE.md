@@ -143,6 +143,21 @@ reviews on Google" link: the home shows the two rows of cards only. The section 
 `reviews` array and the marquee script stay, unused (the script finds no
 `.tmq-track`). An export undoes both: re-apply.
 
+**Micah Shadle is off the website** (asked for 2026-11-23). Her Team
+card is gone (heading "Three Master-Level Stylists"), and the three cards
+sit centred at their old width: from 992px `repeat(3, calc((100% - 3rem)
+/ 4))` with `justify-content:center`, and from 560 to 991px the third
+spans both columns at half width so it sits centred under the two. Also
+removed from every page: the two reviews that name her (Shelley L.,
+Janette C.) in the JSON-LD, the static copy, the `reviews` array and the
+`.rq-row` cards; her `bkTeam` fallback entry and `STYLIST_SLUG` map
+entry; and Riverview's "same stylist, for years" quote, now in the salon's
+own words. Her portrait `8f1a355d…webp` is deleted. The staff app and its
+data were left alone (`GOOGLE_OPTIONAL_STYLISTS`, `stylist-photos.js`'s
+`861d841d…jpg`, her `stylists` row and past visits): she is not offered
+online today. An export brings all of it back: after one, `grep -il
+micah *.html` should find nothing.
+
 **The Services menu's categories open their pages** (asked for 2026-11-18,
 all nine pages with the menu, Riverview and its three copies included).
 Color, Treatments, Cuts and Styling were buttons that only switched the
