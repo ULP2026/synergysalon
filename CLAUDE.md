@@ -64,7 +64,7 @@ arrow; `join/assets/karen-still-v2.webp`, to https://app.synergysalon.com/)
 inside The Big One card under its text (`.g-big-cta`; moved there on
 request the same day from beside Book a Salon Tour). The big card's icon is
 a star. The menus lost Why Synergy and list What You Get first. The final
-band's Call button is Learn more about Karen. The fold's top strip
+band's Call button is Learn more about Karen, the same `.kcta` (her picture, name and role) on the band's glass style. The fold's top strip
 (`.util-bar.util-powered`) reads "This Salon is powered by TheSynergyApp™ |
 Learn more about Karen >" in place of the phone, today's hours and "Se
 habla español" (moved there on request from a banner at the foot), and
