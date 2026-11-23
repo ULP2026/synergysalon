@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Synergy Salon</title>
+<title>Synergy App</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png">
 <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="/apple-touch-icon.png">
@@ -8176,8 +8176,9 @@ function go(name, { push = true } = {}) {
   // Leaving Home ends customizing without saving, as Cancel would.
   if (name !== 'home' && homeEditing) { homeLayout = JSON.parse(homeBefore || '[]'); homeEditing = false; }
   if (p.action) $('primaryLbl').textContent = p.action;
-  // Only the salon's name in the tab, whatever the page (asked for 2026-11-04).
-  document.title = 'Synergy Salon';
+  // One name in the tab, whatever the page: "Synergy App" (asked for
+  // 2026-11-23; it was the salon's name from 2026-11-04).
+  document.title = 'Synergy App';
   hideMenu();
   p.load();
 }

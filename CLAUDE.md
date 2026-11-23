@@ -2082,8 +2082,9 @@ made that way are real: name them ZZ and remove them.
     Google busy time (google-busy.js), the Google copies of bookings
     (google-mirror.js) and blocks. `tests/chair-login.integration.test.js`.
   - **The tab title is "Synergy Salon" on every page** (public pages, the
-    bundles' templates as well as their static heads, join, shop, the
-    manage page and the console, whose `go()` no longer adds the page
+    bundles' templates as well as their static heads, join, shop and the
+    manage page). The console's is **"Synergy App"** (asked for
+    2026-11-23; `<title>` and `go()`, which no longer adds the page
     name). A new export brings the old titles back: re-apply.
   - Popups that cap their height with `100dvh` have a `100vh` line first,
     for older iPhone Safari, which drops the whole declaration otherwise.
