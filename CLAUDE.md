@@ -56,7 +56,7 @@ its embed script and the thank-you message listener are untouched.
 Marketing, done-for-you"; the form section "Book a salon tour" over "Come
 see the salon & pick a chair"; the Why Synergy section (Commission salon,
 Solo suite, A chair at Synergy) is gone, and What You Get sits right under
-the form with the badge "Why you get" (the wording asked for), "Here's
+the form with the badge "Why Synergy" ("Why you get" for a day, then changed on request), "Here's
 everything that comes with it.", the old Why lede, and a **Learn more
 about Karen** button (`.kcta`, the app's Call Karen layout: her round
 picture with the green dot, the name over "Synergy Salon's Assistant", the
