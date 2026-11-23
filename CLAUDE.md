@@ -60,12 +60,15 @@ the form with the badge "Why you get" (the wording asked for), "Here's
 everything that comes with it.", the old Why lede, and a **Learn more
 about Karen** button (`.kcta`, the app's Call Karen layout: her round
 picture with the green dot, the name over "Synergy Salon's Assistant", the
-arrow; `join/assets/karen-still-v2.webp`) beside Book a Salon Tour, both
-to https://app.synergysalon.com/. The big card's icon is a star. The menus
-lost Why Synergy and list What You Get first. The final band's Call button
-is Learn more about Karen. The footer ends with a banner, "This Salon is
-powered by TheSynergyApp™ | Learn more about Karen >" (`.powered`, inside
-`.foot` so the phone's bottom bar does not cover it). The scroll-in image
+arrow; `join/assets/karen-still-v2.webp`, to https://app.synergysalon.com/)
+inside The Big One card under its text (`.g-big-cta`; moved there on
+request the same day from beside Book a Salon Tour). The big card's icon is
+a star. The menus lost Why Synergy and list What You Get first. The final
+band's Call button is Learn more about Karen. The fold's top strip
+(`.util-bar.util-powered`) reads "This Salon is powered by TheSynergyApp™ |
+Learn more about Karen >" in place of the phone, today's hours and "Se
+habla español" (moved there on request from a banner at the foot), and
+shows on phones too (it was hidden under 992px). The scroll-in image
 frames skip `.kc-pic`.
 
 ## The pages are design-tool exports
