@@ -52,6 +52,21 @@ Type follows the main site's measured scale: labels 14px/500 untracked, the
 fold headline as its h1, the fold paragraph as its hero lede, paragraphs
 16px/1.5, small titles and FAQ questions 20px/500. The GoHighLevel iframe,
 its embed script and the thank-you message listener are untouched.
+**The round of 2026-11-23** (asked for): the fold badge reads "All your
+Marketing, done-for-you"; the form section "Book a salon tour" over "Come
+see the salon & pick a chair"; the Why Synergy section (Commission salon,
+Solo suite, A chair at Synergy) is gone, and What You Get sits right under
+the form with the badge "Why you get" (the wording asked for), "Here's
+everything that comes with it.", the old Why lede, and a **Learn more
+about Karen** button (`.kcta`, the app's Call Karen layout: her round
+picture with the green dot, the name over "Synergy Salon's Assistant", the
+arrow; `join/assets/karen-still-v2.webp`) beside Book a Salon Tour, both
+to https://app.synergysalon.com/. The big card's icon is a star. The menus
+lost Why Synergy and list What You Get first. The final band's Call button
+is Learn more about Karen. The footer ends with a banner, "This Salon is
+powered by TheSynergyApp™ | Learn more about Karen >" (`.powered`, inside
+`.foot` so the phone's bottom bar does not cover it). The scroll-in image
+frames skip `.kc-pic`.
 
 ## The pages are design-tool exports
 
