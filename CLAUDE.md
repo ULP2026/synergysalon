@@ -168,6 +168,16 @@ stylist (`STYLIST_OF`, `contactDetail`) is now whoever they last booked
 with **who is still on the team**, for anyone removed: past visits still
 name who did them. The tests that used her chair use Tami's and Kim's.
 
+**The testimonial marquee has no gap** (2026-11-23, asked for: "not cut
+off"). With three reviews left, each `.rq-set` was narrower than a wide
+screen and the old `.rq-set{min-width:100vw}` showed as a hole in the
+loop. On all five pages with `rv-rq-sec`, each set now holds its reviews
+three times (the copies `aria-hidden`, hidden for reduced motion), so a
+set is ~3,300px; the min-width rule is gone; the edges fade over 6% (5% on
+phones, which had a hard cut); each row has 4px above and below; and the
+track runs 110s (90s on phones) to keep the old ~30px/s. An export undoes
+it: re-apply.
+
 **The Services menu's categories open their pages** (asked for 2026-11-18,
 all nine pages with the menu, Riverview and its three copies included).
 Color, Treatments, Cuts and Styling were buttons that only switched the
