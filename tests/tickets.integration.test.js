@@ -175,10 +175,12 @@ test('Choose your stylist lists every stylist record, and keeps one who has left
     // Whoever is here comes before whoever has left.
     assert.ok(list.findIndex((s) => s.slug === 'zz-nologin') < list.findIndex((s) => s.slug === 'zz-left'));
 
-    // The client and their history stayed when the stylist left.
+    // The client and their history stayed when the stylist left, but the
+    // one who left is nobody's stylist any more (2026-11-23).
     const d = await contactDetail(tenant.id, contactId, c);
     assert.equal(d.appointments[0].ref, 'ZZTKLEFT');
-    assert.equal(d.contact.stylist.slug, 'zz-left');
+    assert.equal(d.appointments[0].stylist, 'ZZ zz-left');
+    assert.equal(d.contact.stylist, null);
   } finally {
     await c.query('ROLLBACK');
     await c.end();

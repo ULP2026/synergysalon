@@ -36,7 +36,7 @@ test('appointment texts fit one segment for ordinary visits, even with long name
   const tenant = { name: 'Synergy Salon', timezone: 'America/New_York', phone: '813.654.2055' };
   const appt = {
     starts_at: new Date(Date.now() + 6 * 864e5).toISOString(),
-    guest_name: 'Alexandria Montgomery', service_name: 'Highlights & Foils', stylist_name: 'Micah Shadle',
+    guest_name: 'Alexandria Montgomery', service_name: 'Highlights & Foils', stylist_name: 'Kim Batarlis',
   };
   for (const kind of ['confirmation', 'reminder', 'reschedule', 'cancellation']) {
     const text = appointmentText(kind, appt, tenant);

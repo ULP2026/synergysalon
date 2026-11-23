@@ -43,21 +43,21 @@ async function setup(db) {
      VALUES ($1, $2, 'x', $3, $4, now()) RETURNING id, tenant_id, name, role, email`, [t.id, email, name, role],
   )).rows[0];
   const owner = await login('zz-kchg-owner@example.com', 'ZZ Owner', 'owner');
-  const micahLogin = await login('zz-kchg-micah@example.com', 'ZZ Micah', 'stylist');
-  // Dina: a chair without a sign-in. Micah: a chair with one.
+  const kimLogin = await login('zz-kchg-kim@example.com', 'ZZ Kim', 'stylist');
+  // Dina: a chair without a sign-in. Kim: a chair with one.
   const dina = (await db.query(
     `INSERT INTO stylists (tenant_id, slug, name, service_details) VALUES ($1, 'zz-dina', 'ZZ Dina', '{"lunch": false}') RETURNING id`, [t.id],
   )).rows[0].id;
-  const micah = (await db.query(
-    `INSERT INTO stylists (tenant_id, slug, name, staff_user_id) VALUES ($1, 'zz-micah', 'ZZ Micah', $2) RETURNING id`, [t.id, micahLogin.id],
+  const kim = (await db.query(
+    `INSERT INTO stylists (tenant_id, slug, name, staff_user_id) VALUES ($1, 'zz-kim', 'ZZ Kim', $2) RETURNING id`, [t.id, kimLogin.id],
   )).rows[0].id;
-  await db.query("UPDATE staff_users SET services = '{\"lunch\": false, \"cuts\": {\"on\": true}}'::jsonb WHERE id = $1", [micahLogin.id]);
-  for (const st of [dina, micah]) {
+  await db.query("UPDATE staff_users SET services = '{\"lunch\": false, \"cuts\": {\"on\": true}}'::jsonb WHERE id = $1", [kimLogin.id]);
+  for (const st of [dina, kim]) {
     await db.query('INSERT INTO stylist_services (stylist_id, service_id) SELECT $1, id FROM services WHERE tenant_id = $2', [st, t.id]);
     // Wednesday and Friday, 9 to 5; Thursday off.
     await db.query("INSERT INTO stylist_hours (stylist_id, weekday, starts_at, ends_at) VALUES ($1, 3, '09:00', '17:00'), ($1, 5, '09:00', '17:00')", [st]);
   }
-  return { tenant: t, owner, micahLogin, dina, micah };
+  return { tenant: t, owner, kimLogin, dina, kim };
 }
 
 /** Propose, then press Confirm, as the console does. */
@@ -71,9 +71,9 @@ test('Karen blocks days off, moves, prices, notes, and changes hours and service
   await cleanup();
   const db = pool();
   try {
-    const { tenant, owner, micahLogin, dina } = await setup(db);
+    const { tenant, owner, kimLogin, dina } = await setup(db);
     const asOwner = { tenant, user: owner };
-    const asMicah = { tenant, user: micahLogin };
+    const asKim = { tenant, user: kimLogin };
 
     // ── blocks: "block off my book on Wednesday and Thursday" ──
     const blk = await propose(asOwner, { type: 'block', stylist: 'zz-dina', reason: 'Vacation', days: [{ date: WED.toISODate() }, { date: THU.toISODate() }] });
@@ -91,9 +91,9 @@ test('Karen blocks days off, moves, prices, notes, and changes hours and service
     } finally { c.release(); }
 
     // A stylist blocks only their own chair.
-    const notMine = await propose(asMicah, { type: 'block', stylist: 'zz-dina', days: [{ date: FRI.toISODate() }] });
+    const notMine = await propose(asKim, { type: 'block', stylist: 'zz-dina', days: [{ date: FRI.toISODate() }] });
     assert.match(notMine.error, /only change your own chair|only block your own/i);
-    const mine = await proposeAndConfirm(asMicah, { type: 'block', stylist: 'zz-micah', days: [{ date: FRI.toISODate(), from: '1pm', to: '15:00' }] });
+    const mine = await proposeAndConfirm(asKim, { type: 'block', stylist: 'zz-kim', days: [{ date: FRI.toISODate(), from: '1pm', to: '15:00' }] });
     assert.match(mine.card.proposal.lines[0], /1:00 PM to 3:00 PM/);
 
     // Taking a block away again.
@@ -123,7 +123,7 @@ test('Karen blocks days off, moves, prices, notes, and changes hours and service
     ({ rows } = await db.query('SELECT starts_at FROM appointments WHERE ref = $1', [booked.ref]));
     assert.equal(DateTime.fromJSDate(rows[0].starts_at).setZone(TZ).toFormat('HH:mm'), '13:00');
 
-    assert.match((await propose(asMicah, { type: 'price', ref: booked.ref, prices: [80] })).error, /No appointment|owner, an admin or a manager/);
+    assert.match((await propose(asKim, { type: 'price', ref: booked.ref, prices: [80] })).error, /No appointment|owner, an admin or a manager/);
     const pr = await proposeAndConfirm(asOwner, { type: 'price', ref: booked.ref, prices: [80] });
     assert.match(pr.card.proposal.lines.join(' '), /ZZ Cut: \$65, now \$80/);
     ({ rows } = await db.query('SELECT price_cents, notes FROM appointments WHERE ref = $1', [booked.ref]));
@@ -145,11 +145,11 @@ test('Karen blocks days off, moves, prices, notes, and changes hours and service
     ({ rows } = await db.query("SELECT service_details FROM stylists WHERE id = $1", [dina]));
     const t = timedService({ slug: 'zz-cut', name: 'ZZ Cut', category: 'cuts', duration_min: 60, price_cents: 6500 }, rows[0].service_details);
     assert.deepEqual([t.price_cents, t.duration_min], [5500, 50]);
-    // Micah's are on his login, and he may change his own.
-    await proposeAndConfirm(asMicah, { type: 'service', stylist: 'zz-micah', changes: [{ service: 'zz-cut', price: 48 }] });
-    ({ rows } = await db.query('SELECT services FROM staff_users WHERE id = $1', [micahLogin.id]));
+    // Kim's are on his login, and he may change his own.
+    await proposeAndConfirm(asKim, { type: 'service', stylist: 'zz-kim', changes: [{ service: 'zz-cut', price: 48 }] });
+    ({ rows } = await db.query('SELECT services FROM staff_users WHERE id = $1', [kimLogin.id]));
     assert.equal(rows[0].services.items['zz-cut'].price, 48);
-    ({ rows } = await db.query("SELECT count(*)::int AS n FROM stylist_services ss JOIN stylists s ON s.id = ss.stylist_id WHERE s.slug = 'zz-micah'"));
+    ({ rows } = await db.query("SELECT count(*)::int AS n FROM stylist_services ss JOIN stylists s ON s.id = ss.stylist_id WHERE s.slug = 'zz-kim'"));
     assert.equal(rows[0].n, 1, 'still offers the cut');
 
     // A proposal lives for one confirm: pressing it again does nothing.

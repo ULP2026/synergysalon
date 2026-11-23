@@ -52,7 +52,7 @@ async function tenantOf(c) {
  * live database and left four stylists switched on in production.
  */
 async function seedStylists(c, tenant) {
-  for (const slug of ['dina', 'micah', 'tami', 'kim']) {
+  for (const slug of ['dina', 'tami', 'kim']) {
     await makeBookable(c, tenant.id, slug).catch(() => {});
   }
 }
@@ -72,18 +72,18 @@ async function linkLogin(c, tenant, stylistSlug, { ics = null, refresh = null } 
   return rows[0].id;
 }
 
-/** A stylist added after the salon's four, offering what Micah offers, on her hours. */
+/** A stylist added after the salon's own, offering what Tami offers, on her hours. */
 async function newStylist(c, tenant) {
   const { rows } = await c.query(
     `INSERT INTO stylists (tenant_id, slug, name) VALUES ($1, 'zz-new', 'ZZ New') RETURNING id`, [tenant.id]);
   await c.query(
     `INSERT INTO stylist_services (stylist_id, service_id)
      SELECT $1, ss.service_id FROM stylist_services ss JOIN stylists s ON s.id = ss.stylist_id
-      WHERE s.tenant_id = $2 AND s.slug = 'micah'`, [rows[0].id, tenant.id]);
+      WHERE s.tenant_id = $2 AND s.slug = 'tami'`, [rows[0].id, tenant.id]);
   await c.query(
     `INSERT INTO stylist_hours (stylist_id, weekday, starts_at, ends_at)
      SELECT $1, h.weekday, h.starts_at, h.ends_at FROM stylist_hours h JOIN stylists s ON s.id = h.stylist_id
-      WHERE s.tenant_id = $2 AND s.slug = 'micah'`, [rows[0].id, tenant.id]);
+      WHERE s.tenant_id = $2 AND s.slug = 'tami'`, [rows[0].id, tenant.id]);
 }
 
 test('a new stylist with no Google Calendar is not offered online; the desk still books them', { skip }, async () => {
@@ -127,7 +127,7 @@ test('a new stylist with no Google Calendar is not offered online; the desk stil
   }
 });
 
-test('the salon\'s four stylists are booked from the Synergy Calendar alone until they connect', { skip }, async () => {
+test('the salon\'s own stylists are booked from the Synergy Calendar alone until they connect', { skip }, async () => {
   const c = await connect();
   try {
     await c.query('BEGIN');
@@ -136,21 +136,21 @@ test('the salon\'s four stylists are booked from the Synergy Calendar alone unti
     const day = tuesday(tenant.timezone);
     const ten = day.set({ hour: 10 });
     const online = () => availableSlots(c, tenant, {
-      serviceSlug: 'womens-cut', stylistSlug: 'micah', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
+      serviceSlug: 'womens-cut', stylistSlug: 'tami', fromDate: day.toISODate(), toDate: day.toISODate(), google: true,
     });
 
     // Offered from the hours stored here, with no Google anywhere.
-    assert.ok(hasAt((await online()).days, ten), '10:00 is offered from Micah\'s own hours');
+    assert.ok(hasAt((await online()).days, ten), '10:00 is offered from Tami\'s own hours');
 
     const web = await createBooking(c, tenant, {
-      serviceSlug: 'womens-cut', stylistSlug: 'micah', start: ten.toISO(),
+      serviceSlug: 'womens-cut', stylistSlug: 'tami', start: ten.toISO(),
       guestName: 'ZZ Website', guestEmail: 'zz@example.com', channel: 'online',
     });
-    assert.equal(web.stylist_slug, 'micah');
+    assert.equal(web.stylist_slug, 'tami');
 
     // The desk now cannot sell the same hour: one calendar for both.
     await assert.rejects(createBooking(c, tenant, {
-      serviceSlug: 'womens-cut', stylistSlug: 'micah', start: ten.toISO(),
+      serviceSlug: 'womens-cut', stylistSlug: 'tami', start: ten.toISO(),
       guestName: 'ZZ Desk', guestPhone: '8135550100', channel: 'staff', minLeadMin: 0,
     }), (err) => err.status === 409);
 
@@ -358,19 +358,19 @@ test('a move reaches Google at once: the new time, and off the old stylist\'s ca
     const tenant = await tenantForUser({ tenant_id: (await tenantOf(c)).id });
     const { rows: ready } = await c.query(
       `SELECT count(*)::int AS n FROM stylists s
-        WHERE s.tenant_id = $1 AND s.slug IN ('dina', 'micah') AND s.active
+        WHERE s.tenant_id = $1 AND s.slug IN ('dina', 'tami') AND s.active
           AND EXISTS (SELECT 1 FROM stylist_services x WHERE x.stylist_id = s.id)
           AND EXISTS (SELECT 1 FROM stylist_hours h WHERE h.stylist_id = s.id)`,
       [tenant.id],
     );
     if (!isLocal || ready[0].n < 2) {
-      t.skip('needs a seeded local database with Dina and Micah set up');
+      t.skip('needs a seeded local database with Dina and Tami set up');
       return;
     }
     const day = tuesday(tenant.timezone);
     const dina = await linkLogin(c, tenant, 'dina', { refresh: 'zz-token' });
-    const micah = await linkLogin(c, tenant, 'micah', { refresh: 'zz-token' });
-    users.push(dina, micah);
+    const tami = await linkLogin(c, tenant, 'tami', { refresh: 'zz-token' });
+    users.push(dina, tami);
     setGooglePushForTests(async (uid, appt) => {
       pushed.push({ uid, ref: appt.ref, status: appt.status, start: new Date(appt.starts_at).toISOString() });
       if (appt.status !== 'cancelled') {
@@ -399,18 +399,18 @@ test('a move reaches Google at once: the new time, and off the old stylist\'s ca
     await mirrorToGoogle({ tenantId: tenant.id });
     assert.deepEqual(pushed.map((p) => p.ref).sort(), [first.ref, second.ref].sort());
 
-    // Moved at the desk to Micah, an hour later: Micah's calendar gets it at
+    // Moved at the desk to Tami, an hour later: Tami's calendar gets it at
     // the new time, and Dina's copy is taken off hers.
     pushed.length = 0;
     const to = day.set({ hour: 11 });
-    const { moved } = await moveAppointment(tenant, { id: dina }, first.ref, { start: to.toISO(), stylist: 'micah', notify: false });
+    const { moved } = await moveAppointment(tenant, { id: dina }, first.ref, { start: to.toISO(), stylist: 'tami', notify: false });
     assert.equal(moved, true);
     assert.deepEqual(
       pushed.map((p) => [p.uid, p.status, p.start]).sort(),
-      [[dina, 'cancelled', to.toUTC().toISO({ suppressMilliseconds: false })], [micah, 'booked', to.toUTC().toISO({ suppressMilliseconds: false })]].sort(),
+      [[dina, 'cancelled', to.toUTC().toISO({ suppressMilliseconds: false })], [tami, 'booked', to.toUTC().toISO({ suppressMilliseconds: false })]].sort(),
     );
     const { rows: copies } = await c.query('SELECT staff_user_id FROM google_events WHERE appointment_id = $1', [first.id]);
-    assert.deepEqual(copies.map((r) => r.staff_user_id), [micah], 'only Micah keeps a copy');
+    assert.deepEqual(copies.map((r) => r.staff_user_id), [tami], 'only Tami keeps a copy');
 
     // Nothing left to do: the next run pushes nothing.
     pushed.length = 0;
@@ -420,7 +420,7 @@ test('a move reaches Google at once: the new time, and off the old stylist\'s ca
     setGooglePushForTests(null);
     await c.query('ROLLBACK').catch(() => {});
     if (appts.length) await c.query('DELETE FROM appointments WHERE id = ANY($1::uuid[])', [appts]);
-    await c.query("UPDATE stylists SET staff_user_id = NULL WHERE slug IN ('dina', 'micah') AND staff_user_id = ANY($1::uuid[])", [users]);
+    await c.query("UPDATE stylists SET staff_user_id = NULL WHERE slug IN ('dina', 'tami') AND staff_user_id = ANY($1::uuid[])", [users]);
     if (users.length) await c.query('DELETE FROM staff_users WHERE id = ANY($1::uuid[])', [users]);
     await c.end();
   }

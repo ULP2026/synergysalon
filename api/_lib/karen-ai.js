@@ -3,7 +3,7 @@
  *
  * The rule-based Karen in karen-sms.js recognises a handful of phrasings and
  * offers numbered lists. This lets a client write the way people text ("can I
- * come in Thursday after work with Micah?") and get a sensible answer, while
+ * come in Thursday after work with Tami?") and get a sensible answer, while
  * keeping every guarantee the rules gave:
  *
  * - The model never changes the book. Its tools only look things up, or

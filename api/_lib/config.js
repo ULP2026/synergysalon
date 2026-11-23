@@ -53,13 +53,14 @@ export const CLIENT_PRICES = false;
 /**
  * Stylists offered online without a Google Calendar connected, by salon.
  * Everybody else needs one before guests see them (google-busy.js), but the
- * salon asked that its four current stylists stay bookable meanwhile, from
+ * salon asked that its current stylists stay bookable meanwhile, from
  * their hours in the Synergy Calendar, and connect their calendars later.
  * Once one of them connects, their Google busy time is taken out as for
  * anybody else. Matched on the stylist's slug, which never changes.
  */
 export const GOOGLE_OPTIONAL_STYLISTS = {
-  synergy: ['dina', 'micah', 'tami', 'kim'],
+  // Micah left the team on 2026-11-23 (former-stylists.js).
+  synergy: ['dina', 'tami', 'kim'],
 };
 
 /**

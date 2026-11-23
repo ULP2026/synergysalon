@@ -48,10 +48,10 @@ async function setup(c, details = DINA) {
   // The live Dina is switched off with no services; the seed's is not. Make
   // the fixture rather than depend on which database this is pointed at.
   await makeBookable(c, tenant.id, 'dina');
-  // Micah too: one test books her to prove a stylist who has typed nothing
+  // Tami too: one test books her to prove a stylist who has typed nothing
   // is booked at the service table's own length. She keeps empty
   // service_details, which is the point of her.
-  await makeBookable(c, tenant.id, 'micah');
+  await makeBookable(c, tenant.id, 'tami');
   await c.query(
     "UPDATE stylists SET service_details = $2::jsonb WHERE tenant_id = $1 AND slug = 'dina'",
     // The flexible lunch off, as makeBookable leaves it: these book around midday.
@@ -177,12 +177,12 @@ test("bookings are as long as the stylist says the work takes, alone and togethe
     assert.ok((await slotsFor(c, tenant, day, 'bang-trim')).has(at(10, 45).toMillis()));
 
     // A stylist who has typed nothing is booked at the table's length.
-    const micah = await createBooking(c, tenant, {
-      serviceSlug: 'balayage', stylistSlug: 'micah', start: at(10).toISO(), guestName: 'ZZ Table',
+    const tami = await createBooking(c, tenant, {
+      serviceSlug: 'balayage', stylistSlug: 'tami', start: at(10).toISO(), guestName: 'ZZ Table',
       guestPhone: '8135550101', channel: 'staff', minLeadMin: 0,
     });
-    assert.equal(micah.duration_min, 180);
-    assert.deepEqual(micah.breaks, []);
+    assert.equal(tami.duration_min, 180);
+    assert.deepEqual(tami.breaks, []);
   } finally {
     await c.query('ROLLBACK');
     await c.end();

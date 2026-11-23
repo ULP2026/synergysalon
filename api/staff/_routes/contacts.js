@@ -51,9 +51,15 @@ const NOTES_MAX = 8000;
  * profile. Their source ("Front desk", "Online booking") is how the record
  * was made, which nobody filters a client list by; who looks after them is.
  */
+// Whoever they last booked with who is still on the team. Somebody removed
+// (Micah, 2026-11-23) is not anybody's stylist any more: they cannot be
+// booked, and the salon asked that she not be shown in the app. Those
+// clients read as having no stylist yet until their next booking; their
+// past visits still name whoever did them.
 const STYLIST_OF = `(SELECT jsonb_build_object('name', ts.name, 'slug', ts.slug)
      FROM appointments ta JOIN stylists ts ON ts.id = ta.stylist_id
     WHERE ta.contact_id = c.id AND ta.status <> 'cancelled'
+      AND (to_jsonb(ts) ->> 'removed_at') IS NULL
     ORDER BY ta.starts_at DESC LIMIT 1)`;
 
 /**
@@ -326,7 +332,8 @@ export async function contactDetail(tenantId, id, db = null, onlyIds = null) {
     `SELECT a.id, a.ref, a.starts_at, a.duration_min, a.status, a.channel,
             to_jsonb(a) ->> 'booked_via' AS via, b.name AS booked_by, a.booked_by AS booked_by_id, a.created_at, a.updated_at, a.cancelled_at, a.checked_in_at,
             a.reminder_sent_at,
-            s.name AS stylist, s.slug AS stylist_slug, ${visitNameSql()} AS service,
+            s.name AS stylist, s.slug AS stylist_slug, (to_jsonb(s) ->> 'removed_at') IS NOT NULL AS stylist_removed,
+            ${visitNameSql()} AS service,
             ${visitLinesSql()} AS lines, a.price_cents
        FROM appointments a
        JOIN stylists s ON s.id = a.stylist_id
@@ -525,8 +532,9 @@ export async function contactDetail(tenantId, id, db = null, onlyIds = null) {
   }
   activity.sort((x, y) => new Date(y.at) - new Date(x.at));
 
-  // Their stylist: the last one they were booked with, not cancelled.
-  const latest = appts.find((a) => a.status !== 'cancelled');
+  // Their stylist: the last one they were booked with, not cancelled, who is
+  // still on the team (as STYLIST_OF for the list).
+  const latest = appts.find((a) => a.status !== 'cancelled' && !a.stylist_removed);
 
   // The faces of the team members named above: an uploaded photo or chosen
   // avatar; the console falls back to a drawn one.

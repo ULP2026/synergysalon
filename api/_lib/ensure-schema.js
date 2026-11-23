@@ -13,6 +13,7 @@
 import { query } from './db.js';
 import { GOOGLE_OPTIONAL_STYLISTS } from './config.js';
 import { DROP_CLEAN_DOWNS_ONCE } from './clean-down.js';
+import { REMOVE_MICAH_ONCE } from './former-stylists.js';
 
 const STATEMENTS = [
   'ALTER TABLE staff_users ADD COLUMN IF NOT EXISTS username text',
@@ -492,6 +493,9 @@ END $$`,
   // visits not yet over lose theirs; once per database (clean-down.js).
   // Last, after every statement above that adds a service.
   DROP_CLEAN_DOWNS_ONCE,
+  // 065: Micah Shadle off the team (2026-11-23), once per database, as
+  // "Remove from team" does it (former-stylists.js).
+  REMOVE_MICAH_ONCE,
 ];
 
 let done = null;

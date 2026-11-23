@@ -51,9 +51,8 @@ The three paths exist because they serve different guests. She books online when
 - Dina Lara, owner, certified master colorist and stylist. Licensed since 1981. Trained at Redken's 5th Ave Salon (Manhattan) and Keune's School of Color (Amsterdam). Redken Specialist, Certified Pureologist, Brazilian Blowout certified.
 - Tami Vomaro
 - Kim Batarlis
-- Micah Shadle
 
-**Capacity:** 8 chairs total. 4 filled full time. 4 open.
+**Capacity:** 8 chairs total. 3 filled full time. 5 open.
 
 **Availability:** All stylists have open availability most of the time. There is no bottleneck stylist.
 
@@ -137,7 +136,7 @@ The three paths exist because they serve different guests. She books online when
 
 **What she is actually buying:** the feeling. Not a haircut. The flagship promise is **we make you feel your best.**
 
-**Age matching within the team:** older master stylists (Dina, Micah) take the more established clientele. Younger stylists take the younger clientele. Everyone wins.
+**Age matching within the team:** older master stylists (Dina) take the more established clientele. Younger stylists take the younger clientele. Everyone wins.
 
 **Critical implication of round-robin distribution:** market the SALON, not one stylist. Because new guests are distributed to whoever is available, all marketing must build trust in Synergy as an institution rather than in a single personality. Dina is the credential anchor and the story, but no campaign should be built in a way that makes a guest feel she was promised Dina and got someone else. Online booking should make "first available" the easy, encouraged default, with request-a-stylist as the secondary path.
 
@@ -480,7 +479,7 @@ That stack is stronger than the old guarantee, and none of it can be gamed.
 
 **Data still needed from owner**
 - Average client tenure and retention rate
-- Photos, bios, years licensed, and certifications for Tami Vomaro, Kim Batarlis, Micah Shadle
+- Photos, bios, years licensed, and certifications for Tami Vomaro, Kim Batarlis
 - Brand name of the AI scalp analysis machine (price confirmed at $40; brand still unknown, and we need it for credibility and for content)
 - **Current price menu. This is now the top blocking item.** No pricing can be published, quoted, or referenced until Dina supplies it.
 - What the $200/week booth rent includes: back bar, color, towels, utilities, retail split, and what makes the rate vary above the starting figure

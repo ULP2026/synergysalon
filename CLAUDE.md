@@ -152,11 +152,21 @@ removed from every page: the two reviews that name her (Shelley L.,
 Janette C.) in the JSON-LD, the static copy, the `reviews` array and the
 `.rq-row` cards; her `bkTeam` fallback entry and `STYLIST_SLUG` map
 entry; and Riverview's "same stylist, for years" quote, now in the salon's
-own words. Her portrait `8f1a355d…webp` is deleted. The staff app and its
-data were left alone (`GOOGLE_OPTIONAL_STYLISTS`, `stylist-photos.js`'s
-`861d841d…jpg`, her `stylists` row and past visits): she is not offered
-online today. An export brings all of it back: after one, `grep -il
-micah *.html` should find nothing.
+own words. Her portrait `8f1a355d…webp` is deleted. An export brings all
+of it back: after one, `grep -il micah *.html` should find nothing.
+**And off the app** (same day, asked for): `REMOVE_MICAH_ONCE`
+(`api/_lib/former-stylists.js`, migration 065, also in ensure-schema) does
+what "Remove from team" does, once per database (the comment on
+`stylists.removed_at` is the marker, so a later re-add is not undone): her
+chair off and `removed_at`, its photo cleared, a login of hers (linked, or
+named Micah Shadle, never an owner or admin) deleted with her own services
+switched off. Visits still to come stay on her removed chair, which Appt.
+Book shows as "Removed from team" with Move appointments for the owner.
+She is out of `GOOGLE_OPTIONAL_STYLISTS`, `stylist-photos.js`, the seed and
+Karen's guide; her two other portrait files are deleted. A client's
+stylist (`STYLIST_OF`, `contactDetail`) is now whoever they last booked
+with **who is still on the team**, for anyone removed: past visits still
+name who did them. The tests that used her chair use Tami's and Kim's.
 
 **The Services menu's categories open their pages** (asked for 2026-11-18,
 all nine pages with the menu, Riverview and its three copies included).
@@ -356,7 +366,7 @@ taking online bookings yet", and so refused by online `createBooking` too.
 Their services and prices are untouched and they reappear the moment they
 connect. `GOOGLE_CONNECTED_SQL` in `google-busy.js` is the one test, signed
 in or pasted address. The exception is the salon's four current stylists
-(Dina, Micah, Tami, Kim: `GOOGLE_OPTIONAL_STYLISTS` in `config.js`, by
+(Dina, Tami, Kim: `GOOGLE_OPTIONAL_STYLISTS` in `config.js`, by
 slug), kept on request: they are offered from their Synergy Calendar hours
 alone until they connect, then Google takes its busy time out as for anyone.
 Empty that list once all four have connected. The desk still books anyone. Google only ever takes
@@ -401,7 +411,7 @@ nightly run. A copy whose owner is no longer the appointment's stylist
 old time. Deleting a client now sets `updated_at` on the appointments it
 cancels, or their Google copies never heard of it.
 `tests/synergy-calendar.integration.test.js` ("a move reaches Google")
-runs the desk's move from Dina to Micah.
+runs the desk's move from Dina to Tami.
 
 **Several services are one appointment.** The survey's other services go to
 the server (`body.services` on `/api/enquiry`, `&with=` on

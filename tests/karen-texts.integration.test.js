@@ -141,7 +141,7 @@ test('a stylist sees only their own chair by text and can cancel only in it', { 
     const { rows: [t] } = await client.query("SELECT id FROM tenants WHERE slug = 'synergy'");
     const tenant = await tenantForUser({ tenant_id: t.id });
     const dina = await makeBookable(client, tenant.id, 'dina');
-    const micah = await makeBookable(client, tenant.id, 'micah');
+    const kim = await makeBookable(client, tenant.id, 'kim');
     const { rows: [svc] } = await client.query(
       "SELECT id, duration_min FROM services WHERE tenant_id = $1 AND slug = 'womens-cut'", [tenant.id],
     );
@@ -167,7 +167,7 @@ test('a stylist sees only their own chair by text and can cancel only in it', { 
       return c.id;
     };
     const mine = await book('ZZCHR1', dina, 'ZZ Maria Mine', 3);
-    await book('ZZCHR2', micah, 'ZZ Other Client', 3);
+    await book('ZZCHR2', kim, 'ZZ Other Client', 3);
 
     // Only the owner sees the whole salon (2026-11-03, scope.js): a stylist
     // sees and changes only their own chair. Between 2026-10-31 and then,
@@ -202,7 +202,7 @@ test('a stylist sees only their own chair by text and can cancel only in it', { 
     );
     const adminView = fakeClaude((params) => {
       assert.match(params.system[1].text, /the salon's admin, who may book new appointments for clients and move or cancel any appointment/);
-      assert.match(params.system[1].text, /ZZ Other Client: Haircuts? with Micah/);
+      assert.match(params.system[1].text, /ZZ Other Client: Haircuts? with Kim/);
       return say('You have one appointment ahead.');
     });
     await karenReply(tenant, '8135550182', "what's coming up?", client, { ai: adminView });

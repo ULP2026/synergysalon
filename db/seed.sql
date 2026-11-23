@@ -43,7 +43,6 @@ INSERT INTO stylists (tenant_id, slug, name, title, sort_order)
 SELECT t.id, v.*
 FROM tenants t, (VALUES
   ('dina',  'Dina Lara',    'Owner, Master Colorist & Stylist', 10),
-  ('micah', 'Micah Shadle', 'Master Stylist',                   20),
   ('tami',  'Tami Vomaro',  'Master Stylist',                   30),
   ('kim',   'Kim Batarlis', 'Master Stylist',                   40)
 ) AS v(slug, name, title, sort_order)
