@@ -26,7 +26,7 @@
 import { DateTime } from 'luxon';
 
 import { availableSlots } from './_lib/availability.js';
-import { createBooking } from './_lib/booking.js';
+import { SLOT_UNAVAILABLE, createBooking } from './_lib/booking.js';
 import { DEFAULT_TZ, ONLINE_BOOKING, shopFrom } from './_lib/config.js';
 import { previewAllowed } from './_lib/preview.js';
 import { hasColumn, query, transaction } from './_lib/db.js';
@@ -417,14 +417,16 @@ export default handler({
 
       // Not this session's, but the same person at the very same time: not
       // booked twice, and said nothing of, since it is not this session's to
-      // describe.
+      // describe. The reply is word for word the one for a time somebody
+      // else has taken, so it does not tell whoever typed this address or
+      // number that the client has a visit at that moment.
       const { rows: clash } = await client.query(
         `SELECT 1 FROM appointments
           WHERE contact_id = $1::uuid AND status = 'booked' AND starts_at = $2::timestamptz
           LIMIT 1`,
         [contactId, start.toISO()],
       );
-      if (clash[0]) return { contactId, booked: null };
+      if (clash[0]) return { contactId, booked: null, bookingError: SLOT_UNAVAILABLE };
 
       try {
         const appt = await createBooking(client, tenant, {

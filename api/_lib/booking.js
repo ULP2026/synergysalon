@@ -14,6 +14,13 @@ import { HttpError, newRef, newToken } from './http.js';
 export const SLOT_TAKEN = 'SLOT_TAKEN';
 
 /**
+ * What a guest is told when the time they picked is not free. Shared with
+ * the website survey (enquiry.js), which says the same words when the time
+ * is refused for another reason, so the two replies cannot be told apart.
+ */
+export const SLOT_UNAVAILABLE = 'That time is not available. Please pick another.';
+
+/**
  * Insert one appointment, returning null if this stylist turned out to be
  * busy. A savepoint keeps the outer transaction usable after the constraint
  * fires, so the caller can try the next stylist.
@@ -177,7 +184,7 @@ export async function createBooking(client, tenant, {
   const slot = days.flatMap((d) => d.slots)
     .find((s) => DateTime.fromISO(s.start).toMillis() === wanted);
   if (!slot) {
-    throw new HttpError(409, 'That time is not available. Please pick another.', SLOT_TAKEN);
+    throw new HttpError(409, SLOT_UNAVAILABLE, SLOT_TAKEN);
   }
 
   // Try the preferred stylist first, then the rest, so a race on one person

@@ -281,3 +281,39 @@ test('with no session, a matched client is neither renamed nor moved', { skip },
     await cleanup(db);
   }
 });
+
+test("a client's own visit reads exactly as a time somebody else took", { skip }, async () => {
+  const { db, tenant, day } = await setup();
+  try {
+    // The client, booked at the desk with Kim at 3.
+    const desk = await transaction((c) => createBooking(c, tenant, {
+      serviceSlug: 'womens-cut', stylistSlug: 'kim', start: day.set({ hour: 15 }).toISO(),
+      guestName: 'ZZG Client Five', guestEmail: 'zz-guard-five@example.com',
+      guestPhone: '8135550185', channel: 'staff', minLeadMin: 0,
+    }));
+    const theirs = await apptRow(db, desk.ref);
+
+    // Somebody else entirely has Kim at 4.
+    const taker = await survey(day, {
+      sessionId: 'zzguard-taker-five', name: 'ZZG Taker Five',
+      email: 'zz-guard-taker-five@example.com', phone: '8135550186', hour: 16,
+    });
+    assert.ok(taker.body.ref);
+
+    // A second session types the client's email and asks for each time.
+    const other = {
+      sessionId: 'zzguard-other-five', name: 'ZZG Somebody Else',
+      email: 'zz-guard-five@example.com', phone: '8135550187',
+    };
+    const taken = await survey(day, { ...other, hour: 16 });
+    const clientsOwn = await survey(day, { ...other, hour: 15 });
+
+    assert.equal(taken.body.ref, null);
+    assert.equal(taken.body.bookingError, 'That time is not available. Please pick another.');
+    assert.deepEqual(clientsOwn, taken, 'the two replies cannot be told apart');
+    assertSaysNothingOf(clientsOwn.body, theirs);
+    assert.equal((await bookedFor(db, theirs.contact_id)).length, 1, 'nothing booked on top of theirs');
+  } finally {
+    await cleanup(db);
+  }
+});
