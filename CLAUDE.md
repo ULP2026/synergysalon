@@ -161,6 +161,14 @@ reviews on Google" link: the home shows the two rows of cards only. The section 
 `reviews` array and the marquee script stay, unused (the script finds no
 `.tmq-track`). An export undoes both: re-apply.
 
+**Our Story shows a photo, not the video** (asked for 2026-11-24). The
+home page's `#about` frame held a YouTube embed (`EOUPcv5vH80`); it is now
+the team photo `assets/1a8c816c-6eca-49d9-bc35-abe8028253fa.webp` (2000x1342)
+in the same `.frame.about-frame`, so the 16:9 box and `.frame img`'s cover
+fit are unchanged (the `about-video` class went with the iframe; its CSS is
+left, unused). An export brings the video back: after one, `grep -c youtube
+index.html` should be 0.
+
 **Micah Shadle is off the website** (asked for 2026-11-23). Her Team
 card is gone (heading "Three Master-Level Stylists"), and the three cards
 sit centred at their old width: from 992px `repeat(3, calc((100% - 3rem)
