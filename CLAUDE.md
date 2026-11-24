@@ -357,6 +357,21 @@ was then rejected by CENTRO with a permanent 422, which killed the appointment
 push attached to it. A detail is only stored or sent once it is whole: a
 half-typed address is not a worse email, it is not an email yet.
 
+**Only the same session changes anything** (2026-11-25). A match by email or
+phone alone is not proof it is the same person, since anybody can type a
+client's address. A contact found by the session id is updated as typed; one
+found only by email or phone is linked to the booking and left exactly as it
+is (name, details, notes, source, session). "One person, one appointment" is
+one per session: `appointments.booked_session_id` (066, also in
+ensure-schema, read through `to_jsonb` because the endpoint can run first)
+records which survey session booked, and only that appointment is kept,
+moved or described in the reply (ref, stylist, time, calendar). The
+contact's other appointments (another session's, the desk's, Karen's, or
+from before 066) are never moved from the survey. Where none is this
+session's and the contact already has one at exactly the time asked, nothing
+is booked on top of it and nothing about it is replied. With no session id,
+nothing is moved or overwritten. `tests/enquiry-session-guard.integration.test.js`.
+
 **An email must be able to receive mail** (2026-11-12, after a Nov 2 test
 booking to "...@gmail.conm" showed Sent). `emailProblem` in
 `api/_lib/email-check.js` is the one check: the shape as before, an ending

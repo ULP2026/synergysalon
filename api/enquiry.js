@@ -13,8 +13,15 @@
  *
  * It is called repeatedly as they type, not once at the end. A person who
  * abandons on the last step has still told us who they are and what they want.
- * Matching on email or phone means those repeats update one contact rather than
+ * The survey's session id means those repeats update one contact rather than
  * littering the list.
+ *
+ * A guest is also matched to an existing client by email or phone, so a
+ * returning client keeps one record. But a match by email or phone alone is
+ * not proof it is the same person: anybody can type a client's address. So
+ * only the session a contact was created in may change its details, only the
+ * session that made an appointment may move it, and the reply only ever
+ * describes an appointment this session made.
  */
 import { DateTime } from 'luxon';
 
@@ -245,18 +252,27 @@ export default handler({
       // change while they type. Then email or phone, which is what matches a
       // guest who has booked before to the record they already have.
       const { rows: found } = await client.query(
-        `SELECT id, email, phone FROM contacts
-          WHERE tenant_id = $1
-            AND (($2 <> '' AND session_id = $2)
-              OR ($3 <> '' AND lower(email) = $3)
-              OR ($4 <> '' AND phone = $4))
-          ORDER BY ($2 <> '' AND session_id = $2) DESC, created_at
+        `SELECT id, email, phone,
+                COALESCE($2::text <> '' AND session_id = $2::text, false) AS by_session
+           FROM contacts
+          WHERE tenant_id = $1::uuid
+            AND (($2::text <> '' AND session_id = $2::text)
+              OR ($3::text <> '' AND lower(email) = $3::text)
+              OR ($4::text <> '' AND phone = $4::text))
+          ORDER BY COALESCE($2::text <> '' AND session_id = $2::text, false) DESC, created_at
           LIMIT 1`,
         [tenant.id, sessionId, email, phone],
       );
 
       let contactId = found[0]?.id;
-      if (contactId) {
+      // Whether this contact is this session's own: found by the session id,
+      // or created just now with it. Only then may what was typed change it.
+      let ownContact = Boolean(found[0]?.by_session);
+      if (contactId && !ownContact) {
+        // Matched by email or phone alone, which anybody can type. The
+        // booking is linked to the client's record, but nothing on it is
+        // changed: not their name, details, notes, source or session.
+      } else if (contactId) {
         // Only overwrite a detail with one that is complete. Otherwise the
         // guest correcting a typo in their address would blank it on the way
         // through.
@@ -287,6 +303,7 @@ export default handler({
             clean(body.heard, 60) || 'Website booking form', notesFrom(body), sessionId],
         );
         contactId = rows[0].id;
+        ownContact = Boolean(sessionId);
       }
 
       // Book as soon as there is enough to book with, rather than waiting for
@@ -311,12 +328,27 @@ export default handler({
       // themselves in once per character -- which is exactly what happened:
       // two bookings for the same slot, one from "test232" and one from
       // "test232@gmail.com", with different stylists.
-      const { rows: live } = await client.query(
-        `SELECT id, ref, starts_at, stylist_id FROM appointments
-          WHERE contact_id = $1 AND status = 'booked' AND starts_at >= now()
-          ORDER BY created_at DESC LIMIT 1`,
-        [contactId],
-      );
+      //
+      // One per session, not per contact: only an appointment this session
+      // booked is its own to keep or move. The contact's others (another
+      // session's, the desk's, Karen's, or from before sessions were kept)
+      // are never moved from here, and nothing about them is replied.
+      //
+      // Read through to_jsonb, because this public endpoint can run before
+      // ensure-schema has added the column (066). Until it has, nothing
+      // records which session booked, so a contact this session owns is
+      // treated as before: its next appointment is this session's.
+      const trackSessions = await hasColumn('appointments', 'booked_session_id', client);
+      let live = [];
+      if (sessionId && (trackSessions || ownContact)) {
+        ({ rows: live } = await client.query(
+          `SELECT id, ref, starts_at, stylist_id FROM appointments a
+            WHERE contact_id = $1::uuid AND status = 'booked' AND starts_at >= now()
+              AND (NOT $3::boolean OR to_jsonb(a) ->> 'booked_session_id' = $2::text)
+            ORDER BY created_at DESC LIMIT 1`,
+          [contactId, sessionId, trackSessions],
+        ));
+      }
 
       if (live[0]) {
         const same = new Date(live[0].starts_at).getTime() === start.toMillis();
@@ -383,6 +415,17 @@ export default handler({
         }
       }
 
+      // Not this session's, but the same person at the very same time: not
+      // booked twice, and said nothing of, since it is not this session's to
+      // describe.
+      const { rows: clash } = await client.query(
+        `SELECT 1 FROM appointments
+          WHERE contact_id = $1::uuid AND status = 'booked' AND starts_at = $2::timestamptz
+          LIMIT 1`,
+        [contactId, start.toISO()],
+      );
+      if (clash[0]) return { contactId, booked: null };
+
       try {
         const appt = await createBooking(client, tenant, {
           serviceSlug,
@@ -396,6 +439,14 @@ export default handler({
           channel: 'online',
           contactId,
         });
+        // Which session made it, so later saves from this session find it
+        // and no other session's do.
+        if (sessionId && trackSessions) {
+          await client.query(
+            'UPDATE appointments SET booked_session_id = $2::text WHERE id = $1::uuid',
+            [appt.id, sessionId],
+          );
+        }
         return { contactId, booked: appt };
       } catch (err) {
         // The lead is already saved and committed with this transaction. A slot

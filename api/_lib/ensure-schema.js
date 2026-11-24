@@ -489,6 +489,9 @@ END $$`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_livemode boolean`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_connected_at timestamptz`,
   `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_connected_by uuid`,
+  // 066: which website survey session booked an appointment, so only that
+  // session may move it or be told its details (enquiry.js).
+  `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS booked_session_id text`,
   // 064: back-to-back bookings (2026-11-16). Every clean-down to 0, and
   // visits not yet over lose theirs; once per database (clean-down.js).
   // Last, after every statement above that adds a service.
