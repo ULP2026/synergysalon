@@ -147,6 +147,67 @@ export function sessionIdFrom(value) {
   return /^[A-Za-z0-9_-]{8,64}$/.test(s) ? s : '';
 }
 
+/**
+ * Whether the two columns (066) that decide what a request may touch are
+ * there: which session booked an appointment, and when a session last
+ * wrote to its contact.
+ *
+ * Asked of hasColumn, which remembers a yes for the life of the process, so
+ * a warm function asks once. Only when one is missing is ensureSchema run
+ * (it takes table locks even when there is nothing to add, so not on every
+ * cold start of a public endpoint), and then the question is asked afresh.
+ */
+const SESSION_COLUMNS = [['appointments', 'booked_session_id'], ['contacts', 'session_at']];
+
+async function sessionColumnsPresent(fresh) {
+  for (const [table, column] of SESSION_COLUMNS) {
+    if (!await hasColumn(table, column, null, { fresh })) return false;
+  }
+  return true;
+}
+
+async function defaultSessionColumnsReady() {
+  if (await sessionColumnsPresent(false)) return true;
+  await ensureSchema();
+  return sessionColumnsPresent(true);
+}
+
+let sessionColumnsReady = defaultSessionColumnsReady;
+
+/** For tests: answer "are the columns there" without touching the schema. */
+export function setSessionColumnsReadyForTests(fn) {
+  sessionColumnsReady = fn || defaultSessionColumnsReady;
+}
+
+/**
+ * The lead alone, for when the session columns cannot be had. Who may
+ * change or move what cannot be decided without them, so nothing is
+ * booked or moved and no contact is changed; but a guest who has told us
+ * who they are is still kept for the salon to ring. A new contact is saved
+ * without a session id, since nothing could later prove it was this
+ * session's.
+ */
+async function saveLeadOnly(tenant, { name, email, phone, body }) {
+  if (!email && !phone) return null;
+  return transaction(async (client) => {
+    const { rows: found } = await client.query(
+      `SELECT id FROM contacts
+        WHERE tenant_id = $1::uuid
+          AND (($2::text <> '' AND lower(email) = $2::text) OR ($3::text <> '' AND phone = $3::text))
+        ORDER BY created_at LIMIT 1`,
+      [tenant.id, email, phone],
+    );
+    if (found[0]) return found[0].id;
+    const { rows } = await client.query(
+      `INSERT INTO contacts (tenant_id, name, email, phone, source, notes, status)
+       VALUES ($1::uuid, $2::text, $3::text, $4::text, $5::text, $6::text, 'new')
+       RETURNING id`,
+      [tenant.id, name, email, phone, clean(body.heard, 60) || 'Website booking form', notesFrom(body)],
+    );
+    return rows[0].id;
+  });
+}
+
 function serviceSlugFor(label) {
   return SERVICE_BY_LABEL[clean(label).toLowerCase()] ?? null;
 }
@@ -248,9 +309,21 @@ export default handler({
 
     // Which session booked an appointment, and when a session last wrote to
     // its contact (066), decide what this request may touch, so they must
-    // exist before it runs rather than be guessed at. Once per warm
-    // function: ensureSchema keeps its promise for the life of the process.
-    await ensureSchema();
+    // exist before it runs rather than be guessed at. If they cannot be had,
+    // the lead is still kept (the rule above) and the guest is asked to call:
+    // never a booking decided without them, and never a lost lead.
+    if (!await sessionColumnsReady()) {
+      console.error('enquiry: session columns (066) missing; lead saved, nothing booked');
+      const contactId = await saveLeadOnly(tenant, { name, email, phone, body });
+      return json(res, 200, {
+        saved: Boolean(contactId),
+        ref: null,
+        stylist: null,
+        startsAt: null,
+        calendar: null,
+        bookingError: 'call_salon',
+      });
+    }
 
     const result = await transaction(async (client) => {
       // Who this is, in order of how much the answer can be trusted.
@@ -262,14 +335,16 @@ export default handler({
       // A session id only counts with session_at: the survey once wrote the
       // typed session id onto any contact whose email or phone matched, so an
       // id with no record of when this code wrote it, or one over a day old,
-      // is not proof the contact is this session's.
+      // is not proof the contact is this session's, and finds nothing by
+      // itself; the email or phone may still match as for anyone.
       const { rows: found } = await client.query(
         `SELECT id, email, phone,
                 COALESCE($2::text <> '' AND session_id = $2::text
                          AND session_at > now() - interval '24 hours', false) AS by_session
            FROM contacts
           WHERE tenant_id = $1::uuid
-            AND (($2::text <> '' AND session_id = $2::text)
+            AND (($2::text <> '' AND session_id = $2::text
+                  AND session_at IS NOT NULL AND session_at > now() - interval '24 hours')
               OR ($3::text <> '' AND lower(email) = $3::text)
               OR ($4::text <> '' AND phone = $4::text))
           ORDER BY by_session DESC, created_at

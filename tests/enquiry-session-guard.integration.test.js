@@ -19,7 +19,7 @@ import { DateTime } from 'luxon';
 import { createBooking } from '../api/_lib/booking.js';
 import { pool, transaction } from '../api/_lib/db.js';
 import { ensureSchema } from '../api/_lib/ensure-schema.js';
-import enquiry from '../api/enquiry.js';
+import enquiry, { setSessionColumnsReadyForTests } from '../api/enquiry.js';
 
 const skip = process.env.DATABASE_URL ? false : 'DATABASE_URL is not set';
 
@@ -405,6 +405,11 @@ test('a session id already on a contact from before is not proof of anything', {
     const reply = await survey(day, { ...asker, hour: 16, stylistSlug: 'dina' });
     assert.ok(reply.body.ref);
     assertSaysNothingOf(reply.body, theirs);
+    // With an address and number of its own, the planted id links nothing
+    // to the client: the booking is on a record of its own.
+    assert.notEqual((await apptRow(db, reply.body.ref)).contact_id, theirs.contact_id,
+      'not linked to the client');
+    assert.equal((await bookedFor(db, theirs.contact_id)).length, 1);
     const after = await apptRow(db, theirs.ref);
     assert.equal(new Date(after.starts_at).getTime(), new Date(theirs.starts_at).getTime(), 'not moved');
     assert.equal(after.stylist_id, theirs.stylist_id);
@@ -456,6 +461,55 @@ test("a session's booking moves with it after its details change", { skip }, asy
       new Date(theirs.starts_at).getTime(), "the client's has not moved");
     assert.deepEqual(await contactRow(db, theirs.contact_id), before);
   } finally {
+    await cleanup(db);
+  }
+});
+
+test('without the session columns, the lead is kept and nothing is booked', { skip }, async () => {
+  const { db, tenant, day } = await setup();
+  // As if 066 were missing and ensureSchema could not add it: injected,
+  // so the shared test database keeps its columns.
+  setSessionColumnsReadyForTests(async () => false);
+  try {
+    const desk = await transaction((c) => createBooking(c, tenant, {
+      serviceSlug: 'womens-cut', stylistSlug: 'kim', start: day.set({ hour: 14 }).toISO(),
+      guestName: 'ZZG Client Nine', guestEmail: 'zz-guard-nine@example.com',
+      guestPhone: '8135550190', channel: 'staff', minLeadMin: 0,
+    }));
+    const theirs = await apptRow(db, desk.ref);
+    const before = await contactRow(db, theirs.contact_id);
+
+    // A new guest: saved as a lead, not booked, told to call.
+    const sessionId = 'zzguard-nocols-nine';
+    const reply = await survey(day, {
+      sessionId, name: 'ZZG New Nine', email: 'zz-guard-new-nine@example.com', phone: '8135550191', hour: 9,
+    });
+    assert.equal(reply.status, 200);
+    assert.equal(reply.body.saved, true);
+    assert.equal(reply.body.ref, null);
+    assert.equal(reply.body.bookingError, 'call_salon');
+    const { rows: [lead] } = await db.query(
+      'SELECT id, session_id, session_at FROM contacts WHERE email = $1::text', ['zz-guard-new-nine@example.com']);
+    assert.ok(lead, 'the lead is kept');
+    assert.equal(lead.session_id, null);
+    assert.equal(lead.session_at, null);
+    assert.equal((await bookedFor(db, lead.id)).length, 0, 'nothing booked');
+
+    // A client's address: their record is left alone, their visit too.
+    const other = await survey(day, {
+      sessionId: 'zzguard-nocols-other', name: 'ZZG Somebody Else',
+      email: 'zz-guard-nine@example.com', phone: '8135550199', hour: 16,
+    });
+    assert.equal(other.status, 200);
+    assert.equal(other.body.saved, true);
+    assert.equal(other.body.bookingError, 'call_salon');
+    assertSaysNothingOf(other.body, theirs);
+    assert.deepEqual(await contactRow(db, theirs.contact_id), before);
+    assert.equal((await bookedFor(db, theirs.contact_id)).length, 1);
+    assert.equal(new Date((await apptRow(db, theirs.ref)).starts_at).getTime(),
+      new Date(theirs.starts_at).getTime());
+  } finally {
+    setSessionColumnsReadyForTests(null);
     await cleanup(db);
   }
 });

@@ -362,7 +362,8 @@ phone alone is not proof it is the same person, since anybody can type a
 client's address. A contact counts as the session's own only if its
 `session_id` matches and `contacts.session_at` (066) is under a day old:
 the survey once wrote the typed session id onto any contact whose email or
-phone matched, so an id with no `session_at` proves nothing. An owned
+phone matched, so an id with no `session_at` proves nothing and finds no
+contact by itself (the email or phone may still match). An owned
 contact is updated as typed (and `session_at` renewed); any other match is
 linked to the booking and left exactly as it is (name, details, notes,
 source, session). "One person, one appointment" is one per session:
@@ -376,8 +377,12 @@ Only an owned contact already booked at exactly the time asked is refused
 there, with the ordinary taken-slot words (`SLOT_UNAVAILABLE`); any other
 request goes through `createBooking` like any guest, so neither the answer
 nor its timing says whether a client has a visit then. The reply carries
-`saved` but no `contactId`. `/api/enquiry` runs `ensureSchema()` (memoized
-per process) before it relies on 066. With no session id, nothing is moved
+`saved` but no `contactId`. `/api/enquiry` checks the two 066 columns with
+`hasColumn` (a yes is kept per process) and runs `ensureSchema()` only when
+one is missing, since it takes table locks even with nothing to add. If
+they still cannot be had, the lead is saved (no session id, a matched
+contact untouched), nothing is booked or moved, and the reply is
+`saved: true, bookingError: 'call_salon'`, never a 500. With no session id, nothing is moved
 or overwritten. `tests/enquiry-session-guard.integration.test.js`.
 
 **An email must be able to receive mail** (2026-11-12, after a Nov 2 test

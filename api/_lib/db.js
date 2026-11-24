@@ -46,12 +46,13 @@ export function query(text, params) {
  * not there fails the whole statement, so it asks first. A yes is remembered
  * for the life of the instance (columns are not dropped); a no is asked again
  * after a minute, so the first request after the migration runs sees it.
+ * `fresh` asks again at once, for a caller that has just tried to add it.
  */
 const columnSeen = new Map();
-export async function hasColumn(table, column, client = null) {
+export async function hasColumn(table, column, client = null, { fresh = false } = {}) {
   const key = `${table}.${column}`;
   const seen = columnSeen.get(key);
-  if (seen === true || (seen && Date.now() - seen < 60_000)) return seen === true;
+  if (seen === true || (!fresh && seen && Date.now() - seen < 60_000)) return seen === true;
   const { rows } = await (client || pool()).query(
     `SELECT 1 FROM information_schema.columns
       WHERE table_schema = current_schema() AND table_name = $1::text AND column_name = $2::text`,
