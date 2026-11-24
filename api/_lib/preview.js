@@ -29,7 +29,8 @@ export function mintPreview(tenantId, now = Date.now()) {
 
 /**
  * True when the request carries a valid, unexpired pass for this salon, or
- * comes in on one of this project's own *.vercel.app addresses.
+ * comes in on one of this project's own team-scoped *.vercel.app addresses
+ * (…-support-2531s-projects.vercel.app).
  *
  * Those addresses are behind Vercel's login (deployment protection), so only
  * the team can open them, and the test link sent to the salon is one of them.
@@ -43,7 +44,11 @@ export function previewAllowed(req, tenant, now = Date.now()) {
   // The Host header alone: Vercel routes on it, so it cannot name another
   // address than the one the request reached, unlike a forwarded header.
   const host = String(req.headers?.host || '').split(':')[0].toLowerCase();
-  if (host.endsWith('.vercel.app')) return true;
+  // Only the team-scoped addresses (one per deployment or branch) are behind
+  // Vercel's login. The project's short alias, synergysalon.vercel.app, is
+  // served to anyone like a custom domain, so it must not count as a test
+  // address: on it the pause and every other online-booking rule apply.
+  if (host.endsWith('-support-2531s-projects.vercel.app')) return true;
   const raw = String(req.headers?.['x-booking-preview'] || '');
   const [body, sig] = raw.split('.');
   if (!body || !sig) return false;

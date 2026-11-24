@@ -63,6 +63,10 @@ test('a staff test pass works for its salon, and only until it expires', () => {
     // link; the salon's domain never passes on its host alone.
     assert.equal(previewAllowed({ headers: { host: 'synergysalon-abc123-support-2531s-projects.vercel.app' } }, { id: 'tenant-a' }, now), true);
     assert.equal(previewAllowed({ headers: { host: 'synergysalon.com' } }, { id: 'tenant-a' }, now), false);
+    // The short alias is public, so it is not a test address.
+    assert.equal(previewAllowed({ headers: { host: 'synergysalon.vercel.app' } }, { id: 'tenant-a' }, now), false);
+    assert.equal(previewAllowed({ headers: { host: 'synergysalon-git-main-support-2531s-projects.vercel.app' } }, { id: 'tenant-a' }, now), true);
+    assert.equal(previewAllowed({ headers: { host: 'evil-support-2531s-projects.vercel.app.example.com' } }, { id: 'tenant-a' }, now), false);
     assert.equal(previewAllowed({ headers: { host: 'synergysalon.com.evil.app' } }, { id: 'tenant-a' }, now), false);
   } finally {
     if (saved === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = saved;
