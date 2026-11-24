@@ -492,6 +492,9 @@ END $$`,
   // 066: which website survey session booked an appointment, so only that
   // session may move it or be told its details (enquiry.js).
   `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS booked_session_id text`,
+  // And when a session last wrote to the contact it owns: a session id
+  // with no such time, or one over a day old, proves nothing.
+  `ALTER TABLE contacts ADD COLUMN IF NOT EXISTS session_at timestamptz`,
   // 064: back-to-back bookings (2026-11-16). Every clean-down to 0, and
   // visits not yet over lose theirs; once per database (clean-down.js).
   // Last, after every statement above that adds a service.

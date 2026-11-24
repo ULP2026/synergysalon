@@ -359,18 +359,26 @@ half-typed address is not a worse email, it is not an email yet.
 
 **Only the same session changes anything** (2026-11-25). A match by email or
 phone alone is not proof it is the same person, since anybody can type a
-client's address. A contact found by the session id is updated as typed; one
-found only by email or phone is linked to the booking and left exactly as it
-is (name, details, notes, source, session). "One person, one appointment" is
-one per session: `appointments.booked_session_id` (066, also in
-ensure-schema, read through `to_jsonb` because the endpoint can run first)
-records which survey session booked, and only that appointment is kept,
-moved or described in the reply (ref, stylist, time, calendar). The
-contact's other appointments (another session's, the desk's, Karen's, or
-from before 066) are never moved from the survey. Where none is this
-session's and the contact already has one at exactly the time asked, nothing
-is booked on top of it and nothing about it is replied. With no session id,
-nothing is moved or overwritten. `tests/enquiry-session-guard.integration.test.js`.
+client's address. A contact counts as the session's own only if its
+`session_id` matches and `contacts.session_at` (066) is under a day old:
+the survey once wrote the typed session id onto any contact whose email or
+phone matched, so an id with no `session_at` proves nothing. An owned
+contact is updated as typed (and `session_at` renewed); any other match is
+linked to the booking and left exactly as it is (name, details, notes,
+source, session). "One person, one appointment" is one per session:
+`appointments.booked_session_id` (066) records which survey session booked,
+the session's appointment is found by it alone (whichever contact it is
+on, so a guest whose details change mid-flow still moves it), and only
+that appointment is kept, moved or described in the reply (ref, stylist,
+time, calendar). The contact's other appointments (another session's, the
+desk's, Karen's, or from before 066) are never moved from the survey.
+Only an owned contact already booked at exactly the time asked is refused
+there, with the ordinary taken-slot words (`SLOT_UNAVAILABLE`); any other
+request goes through `createBooking` like any guest, so neither the answer
+nor its timing says whether a client has a visit then. The reply carries
+`saved` but no `contactId`. `/api/enquiry` runs `ensureSchema()` (memoized
+per process) before it relies on 066. With no session id, nothing is moved
+or overwritten. `tests/enquiry-session-guard.integration.test.js`.
 
 **An email must be able to receive mail** (2026-11-12, after a Nov 2 test
 booking to "...@gmail.conm" showed Sent). `emailProblem` in

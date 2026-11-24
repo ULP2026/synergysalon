@@ -5,3 +5,8 @@
 -- (api/enquiry.js). Bookings made at the desk, by Karen or before this
 -- column have none, and the survey never moves them. Also in ensure-schema.
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS booked_session_id text;
+-- When a survey session last wrote to the contact it owns. A session id
+-- already on a contact with no such time cannot be trusted (the survey once
+-- wrote one onto any contact whose email or phone was typed), so it is not
+-- taken as proof the contact is that session's; nor is one over a day old.
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS session_at timestamptz;

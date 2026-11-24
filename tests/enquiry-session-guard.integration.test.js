@@ -18,6 +18,7 @@ import { DateTime } from 'luxon';
 
 import { createBooking } from '../api/_lib/booking.js';
 import { pool, transaction } from '../api/_lib/db.js';
+import { ensureSchema } from '../api/_lib/ensure-schema.js';
 import enquiry from '../api/enquiry.js';
 
 const skip = process.env.DATABASE_URL ? false : 'DATABASE_URL is not set';
@@ -70,18 +71,20 @@ async function cleanup(db) {
 
 async function setup() {
   const db = pool();
+  await ensureSchema();
   await cleanup(db);
   const { rows: [tenant] } = await db.query("SELECT * FROM tenants WHERE slug = 'synergy'");
   return { db, tenant, day: thursday(tenant.timezone) };
 }
 
 const contactRow = async (db, id) => (await db.query(
-  'SELECT name, email, phone, notes, source, session_id FROM contacts WHERE id = $1::uuid', [id],
+  `SELECT name, email, phone, notes, source, session_id, session_at
+     FROM contacts WHERE id = $1::uuid`, [id],
 )).rows[0];
 
 const apptRow = async (db, ref) => (await db.query(
   `SELECT a.id, a.ref, a.starts_at, a.stylist_id, a.contact_id, a.status, s.name AS stylist_name,
-          to_jsonb(a) ->> 'booked_session_id' AS booked_session_id
+          a.booked_session_id
      FROM appointments a JOIN stylists s ON s.id = a.stylist_id WHERE a.ref = $1::text`, [ref],
 )).rows[0];
 
@@ -119,6 +122,8 @@ test('one guest in one session books once and moves their own appointment', { sk
     // The whole address: booked.
     const first = await survey(day, { ...guest, email: 'zz-guard-one@example.com' });
     assert.equal(first.status, 200);
+    assert.equal(first.body.saved, true);
+    assert.ok(!('contactId' in first.body), 'no record id in a public reply');
     assert.ok(first.body.ref, `booked as soon as there is enough to book with: ${JSON.stringify(first.body)}`);
     const made = await apptRow(db, first.body.ref);
     assert.equal(made.booked_session_id, sessionId, 'the booking knows which session made it');
@@ -142,6 +147,7 @@ test('one guest in one session books once and moves their own appointment', { sk
     assert.equal(contact.email, 'zz-guard-one@example.com', 'their own session fills their details in');
     assert.match(contact.notes, /fringe|Women's cut/);
     assert.equal(contact.session_id, sessionId);
+    assert.ok(contact.session_at, 'and when that session last wrote to it');
   } finally {
     await cleanup(db);
   }
@@ -269,7 +275,7 @@ test('with no session, a matched client is neither renamed nor moved', { skip },
     assert.equal(new Date(after.starts_at).getTime(), new Date(theirs.starts_at).getTime());
     assert.equal(after.stylist_id, theirs.stylist_id);
 
-    // Sent again, the same: not a second booking at that time.
+    // Sent again, the same: Dina is now busy then, so the diary refuses it.
     const count = (await bookedFor(db, theirs.contact_id)).length;
     const repeat = await survey(day, { ...anon, hour: 9, stylistSlug: 'dina' });
     assert.equal((await bookedFor(db, theirs.contact_id)).length, count, 'no duplicate');
@@ -313,6 +319,142 @@ test("a client's own visit reads exactly as a time somebody else took", { skip }
     assert.deepEqual(clientsOwn, taken, 'the two replies cannot be told apart');
     assertSaysNothingOf(clientsOwn.body, theirs);
     assert.equal((await bookedFor(db, theirs.contact_id)).length, 1, 'nothing booked on top of theirs');
+  } finally {
+    await cleanup(db);
+  }
+});
+
+test('another session books a free stylist at the time a client has a visit, as anyone would', { skip }, async () => {
+  const { db, tenant, day } = await setup();
+  try {
+    // The client has Kim at 3.
+    const desk = await transaction((c) => createBooking(c, tenant, {
+      serviceSlug: 'womens-cut', stylistSlug: 'kim', start: day.set({ hour: 15 }).toISO(),
+      guestName: 'ZZG Client Six', guestEmail: 'zz-guard-six@example.com',
+      guestPhone: '8135550160', channel: 'staff', minLeadMin: 0,
+    }));
+    const theirs = await apptRow(db, desk.ref);
+    const before = await contactRow(db, theirs.contact_id);
+
+    // A guest with nothing to do with anybody, for the shape of a normal reply.
+    const normal = await survey(day, {
+      sessionId: 'zzguard-normal-six', name: 'ZZG Normal Six',
+      email: 'zz-guard-normal-six@example.com', phone: '8135550161', hour: 9,
+    });
+    assert.ok(normal.body.ref);
+
+    const other = {
+      sessionId: 'zzguard-other-six', name: 'ZZG Somebody Else',
+      email: 'zz-guard-six@example.com', phone: '8135550162', hour: 15,
+    };
+    // With Kim, who is busy then: the diary's own refusal, as for anyone.
+    const kim = await survey(day, other);
+    assert.equal(kim.body.ref, null);
+    assert.equal(kim.body.bookingError, 'That time is not available. Please pick another.');
+
+    // With Dina, who is free then: booked like any guest.
+    const dina = await survey(day, { ...other, stylistSlug: 'dina' });
+    assert.equal(dina.status, 200);
+    assert.ok(dina.body.ref, `booked: ${JSON.stringify(dina.body)}`);
+    assert.notEqual(dina.body.ref, theirs.ref);
+    assert.deepEqual(Object.keys(dina.body).sort(), Object.keys(normal.body).sort(), 'a normal reply');
+    assert.equal(dina.body.bookingError, null);
+    const own = await apptRow(db, dina.body.ref);
+    assert.notEqual(own.stylist_id, theirs.stylist_id);
+    assert.equal(own.booked_session_id, other.sessionId);
+
+    const after = await apptRow(db, theirs.ref);
+    assert.equal(new Date(after.starts_at).getTime(), new Date(theirs.starts_at).getTime());
+    assert.equal(after.stylist_id, theirs.stylist_id);
+    assert.deepEqual(await contactRow(db, theirs.contact_id), before);
+  } finally {
+    await cleanup(db);
+  }
+});
+
+test('a session id already on a contact from before is not proof of anything', { skip }, async () => {
+  const { db, tenant, day } = await setup();
+  try {
+    const desk = await transaction((c) => createBooking(c, tenant, {
+      serviceSlug: 'womens-cut', stylistSlug: 'kim', start: day.set({ hour: 14 }).toISO(),
+      guestName: 'ZZG Client Seven', guestEmail: 'zz-guard-seven@example.com',
+      guestPhone: '8135550170', channel: 'staff', minLeadMin: 0,
+    }));
+    const theirs = await apptRow(db, desk.ref);
+    // A session id written onto the contact with no record of when, as the
+    // survey once did for anybody who typed a matching address.
+    const planted = 'zzguard-planted-seven';
+    await db.query('UPDATE contacts SET session_id = $2::text WHERE id = $1::uuid', [theirs.contact_id, planted]);
+    const before = await contactRow(db, theirs.contact_id);
+    assert.equal(before.session_at, null);
+
+    const asker = {
+      sessionId: planted, name: 'ZZG Somebody Else',
+      email: 'zz-guard-other-seven@example.com', phone: '8135550179', notes: 'changed',
+    };
+
+    // At the client's own time with their stylist: refused as for anyone,
+    // and nothing of their visit said.
+    const same = await survey(day, { ...asker, hour: 14 });
+    assert.equal(same.status, 200);
+    assert.equal(same.body.ref, null);
+    assertSaysNothingOf(same.body, theirs);
+    assert.deepEqual(await contactRow(db, theirs.contact_id), before, 'the contact is as it was');
+
+    // At another time: a booking of its own, and the client's does not move.
+    const reply = await survey(day, { ...asker, hour: 16, stylistSlug: 'dina' });
+    assert.ok(reply.body.ref);
+    assertSaysNothingOf(reply.body, theirs);
+    const after = await apptRow(db, theirs.ref);
+    assert.equal(new Date(after.starts_at).getTime(), new Date(theirs.starts_at).getTime(), 'not moved');
+    assert.equal(after.stylist_id, theirs.stylist_id);
+    assert.deepEqual(await contactRow(db, theirs.contact_id), before);
+  } finally {
+    await cleanup(db);
+  }
+});
+
+test("a session's booking moves with it after its details change", { skip }, async () => {
+  const { db, day } = await setup();
+  try {
+    // An existing client.
+    const client = await survey(day, {
+      sessionId: 'zzguard-client-eight', name: 'ZZG Client Eight',
+      email: 'zz-guard-eight@example.com', phone: '8135550180', hour: 9,
+    });
+    const theirs = await apptRow(db, client.body.ref);
+    const before = await contactRow(db, theirs.contact_id);
+
+    // A guest who first types that client's address, and books.
+    const sessionId = 'zzguard-guest-eight';
+    const guest = {
+      sessionId, name: 'ZZG Guest Eight', email: 'zz-guard-eight@example.com', phone: '8135550189', hour: 15,
+    };
+    const first = await survey(day, guest);
+    assert.ok(first.body.ref);
+    assert.equal((await apptRow(db, first.body.ref)).contact_id, theirs.contact_id, 'linked to the client');
+
+    // Then corrects their own details: a contact of their own now.
+    const own = { ...guest, email: 'zz-guard-guest-eight@example.com', phone: '8135550188' };
+    const corrected = await survey(day, own);
+    assert.equal(corrected.body.ref, first.body.ref, 'still their booking');
+    const { rows: [mine] } = await db.query('SELECT id FROM contacts WHERE session_id = $1::text', [sessionId]);
+    assert.ok(mine, 'a contact for this session');
+    assert.notEqual(mine.id, theirs.contact_id);
+
+    // And changes the time: the same booking moves.
+    const moved = await survey(day, { ...own, hour: 16 });
+    assert.equal(moved.body.ref, first.body.ref);
+    const { rows: session } = await db.query(
+      "SELECT ref, starts_at FROM appointments WHERE booked_session_id = $1::text AND status = 'booked'",
+      [sessionId],
+    );
+    assert.equal(session.length, 1, 'one appointment for the session');
+    assert.equal(new Date(session[0].starts_at).getTime(), day.set({ hour: 16 }).toMillis(), 'moved');
+
+    assert.equal(new Date((await apptRow(db, theirs.ref)).starts_at).getTime(),
+      new Date(theirs.starts_at).getTime(), "the client's has not moved");
+    assert.deepEqual(await contactRow(db, theirs.contact_id), before);
   } finally {
     await cleanup(db);
   }

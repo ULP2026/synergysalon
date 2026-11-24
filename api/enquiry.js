@@ -33,6 +33,7 @@ import { hasColumn, query, transaction } from './_lib/db.js';
 import { saveContactMessage, sendOptInConfirmation } from './_lib/contact-form.js';
 import { calendarUrl, sendConfirmation, sendContactNotice } from './_lib/email.js';
 import { emailProblem } from './_lib/email-check.js';
+import { ensureSchema } from './_lib/ensure-schema.js';
 import { mirrorToGoogle } from './_lib/google-mirror.js';
 import {
   HttpError, handler, json, readJson, requireString,
@@ -245,33 +246,47 @@ export default handler({
       .map((v) => serviceSlugFor(v)).filter((x) => x && x !== serviceSlug))];
     const start = startInstant(body.month, body.day, body.time, tenant.timezone);
 
+    // Which session booked an appointment, and when a session last wrote to
+    // its contact (066), decide what this request may touch, so they must
+    // exist before it runs rather than be guessed at. Once per warm
+    // function: ensureSchema keeps its promise for the life of the process.
+    await ensureSchema();
+
     const result = await transaction(async (client) => {
       // Who this is, in order of how much the answer can be trusted.
       //
       // The session id first, because it is the only identifier that does not
       // change while they type. Then email or phone, which is what matches a
       // guest who has booked before to the record they already have.
+      //
+      // A session id only counts with session_at: the survey once wrote the
+      // typed session id onto any contact whose email or phone matched, so an
+      // id with no record of when this code wrote it, or one over a day old,
+      // is not proof the contact is this session's.
       const { rows: found } = await client.query(
         `SELECT id, email, phone,
-                COALESCE($2::text <> '' AND session_id = $2::text, false) AS by_session
+                COALESCE($2::text <> '' AND session_id = $2::text
+                         AND session_at > now() - interval '24 hours', false) AS by_session
            FROM contacts
           WHERE tenant_id = $1::uuid
             AND (($2::text <> '' AND session_id = $2::text)
               OR ($3::text <> '' AND lower(email) = $3::text)
               OR ($4::text <> '' AND phone = $4::text))
-          ORDER BY COALESCE($2::text <> '' AND session_id = $2::text, false) DESC, created_at
+          ORDER BY by_session DESC, created_at
           LIMIT 1`,
         [tenant.id, sessionId, email, phone],
       );
 
       let contactId = found[0]?.id;
-      // Whether this contact is this session's own: found by the session id,
-      // or created just now with it. Only then may what was typed change it.
+      // Whether this contact is this session's own: found by the session id
+      // it was given here, or created just now with it. Only then may what
+      // was typed change it.
       let ownContact = Boolean(found[0]?.by_session);
       if (contactId && !ownContact) {
-        // Matched by email or phone alone, which anybody can type. The
-        // booking is linked to the client's record, but nothing on it is
-        // changed: not their name, details, notes, source or session.
+        // Matched by email or phone alone (or by a session id that proves
+        // nothing), which anybody can type. The booking is linked to the
+        // client's record, but nothing on it is changed: not their name,
+        // details, notes, source or session.
       } else if (contactId) {
         // Only overwrite a detail with one that is complete. Otherwise the
         // guest correcting a typo in their address would blank it on the way
@@ -282,6 +297,7 @@ export default handler({
                   email = CASE WHEN $3 <> '' THEN $3 ELSE email END,
                   phone = CASE WHEN $4 <> '' THEN $4 ELSE phone END,
                   session_id = COALESCE(NULLIF($6, ''), session_id),
+                  session_at = now(),
                   -- "How did you hear" is now the last question, asked after
                   -- the contact already exists, so fill the source in late.
                   source = CASE WHEN $7::text <> '' AND source = 'Website booking form'
@@ -296,8 +312,10 @@ export default handler({
         if (!email && !phone) return { contactId: null, booked: null };
 
         const { rows } = await client.query(
-          `INSERT INTO contacts (tenant_id, name, email, phone, source, notes, status, session_id)
-           VALUES ($1, $2, $3, $4, $5, $6, 'new', NULLIF($7, ''))
+          `INSERT INTO contacts (tenant_id, name, email, phone, source, notes, status,
+                                 session_id, session_at)
+           VALUES ($1, $2, $3, $4, $5, $6, 'new', NULLIF($7::text, ''),
+                   CASE WHEN $7::text <> '' THEN now() END)
            RETURNING id`,
           [tenant.id, name, email, phone,
             clean(body.heard, 60) || 'Website booking form', notesFrom(body), sessionId],
@@ -334,19 +352,17 @@ export default handler({
       // session's, the desk's, Karen's, or from before sessions were kept)
       // are never moved from here, and nothing about them is replied.
       //
-      // Read through to_jsonb, because this public endpoint can run before
-      // ensure-schema has added the column (066). Until it has, nothing
-      // records which session booked, so a contact this session owns is
-      // treated as before: its next appointment is this session's.
-      const trackSessions = await hasColumn('appointments', 'booked_session_id', client);
+      // Found by the session alone, whichever contact it is on: a guest
+      // whose details change mid-flow may now be matched to another record,
+      // and must still move the booking they made rather than make a second.
       let live = [];
-      if (sessionId && (trackSessions || ownContact)) {
+      if (sessionId) {
         ({ rows: live } = await client.query(
-          `SELECT id, ref, starts_at, stylist_id FROM appointments a
-            WHERE contact_id = $1::uuid AND status = 'booked' AND starts_at >= now()
-              AND (NOT $3::boolean OR to_jsonb(a) ->> 'booked_session_id' = $2::text)
+          `SELECT id, ref, starts_at, stylist_id FROM appointments
+            WHERE tenant_id = $1::uuid AND booked_session_id = $2::text
+              AND status = 'booked' AND starts_at >= now()
             ORDER BY created_at DESC LIMIT 1`,
-          [contactId, sessionId, trackSessions],
+          [tenant.id, sessionId],
         ));
       }
 
@@ -415,18 +431,21 @@ export default handler({
         }
       }
 
-      // Not this session's, but the same person at the very same time: not
-      // booked twice, and said nothing of, since it is not this session's to
-      // describe. The reply is word for word the one for a time somebody
-      // else has taken, so it does not tell whoever typed this address or
-      // number that the client has a visit at that moment.
-      const { rows: clash } = await client.query(
-        `SELECT 1 FROM appointments
-          WHERE contact_id = $1::uuid AND status = 'booked' AND starts_at = $2::timestamptz
-          LIMIT 1`,
-        [contactId, start.toISO()],
-      );
-      if (clash[0]) return { contactId, booked: null, bookingError: SLOT_UNAVAILABLE };
+      // The session's own contact, already booked at this very time some
+      // other way (at the desk, say): not booked twice. Only for a contact
+      // this session owns. For one matched by email or phone the request
+      // goes the way any guest's does, so neither its answer nor how long it
+      // takes says whether that client has a visit then; a stylist who
+      // really is taken is still refused by the diary itself.
+      if (ownContact) {
+        const { rows: clash } = await client.query(
+          `SELECT 1 FROM appointments
+            WHERE contact_id = $1::uuid AND status = 'booked' AND starts_at = $2::timestamptz
+            LIMIT 1`,
+          [contactId, start.toISO()],
+        );
+        if (clash[0]) return { contactId, booked: null, bookingError: SLOT_UNAVAILABLE };
+      }
 
       try {
         const appt = await createBooking(client, tenant, {
@@ -443,7 +462,7 @@ export default handler({
         });
         // Which session made it, so later saves from this session find it
         // and no other session's do.
-        if (sessionId && trackSessions) {
+        if (sessionId) {
           await client.query(
             'UPDATE appointments SET booked_session_id = $2::text WHERE id = $1::uuid',
             [appt.id, sessionId],
@@ -470,8 +489,10 @@ export default handler({
     const appt = result.booked
       || (result.already ? await bookingByRef(tenant.id, result.already).catch(() => null) : null);
     return json(res, 200, {
+      // Whether the lead was kept, but not its record's id: that would say
+      // which address or number is already a client, and nothing on the
+      // page needs it.
       saved: Boolean(result.contactId),
-      contactId: result.contactId,
       ref: result.booked?.ref ?? result.already ?? null,
       stylist: appt?.stylist_name ?? null,
       startsAt: appt?.starts_at ?? null,
