@@ -2790,6 +2790,12 @@ must stay that way: anything committed here is served publicly.
   said "Consultation first. Always."). Both are in the template: a new
   export undoes them.
 
+- **Online booking is paused again (2026-11-24, asked for)** until the
+  booking form's session guard (branch `enquiry-session-guard`) is live:
+  the pause block is back on all nine pages and `ONLINE_BOOKING = false`,
+  by reverting 590358c's pages and config. To reopen, revert this commit
+  once the guard is deployed.
+
 - **Online booking is live again (2026-11-06, asked for).** The
   `ss-booking-paused` block is gone from all nine pages and
   `ONLINE_BOOKING = true`, so every "Book" opens the real survey and the
