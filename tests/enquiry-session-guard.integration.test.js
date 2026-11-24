@@ -12,7 +12,7 @@
  * page calls it. Rows are named ZZG and removed before and after.
  */
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { after, before } from 'node:test';
 
 import { DateTime } from 'luxon';
 
@@ -22,6 +22,26 @@ import { ensureSchema } from '../api/_lib/ensure-schema.js';
 import enquiry, { setSessionColumnsReadyForTests } from '../api/enquiry.js';
 
 const skip = process.env.DATABASE_URL ? false : 'DATABASE_URL is not set';
+
+// The real handler sends the confirmation, texts and Google copies of every
+// booking these tests make. Without the keys each of those is skipped, so
+// nothing reaches Resend, Twilio or Google from a test; put back after.
+const SENDER_KEYS = [
+  'RESEND_API_KEY', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN',
+  'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'TOKEN_KEY',
+];
+const savedKeys = {};
+before(() => {
+  for (const k of SENDER_KEYS) {
+    savedKeys[k] = process.env[k];
+    delete process.env[k];
+  }
+});
+after(() => {
+  for (const k of SENDER_KEYS) {
+    if (savedKeys[k] !== undefined) process.env[k] = savedKeys[k];
+  }
+});
 
 function call(body) {
   return new Promise((resolve) => {
@@ -446,16 +466,30 @@ test("a session's booking moves with it after its details change", { skip }, asy
     const { rows: [mine] } = await db.query('SELECT id FROM contacts WHERE session_id = $1::text', [sessionId]);
     assert.ok(mine, 'a contact for this session');
     assert.notEqual(mine.id, theirs.contact_id);
+    // And the booking goes with them, off the client's record, before the
+    // time has even changed.
+    const relinked = await apptRow(db, first.body.ref);
+    assert.equal(relinked.contact_id, mine.id, "on the session's own contact");
 
     // And changes the time: the same booking moves.
     const moved = await survey(day, { ...own, hour: 16 });
     assert.equal(moved.body.ref, first.body.ref);
     const { rows: session } = await db.query(
-      "SELECT ref, starts_at FROM appointments WHERE booked_session_id = $1::text AND status = 'booked'",
+      `SELECT ref, starts_at, contact_id, guest_name, guest_email, guest_phone FROM appointments
+        WHERE booked_session_id = $1::text AND status = 'booked'`,
       [sessionId],
     );
     assert.equal(session.length, 1, 'one appointment for the session');
     assert.equal(new Date(session[0].starts_at).getTime(), day.set({ hour: 16 }).toMillis(), 'moved');
+    assert.equal(session[0].contact_id, mine.id, "still on the session's own contact");
+    assert.equal(session[0].guest_email, 'zz-guard-guest-eight@example.com', 'with their own details');
+    assert.equal(session[0].guest_phone, '8135550188');
+    assert.equal(session[0].guest_name, 'ZZG Guest Eight');
+    const { rows: leftOnClient } = await db.query(
+      'SELECT 1 FROM appointments WHERE contact_id = $1::uuid AND booked_session_id = $2::text',
+      [theirs.contact_id, sessionId],
+    );
+    assert.equal(leftOnClient.length, 0, "nothing of this session's on the client's record");
 
     assert.equal(new Date((await apptRow(db, theirs.ref)).starts_at).getTime(),
       new Date(theirs.starts_at).getTime(), "the client's has not moved");

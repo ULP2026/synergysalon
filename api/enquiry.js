@@ -399,6 +399,37 @@ export default handler({
         ownContact = Boolean(sessionId);
       }
 
+      // This session's booking, made while it was matched to somebody else's
+      // record (they first typed a client's email, then their own): it goes
+      // with them once the session has a contact of its own, with the
+      // details they have given, whether or not the time changes too.
+      // Otherwise that client's reminders, history and Karen's lists would
+      // carry a visit that is not theirs.
+      if (ownContact && sessionId) {
+        const { rowCount: relinked } = await client.query(
+          `UPDATE appointments
+              SET contact_id = $3::uuid, guest_name = $4::text,
+                  guest_email = CASE WHEN $5::text <> '' THEN $5::text ELSE guest_email END,
+                  guest_phone = CASE WHEN $6::text <> '' THEN $6::text ELSE guest_phone END,
+                  updated_at = now()
+            WHERE tenant_id = $1::uuid AND booked_session_id = $2::text
+              AND status = 'booked' AND starts_at >= now()
+              AND contact_id IS DISTINCT FROM $3::uuid`,
+          [tenant.id, sessionId, contactId, name, email, phone],
+        );
+        if (relinked) {
+          // As createBooking marks whoever it books for.
+          await client.query(
+            `UPDATE contacts
+                SET status = CASE WHEN status IN ('new', 'contacted')
+                                  THEN 'booked'::contact_status ELSE status END,
+                    first_booked_at = COALESCE(first_booked_at, now()), updated_at = now()
+              WHERE id = $1::uuid`,
+            [contactId],
+          );
+        }
+      }
+
       // Book as soon as there is enough to book with, rather than waiting for
       // the wizard to say it has finished.
       //

@@ -369,7 +369,9 @@ linked to the booking and left exactly as it is (name, details, notes,
 source, session). "One person, one appointment" is one per session:
 `appointments.booked_session_id` (066) records which survey session booked,
 the session's appointment is found by it alone (whichever contact it is
-on, so a guest whose details change mid-flow still moves it), and only
+on, so a guest whose details change mid-flow still moves it; once the
+session owns a contact, a booking it made on somebody else's record moves
+onto its own, guest details included), and only
 that appointment is kept, moved or described in the reply (ref, stylist,
 time, calendar). The contact's other appointments (another session's, the
 desk's, Karen's, or from before 066) are never moved from the survey.
