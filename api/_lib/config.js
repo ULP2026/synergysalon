@@ -34,11 +34,9 @@ export const DEFAULT_TZ = 'America/New_York';
  * a guest through the whole survey before refusing them, or lets a cached
  * page through.
  */
-// Paused again on 2026-11-24 (asked for), with the pause block back on all
-// nine pages, until the booking form's session guard is live: a guest who
-// typed an existing client's email or phone could change that client's
-// booking. Turn back on in the same commit that removes the block again.
-export const ONLINE_BOOKING = false;
+// Back on 2026-11-06 (asked for: "make it live the booking in website"),
+// with the pause block removed from all nine pages in the same commit.
+export const ONLINE_BOOKING = true;
 
 /**
  * Whether clients see a booking's price: in their confirmation and the other
